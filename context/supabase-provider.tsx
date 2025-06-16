@@ -66,7 +66,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 	const router = useRouter();
 
 	// Fetch user profile
-	const fetchProfile = async (userId: string) => {
+	const fetchProfile = async (userId: string): Promise<Profile | null> => {
 		try {
 			const { data, error } = await supabase
 				.from('profiles')
@@ -74,7 +74,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
 				.eq('id', userId)
 				.single();
 
-			if (error) throw error;
+			if (error) {
+				console.error('Error fetching profile:', error);
+				return null;
+			}
+			
 			setProfile(data);
 			return data;
 		} catch (error) {
@@ -189,47 +193,91 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		await fetchProfile(user.id);
 	};
 
+	// Initialize auth state
 	useEffect(() => {
-		// Initialize auth state
-		supabase.auth.getSession().then(({ data: { session } }) => {
+		let isMounted = true;
+
+		const initializeAuth = async () => {
+			try {
+				const { data: { session }, error } = await supabase.auth.getSession();
+				
+				if (error) {
+					console.error('Error getting session:', error);
+					if (isMounted) {
+						setInitialized(true);
+					}
+					return;
+				}
+
+				if (session && isMounted) {
+					setSession(session);
+					setUser(session.user);
+					
+					// Wait for profile to load before marking as initialized
+					await fetchProfile(session.user.id);
+				}
+				
+				if (isMounted) {
+					setInitialized(true);
+				}
+			} catch (error) {
+				console.error('Error initializing auth:', error);
+				if (isMounted) {
+					setInitialized(true);
+				}
+			}
+		};
+
+		initializeAuth();
+
+		// Listen for auth changes
+		const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+			console.log('Auth state changed:', event, !!session);
+			
+			if (!isMounted) return;
+
 			if (session) {
 				setSession(session);
 				setUser(session.user);
-				fetchProfile(session.user.id);
-			}
-			setInitialized(true);
-		});
-
-		// Listen for auth changes
-		const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-			setSession(session);
-			if (session) {
-				setUser(session.user);
 				await fetchProfile(session.user.id);
 			} else {
+				setSession(null);
 				setUser(null);
 				setProfile(null);
 			}
 		});
 
 		return () => {
+			isMounted = false;
 			subscription.unsubscribe();
 		};
 	}, []);
 
+	// Handle navigation after initialization
 	useEffect(() => {
-		if (initialized) {
-			SplashScreen.hideAsync();
+		if (!initialized) return;
+
+		const handleNavigation = async () => {
+			await SplashScreen.hideAsync();
+			
 			if (session && profile) {
-				router.replace("/");
+				// User is authenticated and has profile
+				router.replace("/(protected)/(tabs)");
 			} else if (session && !profile) {
-				// Profile creation pending
-				router.replace("/profile-setup");
+				// User is authenticated but no profile (shouldn't happen with our flow)
+				console.warn('Session exists but no profile found');
+				router.replace("/welcome");
 			} else {
+				// No session - go to welcome
 				router.replace("/welcome");
 			}
-		}
-	}, [initialized, session, profile]);
+		};
+
+		// Small delay to prevent navigation race conditions
+		const timeoutId = setTimeout(handleNavigation, 100);
+		
+		return () => clearTimeout(timeoutId);
+	}, [initialized, session, profile, router]);
 
 	return (
 		<AuthContext.Provider

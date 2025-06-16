@@ -1,5 +1,4 @@
 import { Redirect, Stack } from "expo-router";
-
 import { useAuth } from "@/context/supabase-provider";
 
 export const unstable_settings = {
@@ -7,14 +6,21 @@ export const unstable_settings = {
 };
 
 export default function ProtectedLayout() {
-	const { initialized, session } = useAuth();
+	const { initialized, session, profile } = useAuth();
 
+	// Show nothing while initializing to prevent flashing
 	if (!initialized) {
 		return null;
 	}
 
+	// Redirect to welcome if no session
 	if (!session) {
 		return <Redirect href="/welcome" />;
+	}
+
+	// Wait for profile to load if we have a session
+	if (!profile) {
+		return null; // Could show a loading spinner here
 	}
 
 	return (
