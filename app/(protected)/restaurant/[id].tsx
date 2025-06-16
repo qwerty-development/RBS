@@ -918,7 +918,7 @@ export default function RestaurantDetailsScreen() {
                             source={
                               review.user.avatar_url
                                 ? { uri: review.user.avatar_url }
-                                : require("@/assets/default-avatar.png")
+                                : require("@/assets/default-avatar.jpeg")
                             }
                             className="w-10 h-10 rounded-full"
                             contentFit="cover"

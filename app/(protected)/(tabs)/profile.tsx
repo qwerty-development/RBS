@@ -484,7 +484,7 @@ export default function ProfileScreen() {
                 source={
                   profile?.avatar_url
                     ? { uri: profile.avatar_url }
-                    : require("@/assets/default-avatar.png")
+                    : require("@/assets/default-avatar.jpeg")
                 }
                 className="w-24 h-24 rounded-full"
                 contentFit="cover"
