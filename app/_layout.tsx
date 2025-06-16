@@ -1,13 +1,23 @@
 import "../global.css";
-
 import { Stack } from "expo-router";
-
 import { AuthProvider } from "@/context/supabase-provider";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
-
+import { View, ActivityIndicator,Text } from "react-native";
+import { useAuth } from "@/context/supabase-provider";
 export default function AppLayout() {
 	const { colorScheme } = useColorScheme();
+	const { initialized, session, profile } = useAuth();
+
+    // Show loading while initializing
+    if (!initialized) {
+        return (
+            <View className="flex-1 items-center justify-center bg-background">
+                <ActivityIndicator size="large" />
+                <Text className="mt-4">Loading...</Text>
+            </View>
+        );
+    }
 
 	return (
 		<AuthProvider>
@@ -56,3 +66,5 @@ export default function AppLayout() {
 		</AuthProvider>
 	);
 }
+
+

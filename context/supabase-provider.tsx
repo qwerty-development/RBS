@@ -203,25 +203,22 @@ export function AuthProvider({ children }: PropsWithChildren) {
 				
 				if (error) {
 					console.error('Error getting session:', error);
-					if (isMounted) {
-						setInitialized(true);
-					}
-					return;
-				}
-
-				if (session && isMounted) {
+				} else if (session && isMounted) {
 					setSession(session);
 					setUser(session.user);
 					
-					// Wait for profile to load before marking as initialized
-					await fetchProfile(session.user.id);
-				}
-				
-				if (isMounted) {
-					setInitialized(true);
+					// Try to fetch profile, but don't block initialization
+					try {
+						await fetchProfile(session.user.id);
+					} catch (profileError) {
+						console.error('Error fetching profile during initialization:', profileError);
+						// Continue with initialization even if profile fetch fails
+					}
 				}
 			} catch (error) {
 				console.error('Error initializing auth:', error);
+			} finally {
+				// Always set initialized to true, regardless of success/failure
 				if (isMounted) {
 					setInitialized(true);
 				}
@@ -239,7 +236,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
 			if (session) {
 				setSession(session);
 				setUser(session.user);
-				await fetchProfile(session.user.id);
+				// Don't await this to prevent blocking
+				fetchProfile(session.user.id).catch(error => {
+					console.error('Error fetching profile on auth change:', error);
+				});
 			} else {
 				setSession(null);
 				setUser(null);
@@ -258,15 +258,31 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		if (!initialized) return;
 
 		const handleNavigation = async () => {
-			await SplashScreen.hideAsync();
+			try {
+				await SplashScreen.hideAsync();
+			} catch (error) {
+				console.error('Error hiding splash screen:', error);
+			}
 			
-			if (session && profile) {
-				// User is authenticated and has profile
-				router.replace("/(protected)/(tabs)");
-			} else if (session && !profile) {
-				// User is authenticated but no profile (shouldn't happen with our flow)
-				console.warn('Session exists but no profile found');
-				router.replace("/welcome");
+			if (session) {
+				if (profile) {
+					// User is authenticated and has profile
+					router.replace("/(protected)/(tabs)");
+				} else {
+					// User is authenticated but no profile - this can happen if profile fetch failed
+					// Try to fetch profile again or redirect to profile creation
+					console.warn('Session exists but no profile found, attempting to fetch...');
+					const fetchedProfile = await fetchProfile(session.user.id);
+					
+					if (fetchedProfile) {
+						router.replace("/(protected)/(tabs)");
+					} else {
+						// Profile fetch failed, but user is authenticated - handle gracefully
+						console.error('Could not fetch profile for authenticated user');
+						// You might want to redirect to a profile creation screen or sign out
+						router.replace("/welcome");
+					}
+				}
 			} else {
 				// No session - go to welcome
 				router.replace("/welcome");
