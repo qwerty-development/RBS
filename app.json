@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "booklet",
-    "slug": "booklet",
+    "name": "Booklet",
+    "slug": "Booklet",
     "scheme": "qwerty-booklet",
     "version": "1.0.0",
     "orientation": "portrait",
