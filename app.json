@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "ExpoSupabaseStarter",
-    "slug": "ExpoSupabaseStarter",
-    "scheme": "expo-supabase-starter",
+    "name": "booklet",
+    "slug": "booklet",
+    "scheme": "qwerty-booklet",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -30,7 +30,7 @@
         "dark": "./assets/icon-dark.png",
         "light": "./assets/icon.png"
       },
-      "bundleIdentifier": "com.flemingvincent.ExpoSupabaseStarter"
+      "bundleIdentifier": "com.notqwerty.booklet"
     },
     "android": {
       "adaptiveIcon": {
