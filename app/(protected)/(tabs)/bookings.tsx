@@ -27,6 +27,7 @@ import {
   Navigation,
   Share2,
   Copy,
+  Info,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
@@ -154,12 +155,29 @@ export default function BookingsScreen() {
     }
   }, [profile?.id]);
 
-  // 4. Booking Actions
-  const cancelBooking = useCallback(async (bookingId: string) => {
-    // 4.1 Confirmation dialog
+  // 4. Navigation Functions
+  const navigateToBookingDetails = useCallback((bookingId: string) => {
+    router.push({
+      pathname: "/booking/[id]",
+      params: { id: bookingId },
+    });
+  }, [router]);
+
+  const navigateToRestaurant = useCallback((restaurantId: string) => {
+    router.push({
+      pathname: "/restaurant/[id]",
+      params: { id: restaurantId },
+    });
+  }, [router]);
+
+  // 5. Quick Actions (for immediate access from the list)
+  const quickCancelBooking = useCallback(async (bookingId: string, event: any) => {
+    // Stop event propagation to prevent navigating to booking details
+    event.stopPropagation();
+    
     Alert.alert(
       "Cancel Booking",
-      "Are you sure you want to cancel this booking? This action cannot be undone.",
+      "Are you sure you want to cancel this booking?",
       [
         { text: "No", style: "cancel" },
         {
@@ -169,7 +187,6 @@ export default function BookingsScreen() {
             setProcessingBookingId(bookingId);
             
             try {
-              // 4.2 Update booking status
               const { error } = await supabase
                 .from("bookings")
                 .update({ 
@@ -180,14 +197,11 @@ export default function BookingsScreen() {
               
               if (error) throw error;
               
-              // 4.3 Haptic feedback
               await Haptics.notificationAsync(
                 Haptics.NotificationFeedbackType.Success
               );
               
-              // 4.4 Refresh bookings
               fetchBookings();
-              
               Alert.alert("Success", "Your booking has been cancelled");
             } catch (error) {
               console.error("Error cancelling booking:", error);
@@ -201,8 +215,9 @@ export default function BookingsScreen() {
     );
   }, [fetchBookings]);
 
-  // 5. Communication Actions
-  const callRestaurant = useCallback(async (phoneNumber: string) => {
+  const quickCallRestaurant = useCallback(async (phoneNumber: string, event: any) => {
+    event.stopPropagation();
+    
     const url = `tel:${phoneNumber}`;
     const canOpen = await Linking.canOpenURL(url);
     
@@ -213,35 +228,36 @@ export default function BookingsScreen() {
     }
   }, []);
 
-  const messageRestaurant = useCallback(async (whatsappNumber: string, bookingDetails: Booking) => {
-    // 5.1 Format WhatsApp message with booking details
-    const message = encodeURIComponent(
-      `Hi! I have a booking at ${bookingDetails.restaurant.name} on ${new Date(
-        bookingDetails.booking_time
-      ).toLocaleDateString()} at ${new Date(
-        bookingDetails.booking_time
-      ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} for ${
-        bookingDetails.party_size
-      } people. Confirmation code: ${bookingDetails.confirmation_code}`
-    );
+  const openDirections = useCallback(async (restaurant: Database["public"]["Tables"]["restaurants"]["Row"], event: any) => {
+    event.stopPropagation();
     
-    const url = `whatsapp://send?phone=${whatsappNumber}&text=${message}`;
-    const canOpen = await Linking.canOpenURL(url);
-    
-    if (canOpen) {
-      await Linking.openURL(url);
-    } else {
-      Alert.alert("Error", "WhatsApp is not installed");
+    // Extract coordinates from PostGIS geography type
+    let coords = null;
+    if (restaurant.location) {
+      if (typeof restaurant.location === 'string' && restaurant.location.startsWith('POINT(')) {
+        const coordsMatch = restaurant.location.match(/POINT\(([^)]+)\)/);
+        if (coordsMatch && coordsMatch[1]) {
+          const [lng, lat] = coordsMatch[1].split(' ').map(Number);
+          coords = { latitude: lat, longitude: lng };
+        }
+      } else if (restaurant.location.coordinates && Array.isArray(restaurant.location.coordinates)) {
+        const [lng, lat] = restaurant.location.coordinates;
+        coords = { latitude: lat, longitude: lng };
+      } else if (restaurant.location.lat && restaurant.location.lng) {
+        coords = { latitude: restaurant.location.lat, longitude: restaurant.location.lng };
+      }
     }
-  }, []);
-
-  // 6. Navigation Actions
-  const openDirections = useCallback(async (restaurant: Database["public"]["Tables"]["restaurants"]["Row"]) => {
+    
+    if (!coords) {
+      Alert.alert("Error", "Location data not available");
+      return;
+    }
+    
     const scheme = Platform.select({
       ios: "maps:0,0?q=",
       android: "geo:0,0?q=",
     });
-    const latLng = `${restaurant.location.lat},${restaurant.location.lng}`;
+    const latLng = `${coords.latitude},${coords.longitude}`;
     const label = restaurant.name;
     const url = Platform.select({
       ios: `${scheme}${label}@${latLng}`,
@@ -253,60 +269,15 @@ export default function BookingsScreen() {
     }
   }, []);
 
-  // 7. Sharing & Clipboard Actions
-  const shareBooking = useCallback(async (booking: Booking) => {
-    const shareMessage = `I have a reservation at ${booking.restaurant.name} on ${new Date(
-      booking.booking_time
-    ).toLocaleDateString()} at ${new Date(
-      booking.booking_time
-    ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} for ${
-      booking.party_size
-    } people.`;
+  const copyConfirmationCode = useCallback(async (code: string, event: any) => {
+    event.stopPropagation();
     
-    // Implementation depends on expo-sharing
-    Alert.alert("Share", shareMessage);
-  }, []);
-
-  const copyConfirmationCode = useCallback(async (code: string) => {
     await Clipboard.setStringAsync(code);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert("Copied!", `Confirmation code ${code} copied to clipboard`);
   }, []);
 
-  // 8. Review Navigation
-  const navigateToReview = useCallback((booking: Booking) => {
-    router.push({
-      pathname: "/review/create",
-      params: {
-        bookingId: booking.id,
-        restaurantId: booking.restaurant_id,
-        restaurantName: booking.restaurant.name,
-      },
-    });
-  }, [router]);
-
-  // 9. Rebooking Action
-  const bookAgain = useCallback((booking: Booking) => {
-    router.push({
-      pathname: "/booking/create",
-      params: {
-        restaurantId: booking.restaurant_id,
-        restaurantName: booking.restaurant.name,
-        partySize: booking.party_size.toString(),
-        quickBook: "true",
-      },
-    });
-  }, [router]);
-
-  // 10. Restaurant Details Navigation
-  const navigateToRestaurant = useCallback((restaurantId: string) => {
-    router.push({
-      pathname: "/restaurant/[id]",
-      params: { id: restaurantId },
-    });
-  }, [router]);
-
-  // 11. Lifecycle Management
+  // 6. Lifecycle Management
   useEffect(() => {
     if (!hasInitialLoad.current && profile) {
       fetchBookings();
@@ -314,13 +285,13 @@ export default function BookingsScreen() {
     }
   }, [profile, fetchBookings]);
 
-  // 12. Refresh Handler
+  // 7. Refresh Handler
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     fetchBookings();
   }, [fetchBookings]);
 
-  // 13. Booking Card Component
+  // 8. Booking Card Component
   const BookingCard = ({ booking, isPast }: { booking: Booking; isPast: boolean }) => {
     const statusConfig = BOOKING_STATUS_CONFIG[booking.status];
     const StatusIcon = statusConfig.icon;
@@ -329,7 +300,7 @@ export default function BookingsScreen() {
     const isTomorrow = bookingDate.toDateString() === 
       new Date(Date.now() + 24 * 60 * 60 * 1000).toDateString();
     
-    // 13.1 Check if review exists
+    // 8.1 Check if review exists
     const [hasReview, setHasReview] = useState(false);
     
     useEffect(() => {
@@ -349,10 +320,10 @@ export default function BookingsScreen() {
     
     return (
       <Pressable
-        onPress={() => navigateToRestaurant(booking.restaurant_id)}
+        onPress={() => navigateToBookingDetails(booking.id)}
         className="bg-card rounded-xl overflow-hidden mb-4 border border-border shadow-sm"
       >
-        {/* 13.2 Restaurant Header */}
+        {/* 8.2 Restaurant Header */}
         <View className="flex-row p-4">
           <Image
             source={{ uri: booking.restaurant.main_image_url }}
@@ -367,10 +338,22 @@ export default function BookingsScreen() {
                   {booking.restaurant.cuisine_type}
                 </P>
               </View>
-              <ChevronRight size={20} color="#666" />
+              <View className="flex-row items-center gap-2">
+                <Pressable
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    navigateToRestaurant(booking.restaurant_id);
+                  }}
+                  className="p-1"
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Info size={16} color="#3b82f6" />
+                </Pressable>
+                <ChevronRight size={20} color="#666" />
+              </View>
             </View>
             
-            {/* 13.3 Status Badge */}
+            {/* 8.3 Status Badge */}
             <View className="flex-row items-center gap-2 mt-2">
               <StatusIcon size={16} color={statusConfig.color} />
               <Text
@@ -383,7 +366,7 @@ export default function BookingsScreen() {
           </View>
         </View>
         
-        {/* 13.4 Booking Details */}
+        {/* 8.4 Booking Details */}
         <View className="px-4 pb-4">
           <View className="bg-muted/50 rounded-lg p-3 mb-3">
             <View className="flex-row justify-between items-center mb-2">
@@ -412,10 +395,11 @@ export default function BookingsScreen() {
                 </Text>
               </View>
               
-              {/* 13.5 Confirmation Code */}
+              {/* 8.5 Confirmation Code */}
               <Pressable
-                onPress={() => copyConfirmationCode(booking.confirmation_code)}
+                onPress={(e) => copyConfirmationCode(booking.confirmation_code, e)}
                 className="flex-row items-center gap-2 bg-background px-2 py-1 rounded border border-border"
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Copy size={14} color="#666" />
                 <Text className="text-sm font-mono font-medium">
@@ -425,7 +409,7 @@ export default function BookingsScreen() {
             </View>
           </View>
           
-          {/* 13.6 Special Requests / Notes */}
+          {/* 8.6 Special Requests / Notes Preview */}
           {(booking.special_requests || booking.occasion) && (
             <View className="bg-muted/30 rounded-lg p-3 mb-3">
               {booking.occasion && (
@@ -434,7 +418,7 @@ export default function BookingsScreen() {
                 </Text>
               )}
               {booking.special_requests && (
-                <Text className="text-sm">
+                <Text className="text-sm" numberOfLines={2}>
                   <Text className="font-medium">Special Requests:</Text>{" "}
                   {booking.special_requests}
                 </Text>
@@ -442,20 +426,20 @@ export default function BookingsScreen() {
             </View>
           )}
           
-          {/* 13.7 Action Buttons */}
-          <View className="gap-3">
-            {/* Quick Action Buttons Row */}
+          {/* 8.7 Quick Action Buttons */}
+          <View className="flex-row gap-2">
+            {/* Quick Actions for Upcoming Bookings */}
             {!isPast && booking.status === "confirmed" && (
-              <View className="flex-row gap-2">
+              <>
                 <Button
                   size="sm"
                   variant="outline"
-                  onPress={() => openDirections(booking.restaurant)}
+                  onPress={(e) => openDirections(booking.restaurant, e)}
                   className="flex-1"
                 >
                   <View className="flex-row items-center gap-1">
-                    <Navigation size={16} color="#3b82f6" />
-                    <Text className="text-sm">Directions</Text>
+                    <Navigation size={14} color="#3b82f6" />
+                    <Text className="text-xs">Directions</Text>
                   </View>
                 </Button>
                 
@@ -463,39 +447,20 @@ export default function BookingsScreen() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onPress={() => callRestaurant(booking.restaurant.phone_number!)}
+                    onPress={(e) => quickCallRestaurant(booking.restaurant.phone_number!, e)}
                     className="flex-1"
                   >
                     <View className="flex-row items-center gap-1">
-                      <Phone size={16} color="#10b981" />
-                      <Text className="text-sm">Call</Text>
+                      <Phone size={14} color="#10b981" />
+                      <Text className="text-xs">Call</Text>
                     </View>
                   </Button>
                 )}
                 
-                {booking.restaurant.whatsapp_number && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onPress={() => messageRestaurant(booking.restaurant.whatsapp_number!, booking)}
-                    className="flex-1"
-                  >
-                    <View className="flex-row items-center gap-1">
-                      <MessageCircle size={16} color="#22c55e" />
-                      <Text className="text-sm">WhatsApp</Text>
-                    </View>
-                  </Button>
-                )}
-              </View>
-            )}
-            
-            {/* Main Action Buttons Row */}
-            <View className="flex-row gap-2">
-              {!isPast && (booking.status === "pending" || booking.status === "confirmed") && (
                 <Button
                   size="sm"
                   variant="destructive"
-                  onPress={() => cancelBooking(booking.id)}
+                  onPress={(e) => quickCancelBooking(booking.id, e)}
                   disabled={processingBookingId === booking.id}
                   className="flex-1"
                 >
@@ -503,57 +468,99 @@ export default function BookingsScreen() {
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
                     <View className="flex-row items-center gap-1">
-                      <XCircle size={16} color="#fff" />
-                      <Text className="text-sm text-white">Cancel</Text>
+                      <XCircle size={14} color="#fff" />
+                      <Text className="text-xs text-white">Cancel</Text>
                     </View>
                   )}
                 </Button>
-              )}
-              
-              {isPast && booking.status === "completed" && !hasReview && (
-                <Button
-                  size="sm"
-                  variant="default"
-                  onPress={() => navigateToReview(booking)}
-                  className="flex-1"
-                >
+              </>
+            )}
+            
+            {/* Quick Actions for Pending Bookings */}
+            {!isPast && booking.status === "pending" && (
+              <Button
+                size="sm"
+                variant="destructive"
+                onPress={(e) => quickCancelBooking(booking.id, e)}
+                disabled={processingBookingId === booking.id}
+                className="w-full"
+              >
+                {processingBookingId === booking.id ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
                   <View className="flex-row items-center gap-1">
-                    <Star size={16} color="#fff" />
-                    <Text className="text-sm text-white">Rate Experience</Text>
+                    <XCircle size={14} color="#fff" />
+                    <Text className="text-sm text-white">Cancel Booking</Text>
                   </View>
-                </Button>
-              )}
-              
-              {isPast && (
+                )}
+              </Button>
+            )}
+            
+            {/* Actions for Past Bookings */}
+            {isPast && (
+              <>
+                {booking.status === "completed" && !hasReview && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      router.push({
+                        pathname: "/review/create",
+                        params: {
+                          bookingId: booking.id,
+                          restaurantId: booking.restaurant_id,
+                          restaurantName: booking.restaurant.name,
+                        },
+                      });
+                    }}
+                    className="flex-1"
+                  >
+                    <View className="flex-row items-center gap-1">
+                      <Star size={14} color="#fff" />
+                      <Text className="text-xs text-white">Rate</Text>
+                    </View>
+                  </Button>
+                )}
+                
                 <Button
                   size="sm"
                   variant="secondary"
-                  onPress={() => bookAgain(booking)}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    router.push({
+                      pathname: "/booking/create",
+                      params: {
+                        restaurantId: booking.restaurant_id,
+                        restaurantName: booking.restaurant.name,
+                        partySize: booking.party_size.toString(),
+                        quickBook: "true",
+                      },
+                    });
+                  }}
                   className="flex-1"
                 >
                   <View className="flex-row items-center gap-1">
-                    <Calendar size={16} color="#000" />
-                    <Text className="text-sm">Book Again</Text>
+                    <Calendar size={14} color="#000" />
+                    <Text className="text-xs">Book Again</Text>
                   </View>
                 </Button>
-              )}
-              
-              <Button
-                size="sm"
-                variant="ghost"
-                onPress={() => shareBooking(booking)}
-                className="px-4"
-              >
-                <Share2 size={16} color="#666" />
-              </Button>
-            </View>
+              </>
+            )}
+          </View>
+          
+          {/* 8.8 Tap for Details Hint */}
+          <View className="mt-3 pt-3 border-t border-border">
+            <Text className="text-xs text-center text-muted-foreground">
+              Tap for full booking details
+            </Text>
           </View>
         </View>
       </Pressable>
     );
   };
 
-  // 14. Empty State Components
+  // 9. Empty State Components
   const EmptyUpcoming = () => (
     <View className="flex-1 items-center justify-center py-20">
       <Calendar size={64} color="#666" strokeWidth={1} />
@@ -581,7 +588,7 @@ export default function BookingsScreen() {
     </View>
   );
 
-  // 15. Tab Component
+  // 10. Tab Component
   const TabButton = ({ 
     title, 
     isActive, 
@@ -626,7 +633,7 @@ export default function BookingsScreen() {
     </Pressable>
   );
 
-  // 16. Loading State
+  // 11. Loading State
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-background">
@@ -637,15 +644,18 @@ export default function BookingsScreen() {
     );
   }
 
-  // 17. Main Render
+  // 12. Main Render
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      {/* 17.1 Header */}
+      {/* 12.1 Header */}
       <View className="px-4 pt-4 pb-2">
         <H2 className="text-2xl">My Bookings</H2>
+        <Muted className="text-sm mt-1">
+          Tap any booking for full details and options
+        </Muted>
       </View>
       
-      {/* 17.2 Tabs */}
+      {/* 12.2 Tabs */}
       <View className="flex-row border-b border-border bg-background">
         <TabButton
           title="Upcoming"
@@ -661,7 +671,7 @@ export default function BookingsScreen() {
         />
       </View>
       
-      {/* 17.3 Content */}
+      {/* 12.3 Content */}
       <FlatList
         ref={flatListRef}
         data={activeTab === "upcoming" ? bookings.upcoming : bookings.past}
