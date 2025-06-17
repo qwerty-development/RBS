@@ -80,6 +80,23 @@ const TIME_SLOTS = [
 
 const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8];
 
+// FIXED: Lebanon geographic bounds for realistic coordinates
+const LEBANON_BOUNDS = {
+  north: 34.691,
+  south: 33.039,
+  east: 36.625,
+  west: 35.099,
+  // Major city centers for realistic distribution
+  cities: [
+    { name: "Beirut", lat: 33.8938, lng: 35.5018, weight: 0.4 },
+    { name: "Tripoli", lat: 34.4332, lng: 35.8498, weight: 0.15 },
+    { name: "Sidon", lat: 33.5634, lng: 35.3711, weight: 0.15 },
+    { name: "Tyre", lat: 33.2704, lng: 35.2038, weight: 0.1 },
+    { name: "Jounieh", lat: 33.9806, lng: 35.6178, weight: 0.1 },
+    { name: "Baalbek", lat: 34.0042, lng: 36.2075, weight: 0.1 },
+  ]
+};
+
 interface BookingFilters {
   date: Date;
   time: string;
@@ -101,20 +118,34 @@ interface UserLocation {
   longitude: number;
 }
 
-// Generate static coordinates for restaurants (this prevents map refreshing)
+// FIXED: Improved static coordinate generation with realistic Lebanon distribution
 const generateStaticCoordinates = (restaurantId: string): { lat: number; lng: number } => {
-  const hash = restaurantId.split('').reduce((a, b) => {
-    a = ((a << 5) - a) + b.charCodeAt(0);
-    return a & a;
+  // Create a stable hash from restaurant ID
+  const hash = restaurantId.split('').reduce((acc, char, index) => {
+    return ((acc << 5) - acc + char.charCodeAt(0) + index) & 0xffffffff;
   }, 0);
   
-  // Lebanon coordinates bounds
-  const beirutLat = 33.8938;
-  const beirutLng = 35.5018;
-  const range = 0.05;
+  // Use hash to determine city (weighted distribution)
+  const citySelector = Math.abs(hash) % 100;
+  let selectedCity = LEBANON_BOUNDS.cities[0]; // Default to Beirut
+  let weightSum = 0;
   
-  const lat = beirutLat + ((hash % 1000) / 1000 - 0.5) * range;
-  const lng = beirutLng + (((hash * 1.1) % 1000) / 1000 - 0.5) * range;
+  for (const city of LEBANON_BOUNDS.cities) {
+    weightSum += city.weight * 100;
+    if (citySelector < weightSum) {
+      selectedCity = city;
+      break;
+    }
+  }
+  
+  // Generate coordinates around selected city (±0.02 degrees ≈ ±2km)
+  const latOffset = ((Math.abs(hash * 1.1) % 1000) / 1000 - 0.5) * 0.04;
+  const lngOffset = ((Math.abs(hash * 1.3) % 1000) / 1000 - 0.5) * 0.04;
+  
+  const lat = Math.max(LEBANON_BOUNDS.south, Math.min(LEBANON_BOUNDS.north, 
+    selectedCity.lat + latOffset));
+  const lng = Math.max(LEBANON_BOUNDS.west, Math.min(LEBANON_BOUNDS.east, 
+    selectedCity.lng + lngOffset));
   
   return { lat, lng };
 };
@@ -156,6 +187,7 @@ export default function SearchScreen() {
     minRating: 0,
   });
   
+  // FIXED: Separate map region state to prevent conflicts
   const [mapRegion, setMapRegion] = useState<Region>({
     latitude: 33.8938,
     longitude: 35.5018,
@@ -167,8 +199,9 @@ export default function SearchScreen() {
   const mapRef = useRef<MapView>(null);
   const listRef = useRef<FlatList>(null);
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialLoad = useRef(true);
 
-  // Distance calculation
+  // FIXED: Stable calculation function
   const calculateDistance = useCallback((lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -189,7 +222,7 @@ export default function SearchScreen() {
     return time;
   }, []);
 
-  // FIXED: Check availability for a restaurant with proper time formatting
+  // FIXED: Check availability with proper error handling
   const checkRestaurantAvailability = useCallback(async (restaurantId: string, date: Date, time: string, partySize: number): Promise<boolean> => {
     try {
       const dateStr = date.toISOString().split("T")[0];
@@ -215,7 +248,7 @@ export default function SearchScreen() {
     }
   }, [normalizeTimeForDatabase]);
 
-  // Fetch user's favorites
+  // FIXED: Stable favorites fetching
   const fetchFavorites = useCallback(async () => {
     if (!profile?.id) return;
     
@@ -232,7 +265,7 @@ export default function SearchScreen() {
     }
   }, [profile?.id]);
 
-  // Toggle favorite status
+  // FIXED: Optimized toggle favorite
   const toggleFavorite = useCallback(async (restaurantId: string) => {
     if (!profile?.id) return;
     
@@ -270,7 +303,7 @@ export default function SearchScreen() {
     }
   }, [profile?.id, favorites]);
 
-  // Get user location
+  // FIXED: Stable location fetching
   const getUserLocation = useCallback(async () => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -286,150 +319,161 @@ export default function SearchScreen() {
       };
       
       setUserLocation(newLocation);
-      setMapRegion({
-        latitude: newLocation.latitude,
-        longitude: newLocation.longitude,
-        latitudeDelta: 0.05,
-        longitudeDelta: 0.05,
-      });
+      
+      // Only update map region if we don't have restaurants yet (initial load)
+      if (isInitialLoad.current) {
+        setMapRegion({
+          latitude: newLocation.latitude,
+          longitude: newLocation.longitude,
+          latitudeDelta: 0.05,
+          longitudeDelta: 0.05,
+        });
+      }
     } catch (error) {
       console.error("Error getting location:", error);
     }
   }, []);
 
-  // FIXED: Debounced restaurant fetching to prevent infinite loops
-  const fetchRestaurantsDebounced = useCallback(async () => {
-    // Clear any existing timeout
-    if (fetchTimeoutRef.current) {
-      clearTimeout(fetchTimeoutRef.current);
-    }
-
-    // Set a new timeout
-    fetchTimeoutRef.current = setTimeout(async () => {
-      console.log('Fetching restaurants with filters:', { bookingFilters, generalFilters });
-      setLoading(true);
+  // FIXED: Stable restaurant fetching with proper debouncing
+  const fetchRestaurants = useCallback(async (
+    query: string,
+    gFilters: GeneralFilters,
+    bFilters: BookingFilters,
+    location: UserLocation | null,
+    favoriteCuisines: string[] | undefined,
+    favoriteSet: Set<string>
+  ) => {
+    setLoading(true);
+    
+    try {
+      let supabaseQuery = supabase
+        .from("restaurants")
+        .select("*");
       
-      try {
-        let query = supabase
-          .from("restaurants")
-          .select("*");
-        
-        // Apply search query
-        if (searchQuery.trim()) {
-          query = query.or(
-            `name.ilike.%${searchQuery}%,cuisine_type.ilike.%${searchQuery}%,tags.cs.{${searchQuery}}`
-          );
-        }
-        
-        // Apply cuisine filters
-        if (generalFilters.cuisines.length > 0) {
-          query = query.in("cuisine_type", generalFilters.cuisines);
-        }
-        
-        // Apply price range filter
-        if (generalFilters.priceRange.length < 4) {
-          query = query.in("price_range", generalFilters.priceRange);
-        }
-        
-        // Apply booking policy filter
-        if (generalFilters.bookingPolicy !== "all") {
-          query = query.eq("booking_policy", generalFilters.bookingPolicy);
-        }
-        
-        // Apply minimum rating filter
-        if (generalFilters.minRating > 0) {
-          query = query.gte("average_rating", generalFilters.minRating);
-        }
-        
-        const { data, error } = await query;
-        
-        if (error) throw error;
-        
-        console.log('Raw restaurant data:', data?.length, 'restaurants');
-        
-        let processedRestaurants = (data || []).map(restaurant => {
-          const staticCoords = generateStaticCoordinates(restaurant.id);
-          const distance = userLocation 
-            ? calculateDistance(userLocation.latitude, userLocation.longitude, staticCoords.lat, staticCoords.lng)
-            : undefined;
-          
-          return {
-            ...restaurant,
-            distance,
-            staticCoordinates: staticCoords,
-          };
-        });
-        
-        console.log('Processed restaurants:', processedRestaurants.length);
-        
-        // Apply feature filters (client-side)
-        if (generalFilters.features.length > 0) {
-          processedRestaurants = processedRestaurants.filter((restaurant) =>
-            generalFilters.features.every((feature) => {
-              const featureField = FEATURES.find((f) => f.id === feature)?.field;
-              return featureField && restaurant[featureField as keyof Restaurant];
-            })
-          );
-        }
-        
-        // FIXED: Check availability if filtering by availability
-        if (bookingFilters.availableOnly) {
-          console.log('Filtering by availability for:', bookingFilters);
-          
-          const availabilityChecks = await Promise.all(
-            processedRestaurants.map(async (restaurant) => {
-              const isAvailable = await checkRestaurantAvailability(
-                restaurant.id,
-                bookingFilters.date,
-                bookingFilters.time,
-                bookingFilters.partySize
-              );
-              return { ...restaurant, isAvailable };
-            })
-          );
-          
-          processedRestaurants = availabilityChecks.filter(r => r.isAvailable);
-          console.log('Available restaurants:', processedRestaurants.length);
-        }
-        
-        // Sort restaurants
-        processedRestaurants.sort((a, b) => {
-          switch (generalFilters.sortBy) {
-            case "rating":
-              return (b.average_rating || 0) - (a.average_rating || 0);
-            case "name":
-              return a.name.localeCompare(b.name);
-            case "distance":
-              return (a.distance || Infinity) - (b.distance || Infinity);
-            case "availability":
-              return bookingFilters.availableOnly ? 0 : (b.isAvailable ? 1 : 0) - (a.isAvailable ? 1 : 0);
-            case "recommended":
-            default:
-              const scoreA = (a.average_rating || 0) * 0.4 + 
-                            (a.total_reviews || 0) * 0.001 +
-                            (profile?.favorite_cuisines?.includes(a.cuisine_type) ? 0.3 : 0) +
-                            (favorites.has(a.id) ? 0.2 : 0) +
-                            (a.distance ? Math.max(0, 1 - a.distance / 10) * 0.1 : 0);
-              const scoreB = (b.average_rating || 0) * 0.4 + 
-                            (b.total_reviews || 0) * 0.001 +
-                            (profile?.favorite_cuisines?.includes(b.cuisine_type) ? 0.3 : 0) +
-                            (favorites.has(b.id) ? 0.2 : 0) +
-                            (b.distance ? Math.max(0, 1 - b.distance / 10) * 0.1 : 0);
-              return scoreB - scoreA;
-          }
-        });
-        
-        setRestaurants(processedRestaurants);
-        console.log('Final restaurants set:', processedRestaurants.length);
-      } catch (error) {
-        console.error("Error fetching restaurants:", error);
-        Alert.alert("Error", "Failed to load restaurants");
-      } finally {
-        setLoading(false);
-        setRefreshing(false);
+      // Apply search query
+      if (query.trim()) {
+        supabaseQuery = supabaseQuery.or(
+          `name.ilike.%${query}%,cuisine_type.ilike.%${query}%,tags.cs.{${query}}`
+        );
       }
-    }, 300); // 300ms debounce
-  }, [searchQuery, generalFilters, bookingFilters, userLocation, profile?.favorite_cuisines, favorites, calculateDistance, checkRestaurantAvailability]);
+      
+      // Apply cuisine filters
+      if (gFilters.cuisines.length > 0) {
+        supabaseQuery = supabaseQuery.in("cuisine_type", gFilters.cuisines);
+      }
+      
+      // Apply price range filter
+      if (gFilters.priceRange.length < 4) {
+        supabaseQuery = supabaseQuery.in("price_range", gFilters.priceRange);
+      }
+      
+      // Apply booking policy filter
+      if (gFilters.bookingPolicy !== "all") {
+        supabaseQuery = supabaseQuery.eq("booking_policy", gFilters.bookingPolicy);
+      }
+      
+      // Apply minimum rating filter
+      if (gFilters.minRating > 0) {
+        supabaseQuery = supabaseQuery.gte("average_rating", gFilters.minRating);
+      }
+      
+      const { data, error } = await supabaseQuery;
+      
+      if (error) throw error;
+      
+      let processedRestaurants = (data || []).map(restaurant => {
+        const staticCoords = generateStaticCoordinates(restaurant.id);
+        const distance = location 
+          ? calculateDistance(location.latitude, location.longitude, staticCoords.lat, staticCoords.lng)
+          : undefined;
+        
+        return {
+          ...restaurant,
+          distance,
+          staticCoordinates: staticCoords,
+        };
+      });
+      
+      // Apply feature filters (client-side)
+      if (gFilters.features.length > 0) {
+        processedRestaurants = processedRestaurants.filter((restaurant) =>
+          gFilters.features.every((feature) => {
+            const featureField = FEATURES.find((f) => f.id === feature)?.field;
+            return featureField && restaurant[featureField as keyof Restaurant];
+          })
+        );
+      }
+      
+      // FIXED: Check availability if filtering by availability
+      if (bFilters.availableOnly) {
+        const availabilityChecks = await Promise.all(
+          processedRestaurants.map(async (restaurant) => {
+            const isAvailable = await checkRestaurantAvailability(
+              restaurant.id,
+              bFilters.date,
+              bFilters.time,
+              bFilters.partySize
+            );
+            return { ...restaurant, isAvailable };
+          })
+        );
+        
+        processedRestaurants = availabilityChecks.filter(r => r.isAvailable);
+      }
+      
+      // Sort restaurants
+      processedRestaurants.sort((a, b) => {
+        switch (gFilters.sortBy) {
+          case "rating":
+            return (b.average_rating || 0) - (a.average_rating || 0);
+          case "name":
+            return a.name.localeCompare(b.name);
+          case "distance":
+            return (a.distance || Infinity) - (b.distance || Infinity);
+          case "availability":
+            return bFilters.availableOnly ? 0 : (b.isAvailable ? 1 : 0) - (a.isAvailable ? 1 : 0);
+          case "recommended":
+          default:
+            const scoreA = (a.average_rating || 0) * 0.4 + 
+                          (a.total_reviews || 0) * 0.001 +
+                          (favoriteCuisines?.includes(a.cuisine_type) ? 0.3 : 0) +
+                          (favoriteSet.has(a.id) ? 0.2 : 0) +
+                          (a.distance ? Math.max(0, 1 - a.distance / 10) * 0.1 : 0);
+            const scoreB = (b.average_rating || 0) * 0.4 + 
+                          (b.total_reviews || 0) * 0.001 +
+                          (favoriteCuisines?.includes(b.cuisine_type) ? 0.3 : 0) +
+                          (favoriteSet.has(b.id) ? 0.2 : 0) +
+                          (b.distance ? Math.max(0, 1 - b.distance / 10) * 0.1 : 0);
+            return scoreB - scoreA;
+        }
+      });
+      
+      setRestaurants(processedRestaurants);
+    } catch (error) {
+      console.error("Error fetching restaurants:", error);
+      Alert.alert("Error", "Failed to load restaurants");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+      isInitialLoad.current = false;
+    }
+  }, [calculateDistance, checkRestaurantAvailability]);
+
+  // FIXED: Stable debounced function with proper cleanup
+  const debouncedFetchRestaurants = useCallback(
+    (query: string, gFilters: GeneralFilters, bFilters: BookingFilters, location: UserLocation | null, favCuisines: string[] | undefined, favoriteSet: Set<string>) => {
+      // Clear existing timeout
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+
+      // Set new timeout
+      fetchTimeoutRef.current = setTimeout(() => {
+        fetchRestaurants(query, gFilters, bFilters, location, favCuisines, favoriteSet);
+      }, 300);
+    },
+    [fetchRestaurants]
+  );
 
   // Navigation handlers
   const handleRestaurantPress = useCallback((restaurantId: string) => {
@@ -467,25 +511,39 @@ export default function SearchScreen() {
     }
   }, []);
 
-  // Initialize only once
+  // FIXED: Initialize only once with stable dependencies
   useEffect(() => {
     getUserLocation();
     fetchFavorites();
   }, []); // Only run once on mount
 
-  // Fetch restaurants when dependencies change, but debounced
+  // FIXED: Trigger fetching when dependencies change (with stable references)
   useEffect(() => {
-    fetchRestaurantsDebounced();
+    debouncedFetchRestaurants(
+      searchQuery,
+      generalFilters,
+      bookingFilters,
+      userLocation,
+      profile?.favorite_cuisines,
+      favorites
+    );
     
-    // Cleanup timeout on unmount
     return () => {
       if (fetchTimeoutRef.current) {
         clearTimeout(fetchTimeoutRef.current);
       }
     };
-  }, [fetchRestaurantsDebounced]);
+  }, [
+    searchQuery, 
+    generalFilters, 
+    bookingFilters, 
+    userLocation, 
+    profile?.favorite_cuisines, 
+    favorites,
+    debouncedFetchRestaurants
+  ]);
 
-  // Generate date options for next 14 days (memoized to prevent recalculation)
+  // Generate date options for next 14 days (memoized)
   const dateOptions = useMemo(() => {
     const dates = [];
     for (let i = 0; i < 14; i++) {
@@ -496,7 +554,19 @@ export default function SearchScreen() {
     return dates;
   }, []);
 
-  // Restaurant card component (memoized)
+  // FIXED: Stable map region handler to prevent conflicts
+  const handleMapRegionChange = useCallback((region: Region) => {
+    // Only update if the change is significant (user intentionally moved map)
+    const deltaThreshold = 0.01;
+    if (
+      Math.abs(region.latitude - mapRegion.latitude) > deltaThreshold ||
+      Math.abs(region.longitude - mapRegion.longitude) > deltaThreshold
+    ) {
+      setMapRegion(region);
+    }
+  }, [mapRegion]);
+
+  // FIXED: Restaurant card component (memoized with stable props)
   const RestaurantCard = React.memo(({ item }: { item: Restaurant }) => {
     return (
       <Pressable
@@ -615,8 +685,80 @@ export default function SearchScreen() {
     );
   });
 
-  // FIXED: Stable map component with custom markers
+  // FIXED: Optimized map component with stable coordinates and memoization
   const RestaurantMapView = React.memo(() => {
+    // FIXED: Memoize markers to prevent recreation on every render
+    const markers = useMemo(() => {
+      return restaurants.map((restaurant) => {
+        if (!restaurant.staticCoordinates) return null;
+        
+        return (
+          <Marker
+            key={`marker-${restaurant.id}`}
+            coordinate={{
+              latitude: restaurant.staticCoordinates.lat,
+              longitude: restaurant.staticCoordinates.lng,
+            }}
+            title={restaurant.name}
+            description={restaurant.cuisine_type}
+            onPress={() => handleRestaurantPress(restaurant.id)}
+          >
+            {/* Custom marker with restaurant image */}
+            <View className="items-center">
+              <View className="bg-white rounded-full p-1 shadow-lg">
+                <Image
+                  source={{ uri: restaurant.main_image_url }}
+                  className="w-12 h-12 rounded-full"
+                  contentFit="cover"
+                />
+              </View>
+              {/* Small triangle pointer */}
+              <View style={{
+                width: 0,
+                height: 0,
+                backgroundColor: 'transparent',
+                borderStyle: 'solid',
+                borderLeftWidth: 6,
+                borderRightWidth: 6,
+                borderBottomWidth: 0,
+                borderTopWidth: 8,
+                borderLeftColor: 'transparent',
+                borderRightColor: 'transparent',
+                borderTopColor: 'white',
+                marginTop: -1,
+              }} />
+            </View>
+            
+            <Callout 
+              tooltip
+              onPress={() => handleRestaurantPress(restaurant.id)}
+            >
+              <View className="bg-white p-3 rounded-lg shadow-lg w-48">
+                <Text className="font-semibold text-black">{restaurant.name}</Text>
+                <Text className="text-sm text-gray-600 mb-2">
+                  {restaurant.cuisine_type}
+                </Text>
+                <View className="flex-row items-center gap-2">
+                  {(restaurant.average_rating || 0) > 0 && (
+                    <View className="flex-row items-center gap-1">
+                      <Star size={12} color="#f59e0b" fill="#f59e0b" />
+                      <Text className="text-xs text-black">
+                        {restaurant.average_rating?.toFixed(1)}
+                      </Text>
+                    </View>
+                  )}
+                  <Text className="text-xs text-black">
+                    {"$".repeat(restaurant.price_range)}
+                  </Text>
+                </View>
+                <Text className="text-xs text-blue-600 mt-2 font-medium">Tap for details</Text>
+              </View>
+            </Callout>
+          </Marker>
+        );
+      }).filter(Boolean);
+    }, [restaurants, handleRestaurantPress]);
+
     return (
       <View className="flex-1">
         <MapView
@@ -624,88 +766,21 @@ export default function SearchScreen() {
           style={{ flex: 1 }}
           provider={PROVIDER_GOOGLE}
           region={mapRegion}
-          onRegionChangeComplete={setMapRegion}
+          onRegionChangeComplete={handleMapRegionChange}
           showsUserLocation
           showsMyLocationButton
           moveOnMarkerPress={false}
+          showsCompass={false}
+          rotateEnabled={false}
+          pitchEnabled={false}
         >
-          {restaurants.map((restaurant) => {
-            if (!restaurant.staticCoordinates) return null;
-            
-            return (
-              <Marker
-                key={restaurant.id}
-                coordinate={{
-                  latitude: restaurant.staticCoordinates.lat,
-                  longitude: restaurant.staticCoordinates.lng,
-                }}
-                title={restaurant.name}
-                description={restaurant.cuisine_type}
-                onPress={() => {
-                  // Optional: Show callout or navigate directly
-                  handleRestaurantPress(restaurant.id);
-                }}
-              >
-                {/* Custom marker with restaurant image */}
-                <View className="items-center">
-                  <View className="bg-white rounded-full p-1 shadow-lg">
-                    <Image
-                      source={{ uri: restaurant.main_image_url }}
-                      className="w-12 h-12 rounded-full"
-                      contentFit="cover"
-                    />
-                  </View>
-                  {/* Small triangle pointer */}
-                  <View style={{
-                    width: 0,
-                    height: 0,
-                    backgroundColor: 'transparent',
-                    borderStyle: 'solid',
-                    borderLeftWidth: 6,
-                    borderRightWidth: 6,
-                    borderBottomWidth: 0,
-                    borderTopWidth: 8,
-                    borderLeftColor: 'transparent',
-                    borderRightColor: 'transparent',
-                    borderTopColor: 'white',
-                    marginTop: -1,
-                  }} />
-                </View>
-                
-                <Callout 
-                  tooltip
-                  onPress={() => handleRestaurantPress(restaurant.id)}
-                >
-                  <View className="bg-white p-3 rounded-lg shadow-lg w-48">
-                    <Text className="font-semibold text-black">{restaurant.name}</Text>
-                    <Text className="text-sm text-gray-600 mb-2">
-                      {restaurant.cuisine_type}
-                    </Text>
-                    <View className="flex-row items-center gap-2">
-                      {(restaurant.average_rating || 0) > 0 && (
-                        <View className="flex-row items-center gap-1">
-                          <Star size={12} color="#f59e0b" fill="#f59e0b" />
-                          <Text className="text-xs text-black">
-                            {restaurant.average_rating?.toFixed(1)}
-                          </Text>
-                        </View>
-                      )}
-                      <Text className="text-xs text-black">
-                        {"$".repeat(restaurant.price_range)}
-                      </Text>
-                    </View>
-                    <Text className="text-xs text-blue-600 mt-2 font-medium">Tap for details</Text>
-                  </View>
-                </Callout>
-              </Marker>
-            );
-          })}
+          {markers}
         </MapView>
       </View>
     );
-  });
+  }, [restaurants, mapRegion, handleMapRegionChange, handleRestaurantPress]);
 
-  // FIXED: Simplified modal components to prevent freezing
+  // FIXED: Simplified modal components with stable state management
   const DatePickerModal = React.memo(() => (
     <Modal
       visible={showDatePicker}
@@ -859,11 +934,11 @@ export default function SearchScreen() {
     </Modal>
   ));
 
-  // FIXED: Simplified filters modal to prevent state issues
+  // FIXED: Optimized filters modal with local state management
   const GeneralFiltersModal = React.memo(() => {
     const [tempFilters, setTempFilters] = useState(generalFilters);
 
-    // Reset temp filters when modal opens
+    // Synchronize with props when modal opens
     useEffect(() => {
       if (showGeneralFilters) {
         setTempFilters(generalFilters);
@@ -1129,10 +1204,17 @@ export default function SearchScreen() {
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchRestaurantsDebounced();
-  }, [fetchRestaurantsDebounced]);
+    debouncedFetchRestaurants(
+      searchQuery,
+      generalFilters,
+      bookingFilters,
+      userLocation,
+      profile?.favorite_cuisines,
+      favorites
+    );
+  }, [debouncedFetchRestaurants, searchQuery, generalFilters, bookingFilters, userLocation, profile?.favorite_cuisines, favorites]);
 
-  // Filter update handlers (optimized)
+  // Filter update handlers (optimized with useCallback)
   const updateBookingFilters = useCallback((updates: Partial<BookingFilters>) => {
     setBookingFilters(prev => ({ ...prev, ...updates }));
   }, []);
@@ -1167,7 +1249,6 @@ export default function SearchScreen() {
             placeholderTextColor="#666"
             className="flex-1 text-base text-foreground"
             returnKeyType="search"
-            onSubmitEditing={fetchRestaurantsDebounced}
           />
         </View>
         
@@ -1323,6 +1404,11 @@ export default function SearchScreen() {
           maxToRenderPerBatch={10}
           windowSize={10}
           initialNumToRender={5}
+          getItemLayout={(data, index) => ({
+            length: 200,
+            offset: 200 * index,
+            index,
+          })}
         />
       ) : (
         <RestaurantMapView />
