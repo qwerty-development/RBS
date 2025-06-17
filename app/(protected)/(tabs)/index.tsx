@@ -6,6 +6,7 @@ import {
 	ActivityIndicator,
 	Pressable,
 	FlatList,
+	Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { MapPin, ChevronRight, Trophy, Sparkles } from "lucide-react-native";
@@ -152,10 +153,24 @@ export default function HomeScreen() {
 			const { data, error } = await query;
 
 			if (error) throw error;
-			setFeaturedRestaurants(data || []);
+			
+			// 6.3 Validate data structure and filter out invalid entries
+			const validRestaurants = (data || []).filter((restaurant) => {
+				if (!restaurant.id || typeof restaurant.id !== 'string') {
+					console.warn('Invalid restaurant found (missing ID):', restaurant);
+					return false;
+				}
+				return true;
+			});
+			
+			setFeaturedRestaurants(validRestaurants);
 		} catch (error) {
 			console.error("Error fetching featured restaurants:", error);
-			// 6.3 Implement retry logic or show error state
+			// 6.4 Show user-friendly error
+			Alert.alert(
+				"Connection Error",
+				"Unable to load featured restaurants. Please check your internet connection and try again."
+			);
 		}
 	}, [location]);
 
@@ -163,7 +178,7 @@ export default function HomeScreen() {
 		if (!profile?.id) return;
 
 		try {
-			// 6.4 Fetch last 4 completed bookings with restaurant details
+			// 6.5 Fetch last 4 completed bookings with restaurant details
 			const { data, error } = await supabase
 				.from("bookings")
 				.select(`
@@ -176,7 +191,17 @@ export default function HomeScreen() {
 				.limit(4);
 
 			if (error) throw error;
-			setRecentBookings(data || []);
+			
+			// 6.6 Validate booking data structure
+			const validBookings = (data || []).filter((booking) => {
+				if (!booking.restaurant || !booking.restaurant.id) {
+					console.warn('Invalid booking found (missing restaurant data):', booking);
+					return false;
+				}
+				return true;
+			});
+			
+			setRecentBookings(validBookings);
 		} catch (error) {
 			console.error("Error fetching recent bookings:", error);
 		}
@@ -184,7 +209,7 @@ export default function HomeScreen() {
 
 	const fetchSpecialOffers = useCallback(async () => {
 		try {
-			// 6.5 Fetch active offers with complex date filtering
+			// 6.7 Fetch active offers with complex date filtering
 			const now = new Date().toISOString();
 			const { data, error } = await supabase
 				.from("special_offers")
@@ -198,7 +223,17 @@ export default function HomeScreen() {
 				.limit(5);
 
 			if (error) throw error;
-			setSpecialOffers(data || []);
+			
+			// 6.8 Validate offers data structure
+			const validOffers = (data || []).filter((offer) => {
+				if (!offer.restaurant || !offer.restaurant.id) {
+					console.warn('Invalid offer found (missing restaurant data):', offer);
+					return false;
+				}
+				return true;
+			});
+			
+			setSpecialOffers(validOffers);
 		} catch (error) {
 			console.error("Error fetching special offers:", error);
 		}
@@ -238,7 +273,7 @@ export default function HomeScreen() {
 		}
 	}, [location, profile, loadAllData]);
 
-	// 9. User Interaction Handlers
+	// 9. User Interaction Handlers - FIXED WITH VALIDATION
 	const handleRefresh = useCallback(async () => {
 		setRefreshing(true);
 		await loadAllData();
@@ -250,24 +285,72 @@ export default function HomeScreen() {
 		router.push("/location-selector");
 	}, [router]);
 
+	// 9.2 FIXED: Safe restaurant navigation with validation
 	const handleRestaurantPress = useCallback((restaurantId: string) => {
-		// 9.2 Navigate with proper parameters
-		router.push({
-			pathname: "/restaurant/[id]",
-			params: { id: restaurantId },
-		});
+		// Validate restaurant ID
+		if (!restaurantId || typeof restaurantId !== 'string' || restaurantId.trim() === '') {
+			console.error('Invalid restaurant ID provided:', restaurantId);
+			Alert.alert('Error', 'Restaurant information is not available. Please try again.');
+			return;
+		}
+
+		try {
+			console.log('Navigating to restaurant with ID:', restaurantId);
+			router.push({
+				pathname: "/restaurant/[id]",
+				params: { id: restaurantId.trim() },
+			});
+		} catch (error) {
+			console.error('Navigation error:', error);
+			Alert.alert('Error', 'Unable to open restaurant details. Please try again.');
+		}
 	}, [router]);
 
+	// 9.3 FIXED: Safe booking navigation with validation
 	const handleBookAgain = useCallback((restaurant: Restaurant) => {
-		// 9.3 Quick booking flow for repeat customers
-		router.push({
-			pathname: "/booking/create",
-			params: {
-				restaurantId: restaurant.id,
-				restaurantName: restaurant.name,
-				quickBook: "true",
-			},
-		});
+		// Validate restaurant object
+		if (!restaurant || !restaurant.id || !restaurant.name) {
+			console.error('Invalid restaurant object provided:', restaurant);
+			Alert.alert('Error', 'Restaurant information is incomplete. Please try again.');
+			return;
+		}
+
+		try {
+			router.push({
+				pathname: "/booking/create",
+				params: {
+					restaurantId: restaurant.id,
+					restaurantName: restaurant.name,
+					quickBook: "true",
+				},
+			});
+		} catch (error) {
+			console.error('Booking navigation error:', error);
+			Alert.alert('Error', 'Unable to start booking process. Please try again.');
+		}
+	}, [router]);
+
+	// 9.4 FIXED: Safe offer navigation with validation
+	const handleOfferPress = useCallback((offer: SpecialOffer) => {
+		if (!offer?.restaurant?.id) {
+			console.error('Invalid offer or restaurant data:', offer);
+			Alert.alert('Error', 'Offer information is not available. Please try again.');
+			return;
+		}
+
+		try {
+			console.log('Navigating to restaurant from offer:', offer.restaurant.id);
+			router.push({
+				pathname: "/restaurant/[id]",
+				params: { 
+					id: offer.restaurant.id,
+					highlightOfferId: offer.id,
+				},
+			});
+		} catch (error) {
+			console.error('Offer navigation error:', error);
+			Alert.alert('Error', 'Unable to open restaurant details. Please try again.');
+		}
 	}, [router]);
 
 	// 10. Time-based Greeting Logic
@@ -278,75 +361,91 @@ export default function HomeScreen() {
 		return "Good Evening";
 	}, []);
 
-	// 11. Component Render Functions
-	const renderFeaturedCard = ({ item }: { item: Restaurant }) => (
-		<Pressable
-			onPress={() => handleRestaurantPress(item.id)}
-			className="mr-4 w-72"
-		>
-			<View className="bg-card rounded-xl overflow-hidden shadow-sm">
-				<Image
-					source={{ uri: item.main_image_url }}
-					className="w-full h-48"
-					contentFit="cover"
-				/>
-				<View className="p-4">
-					<H3 className="mb-1">{item.name}</H3>
-					<P className="text-muted-foreground mb-2">{item.cuisine_type}</P>
-					<View className="flex-row items-center justify-between">
-						<View className="flex-row items-center gap-1">
-							<Text className="text-yellow-500">★</Text>
-							<Text className="font-medium">{item.average_rating.toFixed(1)}</Text>
-							<Text className="text-muted-foreground">({item.total_reviews})</Text>
-						</View>
-						<Text className="text-muted-foreground">
-							{"$".repeat(item.price_range)}
-						</Text>
-					</View>
-					{item.tags.length > 0 && (
-						<View className="flex-row gap-2 mt-2">
-							{item.tags.slice(0, 2).map((tag) => (
-								<View
-									key={tag}
-									className="bg-muted px-2 py-1 rounded-full"
-								>
-									<Text className="text-xs">{tag}</Text>
-								</View>
-							))}
-						</View>
-					)}
-				</View>
-			</View>
-		</Pressable>
-	);
+	// 11. Component Render Functions - FIXED WITH VALIDATION
+	const renderFeaturedCard = ({ item }: { item: Restaurant }) => {
+		// Early return if invalid item
+		if (!item || !item.id) {
+			console.warn('Invalid restaurant item:', item);
+			return null;
+		}
 
-	const renderBookAgainCard = ({ item }: { item: Booking }) => (
-		<Pressable
-			onPress={() => handleBookAgain(item.restaurant)}
-			className="mr-3 w-64"
-		>
-			<View className="bg-card rounded-lg p-3 flex-row items-center gap-3">
-				<Image
-					source={{ uri: item.restaurant.main_image_url }}
-					className="w-16 h-16 rounded-lg"
-					contentFit="cover"
-				/>
-				<View className="flex-1">
-					<Text className="font-semibold">{item.restaurant.name}</Text>
-					<Muted className="text-sm">
-						Last visited {new Date(item.booking_time).toLocaleDateString()}
-					</Muted>
-					<Button
-						size="sm"
-						variant="secondary"
-						className="mt-2"
-					>
-						<Text>Book Again</Text>
-					</Button>
+		return (
+			<Pressable
+				onPress={() => handleRestaurantPress(item.id)}
+				className="mr-4 w-72"
+			>
+				<View className="bg-card rounded-xl overflow-hidden shadow-sm">
+					<Image
+						source={{ uri: item.main_image_url }}
+						className="w-full h-48"
+						contentFit="cover"
+					/>
+					<View className="p-4">
+						<H3 className="mb-1">{item.name}</H3>
+						<P className="text-muted-foreground mb-2">{item.cuisine_type}</P>
+						<View className="flex-row items-center justify-between">
+							<View className="flex-row items-center gap-1">
+								<Text className="text-yellow-500">★</Text>
+								<Text className="font-medium">{item.average_rating?.toFixed(1) || "N/A"}</Text>
+								<Text className="text-muted-foreground">({item.total_reviews || 0})</Text>
+							</View>
+							<Text className="text-muted-foreground">
+								{"$".repeat(item.price_range || 1)}
+							</Text>
+						</View>
+						{item.tags && item.tags.length > 0 && (
+							<View className="flex-row gap-2 mt-2">
+								{item.tags.slice(0, 2).map((tag) => (
+									<View
+										key={tag}
+										className="bg-muted px-2 py-1 rounded-full"
+									>
+										<Text className="text-xs">{tag}</Text>
+									</View>
+								))}
+							</View>
+						)}
+					</View>
 				</View>
-			</View>
-		</Pressable>
-	);
+			</Pressable>
+		);
+	};
+
+	const renderBookAgainCard = ({ item }: { item: Booking }) => {
+		// Early return if invalid item
+		if (!item || !item.restaurant || !item.restaurant.id) {
+			console.warn('Invalid booking item:', item);
+			return null;
+		}
+
+		return (
+			<Pressable
+				onPress={() => handleBookAgain(item.restaurant)}
+				className="mr-3 w-64"
+			>
+				<View className="bg-card rounded-lg p-3 flex-row items-center gap-3">
+					<Image
+						source={{ uri: item.restaurant.main_image_url }}
+						className="w-16 h-16 rounded-lg"
+						contentFit="cover"
+					/>
+					<View className="flex-1">
+						<Text className="font-semibold">{item.restaurant.name}</Text>
+						<Muted className="text-sm">
+							Last visited {new Date(item.booking_time).toLocaleDateString()}
+						</Muted>
+						<Button
+							size="sm"
+							variant="secondary"
+							className="mt-2"
+						>
+							<Text>Book Again</Text>
+						</Button>
+					</View>
+				</View>
+			</Pressable>
+		);
+	};
 
 	// 12. Loading State Component
 	if (loading) {
@@ -373,21 +472,21 @@ export default function HomeScreen() {
 			}
 		>
 			{/* 14. Header Section with Location */}
-			<View className="px-4 pt-6 pb-4">
-				<H2>{getGreeting()}, {profile?.full_name?.split(" ")[0]}!</H2>
+			<View className="px-4 pt-12 pb-4">
+				<H2>{getGreeting()}, {profile?.full_name?.split(" ")[0] || "User"}!</H2>
 				<Pressable
 					onPress={handleLocationPress}
 					className="flex-row items-center gap-2 mt-2"
 				>
 					<MapPin size={16} color="#666" />
 					<Text className="text-muted-foreground">
-						{location?.district}, {location?.city}
+						{location?.district || "Unknown"}, {location?.city || "Unknown"}
 					</Text>
 					<ChevronRight size={16} color="#666" />
 				</Pressable>
 			</View>
 
-			{/* 15. Special Offers Banner */}
+			{/* 15. Special Offers Banner - FIXED */}
 			{specialOffers.length > 0 && (
 				<View className="mb-6">
 					<View className="px-4 mb-3 flex-row items-center justify-between">
@@ -404,24 +503,32 @@ export default function HomeScreen() {
 						showsHorizontalScrollIndicator={false}
 						contentContainerStyle={{ paddingHorizontal: 16 }}
 					>
-						{specialOffers.map((offer) => (
-							<Pressable
-								key={offer.id}
-								onPress={() => handleRestaurantPress(offer.restaurant.id)}
-								className="mr-3 w-72"
-							>
-								<View className="bg-primary/10 border border-primary/20 rounded-lg p-4">
-									<Text className="font-bold text-primary mb-1">
-										{offer.discount_percentage}% OFF
-									</Text>
-									<Text className="font-semibold mb-1">{offer.title}</Text>
-									<Muted className="text-sm mb-2">{offer.restaurant.name}</Muted>
-									<Text className="text-xs text-muted-foreground">
-										Valid until {new Date(offer.valid_until).toLocaleDateString()}
-									</Text>
-								</View>
-							</Pressable>
-						))}
+						{specialOffers.map((offer) => {
+							// Skip invalid offers
+							if (!offer?.restaurant?.id) {
+								console.warn('Skipping invalid offer:', offer);
+								return null;
+							}
+
+							return (
+								<Pressable
+									key={offer.id}
+									onPress={() => handleOfferPress(offer)}
+									className="mr-3 w-72"
+								>
+									<View className="bg-primary/10 border border-primary/20 rounded-lg p-4">
+										<Text className="font-bold text-primary mb-1">
+											{offer.discount_percentage}% OFF
+										</Text>
+										<Text className="font-semibold mb-1">{offer.title}</Text>
+										<Muted className="text-sm mb-2">{offer.restaurant.name}</Muted>
+										<Text className="text-xs text-muted-foreground">
+											Valid until {new Date(offer.valid_until).toLocaleDateString()}
+										</Text>
+									</View>
+								</Pressable>
+							);
+						})}
 					</ScrollView>
 				</View>
 			)}
@@ -441,7 +548,7 @@ export default function HomeScreen() {
 					horizontal
 					data={featuredRestaurants}
 					renderItem={renderFeaturedCard}
-					keyExtractor={(item) => item.id}
+					keyExtractor={(item) => item.id || Math.random().toString()}
 					showsHorizontalScrollIndicator={false}
 					contentContainerStyle={{ paddingHorizontal: 16 }}
 				/>
@@ -458,7 +565,7 @@ export default function HomeScreen() {
 						horizontal
 						data={recentBookings}
 						renderItem={renderBookAgainCard}
-						keyExtractor={(item) => item.id}
+						keyExtractor={(item) => item.id || Math.random().toString()}
 						showsHorizontalScrollIndicator={false}
 						contentContainerStyle={{ paddingHorizontal: 16 }}
 					/>

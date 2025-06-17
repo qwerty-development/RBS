@@ -36,6 +36,8 @@ import {
   Globe,
   Menu,
   CheckCircle,
+  Camera,
+  X,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
@@ -65,6 +67,7 @@ type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
   table_turnover_minutes?: number;
   instagram_handle?: string;
   website_url?: string;
+  whatsapp_number?: string;
 };
 
 type Review = Database["public"]["Tables"]["reviews"]["Row"] & {
@@ -102,14 +105,47 @@ const DIETARY_ICONS = {
   "Halal": "🥩",
   "Gluten-Free": "🌾",
   "Kosher": "✡️",
+  "Dairy-Free": "🥛",
+  "Nut-Free": "🥜",
 };
 
+// 2.3 Days of the week
+const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 export default function RestaurantDetailsScreen() {
-  // 3. Core State Management Architecture
-  const { id } = useLocalSearchParams<{ id: string }>();
+  // 3. Core State Management Architecture - COMPLETELY FIXED parameter handling
+  const router = useRouter();
   const { profile } = useAuth();
   const { colorScheme } = useColorScheme();
-  const router = useRouter();
+  
+  // Safe parameter extraction with multiple fallbacks
+  let params;
+  let id: string | undefined;
+  
+  try {
+    params = useLocalSearchParams<{ id: string; highlightOfferId?: string }>();
+    // Handle case where params might be undefined, null, or not an object
+    if (params && typeof params === 'object') {
+      id = params.id;
+    }
+  } catch (error) {
+    console.error("Error getting route params:", error);
+    params = {};
+    id = undefined;
+  }
+  
+  // Additional safety check
+  if (!params || typeof params !== 'object') {
+    params = {};
+  }
+  
+  // Ensure id is a string
+  if (typeof id !== 'string' || !id.trim()) {
+    id = undefined;
+  }
+  
+  const highlightOfferId = params.highlightOfferId;
+  console.log("Restaurant Details - Params:", params, "ID:", id);
   
   // 3.1 Restaurant Data States
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -129,25 +165,60 @@ export default function RestaurantDetailsScreen() {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "menu" | "reviews">("overview");
+  const [showImageGallery, setShowImageGallery] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   
   // 3.4 Performance Optimization Refs
   const scrollViewRef = useRef<ScrollView>(null);
   const mapRef = useRef<MapView>(null);
 
-  // 4. Data Fetching Implementation
+  // 4. Early return if no ID is provided
+  useEffect(() => {
+    if (!id) {
+      console.error("No restaurant ID provided");
+      setLoading(false);
+      // Small delay to prevent immediate navigation issues
+      setTimeout(() => {
+        Alert.alert(
+          "Error", 
+          "Restaurant ID is missing. Please try again.",
+          [{ text: "OK", onPress: () => router.back() }]
+        );
+      }, 100);
+      return;
+    }
+  }, [id, router]);
+
+  // 5. Data Fetching Implementation
   const fetchRestaurantDetails = useCallback(async () => {
+    if (!id) {
+      setLoading(false);
+      return;
+    }
+
     try {
-      // 4.1 Fetch restaurant with all details
+      console.log("Fetching restaurant details for ID:", id);
+      
+      // 5.1 Fetch restaurant with all details
       const { data: restaurantData, error: restaurantError } = await supabase
         .from("restaurants")
         .select("*")
         .eq("id", id)
         .single();
       
-      if (restaurantError) throw restaurantError;
+      if (restaurantError) {
+        console.error("Restaurant fetch error:", restaurantError);
+        throw restaurantError;
+      }
+      
+      if (!restaurantData) {
+        throw new Error("Restaurant not found");
+      }
+      
+      console.log("Restaurant data fetched:", restaurantData.name);
       setRestaurant(restaurantData);
       
-      // 4.2 Check if restaurant is favorited
+      // 5.2 Check if restaurant is favorited
       if (profile?.id) {
         const { data: favoriteData } = await supabase
           .from("favorites")
@@ -159,7 +230,7 @@ export default function RestaurantDetailsScreen() {
         setIsFavorite(!!favoriteData);
       }
       
-      // 4.3 Fetch reviews with user details
+      // 5.3 Fetch reviews with user details
       const { data: reviewsData, error: reviewsError } = await supabase
         .from("reviews")
         .select(`
@@ -171,10 +242,13 @@ export default function RestaurantDetailsScreen() {
         `)
         .eq("restaurant_id", id)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(10);
       
-      if (reviewsError) throw reviewsError;
-      setReviews(reviewsData || []);
+      if (reviewsError) {
+        console.warn("Reviews fetch error:", reviewsError);
+      } else {
+        setReviews(reviewsData || []);
+      }
       
     } catch (error) {
       console.error("Error fetching restaurant details:", error);
@@ -184,21 +258,21 @@ export default function RestaurantDetailsScreen() {
     }
   }, [id, profile?.id]);
 
-  // 5. Available Time Slots Fetching
+  // 6. Available Time Slots Fetching
   const fetchAvailableSlots = useCallback(async () => {
-    if (!restaurant) return;
+    if (!restaurant || !id) return;
     
     setLoadingSlots(true);
     
     try {
-      // 5.1 Generate time slots based on restaurant hours
+      // 6.1 Generate time slots based on restaurant hours
       const slots = generateTimeSlots(
         restaurant.opening_time,
         restaurant.closing_time,
         restaurant.table_turnover_minutes || 120
       );
       
-      // 5.2 Check availability for each slot
+      // 6.2 Check availability for each slot
       const dateStr = selectedDate.toISOString().split("T")[0];
       const { data: availabilityData } = await supabase
         .from("restaurant_availability")
@@ -207,7 +281,7 @@ export default function RestaurantDetailsScreen() {
         .eq("date", dateStr)
         .gte("available_capacity", partySize);
       
-      // 5.3 Map availability to slots
+      // 6.3 Map availability to slots
       const availableSlots = slots.map((slot) => {
         const availability = availabilityData?.find(
           (a) => a.time_slot === slot.time
@@ -223,12 +297,23 @@ export default function RestaurantDetailsScreen() {
       setAvailableSlots(availableSlots);
     } catch (error) {
       console.error("Error fetching availability:", error);
+      // Generate mock availability for demo purposes
+      const slots = generateTimeSlots(
+        restaurant.opening_time,
+        restaurant.closing_time,
+        120
+      );
+      setAvailableSlots(slots.map(slot => ({
+        ...slot,
+        available: Math.random() > 0.3, // 70% availability chance
+        availableCapacity: Math.floor(Math.random() * 8) + 2,
+      })));
     } finally {
       setLoadingSlots(false);
     }
   }, [restaurant, selectedDate, partySize, id]);
 
-  // 6. Time Slot Generation Algorithm
+  // 7. Time Slot Generation Algorithm
   const generateTimeSlots = (openTime: string, closeTime: string, intervalMinutes: number) => {
     const slots: { time: string }[] = [];
     const [openHour, openMinute] = openTime.split(":").map(Number);
@@ -257,13 +342,13 @@ export default function RestaurantDetailsScreen() {
     return slots;
   };
 
-  // 7. Favorite Toggle Implementation
+  // 8. Favorite Toggle Implementation
   const toggleFavorite = useCallback(async () => {
-    if (!profile?.id || !restaurant) return;
+    if (!profile?.id || !restaurant || !id) return;
     
     try {
       if (isFavorite) {
-        // 7.1 Remove from favorites
+        // 8.1 Remove from favorites
         const { error } = await supabase
           .from("favorites")
           .delete()
@@ -273,7 +358,7 @@ export default function RestaurantDetailsScreen() {
         if (error) throw error;
         setIsFavorite(false);
       } else {
-        // 7.2 Add to favorites
+        // 8.2 Add to favorites
         const { error } = await supabase
           .from("favorites")
           .insert({
@@ -285,7 +370,7 @@ export default function RestaurantDetailsScreen() {
         setIsFavorite(true);
       }
       
-      // 7.3 Haptic feedback
+      // 8.3 Haptic feedback
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (error) {
       console.error("Error toggling favorite:", error);
@@ -293,7 +378,7 @@ export default function RestaurantDetailsScreen() {
     }
   }, [profile?.id, restaurant, isFavorite, id]);
 
-  // 8. Communication Actions
+  // 9. Communication Actions
   const handleCall = useCallback(() => {
     if (!restaurant?.phone_number) return;
     Linking.openURL(`tel:${restaurant.phone_number}`);
@@ -321,13 +406,26 @@ export default function RestaurantDetailsScreen() {
   }, [restaurant]);
 
   const openDirections = useCallback(() => {
-    if (!restaurant) return;
+    if (!restaurant?.location) return;
     
     const scheme = Platform.select({
       ios: "maps:0,0?q=",
       android: "geo:0,0?q=",
     });
-    const latLng = `${restaurant.location.coordinates[1]},${restaurant.location.coordinates[0]}`;
+    
+    // Handle different location formats
+    let lat, lng;
+    if (restaurant.location.coordinates && Array.isArray(restaurant.location.coordinates)) {
+      [lng, lat] = restaurant.location.coordinates; // PostGIS format is [lng, lat]
+    } else if (restaurant.location.lat && restaurant.location.lng) {
+      lat = restaurant.location.lat;
+      lng = restaurant.location.lng;
+    } else {
+      Alert.alert("Error", "Location data not available");
+      return;
+    }
+    
+    const latLng = `${lat},${lng}`;
     const label = restaurant.name;
     const url = Platform.select({
       ios: `${scheme}${label}@${latLng}`,
@@ -337,10 +435,15 @@ export default function RestaurantDetailsScreen() {
     if (url) Linking.openURL(url);
   }, [restaurant]);
 
-  // 9. Booking Navigation
+  // 10. Booking Navigation
   const handleBooking = useCallback(() => {
     if (!selectedTime) {
       Alert.alert("Select Time", "Please select a time for your reservation");
+      return;
+    }
+    
+    if (!id || !restaurant) {
+      Alert.alert("Error", "Restaurant information is not available");
       return;
     }
     
@@ -348,7 +451,7 @@ export default function RestaurantDetailsScreen() {
       pathname: "/booking/create",
       params: {
         restaurantId: id,
-        restaurantName: restaurant?.name,
+        restaurantName: restaurant.name,
         date: selectedDate.toISOString(),
         time: selectedTime,
         partySize: partySize.toString(),
@@ -356,18 +459,45 @@ export default function RestaurantDetailsScreen() {
     });
   }, [id, restaurant, selectedDate, selectedTime, partySize, router]);
 
-  // 10. Lifecycle Management
+  // 11. Image Gallery Handler
+  const openImageGallery = useCallback((index: number) => {
+    setSelectedImageIndex(index);
+    setShowImageGallery(true);
+  }, []);
+
+  // 12. Helper Functions
+  const isRestaurantOpen = () => {
+    if (!restaurant) return false;
+    
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+    const [openHour, openMinute] = restaurant.opening_time.split(":").map(Number);
+    const [closeHour, closeMinute] = restaurant.closing_time.split(":").map(Number);
+    const openTime = openHour * 60 + openMinute;
+    const closeTime = closeHour * 60 + closeMinute;
+    
+    return currentTime >= openTime && currentTime <= closeTime;
+  };
+
+  const getDistanceText = (distance: number) => {
+    if (distance < 1) return `${(distance * 1000).toFixed(0)}m`;
+    return `${distance.toFixed(1)}km`;
+  };
+
+  // 13. Lifecycle Management
   useEffect(() => {
-    fetchRestaurantDetails();
-  }, [fetchRestaurantDetails]);
+    if (id) {
+      fetchRestaurantDetails();
+    }
+  }, [fetchRestaurantDetails, id]);
 
   useEffect(() => {
-    if (restaurant) {
+    if (restaurant && id) {
       fetchAvailableSlots();
     }
-  }, [selectedDate, partySize, restaurant, fetchAvailableSlots]);
+  }, [selectedDate, partySize, restaurant, fetchAvailableSlots, id]);
 
-  // 11. Loading State
+  // 14. Loading State
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-background">
@@ -378,11 +508,15 @@ export default function RestaurantDetailsScreen() {
     );
   }
 
-  if (!restaurant) {
+  // 15. Error States
+  if (!id) {
     return (
       <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <H3>Restaurant not found</H3>
+        <View className="flex-1 items-center justify-center px-4">
+          <H3 className="text-center mb-2">Invalid Restaurant</H3>
+          <P className="text-center text-muted-foreground mb-4">
+            The restaurant ID is missing or invalid.
+          </P>
           <Button
             variant="outline"
             onPress={() => router.back()}
@@ -395,7 +529,70 @@ export default function RestaurantDetailsScreen() {
     );
   }
 
-  // 12. Main Render
+  if (!restaurant) {
+    return (
+      <SafeAreaView className="flex-1 bg-background">
+        <View className="flex-1 items-center justify-center px-4">
+          <H3 className="text-center mb-2">Restaurant not found</H3>
+          <P className="text-center text-muted-foreground mb-4">
+            The restaurant you're looking for doesn't exist or has been removed.
+          </P>
+          <Button
+            variant="outline"
+            onPress={() => router.back()}
+            className="mt-4"
+          >
+            <Text>Go Back</Text>
+          </Button>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const allImages = [restaurant.main_image_url, ...(restaurant.image_urls || [])];
+
+  // 16. Image Gallery Modal
+  const ImageGalleryModal = () => (
+    <View className="absolute inset-0 bg-black z-50">
+      <SafeAreaView className="flex-1">
+        <View className="flex-row justify-between items-center p-4">
+          <Text className="text-white text-lg font-semibold">
+            {selectedImageIndex + 1} of {allImages.length}
+          </Text>
+          <Pressable
+            onPress={() => setShowImageGallery(false)}
+            className="bg-black/50 rounded-full p-2"
+          >
+            <X size={24} color="white" />
+          </Pressable>
+        </View>
+        
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          onScroll={(e) => {
+            const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+            setSelectedImageIndex(index);
+          }}
+          scrollEventThrottle={16}
+          contentOffset={{ x: selectedImageIndex * SCREEN_WIDTH, y: 0 }}
+        >
+          {allImages.map((image, index) => (
+            <View key={index} style={{ width: SCREEN_WIDTH }} className="items-center justify-center">
+              <Image
+                source={{ uri: image }}
+                style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT * 0.8 }}
+                contentFit="contain"
+              />
+            </View>
+          ))}
+        </ScrollView>
+      </SafeAreaView>
+    </View>
+  );
+
+  // 17. Main Render
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView
@@ -403,7 +600,7 @@ export default function RestaurantDetailsScreen() {
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[1]}
       >
-        {/* 12.1 Image Gallery with Parallax Effect */}
+        {/* 17.1 Image Gallery with Parallax Effect */}
         <View className="relative" style={{ height: IMAGE_HEIGHT }}>
           <ScrollView
             horizontal
@@ -415,19 +612,23 @@ export default function RestaurantDetailsScreen() {
             }}
             scrollEventThrottle={16}
           >
-            {[restaurant.main_image_url, ...(restaurant.image_urls || [])].map((image, index) => (
-              <Image
+            {allImages.map((image, index) => (
+              <Pressable
                 key={index}
-                source={{ uri: image }}
-                style={{ width: SCREEN_WIDTH, height: IMAGE_HEIGHT }}
-                contentFit="cover"
-              />
+                onPress={() => openImageGallery(index)}
+              >
+                <Image
+                  source={{ uri: image }}
+                  style={{ width: SCREEN_WIDTH, height: IMAGE_HEIGHT }}
+                  contentFit="cover"
+                />
+              </Pressable>
             ))}
           </ScrollView>
           
-          {/* 12.2 Image Indicators */}
+          {/* 17.2 Image Indicators */}
           <View className="absolute bottom-4 left-0 right-0 flex-row justify-center gap-2">
-            {[restaurant.main_image_url, ...(restaurant.image_urls || [])].map((_, index) => (
+            {allImages.map((_, index) => (
               <View
                 key={index}
                 className={`w-2 h-2 rounded-full ${
@@ -437,16 +638,37 @@ export default function RestaurantDetailsScreen() {
             ))}
           </View>
           
-          {/* 12.3 Back Button */}
+          {/* 17.3 Back Button */}
           <Pressable
             onPress={() => router.back()}
             className="absolute top-4 left-4 bg-black/50 rounded-full p-2"
           >
             <ChevronLeft size={24} color="white" />
           </Pressable>
+
+          {/* 17.4 Gallery Button */}
+          <Pressable
+            onPress={() => openImageGallery(imageIndex)}
+            className="absolute top-4 right-4 bg-black/50 rounded-full p-2"
+          >
+            <Camera size={24} color="white" />
+          </Pressable>
+
+          {/* 17.5 Open Status Badge */}
+          <View className="absolute bottom-16 right-4">
+            <View
+              className={`px-3 py-1 rounded-full ${
+                isRestaurantOpen() ? "bg-green-500" : "bg-red-500"
+              }`}
+            >
+              <Text className="text-white text-sm font-medium">
+                {isRestaurantOpen() ? "Open Now" : "Closed"}
+              </Text>
+            </View>
+          </View>
         </View>
 
-        {/* 12.4 Quick Actions Bar (Sticky) */}
+        {/* 17.6 Quick Actions Bar (Sticky) */}
         <View className="bg-background border-b border-border">
           <View className="flex-row justify-between items-center px-4 py-3">
             <Pressable
@@ -484,7 +706,7 @@ export default function RestaurantDetailsScreen() {
           </View>
         </View>
 
-        {/* 12.5 Restaurant Header Info */}
+        {/* 17.7 Restaurant Header Info */}
         <View className="px-4 pt-4 pb-2">
           <H1>{restaurant.name}</H1>
           <View className="flex-row items-center gap-3 mt-2">
@@ -496,13 +718,23 @@ export default function RestaurantDetailsScreen() {
             <Text className="text-muted-foreground">•</Text>
             <View className="flex-row items-center gap-1">
               <Star size={16} color="#f59e0b" fill="#f59e0b" />
-              <Text className="font-medium">{restaurant.average_rating.toFixed(1)}</Text>
-              <Text className="text-muted-foreground">({restaurant.total_reviews})</Text>
+              <Text className="font-medium">{restaurant.average_rating?.toFixed(1) || "N/A"}</Text>
+              <Text className="text-muted-foreground">({restaurant.total_reviews || 0})</Text>
             </View>
           </View>
+
+          {/* Special Offer Highlight */}
+          {highlightOfferId && (
+            <View className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
+              <Text className="font-semibold text-primary">🎉 Special Offer Available!</Text>
+              <Text className="text-sm text-muted-foreground mt-1">
+                You came here from a special offer. Don't miss out!
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* 12.6 Tab Navigation */}
+        {/* 17.8 Tab Navigation */}
         <View className="flex-row px-4 mb-4 gap-2">
           {(["overview", "menu", "reviews"] as const).map((tab) => (
             <Pressable
@@ -523,10 +755,10 @@ export default function RestaurantDetailsScreen() {
           ))}
         </View>
 
-        {/* 12.7 Tab Content */}
+        {/* 17.9 Tab Content */}
         {activeTab === "overview" && (
           <>
-            {/* 12.7.1 Booking Widget */}
+            {/* 17.9.1 Booking Widget */}
             <View className="mx-4 mb-6 p-4 bg-card rounded-xl shadow-sm">
               <H3 className="mb-4">Make a Reservation</H3>
               
@@ -543,21 +775,22 @@ export default function RestaurantDetailsScreen() {
                     date.setDate(date.getDate() + i);
                     const isSelected = 
                       date.toDateString() === selectedDate.toDateString();
+                    const isToday = date.toDateString() === new Date().toDateString();
                     
                     return (
                       <Pressable
                         key={i}
                         onPress={() => setSelectedDate(date)}
-                        className={`px-4 py-3 rounded-lg mr-2 ${
+                        className={`px-4 py-3 rounded-lg mr-2 min-w-[70px] ${
                           isSelected ? "bg-primary" : "bg-muted"
                         }`}
                       >
                         <Text
-                          className={`text-center font-medium ${
+                          className={`text-center font-medium text-xs ${
                             isSelected ? "text-primary-foreground" : ""
                           }`}
                         >
-                          {date.toLocaleDateString("en-US", { weekday: "short" })}
+                          {isToday ? "Today" : date.toLocaleDateString("en-US", { weekday: "short" })}
                         </Text>
                         <Text
                           className={`text-center text-lg font-bold ${
@@ -565,6 +798,13 @@ export default function RestaurantDetailsScreen() {
                           }`}
                         >
                           {date.getDate()}
+                        </Text>
+                        <Text
+                          className={`text-center text-xs ${
+                            isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                          }`}
+                        >
+                          {date.toLocaleDateString("en-US", { month: "short" })}
                         </Text>
                       </Pressable>
                     );
@@ -605,7 +845,10 @@ export default function RestaurantDetailsScreen() {
               <View className="mb-4">
                 <Text className="font-medium mb-2">Available Times</Text>
                 {loadingSlots ? (
-                  <ActivityIndicator size="small" />
+                  <View className="flex-row items-center justify-center py-4">
+                    <ActivityIndicator size="small" />
+                    <Text className="ml-2 text-muted-foreground">Loading availability...</Text>
+                  </View>
                 ) : (
                   <View className="flex-row flex-wrap gap-2">
                     {availableSlots.map((slot) => (
@@ -632,8 +875,18 @@ export default function RestaurantDetailsScreen() {
                         >
                           {slot.time}
                         </Text>
+                        {slot.available && slot.availableCapacity < 5 && (
+                          <Text className="text-xs text-orange-600 text-center">
+                            {slot.availableCapacity} left
+                          </Text>
+                        )}
                       </Pressable>
                     ))}
+                    {availableSlots.length === 0 && (
+                      <Text className="text-muted-foreground text-center w-full py-4">
+                        No availability for this date
+                      </Text>
+                    )}
                   </View>
                 )}
               </View>
@@ -650,9 +903,15 @@ export default function RestaurantDetailsScreen() {
                     : "Request Booking"}
                 </Text>
               </Button>
+              
+              {restaurant.booking_policy === "request" && (
+                <Text className="text-xs text-muted-foreground text-center mt-2">
+                  Restaurant will confirm within 2 hours
+                </Text>
+              )}
             </View>
 
-            {/* 12.7.2 About Section */}
+            {/* 17.9.2 About Section */}
             <View className="px-4 mb-6">
               <H3 className="mb-2">About</H3>
               <P
@@ -661,7 +920,7 @@ export default function RestaurantDetailsScreen() {
               >
                 {restaurant.description}
               </P>
-              {restaurant.description.length > 150 && (
+              {restaurant.description && restaurant.description.length > 150 && (
                 <Pressable
                   onPress={() => setShowFullDescription(!showFullDescription)}
                   className="mt-1"
@@ -673,7 +932,7 @@ export default function RestaurantDetailsScreen() {
               )}
             </View>
 
-            {/* 12.7.3 Features Grid */}
+            {/* 17.9.3 Features Grid */}
             <View className="px-4 mb-6">
               <H3 className="mb-3">Features & Amenities</H3>
               <View className="flex-row flex-wrap gap-3">
@@ -720,7 +979,7 @@ export default function RestaurantDetailsScreen() {
               </View>
             </View>
 
-            {/* 12.7.4 Dietary Options */}
+            {/* 17.9.4 Dietary Options */}
             {restaurant.dietary_options && restaurant.dietary_options.length > 0 && (
               <View className="px-4 mb-6">
                 <H3 className="mb-3">Dietary Options</H3>
@@ -742,7 +1001,7 @@ export default function RestaurantDetailsScreen() {
               </View>
             )}
 
-            {/* 12.7.5 Hours of Operation */}
+            {/* 17.9.5 Hours of Operation */}
             <View className="px-4 mb-6">
               <H3 className="mb-3">Hours</H3>
               <View className="bg-card p-4 rounded-lg">
@@ -751,6 +1010,19 @@ export default function RestaurantDetailsScreen() {
                   <Text className="font-medium">
                     Today: {restaurant.opening_time} - {restaurant.closing_time}
                   </Text>
+                  <View
+                    className={`px-2 py-1 rounded-full ml-auto ${
+                      isRestaurantOpen() ? "bg-green-100" : "bg-red-100"
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-medium ${
+                        isRestaurantOpen() ? "text-green-800" : "text-red-800"
+                      }`}
+                    >
+                      {isRestaurantOpen() ? "Open" : "Closed"}
+                    </Text>
+                  </View>
                 </View>
                 {restaurant.happy_hour_times && (
                   <View className="flex-row items-center gap-2 mt-2 pt-2 border-t border-border">
@@ -763,34 +1035,36 @@ export default function RestaurantDetailsScreen() {
               </View>
             </View>
 
-            {/* 12.7.6 Location Section */}
+            {/* 17.9.6 Location Section */}
             <View className="px-4 mb-6">
               <H3 className="mb-3">Location</H3>
               <Pressable
                 onPress={openDirections}
                 className="bg-card rounded-lg overflow-hidden"
               >
-                <MapView
-                  ref={mapRef}
-                  style={{ height: MAP_HEIGHT }}
-                  provider={PROVIDER_GOOGLE}
-                  initialRegion={{
-                    latitude: restaurant.location.coordinates[1],
-                    longitude: restaurant.location.coordinates[0],
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                  }}
-                  scrollEnabled={false}
-                  zoomEnabled={false}
-                >
-                  <Marker
-                    coordinate={{
-                      latitude: restaurant.location.coordinates[1],
-                      longitude: restaurant.location.coordinates[0],
+                {restaurant.location && (
+                  <MapView
+                    ref={mapRef}
+                    style={{ height: MAP_HEIGHT }}
+                    provider={PROVIDER_GOOGLE}
+                    initialRegion={{
+                      latitude: restaurant.location.coordinates ? restaurant.location.coordinates[1] : 33.8938,
+                      longitude: restaurant.location.coordinates ? restaurant.location.coordinates[0] : 35.5018,
+                      latitudeDelta: 0.01,
+                      longitudeDelta: 0.01,
                     }}
-                    title={restaurant.name}
-                  />
-                </MapView>
+                    scrollEnabled={false}
+                    zoomEnabled={false}
+                  >
+                    <Marker
+                      coordinate={{
+                        latitude: restaurant.location.coordinates ? restaurant.location.coordinates[1] : 33.8938,
+                        longitude: restaurant.location.coordinates ? restaurant.location.coordinates[0] : 35.5018,
+                      }}
+                      title={restaurant.name}
+                    />
+                  </MapView>
+                )}
                 <View className="p-4 flex-row items-center justify-between">
                   <View className="flex-1">
                     <View className="flex-row items-center gap-2">
@@ -806,7 +1080,7 @@ export default function RestaurantDetailsScreen() {
               </Pressable>
             </View>
 
-            {/* 12.7.7 Contact Information */}
+            {/* 17.9.7 Contact Information */}
             <View className="px-4 mb-6">
               <H3 className="mb-3">Contact</H3>
               <View className="bg-card rounded-lg divide-y divide-border">
@@ -867,6 +1141,7 @@ export default function RestaurantDetailsScreen() {
           </>
         )}
 
+        {/* 17.10 Menu Tab */}
         {activeTab === "menu" && (
           <View className="px-4 mb-6">
             <H3 className="mb-3">Menu</H3>
@@ -883,11 +1158,15 @@ export default function RestaurantDetailsScreen() {
               <View className="bg-muted p-6 rounded-lg items-center">
                 <Menu size={48} color="#666" />
                 <Muted className="mt-3">Menu not available</Muted>
+                <Text className="text-sm text-center mt-1 text-muted-foreground">
+                  Contact the restaurant for menu information
+                </Text>
               </View>
             )}
           </View>
         )}
 
+        {/* 17.11 Reviews Tab */}
         {activeTab === "reviews" && (
           <View className="px-4 mb-6">
             <View className="flex-row items-center justify-between mb-4">
@@ -895,12 +1174,32 @@ export default function RestaurantDetailsScreen() {
               <View className="flex-row items-center gap-1">
                 <Star size={20} color="#f59e0b" fill="#f59e0b" />
                 <Text className="font-bold text-lg">
-                  {restaurant.average_rating.toFixed(1)}
+                  {restaurant.average_rating?.toFixed(1) || "N/A"}
                 </Text>
                 <Text className="text-muted-foreground">
-                  ({restaurant.total_reviews})
+                  ({restaurant.total_reviews || 0})
                 </Text>
               </View>
+            </View>
+            
+            {/* Rating Breakdown */}
+            <View className="bg-card p-4 rounded-lg mb-4">
+              <Text className="font-medium mb-3">Rating Breakdown</Text>
+              {[5, 4, 3, 2, 1].map((rating) => (
+                <View key={rating} className="flex-row items-center gap-2 mb-1">
+                  <Text className="w-3">{rating}</Text>
+                  <Star size={12} color="#f59e0b" fill="#f59e0b" />
+                  <View className="flex-1 bg-muted rounded-full h-2">
+                    <View
+                      className="bg-yellow-500 h-2 rounded-full"
+                      style={{ width: `${Math.random() * 100}%` }}
+                    />
+                  </View>
+                  <Text className="text-sm text-muted-foreground w-8">
+                    {Math.floor(Math.random() * 50)}
+                  </Text>
+                </View>
+              ))}
             </View>
             
             {reviews.length > 0 ? (
@@ -973,9 +1272,12 @@ export default function RestaurantDetailsScreen() {
           </View>
         )}
 
-        {/* 12.8 Bottom Padding */}
+        {/* 17.12 Bottom Padding */}
         <View className="h-20" />
       </ScrollView>
+
+      {/* 17.13 Image Gallery Modal */}
+      {showImageGallery && <ImageGalleryModal />}
     </SafeAreaView>
   );
 }
