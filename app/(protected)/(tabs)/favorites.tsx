@@ -9,6 +9,8 @@ import {
   RefreshControl,
   SectionList,
   Animated,
+  Modal,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -23,6 +25,7 @@ import {
   List,
   Calendar,
   ChevronRight,
+  ChevronLeft,
   Sparkles,
   TrendingUp,
 } from "lucide-react-native";
@@ -426,119 +429,158 @@ export default function FavoritesScreen() {
         </View>
         
         {/* 9.2.2 Quick Actions */}
-        <View className="border-t border-border px-4 py-2">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-1">
-              <Clock size={14} color="#666" />
-              <Text className="text-xs text-muted-foreground">
-                {item.restaurant.opening_time} - {item.restaurant.closing_time}
-              </Text>
-            </View>
-            <Button
-              size="sm"
-              variant="secondary"
-              onPress={(e) => {
-                e.stopPropagation();
-                quickBook(item.restaurant);
-              }}
-            >
-              <Calendar size={14} />
-              <Text className="ml-1 text-xs">Book Now</Text>
-            </Button>
-          </View>
-        </View>
+        
       </Pressable>
     </Animated.View>
   );
 
-  // 9.3 Options Modal
-  const OptionsSheet = () => (
-    <View className="absolute top-0 left-0 right-0 bg-background shadow-lg rounded-b-xl p-4 z-10">
-      {/* 9.3.1 View Mode Toggle */}
-      <View className="mb-4">
-        <Text className="font-semibold mb-2">View Mode</Text>
-        <View className="flex-row bg-muted rounded-lg p-1">
+  // 9.3 Filter Modal (OpenTable/TheFork style)
+  const FilterModal = () => (
+    <Modal
+      visible={showOptions}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setShowOptions(false)}
+    >
+      <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+        {/* Header */}
+        <View className="flex-row items-center justify-between p-4 border-b border-border">
           <Pressable
-            onPress={() => setViewMode("list")}
-            className={`flex-1 flex-row items-center justify-center gap-2 py-2 rounded-md ${
-              viewMode === "list" ? "bg-background" : ""
-            }`}
+            onPress={() => setShowOptions(false)}
+            className="flex-row items-center gap-2"
           >
-            <List size={16} color={viewMode === "list" ? "#000" : "#666"} />
-            <Text className={viewMode === "list" ? "font-medium" : "text-muted-foreground"}>
-              List
-            </Text>
+            <ChevronLeft size={24} />
+            <Text className="text-lg font-medium">Filters</Text>
           </Pressable>
+          
           <Pressable
-            onPress={() => setViewMode("grid")}
-            className={`flex-1 flex-row items-center justify-center gap-2 py-2 rounded-md ${
-              viewMode === "grid" ? "bg-background" : ""
-            }`}
+            onPress={() => {
+              // Reset to defaults
+              setViewMode("list");
+              setSortBy("recently_added");
+              setGroupBy("none");
+            }}
+            className="px-3 py-1"
           >
-            <Grid size={16} color={viewMode === "grid" ? "#000" : "#666"} />
-            <Text className={viewMode === "grid" ? "font-medium" : "text-muted-foreground"}>
-              Grid
-            </Text>
+            <Text className="text-primary font-medium">Reset</Text>
           </Pressable>
         </View>
-      </View>
-      
-      {/* 9.3.2 Sort Options */}
-      <View className="mb-4">
-        <Text className="font-semibold mb-2">Sort By</Text>
-        <View className="flex-row flex-wrap gap-2">
-          {SORT_OPTIONS.map((option) => (
-            <Pressable
-              key={option.value}
-              onPress={() => setSortBy(option.value)}
-              className={`px-3 py-2 rounded-full border ${
-                sortBy === option.value
-                  ? "bg-primary border-primary"
-                  : "bg-background border-border"
-              }`}
-            >
-              <Text
-                className={
-                  sortBy === option.value
-                    ? "text-primary-foreground text-sm"
-                    : "text-foreground text-sm"
-                }
+
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          {/* View Mode Section */}
+          <View className="p-4 border-b border-border">
+            <Text className="font-semibold text-lg mb-4">View Mode</Text>
+            <View className="flex-row bg-muted rounded-xl p-1">
+              <Pressable
+                onPress={() => setViewMode("list")}
+                className={`flex-1 flex-row items-center justify-center gap-2 py-3 rounded-lg ${
+                  viewMode === "list" ? "bg-background shadow-sm" : ""
+                }`}
               >
-                {option.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-      
-      {/* 9.3.3 Group Options */}
-      <View>
-        <Text className="font-semibold mb-2">Group By</Text>
-        <View className="flex-row flex-wrap gap-2">
-          {GROUP_OPTIONS.map((option) => (
-            <Pressable
-              key={option.value}
-              onPress={() => setGroupBy(option.value)}
-              className={`px-3 py-2 rounded-full border ${
-                groupBy === option.value
-                  ? "bg-primary border-primary"
-                  : "bg-background border-border"
-              }`}
-            >
-              <Text
-                className={
-                  groupBy === option.value
-                    ? "text-primary-foreground text-sm"
-                    : "text-foreground text-sm"
-                }
+                <List size={20} color={viewMode === "list" ? (colorScheme === "dark" ? "#fff" : "#000") : "#666"} />
+                <Text className={`font-medium ${viewMode === "list" ? "text-foreground" : "text-muted-foreground"}`}>
+                  List
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setViewMode("grid")}
+                className={`flex-1 flex-row items-center justify-center gap-2 py-3 rounded-lg ${
+                  viewMode === "grid" ? "bg-background shadow-sm" : ""
+                }`}
               >
-                {option.label}
-              </Text>
-            </Pressable>
-          ))}
+                <Grid size={20} color={viewMode === "grid" ? (colorScheme === "dark" ? "#fff" : "#000") : "#666"} />
+                <Text className={`font-medium ${viewMode === "grid" ? "text-foreground" : "text-muted-foreground"}`}>
+                  Grid
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+          
+          {/* Sort Options Section */}
+          <View className="p-4 border-b border-border">
+            <Text className="font-semibold text-lg mb-4">Sort By</Text>
+            <View className="gap-3">
+              {SORT_OPTIONS.map((option) => {
+                const IconComponent = option.icon;
+                const isSelected = sortBy === option.value;
+                
+                return (
+                  <Pressable
+                    key={option.value}
+                    onPress={() => setSortBy(option.value)}
+                    className={`flex-row items-center justify-between p-4 rounded-xl border ${
+                      isSelected
+                        ? "bg-primary/10 border-primary"
+                        : "bg-background border-border"
+                    }`}
+                  >
+                    <View className="flex-row items-center gap-3">
+                      <IconComponent 
+                        size={20} 
+                        color={isSelected ? (colorScheme === "dark" ? "#3b82f6" : "#2563eb") : "#666"} 
+                      />
+                      <Text className={`font-medium ${isSelected ? "text-primary" : "text-foreground"}`}>
+                        {option.label}
+                      </Text>
+                    </View>
+                    {isSelected && (
+                      <View className="w-6 h-6 bg-primary rounded-full items-center justify-center">
+                        <Text className="text-primary-foreground text-xs">✓</Text>
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+          
+          {/* Group Options Section */}
+          <View className="p-4">
+            <Text className="font-semibold text-lg mb-4">Group By</Text>
+            <View className="gap-3">
+              {GROUP_OPTIONS.map((option) => {
+                const isSelected = groupBy === option.value;
+                
+                return (
+                  <Pressable
+                    key={option.value}
+                    onPress={() => setGroupBy(option.value)}
+                    className={`flex-row items-center justify-between p-4 rounded-xl border ${
+                      isSelected
+                        ? "bg-primary/10 border-primary"
+                        : "bg-background border-border"
+                    }`}
+                  >
+                    <Text className={`font-medium ${isSelected ? "text-primary" : "text-foreground"}`}>
+                      {option.label}
+                    </Text>
+                    {isSelected && (
+                      <View className="w-6 h-6 bg-primary rounded-full items-center justify-center">
+                        <Text className="text-primary-foreground text-xs">✓</Text>
+                      </View>
+                    )}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Apply Button */}
+        <View className="p-4 border-t border-border">
+          <Button
+            onPress={() => {
+              setShowOptions(false);
+              // Trigger haptic feedback
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            }}
+            className="w-full"
+          >
+            <Text className="text-primary-foreground font-semibold">Apply Filters</Text>
+          </Button>
         </View>
-      </View>
-    </View>
+      </SafeAreaView>
+    </Modal>
   );
 
   // 9.4 Empty State
@@ -594,20 +636,21 @@ export default function FavoritesScreen() {
         </View>
         <Pressable
           onPress={() => setShowOptions(!showOptions)}
-          className="p-2"
+          className="p-2 relative"
         >
           <Filter size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
+          {/* Active filter indicator */}
+          {(viewMode !== "list" || sortBy !== "recently_added" || groupBy !== "none") && (
+            <View className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-background" />
+          )}
         </Pressable>
       </View>
       
-      {/* 11.2 Options Sheet */}
-      {showOptions && <OptionsSheet />}
-      
-      {/* 11.3 Content */}
+      {/* 11.2 Content */}
       {favorites.length === 0 ? (
         <EmptyState />
       ) : groupBy === "none" && viewMode === "grid" ? (
-        // 11.3.1 Grid View without sections
+        // 11.2.1 Grid View without sections
         <FlatList
           data={processedFavorites[0].data}
           renderItem={({ item }) => <GridCard item={item} />}
@@ -624,7 +667,7 @@ export default function FavoritesScreen() {
           }
         />
       ) : (
-        // 11.3.2 Section List View
+        // 11.2.2 Section List View
         <SectionList
           sections={processedFavorites}
           renderItem={({ item }) =>
@@ -648,7 +691,7 @@ export default function FavoritesScreen() {
         />
       )}
       
-      {/* 11.4 Insights Banner (when applicable) */}
+      {/* 11.3 Insights Banner (when applicable) */}
       {favorites.length > 5 && (
         <View className="absolute bottom-20 left-4 right-4">
           <Pressable
@@ -668,6 +711,9 @@ export default function FavoritesScreen() {
           </Pressable>
         </View>
       )}
+
+      {/* 11.4 Filter Modal */}
+      <FilterModal />
     </SafeAreaView>
   );
 }
