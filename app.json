@@ -11,6 +11,10 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "infoPlist": {
+      "NSContactsUsageDescription":
+       "Booklet needs optional access to your contacts only when you ask it to import guests or share a reservation."
+      },
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
