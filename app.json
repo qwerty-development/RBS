@@ -8,19 +8,17 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "owner": "qwerty-app",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "infoPlist": {
-      "NSContactsUsageDescription":
-       "Booklet needs optional access to your contacts only when you ask it to import guests or share a reservation."
-      },
+    "assetBundlePatterns": ["**/*"],
     "newArchEnabled": true,
+
     "ios": {
       "supportsTablet": true,
-      "config": {
-        "usesNonExemptEncryption": false
+      "config": { "usesNonExemptEncryption": false },
+      
+      "infoPlist": {
+        "NSContactsUsageDescription": "Booklet needs optional access to your contacts only when you ask it to import guests or share a reservation."
       },
+
       "splash": {
         "image": "./assets/splash.png",
         "resizeMode": "cover",
@@ -37,10 +35,9 @@
       },
       "bundleIdentifier": "com.notqwerty.booklet"
     },
+
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png"
-      },
+      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png" },
       "splash": {
         "image": "./assets/splash.png",
         "resizeMode": "cover",
@@ -52,18 +49,12 @@
         }
       }
     },
-    "experiments": {
-      "typedRoutes": true
-    },
-    "plugins": [
-      "expo-router",
-      "expo-secure-store"
-    ],
+
+    "experiments": { "typedRoutes": true },
+    "plugins": ["expo-router", "expo-secure-store"],
     "extra": {
       "router": {},
-      "eas": {
-        "projectId": "9cb3f29d-a85c-439a-ac34-513843ed9279"
-      }
+      "eas": { "projectId": "9cb3f29d-a85c-439a-ac34-513843ed9279" }
     }
   }
 }
