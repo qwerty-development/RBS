@@ -3,6 +3,8 @@ import { Stack } from "expo-router";
 import { AuthProvider } from "@/context/supabase-provider";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
+import { LogBox } from "react-native";
+LogBox.ignoreLogs(["Setting a timer", "Non-serializable values were found in the navigation state", "Warning: Failed prop type: Invalid prop `children` of type `object` supplied to `TabBarLabel`, expected `node`.",]);
 
 export default function AppLayout() {
 	const { colorScheme } = useColorScheme();
