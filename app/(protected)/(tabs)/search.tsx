@@ -11,6 +11,7 @@ import {
   Platform,
   Dimensions,
   Alert,
+  RefreshControl,
 } from "react-native";
 import MapView, { Marker, Callout, Region } from "react-native-maps";
 import { useRouter } from "expo-router";
@@ -34,7 +35,6 @@ import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { H3, P, Muted } from "@/components/ui/typography";
-import { Switch } from "@/components/ui/switch";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Image } from "@/components/image";
@@ -43,16 +43,17 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
 
+// Type definitions
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 type ViewMode = "list" | "map";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// Lebanese cuisines with proper categorization
+// Constants
 const CUISINE_TYPES = [
   "Lebanese",
   "Italian",
-  "French",
+  "French", 
   "Japanese",
   "Chinese",
   "Indian",
@@ -91,11 +92,17 @@ interface Filters {
   minRating: number;
 }
 
+interface UserLocation {
+  latitude: number;
+  longitude: number;
+}
+
 export default function SearchScreen() {
   const router = useRouter();
   const { profile } = useAuth();
   const { colorScheme } = useColorScheme();
   
+  // Core state
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
@@ -103,10 +110,7 @@ export default function SearchScreen() {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [userLocation, setUserLocation] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   
   const [filters, setFilters] = useState<Filters>({
     sortBy: "recommended",
@@ -125,8 +129,22 @@ export default function SearchScreen() {
     longitudeDelta: 0.05,
   });
   
+  // Refs
   const mapRef = useRef<MapView>(null);
   const listRef = useRef<FlatList>(null);
+
+  // Memoized distance calculation
+  const calculateDistance = useCallback((lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }, []);
 
   // Fetch user's favorites
   const fetchFavorites = useCallback(async () => {
@@ -160,6 +178,7 @@ export default function SearchScreen() {
           .eq("restaurant_id", restaurantId);
         
         if (error) throw error;
+        
         setFavorites((prev) => {
           const next = new Set(prev);
           next.delete(restaurantId);
@@ -192,14 +211,15 @@ export default function SearchScreen() {
         accuracy: Location.Accuracy.Balanced,
       });
       
-      setUserLocation({
+      const newLocation = {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
-      });
+      };
       
+      setUserLocation(newLocation);
       setMapRegion({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
+        latitude: newLocation.latitude,
+        longitude: newLocation.longitude,
         latitudeDelta: 0.05,
         longitudeDelta: 0.05,
       });
@@ -208,28 +228,13 @@ export default function SearchScreen() {
     }
   }, []);
 
-  // Calculate distance between two points
-  const calculateDistance = useCallback((lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-    return R * c;
-  }, []);
-
-  // Fetch and filter restaurants
-  const fetchRestaurants = useCallback(async () => {
-    setLoading(true);
-    
+  // Fetch restaurants from database
+  const fetchRestaurantsFromDB = useCallback(async () => {
     try {
       let query = supabase.from("restaurants").select("*");
       
       // Apply search query
-      if (searchQuery) {
+      if (searchQuery.trim()) {
         query = query.or(
           `name.ilike.%${searchQuery}%,cuisine_type.ilike.%${searchQuery}%,tags.cs.{${searchQuery}}`
         );
@@ -258,74 +263,84 @@ export default function SearchScreen() {
       const { data, error } = await query;
       
       if (error) throw error;
-      
-      let filteredData = data || [];
-      
-      // Apply feature filters (client-side)
-      if (filters.features.length > 0) {
-        filteredData = filteredData.filter((restaurant) =>
-          filters.features.every((feature) => {
-            const featureField = FEATURES.find((f) => f.id === feature)?.field;
-            return featureField && restaurant[featureField as keyof Restaurant];
-          })
-        );
-      }
-      
-      // Apply ambiance tag filters (client-side)
-      if (filters.ambianceTags.length > 0) {
-        filteredData = filteredData.filter((restaurant) =>
-          filters.ambianceTags.some((tag) =>
-            restaurant.ambiance_tags?.includes(tag)
-          )
-        );
-      }
-      
-      // Sort restaurants
-      const sortedData = [...filteredData].sort((a, b) => {
-        switch (filters.sortBy) {
-          case "rating":
-            return (b.average_rating || 0) - (a.average_rating || 0);
-          case "name":
-            return a.name.localeCompare(b.name);
-          case "distance":
-            if (!userLocation) return 0;
-            const distA = calculateDistance(
-              userLocation.latitude,
-              userLocation.longitude,
-              a.location.lat,
-              a.location.lng
-            );
-            const distB = calculateDistance(
-              userLocation.latitude,
-              userLocation.longitude,
-              b.location.lat,
-              b.location.lng
-            );
-            return distA - distB;
-          case "recommended":
-          default:
-            // Complex recommendation algorithm
-            const scoreA = (a.average_rating || 0) * 0.4 + 
-                          (a.total_reviews || 0) * 0.001 +
-                          (profile?.favorite_cuisines?.includes(a.cuisine_type) ? 0.3 : 0) +
-                          (favorites.has(a.id) ? 0.2 : 0);
-            const scoreB = (b.average_rating || 0) * 0.4 + 
-                          (b.total_reviews || 0) * 0.001 +
-                          (profile?.favorite_cuisines?.includes(b.cuisine_type) ? 0.3 : 0) +
-                          (favorites.has(b.id) ? 0.2 : 0);
-            return scoreB - scoreA;
-        }
-      });
-      
-      setRestaurants(sortedData);
+      return data || [];
     } catch (error) {
       console.error("Error fetching restaurants:", error);
       Alert.alert("Error", "Failed to load restaurants");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      return [];
     }
-  }, [searchQuery, filters, userLocation, profile, favorites, calculateDistance]);
+  }, [searchQuery, filters.cuisines, filters.priceRange, filters.bookingPolicy, filters.minRating]);
+
+  // Process and filter restaurants
+  const processedRestaurants = useMemo(() => {
+    let filteredData = [...restaurants];
+    
+    // Apply feature filters (client-side)
+    if (filters.features.length > 0) {
+      filteredData = filteredData.filter((restaurant) =>
+        filters.features.every((feature) => {
+          const featureField = FEATURES.find((f) => f.id === feature)?.field;
+          return featureField && restaurant[featureField as keyof Restaurant];
+        })
+      );
+    }
+    
+    // Apply ambiance tag filters (client-side)
+    if (filters.ambianceTags.length > 0) {
+      filteredData = filteredData.filter((restaurant) =>
+        filters.ambianceTags.some((tag) =>
+          restaurant.ambiance_tags?.includes(tag)
+        )
+      );
+    }
+    
+    // Sort restaurants
+    const sortedData = [...filteredData].sort((a, b) => {
+      switch (filters.sortBy) {
+        case "rating":
+          return (b.average_rating || 0) - (a.average_rating || 0);
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "distance":
+          if (!userLocation) return 0;
+          const distA = calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            a.location?.lat || 0,
+            a.location?.lng || 0
+          );
+          const distB = calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            b.location?.lat || 0,
+            b.location?.lng || 0
+          );
+          return distA - distB;
+        case "recommended":
+        default:
+          const scoreA = (a.average_rating || 0) * 0.4 + 
+                        (a.total_reviews || 0) * 0.001 +
+                        (profile?.favorite_cuisines?.includes(a.cuisine_type) ? 0.3 : 0) +
+                        (favorites.has(a.id) ? 0.2 : 0);
+          const scoreB = (b.average_rating || 0) * 0.4 + 
+                        (b.total_reviews || 0) * 0.001 +
+                        (profile?.favorite_cuisines?.includes(b.cuisine_type) ? 0.3 : 0) +
+                        (favorites.has(b.id) ? 0.2 : 0);
+          return scoreB - scoreA;
+      }
+    });
+    
+    return sortedData;
+  }, [restaurants, filters, userLocation, profile?.favorite_cuisines, favorites, calculateDistance]);
+
+  // Main fetch function
+  const fetchRestaurants = useCallback(async () => {
+    setLoading(true);
+    const data = await fetchRestaurantsFromDB();
+    setRestaurants(data);
+    setLoading(false);
+    setRefreshing(false);
+  }, [fetchRestaurantsFromDB]);
 
   // Initial load
   useEffect(() => {
@@ -337,7 +352,7 @@ export default function SearchScreen() {
     fetchRestaurants();
   }, [fetchRestaurants]);
 
-  // Navigate to restaurant details
+  // Navigation handlers
   const handleRestaurantPress = useCallback((restaurantId: string) => {
     router.push({
       pathname: "/restaurant/[id]",
@@ -345,8 +360,12 @@ export default function SearchScreen() {
     });
   }, [router]);
 
-  // Open directions
   const openDirections = useCallback(async (restaurant: Restaurant) => {
+    if (!restaurant.location?.lat || !restaurant.location?.lng) {
+      Alert.alert("Error", "Location data not available");
+      return;
+    }
+
     const scheme = Platform.select({
       ios: "maps:0,0?q=",
       android: "geo:0,0?q=",
@@ -367,9 +386,9 @@ export default function SearchScreen() {
     }
   }, []);
 
-  // Restaurant card component
-  const RestaurantCard = ({ item }: { item: Restaurant }) => {
-    const distance = userLocation
+  // Restaurant card component - memoized for performance
+  const RestaurantCard = React.memo(({ item }: { item: Restaurant }) => {
+    const distance = userLocation && item.location?.lat && item.location?.lng
       ? calculateDistance(
           userLocation.latitude,
           userLocation.longitude,
@@ -391,10 +410,10 @@ export default function SearchScreen() {
           />
           <View className="flex-1 p-4">
             <View className="flex-row justify-between items-start mb-1">
-              <H3 className="flex-1">{item.name}</H3>
+              <H3 className="flex-1" numberOfLines={2}>{item.name}</H3>
               <Pressable
                 onPress={() => toggleFavorite(item.id)}
-                className="p-1"
+                className="p-1 ml-2"
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               >
                 <Heart
@@ -408,14 +427,14 @@ export default function SearchScreen() {
             <P className="text-muted-foreground mb-2">{item.cuisine_type}</P>
             
             <View className="flex-row items-center gap-4 mb-2">
-              {item.average_rating > 0 && (
+              {(item.average_rating || 0) > 0 && (
                 <View className="flex-row items-center gap-1">
                   <Star size={14} color="#f59e0b" fill="#f59e0b" />
                   <Text className="text-sm font-medium">
-                    {item.average_rating.toFixed(1)}
+                    {item.average_rating?.toFixed(1)}
                   </Text>
                   <Text className="text-xs text-muted-foreground">
-                    ({item.total_reviews})
+                    ({item.total_reviews || 0})
                   </Text>
                 </View>
               )}
@@ -478,10 +497,10 @@ export default function SearchScreen() {
         </View>
       </Pressable>
     );
-  };
+  });
 
-  // Filter modal content
-  const FilterModal = () => (
+  // Filter modal component
+  const FilterModal = React.memo(() => (
     <Modal
       visible={showFilters}
       animationType="slide"
@@ -503,7 +522,7 @@ export default function SearchScreen() {
             <RadioGroup
               value={filters.sortBy}
               onValueChange={(value) =>
-                setFilters({ ...filters, sortBy: value as any })
+                setFilters(prev => ({ ...prev, sortBy: value as any }))
               }
             >
               <View className="gap-3">
@@ -536,12 +555,12 @@ export default function SearchScreen() {
                   key={cuisine}
                   onPress={() => {
                     const isSelected = filters.cuisines.includes(cuisine);
-                    setFilters({
-                      ...filters,
+                    setFilters(prev => ({
+                      ...prev,
                       cuisines: isSelected
-                        ? filters.cuisines.filter((c) => c !== cuisine)
-                        : [...filters.cuisines, cuisine],
-                    });
+                        ? prev.cuisines.filter((c) => c !== cuisine)
+                        : [...prev.cuisines, cuisine],
+                    }));
                   }}
                   className={`px-3 py-2 rounded-full border ${
                     filters.cuisines.includes(cuisine)
@@ -572,12 +591,12 @@ export default function SearchScreen() {
                   key={price}
                   onPress={() => {
                     const isSelected = filters.priceRange.includes(price);
-                    setFilters({
-                      ...filters,
+                    setFilters(prev => ({
+                      ...prev,
                       priceRange: isSelected
-                        ? filters.priceRange.filter((p) => p !== price)
-                        : [...filters.priceRange, price],
-                    });
+                        ? prev.priceRange.filter((p) => p !== price)
+                        : [...prev.priceRange, price],
+                    }));
                   }}
                   className={`px-4 py-2 rounded-lg border ${
                     filters.priceRange.includes(price)
@@ -608,12 +627,12 @@ export default function SearchScreen() {
                   <Checkbox
                     checked={filters.features.includes(feature.id)}
                     onCheckedChange={(checked) => {
-                      setFilters({
-                        ...filters,
+                      setFilters(prev => ({
+                        ...prev,
                         features: checked
-                          ? [...filters.features, feature.id]
-                          : filters.features.filter((f) => f !== feature.id),
-                      });
+                          ? [...prev.features, feature.id]
+                          : prev.features.filter((f) => f !== feature.id),
+                      }));
                     }}
                   />
                   <Text>{feature.label}</Text>
@@ -631,12 +650,12 @@ export default function SearchScreen() {
                   key={tag}
                   onPress={() => {
                     const isSelected = filters.ambianceTags.includes(tag);
-                    setFilters({
-                      ...filters,
+                    setFilters(prev => ({
+                      ...prev,
                       ambianceTags: isSelected
-                        ? filters.ambianceTags.filter((t) => t !== tag)
-                        : [...filters.ambianceTags, tag],
-                    });
+                        ? prev.ambianceTags.filter((t) => t !== tag)
+                        : [...prev.ambianceTags, tag],
+                    }));
                   }}
                   className={`px-3 py-2 rounded-full border ${
                     filters.ambianceTags.includes(tag)
@@ -664,7 +683,7 @@ export default function SearchScreen() {
             <RadioGroup
               value={filters.bookingPolicy}
               onValueChange={(value) =>
-                setFilters({ ...filters, bookingPolicy: value as any })
+                setFilters(prev => ({ ...prev, bookingPolicy: value as any }))
               }
             >
               <View className="gap-3">
@@ -691,7 +710,7 @@ export default function SearchScreen() {
               {[0, 3, 4, 4.5].map((rating) => (
                 <Pressable
                   key={rating}
-                  onPress={() => setFilters({ ...filters, minRating: rating })}
+                  onPress={() => setFilters(prev => ({ ...prev, minRating: rating }))}
                   className={`px-3 py-2 rounded-lg border ${
                     filters.minRating === rating
                       ? "bg-primary border-primary"
@@ -744,10 +763,10 @@ export default function SearchScreen() {
         </View>
       </SafeAreaView>
     </Modal>
-  );
+  ));
 
-  // Map view
-  const MapView = () => (
+  // Map component - renamed to avoid conflicts
+  const RestaurantMapView = React.memo(() => (
     <View className="flex-1">
       <MapView
         ref={mapRef}
@@ -757,43 +776,47 @@ export default function SearchScreen() {
         showsUserLocation
         showsMyLocationButton
       >
-        {restaurants.map((restaurant) => (
-          <Marker
-            key={restaurant.id}
-            coordinate={{
-              latitude: restaurant.location.lat,
-              longitude: restaurant.location.lng,
-            }}
-            title={restaurant.name}
-            description={restaurant.cuisine_type}
-          >
-            <Callout onPress={() => handleRestaurantPress(restaurant.id)}>
-              <View className="p-2 w-48">
-                <Text className="font-semibold">{restaurant.name}</Text>
-                <Text className="text-sm text-muted-foreground">
-                  {restaurant.cuisine_type}
-                </Text>
-                <View className="flex-row items-center gap-2 mt-1">
-                  {restaurant.average_rating > 0 && (
-                    <View className="flex-row items-center gap-1">
-                      <Star size={12} color="#f59e0b" fill="#f59e0b" />
-                      <Text className="text-xs">
-                        {restaurant.average_rating.toFixed(1)}
-                      </Text>
-                    </View>
-                  )}
-                  <Text className="text-xs">
-                    {"$".repeat(restaurant.price_range)}
+        {processedRestaurants.map((restaurant) => {
+          if (!restaurant.location?.lat || !restaurant.location?.lng) return null;
+          
+          return (
+            <Marker
+              key={restaurant.id}
+              coordinate={{
+                latitude: restaurant.location.lat,
+                longitude: restaurant.location.lng,
+              }}
+              title={restaurant.name}
+              description={restaurant.cuisine_type}
+            >
+              <Callout onPress={() => handleRestaurantPress(restaurant.id)}>
+                <View className="p-2 w-48">
+                  <Text className="font-semibold">{restaurant.name}</Text>
+                  <Text className="text-sm text-muted-foreground">
+                    {restaurant.cuisine_type}
                   </Text>
+                  <View className="flex-row items-center gap-2 mt-1">
+                    {(restaurant.average_rating || 0) > 0 && (
+                      <View className="flex-row items-center gap-1">
+                        <Star size={12} color="#f59e0b" fill="#f59e0b" />
+                        <Text className="text-xs">
+                          {restaurant.average_rating?.toFixed(1)}
+                        </Text>
+                      </View>
+                    )}
+                    <Text className="text-xs">
+                      {"$".repeat(restaurant.price_range)}
+                    </Text>
+                  </View>
+                  <Text className="text-xs text-primary mt-1">Tap for details</Text>
                 </View>
-                <Text className="text-xs text-primary mt-1">Tap for details</Text>
-              </View>
-            </Callout>
-          </Marker>
-        ))}
+              </Callout>
+            </Marker>
+          );
+        })}
       </MapView>
     </View>
-  );
+  ));
 
   // Active filter count
   const activeFilterCount = useMemo(() => {
@@ -807,6 +830,12 @@ export default function SearchScreen() {
     if (filters.minRating > 0) count++;
     return count;
   }, [filters]);
+
+  // Refresh handler
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchRestaurants();
+  }, [fetchRestaurants]);
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
@@ -901,16 +930,18 @@ export default function SearchScreen() {
       ) : viewMode === "list" ? (
         <FlatList
           ref={listRef}
-          data={restaurants}
+          data={processedRestaurants}
           renderItem={({ item }) => <RestaurantCard item={item} />}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16 }}
           showsVerticalScrollIndicator={false}
-          refreshing={refreshing}
-          onRefresh={() => {
-            setRefreshing(true);
-            fetchRestaurants();
-          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colorScheme === "dark" ? "#fff" : "#000"}
+            />
+          }
           ListEmptyComponent={
             <View className="flex-1 items-center justify-center py-20">
               <Muted>No restaurants found</Muted>
@@ -937,7 +968,7 @@ export default function SearchScreen() {
           }
         />
       ) : (
-        <MapView />
+        <RestaurantMapView />
       )}
       
       <FilterModal />

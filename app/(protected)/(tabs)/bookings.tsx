@@ -103,7 +103,7 @@ export default function BookingsScreen() {
   const [processingBookingId, setProcessingBookingId] = useState<string | null>(null);
   
   // 2. Refs for performance optimization
-  const scrollViewRef = useRef<ScrollView>(null);
+  const flatListRef = useRef<FlatList>(null);
   const hasInitialLoad = useRef(false);
 
   // 3. Data Fetching Functions
@@ -350,7 +350,7 @@ export default function BookingsScreen() {
     return (
       <Pressable
         onPress={() => navigateToRestaurant(booking.restaurant_id)}
-        className="bg-card rounded-xl overflow-hidden mb-4 shadow-sm"
+        className="bg-card rounded-xl overflow-hidden mb-4 border border-border shadow-sm"
       >
         {/* 13.2 Restaurant Header */}
         <View className="flex-row p-4">
@@ -362,7 +362,7 @@ export default function BookingsScreen() {
           <View className="flex-1 ml-4">
             <View className="flex-row items-start justify-between">
               <View className="flex-1">
-                <H3 className="mb-1">{booking.restaurant.name}</H3>
+                <H3 className="mb-1 text-lg">{booking.restaurant.name}</H3>
                 <P className="text-muted-foreground text-sm">
                   {booking.restaurant.cuisine_type}
                 </P>
@@ -385,17 +385,17 @@ export default function BookingsScreen() {
         
         {/* 13.4 Booking Details */}
         <View className="px-4 pb-4">
-          <View className="bg-muted rounded-lg p-3 mb-3">
-            <View className="flex-row justify-between mb-2">
+          <View className="bg-muted/50 rounded-lg p-3 mb-3">
+            <View className="flex-row justify-between items-center mb-2">
               <View className="flex-row items-center gap-2">
                 <Calendar size={16} color="#666" />
-                <Text className="font-medium">
+                <Text className="font-medium text-sm">
                   {isToday ? "Today" : isTomorrow ? "Tomorrow" : bookingDate.toLocaleDateString()}
                 </Text>
               </View>
               <View className="flex-row items-center gap-2">
                 <Clock size={16} color="#666" />
-                <Text className="font-medium">
+                <Text className="font-medium text-sm">
                   {bookingDate.toLocaleTimeString([], { 
                     hour: "2-digit", 
                     minute: "2-digit" 
@@ -404,7 +404,7 @@ export default function BookingsScreen() {
               </View>
             </View>
             
-            <View className="flex-row justify-between">
+            <View className="flex-row justify-between items-center">
               <View className="flex-row items-center gap-2">
                 <Users size={16} color="#666" />
                 <Text className="text-sm text-muted-foreground">
@@ -415,7 +415,7 @@ export default function BookingsScreen() {
               {/* 13.5 Confirmation Code */}
               <Pressable
                 onPress={() => copyConfirmationCode(booking.confirmation_code)}
-                className="flex-row items-center gap-2 bg-background px-2 py-1 rounded"
+                className="flex-row items-center gap-2 bg-background px-2 py-1 rounded border border-border"
               >
                 <Copy size={14} color="#666" />
                 <Text className="text-sm font-mono font-medium">
@@ -427,7 +427,7 @@ export default function BookingsScreen() {
           
           {/* 13.6 Special Requests / Notes */}
           {(booking.special_requests || booking.occasion) && (
-            <View className="bg-muted/50 rounded-lg p-3 mb-3">
+            <View className="bg-muted/30 rounded-lg p-3 mb-3">
               {booking.occasion && (
                 <Text className="text-sm mb-1">
                   <Text className="font-medium">Occasion:</Text> {booking.occasion}
@@ -443,17 +443,20 @@ export default function BookingsScreen() {
           )}
           
           {/* 13.7 Action Buttons */}
-          <View className="flex-row flex-wrap gap-2">
+          <View className="gap-3">
+            {/* Quick Action Buttons Row */}
             {!isPast && booking.status === "confirmed" && (
-              <>
+              <View className="flex-row gap-2">
                 <Button
                   size="sm"
                   variant="outline"
                   onPress={() => openDirections(booking.restaurant)}
                   className="flex-1"
                 >
-                  <Navigation size={16} color="#3b82f6" />
-                  <Text className="ml-1">Get Directions</Text>
+                  <View className="flex-row items-center gap-1">
+                    <Navigation size={16} color="#3b82f6" />
+                    <Text className="text-sm">Directions</Text>
+                  </View>
                 </Button>
                 
                 {booking.restaurant.phone_number && (
@@ -463,8 +466,10 @@ export default function BookingsScreen() {
                     onPress={() => callRestaurant(booking.restaurant.phone_number!)}
                     className="flex-1"
                   >
-                    <Phone size={16} color="#10b981" />
-                    <Text className="ml-1">Call</Text>
+                    <View className="flex-row items-center gap-1">
+                      <Phone size={16} color="#10b981" />
+                      <Text className="text-sm">Call</Text>
+                    </View>
                   </Button>
                 )}
                 
@@ -475,64 +480,73 @@ export default function BookingsScreen() {
                     onPress={() => messageRestaurant(booking.restaurant.whatsapp_number!, booking)}
                     className="flex-1"
                   >
-                    <MessageCircle size={16} color="#22c55e" />
-                    <Text className="ml-1">WhatsApp</Text>
+                    <View className="flex-row items-center gap-1">
+                      <MessageCircle size={16} color="#22c55e" />
+                      <Text className="text-sm">WhatsApp</Text>
+                    </View>
                   </Button>
                 )}
-              </>
+              </View>
             )}
             
-            {!isPast && (booking.status === "pending" || booking.status === "confirmed") && (
+            {/* Main Action Buttons Row */}
+            <View className="flex-row gap-2">
+              {!isPast && (booking.status === "pending" || booking.status === "confirmed") && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onPress={() => cancelBooking(booking.id)}
+                  disabled={processingBookingId === booking.id}
+                  className="flex-1"
+                >
+                  {processingBookingId === booking.id ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <View className="flex-row items-center gap-1">
+                      <XCircle size={16} color="#fff" />
+                      <Text className="text-sm text-white">Cancel</Text>
+                    </View>
+                  )}
+                </Button>
+              )}
+              
+              {isPast && booking.status === "completed" && !hasReview && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  onPress={() => navigateToReview(booking)}
+                  className="flex-1"
+                >
+                  <View className="flex-row items-center gap-1">
+                    <Star size={16} color="#fff" />
+                    <Text className="text-sm text-white">Rate Experience</Text>
+                  </View>
+                </Button>
+              )}
+              
+              {isPast && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onPress={() => bookAgain(booking)}
+                  className="flex-1"
+                >
+                  <View className="flex-row items-center gap-1">
+                    <Calendar size={16} color="#000" />
+                    <Text className="text-sm">Book Again</Text>
+                  </View>
+                </Button>
+              )}
+              
               <Button
                 size="sm"
-                variant="destructive"
-                onPress={() => cancelBooking(booking.id)}
-                disabled={processingBookingId === booking.id}
-                className="flex-1"
+                variant="ghost"
+                onPress={() => shareBooking(booking)}
+                className="px-4"
               >
-                {processingBookingId === booking.id ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <>
-                    <XCircle size={16} color="#fff" />
-                    <Text className="ml-1">Cancel Booking</Text>
-                  </>
-                )}
+                <Share2 size={16} color="#666" />
               </Button>
-            )}
-            
-            {isPast && booking.status === "completed" && !hasReview && (
-              <Button
-                size="sm"
-                variant="default"
-                onPress={() => navigateToReview(booking)}
-                className="flex-1"
-              >
-                <Star size={16} color="#fff" />
-                <Text className="ml-1">Rate Experience</Text>
-              </Button>
-            )}
-            
-            {isPast && (
-              <Button
-                size="sm"
-                variant="secondary"
-                onPress={() => bookAgain(booking)}
-                className="flex-1"
-              >
-                <Calendar size={16} />
-                <Text className="ml-1">Book Again</Text>
-              </Button>
-            )}
-            
-            <Button
-              size="sm"
-              variant="ghost"
-              onPress={() => shareBooking(booking)}
-              className="px-3"
-            >
-              <Share2 size={16} />
-            </Button>
+            </View>
           </View>
         </View>
       </Pressable>
@@ -552,7 +566,7 @@ export default function BookingsScreen() {
         className="mt-6"
         onPress={() => router.push("/search")}
       >
-        <Text>Explore Restaurants</Text>
+        <Text className="text-white">Explore Restaurants</Text>
       </Button>
     </View>
   );
@@ -581,7 +595,7 @@ export default function BookingsScreen() {
   }) => (
     <Pressable
       onPress={onPress}
-      className={`flex-1 py-3 items-center border-b-2 ${
+      className={`flex-1 py-4 items-center border-b-2 ${
         isActive ? "border-primary" : "border-transparent"
       }`}
     >
@@ -595,7 +609,7 @@ export default function BookingsScreen() {
         </Text>
         {count > 0 && (
           <View
-            className={`px-2 py-0.5 rounded-full ${
+            className={`px-2 py-0.5 rounded-full min-w-[20px] items-center ${
               isActive ? "bg-primary" : "bg-muted"
             }`}
           >
@@ -628,11 +642,11 @@ export default function BookingsScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* 17.1 Header */}
       <View className="px-4 pt-4 pb-2">
-        <H2>My Bookings</H2>
+        <H2 className="text-2xl">My Bookings</H2>
       </View>
       
       {/* 17.2 Tabs */}
-      <View className="flex-row border-b border-border">
+      <View className="flex-row border-b border-border bg-background">
         <TabButton
           title="Upcoming"
           isActive={activeTab === "upcoming"}
@@ -649,7 +663,7 @@ export default function BookingsScreen() {
       
       {/* 17.3 Content */}
       <FlatList
-        ref={scrollViewRef}
+        ref={flatListRef}
         data={activeTab === "upcoming" ? bookings.upcoming : bookings.past}
         renderItem={({ item }) => (
           <BookingCard booking={item} isPast={activeTab === "past"} />
