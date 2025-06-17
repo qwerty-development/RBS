@@ -379,7 +379,10 @@ export default function ProfileScreen() {
           title: "Loyalty Program",
           subtitle: `${profile?.loyalty_points || 0} points • ${LOYALTY_TIERS[profile?.membership_tier || "bronze"].name}`,
           icon: Trophy,
-          onPress: () => router.push("/profile/loyalty"),
+          onPress: () => router.push({
+            pathname: "/profile/loyalty",
+            params: { points: profile?.loyalty_points || 0 }
+          }),
         },
         {
           id: "reviews",
