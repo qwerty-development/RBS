@@ -25,16 +25,6 @@ import {
   ChevronRight,
   Calendar,
   DollarSign,
-  Wifi,
-  Car,
-  Music,
-  Trees,
-  Cigarette,
-  Info,
-  Navigation,
-  Instagram,
-  Globe,
-  Menu,
   CheckCircle,
   Camera,
   X,
@@ -58,8 +48,15 @@ import { ReviewSummary } from "@/components/restaurant/ReviewSummary";
 import { ImageGalleryModal } from "@/components/restaurant/ImageGalleryModal";
 import { RestaurantHeaderInfo } from "@/components/restaurant/RestaurantHeaderInfo";
 import { TabNavigation } from "@/components/restaurant/TabNavigation";
+import { BookingWidget } from "@/components/restaurant/BookingWidget";
+import { QuickActionsBar } from "@/components/restaurant/QuickActionsBar";
+import { FeaturesAndAmenities } from "@/components/restaurant/FeaturesAndAmenities";
+import { HoursSection } from "@/components/restaurant/HoursSection";
+import { LocationSection } from "@/components/restaurant/LocationSection";
+import { ContactSection } from "@/components/restaurant/ContactSection";
+import { MenuTab } from "@/components/restaurant/MenuTab";
+import { AboutSection } from "@/components/restaurant/AboutSection";
 
-// 1. ENHANCED TYPE DEFINITIONS WITH REVIEW INTEGRATION
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
   dietary_options?: string[];
   ambiance_tags?: string[];
@@ -75,6 +72,8 @@ type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
   instagram_handle?: string;
   website_url?: string;
   whatsapp_number?: string;
+  average_rating?: number;
+  total_reviews?: number;
   // ENHANCED: Review summary integration
   review_summary?: {
     total_reviews: number;
@@ -90,7 +89,6 @@ type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
   };
 };
 
-// ENHANCED: Complete review type with all new fields
 type Review = Database["public"]["Tables"]["reviews"]["Row"] & {
   user: {
     full_name: string;
@@ -113,47 +111,11 @@ type TimeSlot = {
   availableCapacity: number;
 };
 
-// 2. REVIEW COMPONENT TYPES (now using imported components)
-
-// 3. SCREEN CONFIGURATION CONSTANTS
+// SCREEN CONFIGURATION CONSTANTS
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const IMAGE_HEIGHT = 300;
-const MAP_HEIGHT = 200;
-
-// 3.1 Feature Icons Mapping
-const FEATURE_ICONS = {
-  "Outdoor Seating": Trees,
-  "Valet Parking": Car,
-  "Parking Available": Car,
-  Shisha: Cigarette,
-  "Live Music": Music,
-  "Free WiFi": Wifi,
-};
-
-// 3.2 Dietary Icons Mapping
-const DIETARY_ICONS = {
-  Vegetarian: "🥗",
-  Vegan: "🌱",
-  Halal: "🥩",
-  "Gluten-Free": "🌾",
-  Kosher: "✡️",
-  "Dairy-Free": "🥛",
-  "Nut-Free": "🥜",
-};
-
-// 3.3 Days of the week
-const DAYS_OF_WEEK = [
-  "Sunday",
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-];
 
 export default function RestaurantDetailsScreen() {
-  // 4. CORE STATE MANAGEMENT ARCHITECTURE
   const router = useRouter();
   const { profile } = useAuth();
   const { colorScheme } = useColorScheme();
@@ -184,21 +146,18 @@ export default function RestaurantDetailsScreen() {
   const highlightOfferId = params.highlightOfferId;
   console.log("Restaurant Details - Params:", params, "ID:", id);
 
-  // 4.1 Restaurant Data States
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [imageIndex, setImageIndex] = useState(0);
 
-  // 4.2 Booking Widget States
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState("");
   const [partySize, setPartySize] = useState(2);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
 
-  // 4.3 UI State Management
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "menu" | "reviews">(
@@ -207,11 +166,89 @@ export default function RestaurantDetailsScreen() {
   const [showImageGallery, setShowImageGallery] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  // 4.4 Performance Optimization Refs
   const scrollViewRef = useRef<ScrollView>(null);
   const mapRef = useRef<MapView>(null);
 
-  // 5. Early return if no ID is provided
+  // Calculate review summary from reviews data
+  const calculateReviewSummary = useCallback((reviewsData: Review[]) => {
+    if (!reviewsData || reviewsData.length === 0) {
+      return null;
+    }
+
+    const totalReviews = reviewsData.length;
+    const totalRating = reviewsData.reduce(
+      (sum, review) => sum + (review.rating || 0),
+      0
+    );
+    const averageRating = totalRating / totalReviews;
+
+    // Calculate rating distribution
+    const ratingDistribution: Record<string, number> = {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+    };
+
+    reviewsData.forEach((review) => {
+      const rating = Math.round(review.rating || 0).toString();
+      if (ratingDistribution[rating] !== undefined) {
+        ratingDistribution[rating]++;
+      }
+    });
+
+    // Calculate detailed ratings (if available)
+    const foodRatings = reviewsData
+      .filter((r) => r.food_rating)
+      .map((r) => r.food_rating!);
+    const serviceRatings = reviewsData
+      .filter((r) => r.service_rating)
+      .map((r) => r.service_rating!);
+    const ambianceRatings = reviewsData
+      .filter((r) => r.ambiance_rating)
+      .map((r) => r.ambiance_rating!);
+    const valueRatings = reviewsData
+      .filter((r) => r.value_rating)
+      .map((r) => r.value_rating!);
+
+    const detailedRatings = {
+      food_avg:
+        foodRatings.length > 0
+          ? foodRatings.reduce((a, b) => a + b, 0) / foodRatings.length
+          : averageRating,
+      service_avg:
+        serviceRatings.length > 0
+          ? serviceRatings.reduce((a, b) => a + b, 0) / serviceRatings.length
+          : averageRating,
+      ambiance_avg:
+        ambianceRatings.length > 0
+          ? ambianceRatings.reduce((a, b) => a + b, 0) / ambianceRatings.length
+          : averageRating,
+      value_avg:
+        valueRatings.length > 0
+          ? valueRatings.reduce((a, b) => a + b, 0) / valueRatings.length
+          : averageRating,
+    };
+
+    // Calculate recommendation percentage
+    const recommendationsCount = reviewsData.filter(
+      (r) => r.recommend_to_friend
+    ).length;
+    const recommendationPercentage =
+      totalReviews > 0
+        ? Math.round((recommendationsCount / totalReviews) * 100)
+        : 0;
+
+    return {
+      total_reviews: totalReviews,
+      average_rating: averageRating,
+      rating_distribution: ratingDistribution,
+      detailed_ratings: detailedRatings,
+      recommendation_percentage: recommendationPercentage,
+    };
+  }, []);
+
   useEffect(() => {
     if (!id) {
       console.error("No restaurant ID provided");
@@ -225,7 +262,6 @@ export default function RestaurantDetailsScreen() {
     }
   }, [id, router]);
 
-  // 6. ENHANCED DATA FETCHING WITH REVIEW INTEGRATION
   const fetchRestaurantDetails = useCallback(async () => {
     if (!id) {
       setLoading(false);
@@ -235,7 +271,6 @@ export default function RestaurantDetailsScreen() {
     try {
       console.log("Fetching restaurant details for ID:", id);
 
-      // 6.1 Fetch restaurant with all details including review_summary
       const { data: restaurantData, error: restaurantError } = await supabase
         .from("restaurants")
         .select("*")
@@ -252,6 +287,11 @@ export default function RestaurantDetailsScreen() {
       }
 
       console.log("Restaurant data fetched:", restaurantData.name);
+      console.log("Restaurant rating data:", {
+        average_rating: restaurantData.average_rating,
+        total_reviews: restaurantData.total_reviews,
+        review_summary: restaurantData.review_summary,
+      });
       setRestaurant(restaurantData);
 
       // 6.2 Check if restaurant is favorited
@@ -286,7 +326,33 @@ export default function RestaurantDetailsScreen() {
         console.warn("Reviews fetch error:", reviewsError);
       } else {
         console.log("Reviews fetched:", reviewsData?.length || 0);
+        if (reviewsData && reviewsData.length > 0) {
+          console.log("Sample review data:", reviewsData[0]);
+        }
         setReviews(reviewsData || []);
+
+        // If restaurant doesn't have review_summary, calculate it from reviews
+        if (
+          restaurantData &&
+          (!restaurantData.review_summary || !restaurantData.average_rating)
+        ) {
+          console.log("Calculating review summary from reviews data...");
+          const calculatedSummary = calculateReviewSummary(reviewsData || []);
+          console.log("Calculated summary:", calculatedSummary);
+          if (calculatedSummary) {
+            const updatedRestaurant = {
+              ...restaurantData,
+              review_summary: calculatedSummary,
+              average_rating: calculatedSummary.average_rating,
+              total_reviews: calculatedSummary.total_reviews,
+            };
+            console.log("Updated restaurant with calculated summary:", {
+              average_rating: updatedRestaurant.average_rating,
+              total_reviews: updatedRestaurant.total_reviews,
+            });
+            setRestaurant(updatedRestaurant);
+          }
+        }
       }
     } catch (error) {
       console.error("Error fetching restaurant details:", error);
@@ -846,49 +912,17 @@ export default function RestaurantDetailsScreen() {
           </View>
         </View>
 
-        {/* Quick Actions Bar (Preserved) */}
-        <View className="bg-background border-b border-border">
-          <View className="flex-row justify-between items-center px-4 py-3">
-            <Pressable
-              onPress={toggleFavorite}
-              className="flex-row items-center gap-2"
-            >
-              <Heart
-                size={24}
-                color={
-                  isFavorite
-                    ? "#ef4444"
-                    : colorScheme === "dark"
-                      ? "#fff"
-                      : "#000"
-                }
-                fill={isFavorite ? "#ef4444" : "transparent"}
-              />
-              <Text className="font-medium">
-                {isFavorite ? "Saved" : "Save"}
-              </Text>
-            </Pressable>
-
-            <View className="flex-row gap-4">
-              <Pressable onPress={handleShare}>
-                <Share2 size={24} />
-              </Pressable>
-              {restaurant.phone_number && (
-                <Pressable onPress={handleCall}>
-                  <Phone size={24} />
-                </Pressable>
-              )}
-              {restaurant.whatsapp_number && (
-                <Pressable onPress={handleWhatsApp}>
-                  <MessageCircle size={24} color="#25D366" />
-                </Pressable>
-              )}
-              <Pressable onPress={openDirections}>
-                <Navigation size={24} color="#3b82f6" />
-              </Pressable>
-            </View>
-          </View>
-        </View>
+        {/* Quick Actions Bar */}
+        <QuickActionsBar
+          restaurant={restaurant}
+          isFavorite={isFavorite}
+          colorScheme={colorScheme}
+          onToggleFavorite={toggleFavorite}
+          onShare={handleShare}
+          onCall={handleCall}
+          onWhatsApp={handleWhatsApp}
+          onDirections={openDirections}
+        />
 
         {/* Restaurant Header Info */}
         <RestaurantHeaderInfo
@@ -902,440 +936,57 @@ export default function RestaurantDetailsScreen() {
         {/* Tab Content */}
         {activeTab === "overview" && (
           <>
-            {/* Booking Widget (Preserved - complete section) */}
-            <View className="mx-4 mb-6 p-4 bg-card rounded-xl shadow-sm">
-              <H3 className="mb-4">Make a Reservation</H3>
+            {/* Booking Widget */}
+            <BookingWidget
+              restaurant={restaurant}
+              selectedDate={selectedDate}
+              selectedTime={selectedTime}
+              partySize={partySize}
+              availableSlots={availableSlots}
+              loadingSlots={loadingSlots}
+              onDateChange={setSelectedDate}
+              onTimeChange={setSelectedTime}
+              onPartySizeChange={setPartySize}
+              onBooking={handleBooking}
+            />
 
-              <View className="mb-4">
-                <Text className="font-medium mb-2">Select Date</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  className="gap-2"
-                >
-                  {Array.from({ length: 14 }, (_, i) => {
-                    const date = new Date();
-                    date.setDate(date.getDate() + i);
-                    const isSelected =
-                      date.toDateString() === selectedDate.toDateString();
-                    const isToday =
-                      date.toDateString() === new Date().toDateString();
+            {/* About Section */}
+            <AboutSection
+              restaurant={restaurant}
+              showFullDescription={showFullDescription}
+              onToggleDescription={() =>
+                setShowFullDescription(!showFullDescription)
+              }
+            />
 
-                    return (
-                      <Pressable
-                        key={i}
-                        onPress={() => setSelectedDate(date)}
-                        className={`px-4 py-3 rounded-lg mr-2 min-w-[70px] ${
-                          isSelected ? "bg-primary" : "bg-muted"
-                        }`}
-                      >
-                        <Text
-                          className={`text-center font-medium text-xs ${
-                            isSelected ? "text-primary-foreground" : ""
-                          }`}
-                        >
-                          {isToday
-                            ? "Today"
-                            : date.toLocaleDateString("en-US", {
-                                weekday: "short",
-                              })}
-                        </Text>
-                        <Text
-                          className={`text-center text-lg font-bold ${
-                            isSelected ? "text-primary-foreground" : ""
-                          }`}
-                        >
-                          {date.getDate()}
-                        </Text>
-                        <Text
-                          className={`text-center text-xs ${
-                            isSelected
-                              ? "text-primary-foreground/80"
-                              : "text-muted-foreground"
-                          }`}
-                        >
-                          {date.toLocaleDateString("en-US", { month: "short" })}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </ScrollView>
-              </View>
+            {/* Features & Amenities */}
+            <FeaturesAndAmenities restaurant={restaurant} />
 
-              <View className="mb-4">
-                <Text className="font-medium mb-2">Party Size</Text>
-                <View className="flex-row gap-2">
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map((size) => (
-                    <Pressable
-                      key={size}
-                      onPress={() => setPartySize(size)}
-                      className={`flex-1 py-2 rounded-lg ${
-                        partySize === size ? "bg-primary" : "bg-muted"
-                      }`}
-                    >
-                      <Text
-                        className={`text-center font-medium ${
-                          partySize === size ? "text-primary-foreground" : ""
-                        }`}
-                      >
-                        {size}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                {partySize > 8 && (
-                  <Text className="text-sm text-muted-foreground mt-1">
-                    For larger parties, please call the restaurant
-                  </Text>
-                )}
-              </View>
+            {/* Hours of Operation */}
+            <HoursSection
+              restaurant={restaurant}
+              isRestaurantOpen={isRestaurantOpen}
+            />
 
-              <View className="mb-4">
-                <Text className="font-medium mb-2">Available Times</Text>
-                {loadingSlots ? (
-                  <View className="flex-row items-center justify-center py-4">
-                    <ActivityIndicator size="small" />
-                    <Text className="ml-2 text-muted-foreground">
-                      Loading availability...
-                    </Text>
-                  </View>
-                ) : (
-                  <View className="flex-row flex-wrap gap-2">
-                    {availableSlots.map((slot) => (
-                      <Pressable
-                        key={slot.time}
-                        onPress={() => {
-                          if (slot.available) {
-                            console.log("Selected time:", slot.time);
-                            setSelectedTime(slot.time);
-                            Haptics.impactAsync(
-                              Haptics.ImpactFeedbackStyle.Light
-                            );
-                          }
-                        }}
-                        disabled={!slot.available}
-                        className={`px-4 py-2 rounded-lg min-w-[70px] ${
-                          selectedTime === slot.time
-                            ? "bg-primary border-2 border-primary"
-                            : slot.available
-                              ? "bg-muted border border-border"
-                              : "bg-muted/50 border border-muted"
-                        }`}
-                        style={{
-                          opacity: slot.available ? 1 : 0.5,
-                        }}
-                      >
-                        <Text
-                          className={`font-medium text-center ${
-                            selectedTime === slot.time
-                              ? "text-primary-foreground"
-                              : !slot.available
-                                ? "text-muted-foreground"
-                                : ""
-                          }`}
-                        >
-                          {slot.time}
-                        </Text>
-                        {slot.available &&
-                          slot.availableCapacity < 5 &&
-                          slot.availableCapacity > 0 && (
-                            <Text className="text-xs text-orange-600 text-center mt-1">
-                              {slot.availableCapacity} left
-                            </Text>
-                          )}
-                      </Pressable>
-                    ))}
-                    {availableSlots.length === 0 && (
-                      <Text className="text-muted-foreground text-center w-full py-4">
-                        No availability for this date
-                      </Text>
-                    )}
-                  </View>
-                )}
-              </View>
+            {/* Location Section */}
+            <LocationSection
+              restaurant={restaurant}
+              mapCoordinates={mapCoordinates}
+              mapRef={mapRef}
+              onDirectionsPress={openDirections}
+            />
 
-              {selectedTime && (
-                <View className="mb-2 p-2 bg-green-100 dark:bg-green-900/20 rounded">
-                  <Text className="text-xs text-green-800 dark:text-green-200">
-                    Selected: {selectedTime}
-                  </Text>
-                </View>
-              )}
-
-              <Button
-                onPress={handleBooking}
-                disabled={!selectedTime}
-                className="w-full"
-              >
-                <Text>
-                  {restaurant.booking_policy === "instant"
-                    ? "Book Now"
-                    : "Request Booking"}
-                </Text>
-              </Button>
-
-              {restaurant.booking_policy === "request" && (
-                <Text className="text-xs text-muted-foreground text-center mt-2">
-                  Restaurant will confirm within 2 hours
-                </Text>
-              )}
-            </View>
-
-            {/* About Section (Preserved) */}
-            <View className="px-4 mb-6">
-              <H3 className="mb-2">About</H3>
-              <P
-                className="text-muted-foreground"
-                numberOfLines={showFullDescription ? undefined : 3}
-              >
-                {restaurant.description}
-              </P>
-              {restaurant.description &&
-                restaurant.description.length > 150 && (
-                  <Pressable
-                    onPress={() => setShowFullDescription(!showFullDescription)}
-                    className="mt-1"
-                  >
-                    <Text className="text-primary font-medium">
-                      {showFullDescription ? "Show Less" : "Read More"}
-                    </Text>
-                  </Pressable>
-                )}
-            </View>
-
-            {/* Features Grid (Preserved) */}
-            <View className="px-4 mb-6">
-              <H3 className="mb-3">Features & Amenities</H3>
-              <View className="flex-row flex-wrap gap-3">
-                {restaurant.outdoor_seating && (
-                  <View className="flex-row items-center gap-2 bg-muted px-3 py-2 rounded-lg">
-                    <Trees size={20} />
-                    <Text>Outdoor Seating</Text>
-                  </View>
-                )}
-                {restaurant.valet_parking && (
-                  <View className="flex-row items-center gap-2 bg-muted px-3 py-2 rounded-lg">
-                    <Car size={20} />
-                    <Text>Valet Parking</Text>
-                  </View>
-                )}
-                {restaurant.parking_available && (
-                  <View className="flex-row items-center gap-2 bg-muted px-3 py-2 rounded-lg">
-                    <Car size={20} />
-                    <Text>Parking Available</Text>
-                  </View>
-                )}
-                {restaurant.shisha_available && (
-                  <View className="flex-row items-center gap-2 bg-muted px-3 py-2 rounded-lg">
-                    <Cigarette size={20} />
-                    <Text>Shisha</Text>
-                  </View>
-                )}
-                {restaurant.tags?.map((tag) => (
-                  <View
-                    key={tag}
-                    className="flex-row items-center gap-2 bg-muted px-3 py-2 rounded-lg"
-                  >
-                    {FEATURE_ICONS[tag as keyof typeof FEATURE_ICONS] ? (
-                      React.createElement(
-                        FEATURE_ICONS[tag as keyof typeof FEATURE_ICONS],
-                        { size: 20 }
-                      )
-                    ) : (
-                      <Info size={20} />
-                    )}
-                    <Text>{tag}</Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-
-            {/* Dietary Options (Preserved) */}
-            {restaurant.dietary_options &&
-              restaurant.dietary_options.length > 0 && (
-                <View className="px-4 mb-6">
-                  <H3 className="mb-3">Dietary Options</H3>
-                  <View className="flex-row flex-wrap gap-3">
-                    {restaurant.dietary_options.map((option) => (
-                      <View
-                        key={option}
-                        className="flex-row items-center gap-2 bg-green-100 dark:bg-green-900/20 px-3 py-2 rounded-lg"
-                      >
-                        <Text className="text-lg">
-                          {DIETARY_ICONS[
-                            option as keyof typeof DIETARY_ICONS
-                          ] || "✓"}
-                        </Text>
-                        <Text className="text-green-800 dark:text-green-200">
-                          {option}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                </View>
-              )}
-
-            {/* Hours of Operation (Preserved) */}
-            <View className="px-4 mb-6">
-              <H3 className="mb-3">Hours</H3>
-              <View className="bg-card p-4 rounded-lg">
-                <View className="flex-row items-center gap-2 mb-2">
-                  <Clock size={20} />
-                  <Text className="font-medium">
-                    Today: {restaurant.opening_time} - {restaurant.closing_time}
-                  </Text>
-                  <View
-                    className={`px-2 py-1 rounded-full ml-auto ${
-                      isRestaurantOpen() ? "bg-green-100" : "bg-red-100"
-                    }`}
-                  >
-                    <Text
-                      className={`text-xs font-medium ${
-                        isRestaurantOpen() ? "text-green-800" : "text-red-800"
-                      }`}
-                    >
-                      {isRestaurantOpen() ? "Open" : "Closed"}
-                    </Text>
-                  </View>
-                </View>
-                {restaurant.happy_hour_times && (
-                  <View className="flex-row items-center gap-2 mt-2 pt-2 border-t border-border">
-                    <DollarSign size={20} color="#10b981" />
-                    <Text className="text-green-600 dark:text-green-400">
-                      Happy Hour: {restaurant.happy_hour_times.start} -{" "}
-                      {restaurant.happy_hour_times.end}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            {/* Location Section (Preserved) */}
-            <View className="px-4 mb-6">
-              <H3 className="mb-3">Location</H3>
-              <Pressable
-                onPress={openDirections}
-                className="bg-card rounded-lg overflow-hidden"
-              >
-                <MapView
-                  ref={mapRef}
-                  style={{ height: MAP_HEIGHT }}
-                  provider={PROVIDER_GOOGLE}
-                  initialRegion={{
-                    latitude: mapCoordinates.latitude,
-                    longitude: mapCoordinates.longitude,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
-                  }}
-                  scrollEnabled={false}
-                  zoomEnabled={false}
-                >
-                  <Marker
-                    coordinate={mapCoordinates}
-                    title={restaurant.name}
-                    description={restaurant.address}
-                  />
-                </MapView>
-                <View className="p-4 flex-row items-center justify-between">
-                  <View className="flex-1">
-                    <View className="flex-row items-center gap-2">
-                      <MapPin size={20} />
-                      <Text className="font-medium">Address</Text>
-                    </View>
-                    <Text className="text-muted-foreground mt-1">
-                      {restaurant.address}
-                    </Text>
-                  </View>
-                  <ChevronRight size={20} color="#666" />
-                </View>
-              </Pressable>
-            </View>
-
-            {/* Contact Information (Preserved) */}
-            <View className="px-4 mb-6">
-              <H3 className="mb-3">Contact</H3>
-              <View className="bg-card rounded-lg divide-y divide-border">
-                {restaurant.phone_number && (
-                  <Pressable
-                    onPress={handleCall}
-                    className="p-4 flex-row items-center justify-between"
-                  >
-                    <View className="flex-row items-center gap-3">
-                      <Phone size={20} />
-                      <Text>{restaurant.phone_number}</Text>
-                    </View>
-                    <ChevronRight size={20} color="#666" />
-                  </Pressable>
-                )}
-                {restaurant.whatsapp_number && (
-                  <Pressable
-                    onPress={handleWhatsApp}
-                    className="p-4 flex-row items-center justify-between"
-                  >
-                    <View className="flex-row items-center gap-3">
-                      <MessageCircle size={20} color="#25D366" />
-                      <Text>WhatsApp</Text>
-                    </View>
-                    <ChevronRight size={20} color="#666" />
-                  </Pressable>
-                )}
-                {restaurant.instagram_handle && (
-                  <Pressable
-                    onPress={() =>
-                      Linking.openURL(
-                        `https://instagram.com/${restaurant.instagram_handle}`
-                      )
-                    }
-                    className="p-4 flex-row items-center justify-between"
-                  >
-                    <View className="flex-row items-center gap-3">
-                      <Instagram size={20} color="#E1306C" />
-                      <Text>@{restaurant.instagram_handle}</Text>
-                    </View>
-                    <ChevronRight size={20} color="#666" />
-                  </Pressable>
-                )}
-                {restaurant.website_url && (
-                  <Pressable
-                    onPress={() => Linking.openURL(restaurant.website_url!)}
-                    className="p-4 flex-row items-center justify-between"
-                  >
-                    <View className="flex-row items-center gap-3">
-                      <Globe size={20} />
-                      <Text>Website</Text>
-                    </View>
-                    <ChevronRight size={20} color="#666" />
-                  </Pressable>
-                )}
-              </View>
-            </View>
+            {/* Contact Information */}
+            <ContactSection
+              restaurant={restaurant}
+              onCall={handleCall}
+              onWhatsApp={handleWhatsApp}
+            />
           </>
         )}
 
-        {/* Menu Tab (Preserved) */}
-        {activeTab === "menu" && (
-          <View className="px-4 mb-6">
-            <H3 className="mb-3">Menu</H3>
-            {restaurant.menu_url ? (
-              <Pressable
-                onPress={() => Linking.openURL(restaurant.menu_url!)}
-                className="bg-card p-6 rounded-lg items-center"
-              >
-                <Menu size={48} color="#666" />
-                <Text className="mt-3 font-medium">View Full Menu</Text>
-                <Muted className="text-sm mt-1">Opens in browser</Muted>
-              </Pressable>
-            ) : (
-              <View className="bg-muted p-6 rounded-lg items-center">
-                <Menu size={48} color="#666" />
-                <Muted className="mt-3">Menu not available</Muted>
-                <Text className="text-sm text-center mt-1 text-muted-foreground">
-                  Contact the restaurant for menu information
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
+        {/* Menu Tab */}
+        {activeTab === "menu" && <MenuTab restaurant={restaurant} />}
 
         {/* ENHANCED: Reviews Tab with Full Integration */}
         {activeTab === "reviews" && (

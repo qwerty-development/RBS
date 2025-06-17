@@ -6,6 +6,8 @@ import { H1 } from "@/components/ui/typography";
 import { Database } from "@/types/supabase";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
+  average_rating?: number;
+  total_reviews?: number;
   review_summary?: {
     total_reviews: number;
     average_rating: number;
