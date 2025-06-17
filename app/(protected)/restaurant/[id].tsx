@@ -38,6 +38,8 @@ import {
   CheckCircle,
   Camera,
   X,
+  ThumbsUp,
+  MoreVertical,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
@@ -52,7 +54,7 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
 
-// 1. Type Definitions with Complete Restaurant Schema
+// 1. ENHANCED TYPE DEFINITIONS WITH REVIEW INTEGRATION
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
   dietary_options?: string[];
   ambiance_tags?: string[];
@@ -68,13 +70,36 @@ type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
   instagram_handle?: string;
   website_url?: string;
   whatsapp_number?: string;
+  // ENHANCED: Review summary integration
+  review_summary?: {
+    total_reviews: number;
+    average_rating: number;
+    rating_distribution: Record<string, number>;
+    detailed_ratings: {
+      food_avg: number;
+      service_avg: number;
+      ambiance_avg: number;
+      value_avg: number;
+    };
+    recommendation_percentage: number;
+  };
 };
 
+// ENHANCED: Complete review type with all new fields
 type Review = Database["public"]["Tables"]["reviews"]["Row"] & {
   user: {
     full_name: string;
     avatar_url?: string;
   };
+  // Extended fields from enhanced schema
+  food_rating?: number;
+  service_rating?: number;
+  ambiance_rating?: number;
+  value_rating?: number;
+  recommend_to_friend?: boolean;
+  visit_again?: boolean;
+  tags?: string[];
+  photos?: string[];
 };
 
 type TimeSlot = {
@@ -83,12 +108,312 @@ type TimeSlot = {
   availableCapacity: number;
 };
 
-// 2. Screen Configuration Constants
+// 2. REVIEW COMPONENT DEFINITIONS (Inline for completeness)
+interface ReviewCardProps {
+  review: Review;
+  isOwner?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  showActions?: boolean;
+}
+
+const ReviewCard = ({ 
+  review, 
+  isOwner = false, 
+  onEdit, 
+  onDelete, 
+  showActions = true 
+}: ReviewCardProps) => {
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const renderStars = (rating: number, size: number = 16) => {
+    return (
+      <View className="flex-row">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            size={size}
+            color="#f59e0b"
+            fill={star <= rating ? "#f59e0b" : "transparent"}
+          />
+        ))}
+      </View>
+    );
+  };
+
+  const renderDetailedRatings = () => {
+    const ratings = [
+      { label: 'Food', value: review.food_rating },
+      { label: 'Service', value: review.service_rating },
+      { label: 'Ambiance', value: review.ambiance_rating },
+      { label: 'Value', value: review.value_rating },
+    ].filter(r => r.value && r.value > 0);
+
+    if (ratings.length === 0) return null;
+
+    return (
+      <View className="mt-3 p-3 bg-muted/20 rounded-lg">
+        <View className="flex-row flex-wrap gap-4">
+          {ratings.map((rating) => (
+            <View key={rating.label} className="flex-1 min-w-[70px]">
+              <Text className="text-xs text-muted-foreground mb-1">
+                {rating.label}
+              </Text>
+              {renderStars(rating.value!, 12)}
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  return (
+    <View className="bg-card border border-border rounded-lg p-4 mb-3">
+      {/* Header */}
+      <View className="flex-row items-start justify-between mb-2">
+        <View className="flex-row items-center flex-1">
+          <View className="w-10 h-10 rounded-full bg-primary/10 items-center justify-center mr-3">
+            {review.user.avatar_url ? (
+              <Image
+                source={{ uri: review.user.avatar_url }}
+                className="w-10 h-10 rounded-full"
+                contentFit="cover"
+              />
+            ) : (
+              <Text className="text-primary font-semibold">
+                {review.user.full_name.charAt(0).toUpperCase()}
+              </Text>
+            )}
+          </View>
+          
+          <View className="flex-1">
+            <Text className="font-semibold text-sm">
+              {review.user.full_name}
+            </Text>
+            <View className="flex-row items-center gap-2 mt-1">
+              {renderStars(review.rating)}
+              <Muted className="text-xs">
+                {formatDate(review.created_at)}
+              </Muted>
+            </View>
+          </View>
+        </View>
+        
+        {isOwner && showActions && (
+          <Pressable className="p-1">
+            <MoreVertical size={16} color="#666" />
+          </Pressable>
+        )}
+      </View>
+
+      {/* Review Content */}
+      {review.comment && (
+        <P className="text-sm leading-5 mb-3">
+          {review.comment}
+        </P>
+      )}
+
+      {/* Detailed Ratings */}
+      {renderDetailedRatings()}
+
+      {/* Tags */}
+      {review.tags && review.tags.length > 0 && (
+        <View className="flex-row flex-wrap gap-2 mt-3">
+          {review.tags.map((tag, index) => (
+            <View key={index} className="bg-primary/10 px-2 py-1 rounded-full">
+              <Text className="text-xs text-primary">
+                {tag}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Photos */}
+      {review.photos && review.photos.length > 0 && (
+        <View className="mt-3">
+          <View className="flex-row gap-2">
+            {review.photos.slice(0, 4).map((photo, index) => (
+              <Image
+                key={index}
+                source={{ uri: photo }}
+                className="w-16 h-16 rounded-lg flex-1"
+                contentFit="cover"
+              />
+            ))}
+            {review.photos.length > 4 && (
+              <View className="w-16 h-16 rounded-lg bg-muted items-center justify-center">
+                <Text className="text-xs text-muted-foreground">
+                  +{review.photos.length - 4}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Recommendation Indicators */}
+      <View className="flex-row items-center gap-4 mt-3 pt-3 border-t border-border">
+        {review.recommend_to_friend && (
+          <View className="flex-row items-center gap-1">
+            <ThumbsUp size={12} color="#10b981" />
+            <Text className="text-xs text-green-600">
+              Recommends to friends
+            </Text>
+          </View>
+        )}
+        
+        {review.visit_again && (
+          <View className="flex-row items-center gap-1">
+            <Calendar size={12} color="#3b82f6" />
+            <Text className="text-xs text-blue-600">
+              Will visit again
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+};
+
+interface ReviewSummaryProps {
+  reviewSummary: {
+    total_reviews: number;
+    average_rating: number;
+    rating_distribution: Record<string, number>;
+    detailed_ratings: {
+      food_avg: number;
+      service_avg: number;
+      ambiance_avg: number;
+      value_avg: number;
+    };
+    recommendation_percentage: number;
+  };
+}
+
+const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
+  const renderStars = (rating: number, size: number = 20) => {
+    return (
+      <View className="flex-row">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            size={size}
+            color="#f59e0b"
+            fill={star <= rating ? "#f59e0b" : "transparent"}
+          />
+        ))}
+      </View>
+    );
+  };
+
+  const renderRatingBar = (rating: number, count: number) => {
+    const total = reviewSummary.total_reviews;
+    const percentage = total > 0 ? (count / total) * 100 : 0;
+    
+    return (
+      <View className="flex-row items-center gap-2 mb-1">
+        <Text className="text-xs w-4">
+          {rating}
+        </Text>
+        <Star size={12} color="#f59e0b" fill="#f59e0b" />
+        <View className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+          <View 
+            className="h-full bg-yellow-400"
+            style={{ width: `${percentage}%` }}
+          />
+        </View>
+        <Text className="text-xs w-8 text-right text-muted-foreground">
+          {count}
+        </Text>
+      </View>
+    );
+  };
+
+  if (reviewSummary.total_reviews === 0) {
+    return (
+      <View className="bg-card border border-border rounded-lg p-4">
+        <Text className="text-center text-muted-foreground">
+          No reviews yet. Be the first to review!
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View className="bg-card border border-border rounded-lg p-4">
+      {/* Overall Rating */}
+      <View className="flex-row items-center justify-between mb-4">
+        <View className="items-center">
+          <Text className="text-3xl font-bold">
+            {reviewSummary.average_rating.toFixed(1)}
+          </Text>
+          {renderStars(Math.round(reviewSummary.average_rating))}
+          <Muted className="text-xs mt-1">
+            {reviewSummary.total_reviews} review{reviewSummary.total_reviews !== 1 ? 's' : ''}
+          </Muted>
+        </View>
+
+        <View className="flex-1 ml-6">
+          {[5, 4, 3, 2, 1].map((rating) => 
+            renderRatingBar(
+              rating, 
+              reviewSummary.rating_distribution[rating.toString()] || 0
+            )
+          )}
+        </View>
+      </View>
+
+      {/* Detailed Ratings */}
+      <View className="border-t border-border pt-4">
+        <Text className="font-semibold mb-3">Detailed Ratings</Text>
+        <View className="flex-row flex-wrap gap-4">
+          {Object.entries(reviewSummary.detailed_ratings).map(([key, value]) => {
+            if (!value) return null;
+            const label = key.replace('_avg', '').replace(/^\w/, c => c.toUpperCase());
+            
+            return (
+              <View key={key} className="flex-1 min-w-[70px]">
+                <Text className="text-xs text-muted-foreground mb-1">
+                  {label}
+                </Text>
+                {renderStars(Math.round(value), 14)}
+                <Text className="text-xs mt-1">
+                  {value.toFixed(1)}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Recommendation Rate */}
+      {reviewSummary.recommendation_percentage > 0 && (
+        <View className="border-t border-border pt-4 mt-4">
+          <View className="flex-row items-center gap-2">
+            <ThumbsUp size={16} color="#10b981" />
+            <Text className="text-sm">
+              {reviewSummary.recommendation_percentage}% recommend to friends
+            </Text>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+};
+
+// 3. SCREEN CONFIGURATION CONSTANTS
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const IMAGE_HEIGHT = 300;
 const MAP_HEIGHT = 200;
 
-// 2.1 Feature Icons Mapping
+// 3.1 Feature Icons Mapping
 const FEATURE_ICONS = {
   "Outdoor Seating": Trees,
   "Valet Parking": Car,
@@ -98,7 +423,7 @@ const FEATURE_ICONS = {
   "Free WiFi": Wifi,
 };
 
-// 2.2 Dietary Icons Mapping
+// 3.2 Dietary Icons Mapping
 const DIETARY_ICONS = {
   "Vegetarian": "🥗",
   "Vegan": "🌱",
@@ -109,11 +434,11 @@ const DIETARY_ICONS = {
   "Nut-Free": "🥜",
 };
 
-// 2.3 Days of the week
+// 3.3 Days of the week
 const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default function RestaurantDetailsScreen() {
-  // 3. Core State Management Architecture - COMPLETELY FIXED parameter handling
+  // 4. CORE STATE MANAGEMENT ARCHITECTURE
   const router = useRouter();
   const { profile } = useAuth();
   const { colorScheme } = useColorScheme();
@@ -124,7 +449,6 @@ export default function RestaurantDetailsScreen() {
   
   try {
     params = useLocalSearchParams<{ id: string; highlightOfferId?: string }>();
-    // Handle case where params might be undefined, null, or not an object
     if (params && typeof params === 'object') {
       id = params.id;
     }
@@ -134,12 +458,10 @@ export default function RestaurantDetailsScreen() {
     id = undefined;
   }
   
-  // Additional safety check
   if (!params || typeof params !== 'object') {
     params = {};
   }
   
-  // Ensure id is a string
   if (typeof id !== 'string' || !id.trim()) {
     id = undefined;
   }
@@ -147,37 +469,36 @@ export default function RestaurantDetailsScreen() {
   const highlightOfferId = params.highlightOfferId;
   console.log("Restaurant Details - Params:", params, "ID:", id);
   
-  // 3.1 Restaurant Data States
+  // 4.1 Restaurant Data States
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [imageIndex, setImageIndex] = useState(0);
   
-  // 3.2 Booking Widget States
+  // 4.2 Booking Widget States
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState("");
   const [partySize, setPartySize] = useState(2);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   
-  // 3.3 UI State Management
+  // 4.3 UI State Management
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "menu" | "reviews">("overview");
   const [showImageGallery, setShowImageGallery] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   
-  // 3.4 Performance Optimization Refs
+  // 4.4 Performance Optimization Refs
   const scrollViewRef = useRef<ScrollView>(null);
   const mapRef = useRef<MapView>(null);
 
-  // 4. Early return if no ID is provided
+  // 5. Early return if no ID is provided
   useEffect(() => {
     if (!id) {
       console.error("No restaurant ID provided");
       setLoading(false);
-      // Small delay to prevent immediate navigation issues
       setTimeout(() => {
         Alert.alert(
           "Error", 
@@ -189,7 +510,7 @@ export default function RestaurantDetailsScreen() {
     }
   }, [id, router]);
 
-  // 5. Data Fetching Implementation
+  // 6. ENHANCED DATA FETCHING WITH REVIEW INTEGRATION
   const fetchRestaurantDetails = useCallback(async () => {
     if (!id) {
       setLoading(false);
@@ -199,7 +520,7 @@ export default function RestaurantDetailsScreen() {
     try {
       console.log("Fetching restaurant details for ID:", id);
       
-      // 5.1 Fetch restaurant with all details
+      // 6.1 Fetch restaurant with all details including review_summary
       const { data: restaurantData, error: restaurantError } = await supabase
         .from("restaurants")
         .select("*")
@@ -218,7 +539,7 @@ export default function RestaurantDetailsScreen() {
       console.log("Restaurant data fetched:", restaurantData.name);
       setRestaurant(restaurantData);
       
-      // 5.2 Check if restaurant is favorited
+      // 6.2 Check if restaurant is favorited
       if (profile?.id) {
         const { data: favoriteData } = await supabase
           .from("favorites")
@@ -230,7 +551,7 @@ export default function RestaurantDetailsScreen() {
         setIsFavorite(!!favoriteData);
       }
       
-      // 5.3 Fetch reviews with user details
+      // 6.3 ENHANCED: Fetch reviews with user details and expanded data
       const { data: reviewsData, error: reviewsError } = await supabase
         .from("reviews")
         .select(`
@@ -242,11 +563,12 @@ export default function RestaurantDetailsScreen() {
         `)
         .eq("restaurant_id", id)
         .order("created_at", { ascending: false })
-        .limit(10);
+        .limit(20);
       
       if (reviewsError) {
         console.warn("Reviews fetch error:", reviewsError);
       } else {
+        console.log("Reviews fetched:", reviewsData?.length || 0);
         setReviews(reviewsData || []);
       }
       
@@ -258,7 +580,7 @@ export default function RestaurantDetailsScreen() {
     }
   }, [id, profile?.id]);
 
-  // 6. FIXED: Available Time Slots Fetching
+  // 7. Available Time Slots Fetching (Preserved from original)
   const fetchAvailableSlots = useCallback(async () => {
     if (!restaurant || !id) return;
     
@@ -267,17 +589,14 @@ export default function RestaurantDetailsScreen() {
     try {
       console.log("Generating time slots for restaurant:", restaurant.name);
       
-      // 6.1 Generate time slots based on restaurant hours
       const slots = generateTimeSlots(
         restaurant.opening_time,
         restaurant.closing_time,
-        30 // 30-minute intervals
+        30
       );
       
       console.log("Generated slots:", slots);
       
-      // 6.2 For demo purposes, make most slots available with random capacity
-      // In a real app, you'd query actual availability from the database
       const dateStr = selectedDate.toISOString().split("T")[0];
       
       try {
@@ -289,7 +608,6 @@ export default function RestaurantDetailsScreen() {
         
         console.log("Availability data:", availabilityData);
         
-        // 6.3 Map availability to slots - with better fallback
         const availableSlots = slots.map((slot) => {
           const availability = availabilityData?.find(
             (a) => a.time_slot === slot.time
@@ -302,7 +620,6 @@ export default function RestaurantDetailsScreen() {
               availableCapacity: availability.available_capacity,
             };
           } else {
-            // Generate realistic availability for demo
             const hour = parseInt(slot.time.split(':')[0]);
             const isPeakHour = (hour >= 19 && hour <= 21) || (hour >= 12 && hour <= 14);
             const availabilityChance = isPeakHour ? 0.4 : 0.8;
@@ -322,7 +639,6 @@ export default function RestaurantDetailsScreen() {
       } catch (dbError) {
         console.warn("Database availability check failed, using mock data:", dbError);
         
-        // 6.4 Fallback to mock data if database query fails
         const mockSlots = slots.map((slot) => {
           const hour = parseInt(slot.time.split(':')[0]);
           const isPeakHour = (hour >= 19 && hour <= 21) || (hour >= 12 && hour <= 14);
@@ -341,7 +657,6 @@ export default function RestaurantDetailsScreen() {
       
     } catch (error) {
       console.error("Error in fetchAvailableSlots:", error);
-      // Last resort: create basic available slots
       const basicSlots = [
         { time: "18:00", available: true, availableCapacity: 4 },
         { time: "18:30", available: true, availableCapacity: 3 },
@@ -358,7 +673,7 @@ export default function RestaurantDetailsScreen() {
     }
   }, [restaurant, selectedDate, partySize, id]);
 
-  // 7. FIXED: Time Slot Generation Algorithm
+  // 8. Time Slot Generation Algorithm (Preserved)
   const generateTimeSlots = (openTime: string, closeTime: string, intervalMinutes: number = 30) => {
     const slots: { time: string }[] = [];
     
@@ -369,7 +684,6 @@ export default function RestaurantDetailsScreen() {
       let currentHour = openHour;
       let currentMinute = openMinute;
       
-      // Ensure we don't create an infinite loop
       let maxIterations = 50;
       let iterations = 0;
       
@@ -383,7 +697,6 @@ export default function RestaurantDetailsScreen() {
             .padStart(2, "0")}`,
         });
         
-        // Add interval
         currentMinute += intervalMinutes;
         while (currentMinute >= 60) {
           currentHour++;
@@ -398,7 +711,6 @@ export default function RestaurantDetailsScreen() {
       
     } catch (error) {
       console.error("Error generating time slots:", error);
-      // Return default slots if parsing fails
       return [
         { time: "18:00" },
         { time: "18:30" },
@@ -412,13 +724,12 @@ export default function RestaurantDetailsScreen() {
     }
   };
 
-  // 8. Favorite Toggle Implementation
+  // 9. All other handlers (Preserved from original)
   const toggleFavorite = useCallback(async () => {
     if (!profile?.id || !restaurant || !id) return;
     
     try {
       if (isFavorite) {
-        // 8.1 Remove from favorites
         const { error } = await supabase
           .from("favorites")
           .delete()
@@ -428,7 +739,6 @@ export default function RestaurantDetailsScreen() {
         if (error) throw error;
         setIsFavorite(false);
       } else {
-        // 8.2 Add to favorites
         const { error } = await supabase
           .from("favorites")
           .insert({
@@ -440,7 +750,6 @@ export default function RestaurantDetailsScreen() {
         setIsFavorite(true);
       }
       
-      // 8.3 Haptic feedback
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (error) {
       console.error("Error toggling favorite:", error);
@@ -448,7 +757,6 @@ export default function RestaurantDetailsScreen() {
     }
   }, [profile?.id, restaurant, isFavorite, id]);
 
-  // 9. Communication Actions
   const handleCall = useCallback(() => {
     if (!restaurant?.phone_number) return;
     Linking.openURL(`tel:${restaurant.phone_number}`);
@@ -475,15 +783,11 @@ export default function RestaurantDetailsScreen() {
     }
   }, [restaurant]);
 
-  // 10. FIXED: Location Extraction and Directions
   const extractLocationCoordinates = (location: any) => {
-    // Handle different PostGIS geography formats
     if (!location) {
       return null;
     }
     
-    // PostGIS returns different formats depending on the client
-    // Handle raw PostGIS point: "POINT(lng lat)"
     if (typeof location === 'string' && location.startsWith('POINT(')) {
       const coords = location.match(/POINT\(([^)]+)\)/);
       if (coords && coords[1]) {
@@ -492,24 +796,20 @@ export default function RestaurantDetailsScreen() {
       }
     }
     
-    // Handle GeoJSON format: { type: "Point", coordinates: [lng, lat] }
     if (location.type === 'Point' && Array.isArray(location.coordinates)) {
       const [lng, lat] = location.coordinates;
       return { latitude: lat, longitude: lng };
     }
     
-    // Handle coordinates array directly: [lng, lat]
     if (Array.isArray(location) && location.length >= 2) {
       const [lng, lat] = location;
       return { latitude: lat, longitude: lng };
     }
     
-    // Handle object with lat/lng properties
     if (location.lat && location.lng) {
       return { latitude: location.lat, longitude: location.lng };
     }
     
-    // Handle object with latitude/longitude properties
     if (location.latitude && location.longitude) {
       return { latitude: location.latitude, longitude: location.longitude };
     }
@@ -553,7 +853,6 @@ export default function RestaurantDetailsScreen() {
     }
   }, [restaurant]);
 
-  // 11. Booking Navigation
   const handleBooking = useCallback(() => {
     if (!selectedTime) {
       Alert.alert("Select Time", "Please select a time for your reservation");
@@ -577,13 +876,75 @@ export default function RestaurantDetailsScreen() {
     });
   }, [id, restaurant, selectedDate, selectedTime, partySize, router]);
 
-  // 12. Image Gallery Handler
   const openImageGallery = useCallback((index: number) => {
     setSelectedImageIndex(index);
     setShowImageGallery(true);
   }, []);
 
-  // 13. Helper Functions
+  // 10. NEW: Review Navigation Handler
+  const navigateToCreateReview = useCallback(async () => {
+    if (!profile?.id || !restaurant || !id) {
+      Alert.alert("Authentication Required", "Please log in to write a review");
+      return;
+    }
+
+    // Check if user has any completed bookings at this restaurant
+    const { data: completedBookings, error } = await supabase
+      .from("bookings")
+      .select("id, booking_time")
+      .eq("user_id", profile.id)
+      .eq("restaurant_id", id)
+      .eq("status", "completed")
+      .order("booking_time", { ascending: false })
+      .limit(1);
+
+    if (error) {
+      console.error("Error checking bookings:", error);
+      Alert.alert("Error", "Unable to verify booking history");
+      return;
+    }
+
+    if (!completedBookings || completedBookings.length === 0) {
+      Alert.alert(
+        "Booking Required", 
+        "You need to have dined at this restaurant to write a review. Would you like to make a booking?",
+        [
+          { text: "Cancel", style: "cancel" },
+          { 
+            text: "Book Now", 
+            onPress: () => setActiveTab("overview") // Scroll to booking widget
+          }
+        ]
+      );
+      return;
+    }
+
+    // Use the most recent completed booking for review
+    const latestBooking = completedBookings[0];
+    
+    // Check if review already exists for this booking
+    const { data: existingReview } = await supabase
+      .from("reviews")
+      .select("id")
+      .eq("booking_id", latestBooking.id)
+      .single();
+
+    if (existingReview) {
+      Alert.alert("Review Exists", "You have already reviewed this visit.");
+      return;
+    }
+
+    router.push({
+      pathname: "/review/create",
+      params: {
+        bookingId: latestBooking.id,
+        restaurantId: id,
+        restaurantName: restaurant.name,
+      },
+    });
+  }, [profile?.id, restaurant, id, router]);
+
+  // 11. Helper Functions (Preserved)
   const isRestaurantOpen = () => {
     if (!restaurant) return false;
     
@@ -602,7 +963,7 @@ export default function RestaurantDetailsScreen() {
     return `${distance.toFixed(1)}km`;
   };
 
-  // 14. Lifecycle Management
+  // 12. Lifecycle Management
   useEffect(() => {
     if (id) {
       fetchRestaurantDetails();
@@ -615,7 +976,7 @@ export default function RestaurantDetailsScreen() {
     }
   }, [selectedDate, partySize, restaurant, fetchAvailableSlots, id]);
 
-  // 15. Loading State
+  // 13. Loading and Error States (Preserved)
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-background">
@@ -626,7 +987,6 @@ export default function RestaurantDetailsScreen() {
     );
   }
 
-  // 16. Error States
   if (!id) {
     return (
       <SafeAreaView className="flex-1 bg-background">
@@ -669,7 +1029,7 @@ export default function RestaurantDetailsScreen() {
 
   const allImages = [restaurant.main_image_url, ...(restaurant.image_urls || [])];
 
-  // 17. Image Gallery Modal
+  // 14. Image Gallery Modal (Preserved)
   const ImageGalleryModal = () => (
     <View className="absolute inset-0 bg-black z-50">
       <SafeAreaView className="flex-1">
@@ -710,13 +1070,12 @@ export default function RestaurantDetailsScreen() {
     </View>
   );
 
-  // Get coordinates for map display
   const mapCoordinates = extractLocationCoordinates(restaurant.location) || {
-    latitude: 33.8938, // Default to Beirut
+    latitude: 33.8938,
     longitude: 35.5018,
   };
 
-  // 18. Main Render
+  // 15. MAIN RENDER WITH ENHANCED REVIEW INTEGRATION
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <ScrollView
@@ -724,7 +1083,7 @@ export default function RestaurantDetailsScreen() {
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[1]}
       >
-        {/* 18.1 Image Gallery with Parallax Effect */}
+        {/* Image Gallery with Parallax Effect (Preserved) */}
         <View className="relative" style={{ height: IMAGE_HEIGHT }}>
           <ScrollView
             horizontal
@@ -750,7 +1109,6 @@ export default function RestaurantDetailsScreen() {
             ))}
           </ScrollView>
           
-          {/* 18.2 Image Indicators */}
           <View className="absolute bottom-4 left-0 right-0 flex-row justify-center gap-2">
             {allImages.map((_, index) => (
               <View
@@ -762,7 +1120,6 @@ export default function RestaurantDetailsScreen() {
             ))}
           </View>
           
-          {/* 18.3 Back Button */}
           <Pressable
             onPress={() => router.back()}
             className="absolute top-4 left-4 bg-black/50 rounded-full p-2"
@@ -770,7 +1127,6 @@ export default function RestaurantDetailsScreen() {
             <ChevronLeft size={24} color="white" />
           </Pressable>
 
-          {/* 18.4 Gallery Button */}
           <Pressable
             onPress={() => openImageGallery(imageIndex)}
             className="absolute top-4 right-4 bg-black/50 rounded-full p-2"
@@ -778,7 +1134,6 @@ export default function RestaurantDetailsScreen() {
             <Camera size={24} color="white" />
           </Pressable>
 
-          {/* 18.5 Open Status Badge */}
           <View className="absolute bottom-16 right-4">
             <View
               className={`px-3 py-1 rounded-full ${
@@ -792,7 +1147,7 @@ export default function RestaurantDetailsScreen() {
           </View>
         </View>
 
-        {/* 18.6 Quick Actions Bar (Sticky) */}
+        {/* Quick Actions Bar (Preserved) */}
         <View className="bg-background border-b border-border">
           <View className="flex-row justify-between items-center px-4 py-3">
             <Pressable
@@ -830,7 +1185,7 @@ export default function RestaurantDetailsScreen() {
           </View>
         </View>
 
-        {/* 18.7 Restaurant Header Info */}
+        {/* Restaurant Header Info (Enhanced with review data) */}
         <View className="px-4 pt-4 pb-2">
           <H1>{restaurant.name}</H1>
           <View className="flex-row items-center gap-3 mt-2">
@@ -842,12 +1197,16 @@ export default function RestaurantDetailsScreen() {
             <Text className="text-muted-foreground">•</Text>
             <View className="flex-row items-center gap-1">
               <Star size={16} color="#f59e0b" fill="#f59e0b" />
-              <Text className="font-medium">{restaurant.average_rating?.toFixed(1) || "N/A"}</Text>
-              <Text className="text-muted-foreground">({restaurant.total_reviews || 0})</Text>
+              <Text className="font-medium">
+                {restaurant.review_summary?.average_rating?.toFixed(1) || 
+                 restaurant.average_rating?.toFixed(1) || "N/A"}
+              </Text>
+              <Text className="text-muted-foreground">
+                ({restaurant.review_summary?.total_reviews || restaurant.total_reviews || 0})
+              </Text>
             </View>
           </View>
 
-          {/* Special Offer Highlight */}
           {highlightOfferId && (
             <View className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
               <Text className="font-semibold text-primary">🎉 Special Offer Available!</Text>
@@ -858,7 +1217,7 @@ export default function RestaurantDetailsScreen() {
           )}
         </View>
 
-        {/* 18.8 Tab Navigation */}
+        {/* Tab Navigation (Preserved) */}
         <View className="flex-row px-4 mb-4 gap-2">
           {(["overview", "menu", "reviews"] as const).map((tab) => (
             <Pressable
@@ -879,14 +1238,13 @@ export default function RestaurantDetailsScreen() {
           ))}
         </View>
 
-        {/* 18.9 Tab Content */}
+        {/* Tab Content */}
         {activeTab === "overview" && (
           <>
-            {/* 18.9.1 Booking Widget */}
+            {/* Booking Widget (Preserved - complete section) */}
             <View className="mx-4 mb-6 p-4 bg-card rounded-xl shadow-sm">
               <H3 className="mb-4">Make a Reservation</H3>
               
-              {/* Date Selector */}
               <View className="mb-4">
                 <Text className="font-medium mb-2">Select Date</Text>
                 <ScrollView
@@ -936,7 +1294,6 @@ export default function RestaurantDetailsScreen() {
                 </ScrollView>
               </View>
               
-              {/* Party Size Selector */}
               <View className="mb-4">
                 <Text className="font-medium mb-2">Party Size</Text>
                 <View className="flex-row gap-2">
@@ -965,7 +1322,6 @@ export default function RestaurantDetailsScreen() {
                 )}
               </View>
               
-              {/* FIXED: Time Slots */}
               <View className="mb-4">
                 <Text className="font-medium mb-2">Available Times</Text>
                 {loadingSlots ? (
@@ -1024,7 +1380,6 @@ export default function RestaurantDetailsScreen() {
                 )}
               </View>
               
-              {/* Debug info */}
               {selectedTime && (
                 <View className="mb-2 p-2 bg-green-100 dark:bg-green-900/20 rounded">
                   <Text className="text-xs text-green-800 dark:text-green-200">
@@ -1033,7 +1388,6 @@ export default function RestaurantDetailsScreen() {
                 </View>
               )}
               
-              {/* Book Button */}
               <Button
                 onPress={handleBooking}
                 disabled={!selectedTime}
@@ -1053,7 +1407,7 @@ export default function RestaurantDetailsScreen() {
               )}
             </View>
 
-            {/* 18.9.2 About Section */}
+            {/* About Section (Preserved) */}
             <View className="px-4 mb-6">
               <H3 className="mb-2">About</H3>
               <P
@@ -1074,7 +1428,7 @@ export default function RestaurantDetailsScreen() {
               )}
             </View>
 
-            {/* 18.9.3 Features Grid */}
+            {/* Features Grid (Preserved) */}
             <View className="px-4 mb-6">
               <H3 className="mb-3">Features & Amenities</H3>
               <View className="flex-row flex-wrap gap-3">
@@ -1121,7 +1475,7 @@ export default function RestaurantDetailsScreen() {
               </View>
             </View>
 
-            {/* 18.9.4 Dietary Options */}
+            {/* Dietary Options (Preserved) */}
             {restaurant.dietary_options && restaurant.dietary_options.length > 0 && (
               <View className="px-4 mb-6">
                 <H3 className="mb-3">Dietary Options</H3>
@@ -1143,7 +1497,7 @@ export default function RestaurantDetailsScreen() {
               </View>
             )}
 
-            {/* 18.9.5 Hours of Operation */}
+            {/* Hours of Operation (Preserved) */}
             <View className="px-4 mb-6">
               <H3 className="mb-3">Hours</H3>
               <View className="bg-card p-4 rounded-lg">
@@ -1177,7 +1531,7 @@ export default function RestaurantDetailsScreen() {
               </View>
             </View>
 
-            {/* 18.9.6 FIXED: Location Section */}
+            {/* Location Section (Preserved) */}
             <View className="px-4 mb-6">
               <H3 className="mb-3">Location</H3>
               <Pressable
@@ -1218,7 +1572,7 @@ export default function RestaurantDetailsScreen() {
               </Pressable>
             </View>
 
-            {/* 18.9.7 Contact Information */}
+            {/* Contact Information (Preserved) */}
             <View className="px-4 mb-6">
               <H3 className="mb-3">Contact</H3>
               <View className="bg-card rounded-lg divide-y divide-border">
@@ -1279,7 +1633,7 @@ export default function RestaurantDetailsScreen() {
           </>
         )}
 
-        {/* 18.10 Menu Tab */}
+        {/* Menu Tab (Preserved) */}
         {activeTab === "menu" && (
           <View className="px-4 mb-6">
             <H3 className="mb-3">Menu</H3>
@@ -1304,118 +1658,117 @@ export default function RestaurantDetailsScreen() {
           </View>
         )}
 
-        {/* 18.11 Reviews Tab */}
+        {/* ENHANCED: Reviews Tab with Full Integration */}
         {activeTab === "reviews" && (
           <View className="px-4 mb-6">
-            <View className="flex-row items-center justify-between mb-4">
-              <H3>Reviews</H3>
-              <View className="flex-row items-center gap-1">
-                <Star size={20} color="#f59e0b" fill="#f59e0b" />
-                <Text className="font-bold text-lg">
-                  {restaurant.average_rating?.toFixed(1) || "N/A"}
-                </Text>
-                <Text className="text-muted-foreground">
-                  ({restaurant.total_reviews || 0})
-                </Text>
+            {/* Review Summary Section */}
+            {restaurant.review_summary ? (
+              <View className="mb-6">
+                <ReviewSummary reviewSummary={restaurant.review_summary} />
               </View>
-            </View>
-            
-            {/* Rating Breakdown */}
-            <View className="bg-card p-4 rounded-lg mb-4">
-              <Text className="font-medium mb-3">Rating Breakdown</Text>
-              {[5, 4, 3, 2, 1].map((rating) => (
-                <View key={rating} className="flex-row items-center gap-2 mb-1">
-                  <Text className="w-3">{rating}</Text>
-                  <Star size={12} color="#f59e0b" fill="#f59e0b" />
-                  <View className="flex-1 bg-muted rounded-full h-2">
-                    <View
-                      className="bg-yellow-500 h-2 rounded-full"
-                      style={{ width: `${Math.random() * 100}%` }}
-                    />
+            ) : (
+              <View className="mb-6">
+                <View className="flex-row items-center justify-between mb-4">
+                  <H3>Reviews & Ratings</H3>
+                  <View className="flex-row items-center gap-1">
+                    <Star size={20} color="#f59e0b" fill="#f59e0b" />
+                    <Text className="font-bold text-lg">
+                      {restaurant.average_rating?.toFixed(1) || "N/A"}
+                    </Text>
+                    <Text className="text-muted-foreground">
+                      ({restaurant.total_reviews || 0})
+                    </Text>
                   </View>
-                  <Text className="text-sm text-muted-foreground w-8">
-                    {Math.floor(Math.random() * 50)}
-                  </Text>
                 </View>
-              ))}
+              </View>
+            )}
+
+            {/* Write Review Button */}
+            <View className="mb-6">
+              <Button
+                onPress={navigateToCreateReview}
+                variant="outline"
+                className="w-full"
+              >
+                <View className="flex-row items-center gap-2">
+                  <Star size={16} />
+                  <Text>Write a Review</Text>
+                </View>
+              </Button>
             </View>
-            
+
+            {/* Individual Reviews */}
             {reviews.length > 0 ? (
-              <>
+              <View>
+                <View className="flex-row items-center justify-between mb-4">
+                  <Text className="font-semibold">Recent Reviews</Text>
+                  {reviews.length > 5 && (
+                    <Pressable onPress={() => setShowAllReviews(!showAllReviews)}>
+                      <Text className="text-primary text-sm">
+                        {showAllReviews ? "Show Less" : "View All"}
+                      </Text>
+                    </Pressable>
+                  )}
+                </View>
+                
                 {reviews
-                  .slice(0, showAllReviews ? undefined : 3)
+                  .slice(0, showAllReviews ? undefined : 5)
                   .map((review) => (
-                    <View
+                    <ReviewCard
                       key={review.id}
-                      className="bg-card p-4 rounded-lg mb-3"
-                    >
-                      <View className="flex-row items-start justify-between mb-2">
-                        <View className="flex-row items-center gap-3">
-                          <Image
-                            source={
-                              review.user.avatar_url
-                                ? { uri: review.user.avatar_url }
-                                : require("@/assets/default-avatar.jpeg")
-                            }
-                            className="w-10 h-10 rounded-full"
-                            contentFit="cover"
-                          />
-                          <View>
-                            <Text className="font-medium">
-                              {review.user.full_name}
-                            </Text>
-                            <View className="flex-row items-center gap-1">
-                              {Array.from({ length: 5 }).map((_, i) => (
-                                <Star
-                                  key={i}
-                                  size={12}
-                                  color="#f59e0b"
-                                  fill={i < review.rating ? "#f59e0b" : "transparent"}
-                                />
-                              ))}
-                            </View>
-                          </View>
-                        </View>
-                        <Muted className="text-xs">
-                          {new Date(review.created_at).toLocaleDateString()}
-                        </Muted>
-                      </View>
-                      {review.comment && (
-                        <P className="text-sm">{review.comment}</P>
-                      )}
-                    </View>
+                      review={review}
+                      isOwner={profile?.id === review.user_id}
+                      showActions={false}
+                    />
                   ))}
                 
-                {reviews.length > 3 && (
+                {reviews.length > 5 && !showAllReviews && (
                   <Button
                     variant="outline"
-                    onPress={() => setShowAllReviews(!showAllReviews)}
-                    className="w-full"
+                    onPress={() => setShowAllReviews(true)}
+                    className="w-full mt-2"
                   >
-                    <Text>
-                      {showAllReviews ? "Show Less" : `View All ${reviews.length} Reviews`}
-                    </Text>
+                    <Text>View All {reviews.length} Reviews</Text>
                   </Button>
                 )}
-              </>
+              </View>
             ) : (
-              <View className="bg-muted p-6 rounded-lg items-center">
-                <Star size={48} color="#666" />
-                <Muted className="mt-3">No reviews yet</Muted>
-                <Text className="text-sm text-center mt-1">
-                  Be the first to review this restaurant!
-                </Text>
+              <View className="bg-card border border-border rounded-lg p-6 items-center">
+                <Star size={32} color="#d1d5db" />
+                <Text className="mt-2 font-medium">No Reviews Yet</Text>
+                <Muted className="text-center mt-1">
+                  Be the first to share your experience
+                </Muted>
+                <Button
+                  onPress={navigateToCreateReview}
+                  variant="default"
+                  className="mt-4"
+                >
+                  <Text>Write First Review</Text>
+                </Button>
               </View>
             )}
           </View>
         )}
 
-        {/* 18.12 Bottom Padding */}
+        {/* Bottom Padding */}
         <View className="h-20" />
       </ScrollView>
 
-      {/* 18.13 Image Gallery Modal */}
+      {/* Image Gallery Modal */}
       {showImageGallery && <ImageGalleryModal />}
+
+      {/* ENHANCED: Floating Action Button for Reviews */}
+      {activeTab === "overview" && (
+        <View className="absolute bottom-4 right-4">
+          <Pressable
+            onPress={navigateToCreateReview}
+            className="bg-primary rounded-full p-3 shadow-lg"
+          >
+            <Star size={24} color="white" />
+          </Pressable>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
