@@ -53,6 +53,11 @@ import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
+import { ReviewCard } from "@/components/restaurant/ReviewCard";
+import { ReviewSummary } from "@/components/restaurant/ReviewSummary";
+import { ImageGalleryModal } from "@/components/restaurant/ImageGalleryModal";
+import { RestaurantHeaderInfo } from "@/components/restaurant/RestaurantHeaderInfo";
+import { TabNavigation } from "@/components/restaurant/TabNavigation";
 
 // 1. ENHANCED TYPE DEFINITIONS WITH REVIEW INTEGRATION
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
@@ -108,305 +113,7 @@ type TimeSlot = {
   availableCapacity: number;
 };
 
-// 2. REVIEW COMPONENT DEFINITIONS (Inline for completeness)
-interface ReviewCardProps {
-  review: Review;
-  isOwner?: boolean;
-  onEdit?: () => void;
-  onDelete?: () => void;
-  showActions?: boolean;
-}
-
-const ReviewCard = ({ 
-  review, 
-  isOwner = false, 
-  onEdit, 
-  onDelete, 
-  showActions = true 
-}: ReviewCardProps) => {
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
-
-  const renderStars = (rating: number, size: number = 16) => {
-    return (
-      <View className="flex-row">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            size={size}
-            color="#f59e0b"
-            fill={star <= rating ? "#f59e0b" : "transparent"}
-          />
-        ))}
-      </View>
-    );
-  };
-
-  const renderDetailedRatings = () => {
-    const ratings = [
-      { label: 'Food', value: review.food_rating },
-      { label: 'Service', value: review.service_rating },
-      { label: 'Ambiance', value: review.ambiance_rating },
-      { label: 'Value', value: review.value_rating },
-    ].filter(r => r.value && r.value > 0);
-
-    if (ratings.length === 0) return null;
-
-    return (
-      <View className="mt-3 p-3 bg-muted/20 rounded-lg">
-        <View className="flex-row flex-wrap gap-4">
-          {ratings.map((rating) => (
-            <View key={rating.label} className="flex-1 min-w-[70px]">
-              <Text className="text-xs text-muted-foreground mb-1">
-                {rating.label}
-              </Text>
-              {renderStars(rating.value!, 12)}
-            </View>
-          ))}
-        </View>
-      </View>
-    );
-  };
-
-  return (
-    <View className="bg-card border border-border rounded-lg p-4 mb-3">
-      {/* Header */}
-      <View className="flex-row items-start justify-between mb-2">
-        <View className="flex-row items-center flex-1">
-          <View className="w-10 h-10 rounded-full bg-primary/10 items-center justify-center mr-3">
-            {review.user.avatar_url ? (
-              <Image
-                source={{ uri: review.user.avatar_url }}
-                className="w-10 h-10 rounded-full"
-                contentFit="cover"
-              />
-            ) : (
-              <Text className="text-primary font-semibold">
-                {review.user.full_name.charAt(0).toUpperCase()}
-              </Text>
-            )}
-          </View>
-          
-          <View className="flex-1">
-            <Text className="font-semibold text-sm">
-              {review.user.full_name}
-            </Text>
-            <View className="flex-row items-center gap-2 mt-1">
-              {renderStars(review.rating)}
-              <Muted className="text-xs">
-                {formatDate(review.created_at)}
-              </Muted>
-            </View>
-          </View>
-        </View>
-        
-        {isOwner && showActions && (
-          <Pressable className="p-1">
-            <MoreVertical size={16} color="#666" />
-          </Pressable>
-        )}
-      </View>
-
-      {/* Review Content */}
-      {review.comment && (
-        <P className="text-sm leading-5 mb-3">
-          {review.comment}
-        </P>
-      )}
-
-      {/* Detailed Ratings */}
-      {renderDetailedRatings()}
-
-      {/* Tags */}
-      {review.tags && review.tags.length > 0 && (
-        <View className="flex-row flex-wrap gap-2 mt-3">
-          {review.tags.map((tag, index) => (
-            <View key={index} className="bg-primary/10 px-2 py-1 rounded-full">
-              <Text className="text-xs text-primary">
-                {tag}
-              </Text>
-            </View>
-          ))}
-        </View>
-      )}
-
-      {/* Photos */}
-      {review.photos && review.photos.length > 0 && (
-        <View className="mt-3">
-          <View className="flex-row gap-2">
-            {review.photos.slice(0, 4).map((photo, index) => (
-              <Image
-                key={index}
-                source={{ uri: photo }}
-                className="w-16 h-16 rounded-lg flex-1"
-                contentFit="cover"
-              />
-            ))}
-            {review.photos.length > 4 && (
-              <View className="w-16 h-16 rounded-lg bg-muted items-center justify-center">
-                <Text className="text-xs text-muted-foreground">
-                  +{review.photos.length - 4}
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-      )}
-
-      {/* Recommendation Indicators */}
-      <View className="flex-row items-center gap-4 mt-3 pt-3 border-t border-border">
-        {review.recommend_to_friend && (
-          <View className="flex-row items-center gap-1">
-            <ThumbsUp size={12} color="#10b981" />
-            <Text className="text-xs text-green-600">
-              Recommends to friends
-            </Text>
-          </View>
-        )}
-        
-        {review.visit_again && (
-          <View className="flex-row items-center gap-1">
-            <Calendar size={12} color="#3b82f6" />
-            <Text className="text-xs text-blue-600">
-              Will visit again
-            </Text>
-          </View>
-        )}
-      </View>
-    </View>
-  );
-};
-
-interface ReviewSummaryProps {
-  reviewSummary: {
-    total_reviews: number;
-    average_rating: number;
-    rating_distribution: Record<string, number>;
-    detailed_ratings: {
-      food_avg: number;
-      service_avg: number;
-      ambiance_avg: number;
-      value_avg: number;
-    };
-    recommendation_percentage: number;
-  };
-}
-
-const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
-  const renderStars = (rating: number, size: number = 20) => {
-    return (
-      <View className="flex-row">
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Star
-            key={star}
-            size={size}
-            color="#f59e0b"
-            fill={star <= rating ? "#f59e0b" : "transparent"}
-          />
-        ))}
-      </View>
-    );
-  };
-
-  const renderRatingBar = (rating: number, count: number) => {
-    const total = reviewSummary.total_reviews;
-    const percentage = total > 0 ? (count / total) * 100 : 0;
-    
-    return (
-      <View className="flex-row items-center gap-2 mb-1">
-        <Text className="text-xs w-4">
-          {rating}
-        </Text>
-        <Star size={12} color="#f59e0b" fill="#f59e0b" />
-        <View className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-          <View 
-            className="h-full bg-yellow-400"
-            style={{ width: `${percentage}%` }}
-          />
-        </View>
-        <Text className="text-xs w-8 text-right text-muted-foreground">
-          {count}
-        </Text>
-      </View>
-    );
-  };
-
-  if (reviewSummary.total_reviews === 0) {
-    return (
-      <View className="bg-card border border-border rounded-lg p-4">
-        <Text className="text-center text-muted-foreground">
-          No reviews yet. Be the first to review!
-        </Text>
-      </View>
-    );
-  }
-
-  return (
-    <View className="bg-card border border-border rounded-lg p-4">
-      {/* Overall Rating */}
-      <View className="flex-row items-center justify-between mb-4">
-        <View className="items-center">
-          <Text className="text-3xl font-bold">
-            {reviewSummary.average_rating.toFixed(1)}
-          </Text>
-          {renderStars(Math.round(reviewSummary.average_rating))}
-          <Muted className="text-xs mt-1">
-            {reviewSummary.total_reviews} review{reviewSummary.total_reviews !== 1 ? 's' : ''}
-          </Muted>
-        </View>
-
-        <View className="flex-1 ml-6">
-          {[5, 4, 3, 2, 1].map((rating) => 
-            renderRatingBar(
-              rating, 
-              reviewSummary.rating_distribution[rating.toString()] || 0
-            )
-          )}
-        </View>
-      </View>
-
-      {/* Detailed Ratings */}
-      <View className="border-t border-border pt-4">
-        <Text className="font-semibold mb-3">Detailed Ratings</Text>
-        <View className="flex-row flex-wrap gap-4">
-          {Object.entries(reviewSummary.detailed_ratings).map(([key, value]) => {
-            if (!value) return null;
-            const label = key.replace('_avg', '').replace(/^\w/, c => c.toUpperCase());
-            
-            return (
-              <View key={key} className="flex-1 min-w-[70px]">
-                <Text className="text-xs text-muted-foreground mb-1">
-                  {label}
-                </Text>
-                {renderStars(Math.round(value), 14)}
-                <Text className="text-xs mt-1">
-                  {value.toFixed(1)}
-                </Text>
-              </View>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* Recommendation Rate */}
-      {reviewSummary.recommendation_percentage > 0 && (
-        <View className="border-t border-border pt-4 mt-4">
-          <View className="flex-row items-center gap-2">
-            <ThumbsUp size={16} color="#10b981" />
-            <Text className="text-sm">
-              {reviewSummary.recommendation_percentage}% recommend to friends
-            </Text>
-          </View>
-        </View>
-      )}
-    </View>
-  );
-};
+// 2. REVIEW COMPONENT TYPES (now using imported components)
 
 // 3. SCREEN CONFIGURATION CONSTANTS
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
@@ -418,38 +125,46 @@ const FEATURE_ICONS = {
   "Outdoor Seating": Trees,
   "Valet Parking": Car,
   "Parking Available": Car,
-  "Shisha": Cigarette,
+  Shisha: Cigarette,
   "Live Music": Music,
   "Free WiFi": Wifi,
 };
 
 // 3.2 Dietary Icons Mapping
 const DIETARY_ICONS = {
-  "Vegetarian": "🥗",
-  "Vegan": "🌱",
-  "Halal": "🥩",
+  Vegetarian: "🥗",
+  Vegan: "🌱",
+  Halal: "🥩",
   "Gluten-Free": "🌾",
-  "Kosher": "✡️",
+  Kosher: "✡️",
   "Dairy-Free": "🥛",
   "Nut-Free": "🥜",
 };
 
 // 3.3 Days of the week
-const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const DAYS_OF_WEEK = [
+  "Sunday",
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+];
 
 export default function RestaurantDetailsScreen() {
   // 4. CORE STATE MANAGEMENT ARCHITECTURE
   const router = useRouter();
   const { profile } = useAuth();
   const { colorScheme } = useColorScheme();
-  
+
   // Safe parameter extraction with multiple fallbacks
   let params;
   let id: string | undefined;
-  
+
   try {
     params = useLocalSearchParams<{ id: string; highlightOfferId?: string }>();
-    if (params && typeof params === 'object') {
+    if (params && typeof params === "object") {
       id = params.id;
     }
   } catch (error) {
@@ -457,39 +172,41 @@ export default function RestaurantDetailsScreen() {
     params = {};
     id = undefined;
   }
-  
-  if (!params || typeof params !== 'object') {
+
+  if (!params || typeof params !== "object") {
     params = {};
   }
-  
-  if (typeof id !== 'string' || !id.trim()) {
+
+  if (typeof id !== "string" || !id.trim()) {
     id = undefined;
   }
-  
+
   const highlightOfferId = params.highlightOfferId;
   console.log("Restaurant Details - Params:", params, "ID:", id);
-  
+
   // 4.1 Restaurant Data States
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [imageIndex, setImageIndex] = useState(0);
-  
+
   // 4.2 Booking Widget States
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedTime, setSelectedTime] = useState("");
   const [partySize, setPartySize] = useState(2);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
-  
+
   // 4.3 UI State Management
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
-  const [activeTab, setActiveTab] = useState<"overview" | "menu" | "reviews">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "menu" | "reviews">(
+    "overview"
+  );
   const [showImageGallery, setShowImageGallery] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  
+
   // 4.4 Performance Optimization Refs
   const scrollViewRef = useRef<ScrollView>(null);
   const mapRef = useRef<MapView>(null);
@@ -500,11 +217,9 @@ export default function RestaurantDetailsScreen() {
       console.error("No restaurant ID provided");
       setLoading(false);
       setTimeout(() => {
-        Alert.alert(
-          "Error", 
-          "Restaurant ID is missing. Please try again.",
-          [{ text: "OK", onPress: () => router.back() }]
-        );
+        Alert.alert("Error", "Restaurant ID is missing. Please try again.", [
+          { text: "OK", onPress: () => router.back() },
+        ]);
       }, 100);
       return;
     }
@@ -519,26 +234,26 @@ export default function RestaurantDetailsScreen() {
 
     try {
       console.log("Fetching restaurant details for ID:", id);
-      
+
       // 6.1 Fetch restaurant with all details including review_summary
       const { data: restaurantData, error: restaurantError } = await supabase
         .from("restaurants")
         .select("*")
         .eq("id", id)
         .single();
-      
+
       if (restaurantError) {
         console.error("Restaurant fetch error:", restaurantError);
         throw restaurantError;
       }
-      
+
       if (!restaurantData) {
         throw new Error("Restaurant not found");
       }
-      
+
       console.log("Restaurant data fetched:", restaurantData.name);
       setRestaurant(restaurantData);
-      
+
       // 6.2 Check if restaurant is favorited
       if (profile?.id) {
         const { data: favoriteData } = await supabase
@@ -547,31 +262,32 @@ export default function RestaurantDetailsScreen() {
           .eq("user_id", profile.id)
           .eq("restaurant_id", id)
           .single();
-        
+
         setIsFavorite(!!favoriteData);
       }
-      
+
       // 6.3 ENHANCED: Fetch reviews with user details and expanded data
       const { data: reviewsData, error: reviewsError } = await supabase
         .from("reviews")
-        .select(`
+        .select(
+          `
           *,
           user:profiles (
             full_name,
             avatar_url
           )
-        `)
+        `
+        )
         .eq("restaurant_id", id)
         .order("created_at", { ascending: false })
         .limit(20);
-      
+
       if (reviewsError) {
         console.warn("Reviews fetch error:", reviewsError);
       } else {
         console.log("Reviews fetched:", reviewsData?.length || 0);
         setReviews(reviewsData || []);
       }
-      
     } catch (error) {
       console.error("Error fetching restaurant details:", error);
       Alert.alert("Error", "Failed to load restaurant details");
@@ -583,36 +299,36 @@ export default function RestaurantDetailsScreen() {
   // 7. Available Time Slots Fetching (Preserved from original)
   const fetchAvailableSlots = useCallback(async () => {
     if (!restaurant || !id) return;
-    
+
     setLoadingSlots(true);
-    
+
     try {
       console.log("Generating time slots for restaurant:", restaurant.name);
-      
+
       const slots = generateTimeSlots(
         restaurant.opening_time,
         restaurant.closing_time,
         30
       );
-      
+
       console.log("Generated slots:", slots);
-      
+
       const dateStr = selectedDate.toISOString().split("T")[0];
-      
+
       try {
         const { data: availabilityData } = await supabase
           .from("restaurant_availability")
           .select("*")
           .eq("restaurant_id", id)
           .eq("date", dateStr);
-        
+
         console.log("Availability data:", availabilityData);
-        
+
         const availableSlots = slots.map((slot) => {
           const availability = availabilityData?.find(
             (a) => a.time_slot === slot.time
           );
-          
+
           if (availability) {
             return {
               time: slot.time,
@@ -620,41 +336,48 @@ export default function RestaurantDetailsScreen() {
               availableCapacity: availability.available_capacity,
             };
           } else {
-            const hour = parseInt(slot.time.split(':')[0]);
-            const isPeakHour = (hour >= 19 && hour <= 21) || (hour >= 12 && hour <= 14);
+            const hour = parseInt(slot.time.split(":")[0]);
+            const isPeakHour =
+              (hour >= 19 && hour <= 21) || (hour >= 12 && hour <= 14);
             const availabilityChance = isPeakHour ? 0.4 : 0.8;
-            const isAvailable = Math.random() > (1 - availabilityChance);
-            
+            const isAvailable = Math.random() > 1 - availabilityChance;
+
             return {
               time: slot.time,
               available: isAvailable,
-              availableCapacity: isAvailable ? Math.floor(Math.random() * 8) + 2 : 0,
+              availableCapacity: isAvailable
+                ? Math.floor(Math.random() * 8) + 2
+                : 0,
             };
           }
         });
-        
+
         console.log("Final available slots:", availableSlots);
         setAvailableSlots(availableSlots);
-        
       } catch (dbError) {
-        console.warn("Database availability check failed, using mock data:", dbError);
-        
+        console.warn(
+          "Database availability check failed, using mock data:",
+          dbError
+        );
+
         const mockSlots = slots.map((slot) => {
-          const hour = parseInt(slot.time.split(':')[0]);
-          const isPeakHour = (hour >= 19 && hour <= 21) || (hour >= 12 && hour <= 14);
+          const hour = parseInt(slot.time.split(":")[0]);
+          const isPeakHour =
+            (hour >= 19 && hour <= 21) || (hour >= 12 && hour <= 14);
           const availabilityChance = isPeakHour ? 0.4 : 0.8;
-          const isAvailable = Math.random() > (1 - availabilityChance);
-          
+          const isAvailable = Math.random() > 1 - availabilityChance;
+
           return {
             time: slot.time,
             available: isAvailable,
-            availableCapacity: isAvailable ? Math.floor(Math.random() * 8) + 2 : 0,
+            availableCapacity: isAvailable
+              ? Math.floor(Math.random() * 8) + 2
+              : 0,
           };
         });
-        
+
         setAvailableSlots(mockSlots);
       }
-      
     } catch (error) {
       console.error("Error in fetchAvailableSlots:", error);
       const basicSlots = [
@@ -674,21 +397,26 @@ export default function RestaurantDetailsScreen() {
   }, [restaurant, selectedDate, partySize, id]);
 
   // 8. Time Slot Generation Algorithm (Preserved)
-  const generateTimeSlots = (openTime: string, closeTime: string, intervalMinutes: number = 30) => {
+  const generateTimeSlots = (
+    openTime: string,
+    closeTime: string,
+    intervalMinutes: number = 30
+  ) => {
     const slots: { time: string }[] = [];
-    
+
     try {
       const [openHour, openMinute] = openTime.split(":").map(Number);
       const [closeHour, closeMinute] = closeTime.split(":").map(Number);
-      
+
       let currentHour = openHour;
       let currentMinute = openMinute;
-      
+
       let maxIterations = 50;
       let iterations = 0;
-      
+
       while (
-        (currentHour < closeHour || (currentHour === closeHour && currentMinute < closeMinute)) &&
+        (currentHour < closeHour ||
+          (currentHour === closeHour && currentMinute < closeMinute)) &&
         iterations < maxIterations
       ) {
         slots.push({
@@ -696,19 +424,20 @@ export default function RestaurantDetailsScreen() {
             .toString()
             .padStart(2, "0")}`,
         });
-        
+
         currentMinute += intervalMinutes;
         while (currentMinute >= 60) {
           currentHour++;
           currentMinute -= 60;
         }
-        
+
         iterations++;
       }
-      
-      console.log(`Generated ${slots.length} time slots from ${openTime} to ${closeTime}`);
+
+      console.log(
+        `Generated ${slots.length} time slots from ${openTime} to ${closeTime}`
+      );
       return slots;
-      
     } catch (error) {
       console.error("Error generating time slots:", error);
       return [
@@ -727,7 +456,7 @@ export default function RestaurantDetailsScreen() {
   // 9. All other handlers (Preserved from original)
   const toggleFavorite = useCallback(async () => {
     if (!profile?.id || !restaurant || !id) return;
-    
+
     try {
       if (isFavorite) {
         const { error } = await supabase
@@ -735,21 +464,19 @@ export default function RestaurantDetailsScreen() {
           .delete()
           .eq("user_id", profile.id)
           .eq("restaurant_id", id);
-        
+
         if (error) throw error;
         setIsFavorite(false);
       } else {
-        const { error } = await supabase
-          .from("favorites")
-          .insert({
-            user_id: profile.id,
-            restaurant_id: id,
-          });
-        
+        const { error } = await supabase.from("favorites").insert({
+          user_id: profile.id,
+          restaurant_id: id,
+        });
+
         if (error) throw error;
         setIsFavorite(true);
       }
-      
+
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     } catch (error) {
       console.error("Error toggling favorite:", error);
@@ -767,12 +494,14 @@ export default function RestaurantDetailsScreen() {
     const message = encodeURIComponent(
       `Hi! I'd like to inquire about making a reservation at ${restaurant.name}.`
     );
-    Linking.openURL(`whatsapp://send?phone=${restaurant.whatsapp_number}&text=${message}`);
+    Linking.openURL(
+      `whatsapp://send?phone=${restaurant.whatsapp_number}&text=${message}`
+    );
   }, [restaurant]);
 
   const handleShare = useCallback(async () => {
     if (!restaurant) return;
-    
+
     try {
       await Share.share({
         message: `Check out ${restaurant.name} - ${restaurant.cuisine_type} cuisine in ${restaurant.address}`,
@@ -787,33 +516,33 @@ export default function RestaurantDetailsScreen() {
     if (!location) {
       return null;
     }
-    
-    if (typeof location === 'string' && location.startsWith('POINT(')) {
+
+    if (typeof location === "string" && location.startsWith("POINT(")) {
       const coords = location.match(/POINT\(([^)]+)\)/);
       if (coords && coords[1]) {
-        const [lng, lat] = coords[1].split(' ').map(Number);
+        const [lng, lat] = coords[1].split(" ").map(Number);
         return { latitude: lat, longitude: lng };
       }
     }
-    
-    if (location.type === 'Point' && Array.isArray(location.coordinates)) {
+
+    if (location.type === "Point" && Array.isArray(location.coordinates)) {
       const [lng, lat] = location.coordinates;
       return { latitude: lat, longitude: lng };
     }
-    
+
     if (Array.isArray(location) && location.length >= 2) {
       const [lng, lat] = location;
       return { latitude: lat, longitude: lng };
     }
-    
+
     if (location.lat && location.lng) {
       return { latitude: location.lat, longitude: location.lng };
     }
-    
+
     if (location.latitude && location.longitude) {
       return { latitude: location.latitude, longitude: location.longitude };
     }
-    
+
     console.warn("Unable to parse location:", location);
     return null;
   };
@@ -823,28 +552,28 @@ export default function RestaurantDetailsScreen() {
       Alert.alert("Error", "Location data not available");
       return;
     }
-    
+
     const coords = extractLocationCoordinates(restaurant.location);
-    
+
     if (!coords) {
       Alert.alert("Error", "Unable to parse location coordinates");
       return;
     }
-    
+
     const { latitude, longitude } = coords;
-    
+
     const scheme = Platform.select({
       ios: "maps:0,0?q=",
       android: "geo:0,0?q=",
     });
-    
+
     const latLng = `${latitude},${longitude}`;
     const label = encodeURIComponent(restaurant.name);
     const url = Platform.select({
       ios: `${scheme}${label}@${latLng}`,
       android: `${scheme}${latLng}(${label})`,
     });
-    
+
     if (url) {
       Linking.openURL(url).catch((err) => {
         console.error("Error opening maps:", err);
@@ -858,12 +587,12 @@ export default function RestaurantDetailsScreen() {
       Alert.alert("Select Time", "Please select a time for your reservation");
       return;
     }
-    
+
     if (!id || !restaurant) {
       Alert.alert("Error", "Restaurant information is not available");
       return;
     }
-    
+
     router.push({
       pathname: "/booking/create",
       params: {
@@ -906,14 +635,14 @@ export default function RestaurantDetailsScreen() {
 
     if (!completedBookings || completedBookings.length === 0) {
       Alert.alert(
-        "Booking Required", 
+        "Booking Required",
         "You need to have dined at this restaurant to write a review. Would you like to make a booking?",
         [
           { text: "Cancel", style: "cancel" },
-          { 
-            text: "Book Now", 
-            onPress: () => setActiveTab("overview") // Scroll to booking widget
-          }
+          {
+            text: "Book Now",
+            onPress: () => setActiveTab("overview"), // Scroll to booking widget
+          },
         ]
       );
       return;
@@ -921,7 +650,7 @@ export default function RestaurantDetailsScreen() {
 
     // Use the most recent completed booking for review
     const latestBooking = completedBookings[0];
-    
+
     // Check if review already exists for this booking
     const { data: existingReview } = await supabase
       .from("reviews")
@@ -947,14 +676,18 @@ export default function RestaurantDetailsScreen() {
   // 11. Helper Functions (Preserved)
   const isRestaurantOpen = () => {
     if (!restaurant) return false;
-    
+
     const now = new Date();
     const currentTime = now.getHours() * 60 + now.getMinutes();
-    const [openHour, openMinute] = restaurant.opening_time.split(":").map(Number);
-    const [closeHour, closeMinute] = restaurant.closing_time.split(":").map(Number);
+    const [openHour, openMinute] = restaurant.opening_time
+      .split(":")
+      .map(Number);
+    const [closeHour, closeMinute] = restaurant.closing_time
+      .split(":")
+      .map(Number);
     const openTime = openHour * 60 + openMinute;
     const closeTime = closeHour * 60 + closeMinute;
-    
+
     return currentTime >= openTime && currentTime <= closeTime;
   };
 
@@ -981,7 +714,10 @@ export default function RestaurantDetailsScreen() {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#000"} />
+          <ActivityIndicator
+            size="large"
+            color={colorScheme === "dark" ? "#fff" : "#000"}
+          />
         </View>
       </SafeAreaView>
     );
@@ -1027,48 +763,12 @@ export default function RestaurantDetailsScreen() {
     );
   }
 
-  const allImages = [restaurant.main_image_url, ...(restaurant.image_urls || [])];
+  const allImages = [
+    restaurant.main_image_url,
+    ...(restaurant.image_urls || []),
+  ];
 
   // 14. Image Gallery Modal (Preserved)
-  const ImageGalleryModal = () => (
-    <View className="absolute inset-0 bg-black z-50">
-      <SafeAreaView className="flex-1">
-        <View className="flex-row justify-between items-center p-4">
-          <Text className="text-white text-lg font-semibold">
-            {selectedImageIndex + 1} of {allImages.length}
-          </Text>
-          <Pressable
-            onPress={() => setShowImageGallery(false)}
-            className="bg-black/50 rounded-full p-2"
-          >
-            <X size={24} color="white" />
-          </Pressable>
-        </View>
-        
-        <ScrollView
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          onScroll={(e) => {
-            const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
-            setSelectedImageIndex(index);
-          }}
-          scrollEventThrottle={16}
-          contentOffset={{ x: selectedImageIndex * SCREEN_WIDTH, y: 0 }}
-        >
-          {allImages.map((image, index) => (
-            <View key={index} style={{ width: SCREEN_WIDTH }} className="items-center justify-center">
-              <Image
-                source={{ uri: image }}
-                style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT * 0.8 }}
-                contentFit="contain"
-              />
-            </View>
-          ))}
-        </ScrollView>
-      </SafeAreaView>
-    </View>
-  );
 
   const mapCoordinates = extractLocationCoordinates(restaurant.location) || {
     latitude: 33.8938,
@@ -1090,16 +790,15 @@ export default function RestaurantDetailsScreen() {
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             onScroll={(e) => {
-              const index = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+              const index = Math.round(
+                e.nativeEvent.contentOffset.x / SCREEN_WIDTH
+              );
               setImageIndex(index);
             }}
             scrollEventThrottle={16}
           >
             {allImages.map((image, index) => (
-              <Pressable
-                key={index}
-                onPress={() => openImageGallery(index)}
-              >
+              <Pressable key={index} onPress={() => openImageGallery(index)}>
                 <Image
                   source={{ uri: image }}
                   style={{ width: SCREEN_WIDTH, height: IMAGE_HEIGHT }}
@@ -1108,7 +807,7 @@ export default function RestaurantDetailsScreen() {
               </Pressable>
             ))}
           </ScrollView>
-          
+
           <View className="absolute bottom-4 left-0 right-0 flex-row justify-center gap-2">
             {allImages.map((_, index) => (
               <View
@@ -1119,7 +818,7 @@ export default function RestaurantDetailsScreen() {
               />
             ))}
           </View>
-          
+
           <Pressable
             onPress={() => router.back()}
             className="absolute top-4 left-4 bg-black/50 rounded-full p-2"
@@ -1156,14 +855,20 @@ export default function RestaurantDetailsScreen() {
             >
               <Heart
                 size={24}
-                color={isFavorite ? "#ef4444" : colorScheme === "dark" ? "#fff" : "#000"}
+                color={
+                  isFavorite
+                    ? "#ef4444"
+                    : colorScheme === "dark"
+                      ? "#fff"
+                      : "#000"
+                }
                 fill={isFavorite ? "#ef4444" : "transparent"}
               />
               <Text className="font-medium">
                 {isFavorite ? "Saved" : "Save"}
               </Text>
             </Pressable>
-            
+
             <View className="flex-row gap-4">
               <Pressable onPress={handleShare}>
                 <Share2 size={24} />
@@ -1185,58 +890,14 @@ export default function RestaurantDetailsScreen() {
           </View>
         </View>
 
-        {/* Restaurant Header Info (Enhanced with review data) */}
-        <View className="px-4 pt-4 pb-2">
-          <H1>{restaurant.name}</H1>
-          <View className="flex-row items-center gap-3 mt-2">
-            <Text className="text-muted-foreground">{restaurant.cuisine_type}</Text>
-            <Text className="text-muted-foreground">•</Text>
-            <Text className="text-muted-foreground">
-              {"$".repeat(restaurant.price_range)}
-            </Text>
-            <Text className="text-muted-foreground">•</Text>
-            <View className="flex-row items-center gap-1">
-              <Star size={16} color="#f59e0b" fill="#f59e0b" />
-              <Text className="font-medium">
-                {restaurant.review_summary?.average_rating?.toFixed(1) || 
-                 restaurant.average_rating?.toFixed(1) || "N/A"}
-              </Text>
-              <Text className="text-muted-foreground">
-                ({restaurant.review_summary?.total_reviews || restaurant.total_reviews || 0})
-              </Text>
-            </View>
-          </View>
+        {/* Restaurant Header Info */}
+        <RestaurantHeaderInfo
+          restaurant={restaurant}
+          highlightOfferId={highlightOfferId}
+        />
 
-          {highlightOfferId && (
-            <View className="mt-3 p-3 bg-primary/10 border border-primary/20 rounded-lg">
-              <Text className="font-semibold text-primary">🎉 Special Offer Available!</Text>
-              <Text className="text-sm text-muted-foreground mt-1">
-                You came here from a special offer. Don't miss out!
-              </Text>
-            </View>
-          )}
-        </View>
-
-        {/* Tab Navigation (Preserved) */}
-        <View className="flex-row px-4 mb-4 gap-2">
-          {(["overview", "menu", "reviews"] as const).map((tab) => (
-            <Pressable
-              key={tab}
-              onPress={() => setActiveTab(tab)}
-              className={`flex-1 py-2 rounded-lg ${
-                activeTab === tab ? "bg-primary" : "bg-muted"
-              }`}
-            >
-              <Text
-                className={`text-center font-medium ${
-                  activeTab === tab ? "text-primary-foreground" : ""
-                }`}
-              >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        {/* Tab Navigation */}
+        <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
 
         {/* Tab Content */}
         {activeTab === "overview" && (
@@ -1244,7 +905,7 @@ export default function RestaurantDetailsScreen() {
             {/* Booking Widget (Preserved - complete section) */}
             <View className="mx-4 mb-6 p-4 bg-card rounded-xl shadow-sm">
               <H3 className="mb-4">Make a Reservation</H3>
-              
+
               <View className="mb-4">
                 <Text className="font-medium mb-2">Select Date</Text>
                 <ScrollView
@@ -1255,10 +916,11 @@ export default function RestaurantDetailsScreen() {
                   {Array.from({ length: 14 }, (_, i) => {
                     const date = new Date();
                     date.setDate(date.getDate() + i);
-                    const isSelected = 
+                    const isSelected =
                       date.toDateString() === selectedDate.toDateString();
-                    const isToday = date.toDateString() === new Date().toDateString();
-                    
+                    const isToday =
+                      date.toDateString() === new Date().toDateString();
+
                     return (
                       <Pressable
                         key={i}
@@ -1272,7 +934,11 @@ export default function RestaurantDetailsScreen() {
                             isSelected ? "text-primary-foreground" : ""
                           }`}
                         >
-                          {isToday ? "Today" : date.toLocaleDateString("en-US", { weekday: "short" })}
+                          {isToday
+                            ? "Today"
+                            : date.toLocaleDateString("en-US", {
+                                weekday: "short",
+                              })}
                         </Text>
                         <Text
                           className={`text-center text-lg font-bold ${
@@ -1283,7 +949,9 @@ export default function RestaurantDetailsScreen() {
                         </Text>
                         <Text
                           className={`text-center text-xs ${
-                            isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                            isSelected
+                              ? "text-primary-foreground/80"
+                              : "text-muted-foreground"
                           }`}
                         >
                           {date.toLocaleDateString("en-US", { month: "short" })}
@@ -1293,7 +961,7 @@ export default function RestaurantDetailsScreen() {
                   })}
                 </ScrollView>
               </View>
-              
+
               <View className="mb-4">
                 <Text className="font-medium mb-2">Party Size</Text>
                 <View className="flex-row gap-2">
@@ -1321,13 +989,15 @@ export default function RestaurantDetailsScreen() {
                   </Text>
                 )}
               </View>
-              
+
               <View className="mb-4">
                 <Text className="font-medium mb-2">Available Times</Text>
                 {loadingSlots ? (
                   <View className="flex-row items-center justify-center py-4">
                     <ActivityIndicator size="small" />
-                    <Text className="ml-2 text-muted-foreground">Loading availability...</Text>
+                    <Text className="ml-2 text-muted-foreground">
+                      Loading availability...
+                    </Text>
                   </View>
                 ) : (
                   <View className="flex-row flex-wrap gap-2">
@@ -1338,7 +1008,9 @@ export default function RestaurantDetailsScreen() {
                           if (slot.available) {
                             console.log("Selected time:", slot.time);
                             setSelectedTime(slot.time);
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                            Haptics.impactAsync(
+                              Haptics.ImpactFeedbackStyle.Light
+                            );
                           }
                         }}
                         disabled={!slot.available}
@@ -1346,8 +1018,8 @@ export default function RestaurantDetailsScreen() {
                           selectedTime === slot.time
                             ? "bg-primary border-2 border-primary"
                             : slot.available
-                            ? "bg-muted border border-border"
-                            : "bg-muted/50 border border-muted"
+                              ? "bg-muted border border-border"
+                              : "bg-muted/50 border border-muted"
                         }`}
                         style={{
                           opacity: slot.available ? 1 : 0.5,
@@ -1358,17 +1030,19 @@ export default function RestaurantDetailsScreen() {
                             selectedTime === slot.time
                               ? "text-primary-foreground"
                               : !slot.available
-                              ? "text-muted-foreground"
-                              : ""
+                                ? "text-muted-foreground"
+                                : ""
                           }`}
                         >
                           {slot.time}
                         </Text>
-                        {slot.available && slot.availableCapacity < 5 && slot.availableCapacity > 0 && (
-                          <Text className="text-xs text-orange-600 text-center mt-1">
-                            {slot.availableCapacity} left
-                          </Text>
-                        )}
+                        {slot.available &&
+                          slot.availableCapacity < 5 &&
+                          slot.availableCapacity > 0 && (
+                            <Text className="text-xs text-orange-600 text-center mt-1">
+                              {slot.availableCapacity} left
+                            </Text>
+                          )}
                       </Pressable>
                     ))}
                     {availableSlots.length === 0 && (
@@ -1379,7 +1053,7 @@ export default function RestaurantDetailsScreen() {
                   </View>
                 )}
               </View>
-              
+
               {selectedTime && (
                 <View className="mb-2 p-2 bg-green-100 dark:bg-green-900/20 rounded">
                   <Text className="text-xs text-green-800 dark:text-green-200">
@@ -1387,7 +1061,7 @@ export default function RestaurantDetailsScreen() {
                   </Text>
                 </View>
               )}
-              
+
               <Button
                 onPress={handleBooking}
                 disabled={!selectedTime}
@@ -1399,7 +1073,7 @@ export default function RestaurantDetailsScreen() {
                     : "Request Booking"}
                 </Text>
               </Button>
-              
+
               {restaurant.booking_policy === "request" && (
                 <Text className="text-xs text-muted-foreground text-center mt-2">
                   Restaurant will confirm within 2 hours
@@ -1416,16 +1090,17 @@ export default function RestaurantDetailsScreen() {
               >
                 {restaurant.description}
               </P>
-              {restaurant.description && restaurant.description.length > 150 && (
-                <Pressable
-                  onPress={() => setShowFullDescription(!showFullDescription)}
-                  className="mt-1"
-                >
-                  <Text className="text-primary font-medium">
-                    {showFullDescription ? "Show Less" : "Read More"}
-                  </Text>
-                </Pressable>
-              )}
+              {restaurant.description &&
+                restaurant.description.length > 150 && (
+                  <Pressable
+                    onPress={() => setShowFullDescription(!showFullDescription)}
+                    className="mt-1"
+                  >
+                    <Text className="text-primary font-medium">
+                      {showFullDescription ? "Show Less" : "Read More"}
+                    </Text>
+                  </Pressable>
+                )}
             </View>
 
             {/* Features Grid (Preserved) */}
@@ -1476,26 +1151,29 @@ export default function RestaurantDetailsScreen() {
             </View>
 
             {/* Dietary Options (Preserved) */}
-            {restaurant.dietary_options && restaurant.dietary_options.length > 0 && (
-              <View className="px-4 mb-6">
-                <H3 className="mb-3">Dietary Options</H3>
-                <View className="flex-row flex-wrap gap-3">
-                  {restaurant.dietary_options.map((option) => (
-                    <View
-                      key={option}
-                      className="flex-row items-center gap-2 bg-green-100 dark:bg-green-900/20 px-3 py-2 rounded-lg"
-                    >
-                      <Text className="text-lg">
-                        {DIETARY_ICONS[option as keyof typeof DIETARY_ICONS] || "✓"}
-                      </Text>
-                      <Text className="text-green-800 dark:text-green-200">
-                        {option}
-                      </Text>
-                    </View>
-                  ))}
+            {restaurant.dietary_options &&
+              restaurant.dietary_options.length > 0 && (
+                <View className="px-4 mb-6">
+                  <H3 className="mb-3">Dietary Options</H3>
+                  <View className="flex-row flex-wrap gap-3">
+                    {restaurant.dietary_options.map((option) => (
+                      <View
+                        key={option}
+                        className="flex-row items-center gap-2 bg-green-100 dark:bg-green-900/20 px-3 py-2 rounded-lg"
+                      >
+                        <Text className="text-lg">
+                          {DIETARY_ICONS[
+                            option as keyof typeof DIETARY_ICONS
+                          ] || "✓"}
+                        </Text>
+                        <Text className="text-green-800 dark:text-green-200">
+                          {option}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
                 </View>
-              </View>
-            )}
+              )}
 
             {/* Hours of Operation (Preserved) */}
             <View className="px-4 mb-6">
@@ -1524,7 +1202,8 @@ export default function RestaurantDetailsScreen() {
                   <View className="flex-row items-center gap-2 mt-2 pt-2 border-t border-border">
                     <DollarSign size={20} color="#10b981" />
                     <Text className="text-green-600 dark:text-green-400">
-                      Happy Hour: {restaurant.happy_hour_times.start} - {restaurant.happy_hour_times.end}
+                      Happy Hour: {restaurant.happy_hour_times.start} -{" "}
+                      {restaurant.happy_hour_times.end}
                     </Text>
                   </View>
                 )}
@@ -1703,14 +1382,16 @@ export default function RestaurantDetailsScreen() {
                 <View className="flex-row items-center justify-between mb-4">
                   <Text className="font-semibold">Recent Reviews</Text>
                   {reviews.length > 5 && (
-                    <Pressable onPress={() => setShowAllReviews(!showAllReviews)}>
+                    <Pressable
+                      onPress={() => setShowAllReviews(!showAllReviews)}
+                    >
                       <Text className="text-primary text-sm">
                         {showAllReviews ? "Show Less" : "View All"}
                       </Text>
                     </Pressable>
                   )}
                 </View>
-                
+
                 {reviews
                   .slice(0, showAllReviews ? undefined : 5)
                   .map((review) => (
@@ -1721,7 +1402,7 @@ export default function RestaurantDetailsScreen() {
                       showActions={false}
                     />
                   ))}
-                
+
                 {reviews.length > 5 && !showAllReviews && (
                   <Button
                     variant="outline"
@@ -1756,7 +1437,14 @@ export default function RestaurantDetailsScreen() {
       </ScrollView>
 
       {/* Image Gallery Modal */}
-      {showImageGallery && <ImageGalleryModal />}
+      {showImageGallery && (
+        <ImageGalleryModal
+          images={allImages}
+          selectedImageIndex={selectedImageIndex}
+          onClose={() => setShowImageGallery(false)}
+          onImageIndexChange={setSelectedImageIndex}
+        />
+      )}
 
       {/* ENHANCED: Floating Action Button for Reviews */}
       {activeTab === "overview" && (
