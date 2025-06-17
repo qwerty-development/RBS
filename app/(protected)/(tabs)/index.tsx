@@ -7,10 +7,28 @@ import {
 	Pressable,
 	FlatList,
 	Alert,
+	Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { MapPin, ChevronRight, Trophy, Sparkles } from "lucide-react-native";
+import { 
+	MapPin, 
+	ChevronRight, 
+	Trophy, 
+	Sparkles, 
+	TrendingUp,
+	Clock,
+	Star,
+	DollarSign,
+	Calendar,
+	Users,
+	Award,
+	Zap,
+	Heart,
+	Search,
+	Filter
+} from "lucide-react-native";
 import * as Location from "expo-location";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { useAuth } from "@/context/supabase-provider";
 import { useColorScheme } from "@/lib/useColorScheme";
@@ -19,6 +37,8 @@ import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 // Type definitions for strict type safety
 interface Restaurant {
@@ -32,15 +52,8 @@ interface Restaurant {
 	address: string;
 	price_range: number;
 	booking_policy: 'instant' | 'request';
-}
-
-interface Booking {
-	id: string;
-	restaurant_id: string;
-	booking_time: string;
-	party_size: number;
-	status: string;
-	restaurant: Restaurant;
+	created_at?: string;
+	featured?: boolean;
 }
 
 interface SpecialOffer {
@@ -53,22 +66,82 @@ interface SpecialOffer {
 }
 
 interface LocationData {
-	latitude: number;
-	longitude: number;
+	latitude?: number;
+	longitude?: number;
 	city: string;
 	district: string;
 }
 
+interface QuickFilter {
+	id: string;
+	label: string;
+	icon: any;
+	color: string;
+	params: Record<string, string>;
+}
+
+const QUICK_FILTERS: QuickFilter[] = [
+	{
+		id: "instant_book",
+		label: "Instant Book",
+		icon: Zap,
+		color: "#10b981",
+		params: { bookingPolicy: "instant" }
+	},
+	{
+		id: "top_rated",
+		label: "Top Rated",
+		icon: Star,
+		color: "#f59e0b",
+		params: { minRating: "4.5" }
+	},
+	{
+		id: "fine_dining",
+		label: "Fine Dining",
+		icon: Award,
+		color: "#8b5cf6",
+		params: { priceRange: "4" }
+	},
+	{
+		id: "outdoor",
+		label: "Outdoor",
+		icon: MapPin,
+		color: "#06b6d4",
+		params: { feature: "outdoor_seating" }
+	},
+	{
+		id: "trending",
+		label: "Trending",
+		icon: TrendingUp,
+		color: "#ef4444",
+		params: { trending: "true" }
+	}
+];
+
+const CUISINE_CATEGORIES = [
+	{ id: "lebanese", label: "Lebanese", emoji: "🥙", popular: true },
+	{ id: "italian", label: "Italian", emoji: "🍝", popular: true },
+	{ id: "japanese", label: "Japanese", emoji: "🍣", popular: true },
+	{ id: "french", label: "French", emoji: "🥐" },
+	{ id: "chinese", label: "Chinese", emoji: "🥢" },
+	{ id: "indian", label: "Indian", emoji: "🍛" },
+	{ id: "mexican", label: "Mexican", emoji: "🌮" },
+	{ id: "seafood", label: "Seafood", emoji: "🦞" },
+];
+
 export default function HomeScreen() {
-	// 1. State Management - Centralized state declarations
+	// 1. State Management
 	const { profile } = useAuth();
 	const { colorScheme } = useColorScheme();
 	const router = useRouter();
 	
-	// 2. Core data states with explicit typing
+	// 2. Core data states
 	const [featuredRestaurants, setFeaturedRestaurants] = useState<Restaurant[]>([]);
-	const [recentBookings, setRecentBookings] = useState<Booking[]>([]);
+	const [newRestaurants, setNewRestaurants] = useState<Restaurant[]>([]);
+	const [topRatedRestaurants, setTopRatedRestaurants] = useState<Restaurant[]>([]);
+	const [trendingRestaurants, setTrendingRestaurants] = useState<Restaurant[]>([]);
 	const [specialOffers, setSpecialOffers] = useState<SpecialOffer[]>([]);
+	const [nearbyRestaurants, setNearbyRestaurants] = useState<Restaurant[]>([]);
 	const [location, setLocation] = useState<LocationData | null>(null);
 	
 	// 3. UI state management
@@ -80,136 +153,170 @@ export default function HomeScreen() {
 	const scrollViewRef = useRef<ScrollView>(null);
 	const hasInitialLoad = useRef(false);
 
-	// 5. Location Services Implementation
-	const requestLocationPermission = useCallback(async () => {
+	// 5. Load Location from Storage or GPS
+	const loadLocation = useCallback(async () => {
 		try {
-			// 5.1 Request foreground location permission
+			const savedLocation = await AsyncStorage.getItem("@selected_location");
+			
+			if (savedLocation) {
+				const parsedLocation = JSON.parse(savedLocation);
+				console.log("Using saved location:", parsedLocation);
+				setLocation(parsedLocation);
+				return;
+			}
+
 			const { status } = await Location.requestForegroundPermissionsAsync();
 			
 			if (status !== "granted") {
 				setLocationPermissionDenied(true);
-				// 5.2 Fallback to default location (Beirut)
-				setLocation({
-					latitude: 33.8938,
-					longitude: 35.5018,
+				const defaultLocation = {
 					city: "Beirut",
 					district: "Central District",
-				});
-				return false;
+				};
+				setLocation(defaultLocation);
+				return;
 			}
 
-			// 5.3 Get current position with high accuracy
 			const locationData = await Location.getCurrentPositionAsync({
 				accuracy: Location.Accuracy.Balanced,
 			});
 
-			// 5.4 Reverse geocode to get city and district
 			const [address] = await Location.reverseGeocodeAsync({
 				latitude: locationData.coords.latitude,
 				longitude: locationData.coords.longitude,
 			});
 
-			setLocation({
+			const gpsLocation = {
 				latitude: locationData.coords.latitude,
 				longitude: locationData.coords.longitude,
-				city: address.city || "Unknown",
-				district: address.district || address.subregion || "Unknown",
-			});
+				city: address.city || "Beirut",
+				district: address.district || address.subregion || "Central District",
+			};
 
-			return true;
+			console.log("Using GPS location:", gpsLocation);
+			setLocation(gpsLocation);
+
 		} catch (error) {
 			console.error("Location error:", error);
-			// 5.5 Error handling with graceful fallback
-			setLocation({
-				latitude: 33.8938,
-				longitude: 35.5018,
+			const fallbackLocation = {
 				city: "Beirut",
 				district: "Central District",
-			});
-			return false;
+			};
+			setLocation(fallbackLocation);
 		}
 	}, []);
 
-	// 6. Data Fetching Functions with Error Handling
+	// 6. Listen for location changes
+	const checkForLocationUpdates = useCallback(async () => {
+		try {
+			const savedLocation = await AsyncStorage.getItem("@selected_location");
+			if (savedLocation) {
+				const parsedLocation = JSON.parse(savedLocation);
+				
+				if (!location || 
+					location.city !== parsedLocation.city || 
+					location.district !== parsedLocation.district) {
+					console.log("Location updated:", parsedLocation);
+					setLocation(parsedLocation);
+				}
+			}
+		} catch (error) {
+			console.error("Error checking for location updates:", error);
+		}
+	}, [location]);
+
+	// 7. Data Fetching Functions
 	const fetchFeaturedRestaurants = useCallback(async () => {
 		try {
-			// 6.1 Query with location-based sorting if available
-			let query = supabase
+			const { data, error } = await supabase
 				.from("restaurants")
 				.select("*")
 				.eq("featured", true)
 				.gte("average_rating", 4.0)
 				.order("average_rating", { ascending: false })
-				.limit(10);
-
-			// 6.2 Add distance-based filtering if location available
-			if (location) {
-				// Note: Requires PostGIS extension in Supabase
-				// query = query.order(
-				//   `location <-> 'POINT(${location.longitude} ${location.latitude})'::geography`
-				// );
-			}
-
-			const { data, error } = await query;
+				.limit(8);
 
 			if (error) throw error;
-			
-			// 6.3 Validate data structure and filter out invalid entries
-			const validRestaurants = (data || []).filter((restaurant) => {
-				if (!restaurant.id || typeof restaurant.id !== 'string') {
-					console.warn('Invalid restaurant found (missing ID):', restaurant);
-					return false;
-				}
-				return true;
-			});
-			
-			setFeaturedRestaurants(validRestaurants);
+			setFeaturedRestaurants(data || []);
 		} catch (error) {
 			console.error("Error fetching featured restaurants:", error);
-			// 6.4 Show user-friendly error
-			Alert.alert(
-				"Connection Error",
-				"Unable to load featured restaurants. Please check your internet connection and try again."
-			);
+		}
+	}, []);
+
+	const fetchNewRestaurants = useCallback(async () => {
+		try {
+			const thirtyDaysAgo = new Date();
+			thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+			const { data, error } = await supabase
+				.from("restaurants")
+				.select("*")
+				.gte("created_at", thirtyDaysAgo.toISOString())
+				.order("created_at", { ascending: false })
+				.limit(6);
+
+			if (error) throw error;
+			setNewRestaurants(data || []);
+		} catch (error) {
+			console.error("Error fetching new restaurants:", error);
+		}
+	}, []);
+
+	const fetchTopRatedRestaurants = useCallback(async () => {
+		try {
+			const { data, error } = await supabase
+				.from("restaurants")
+				.select("*")
+				.gte("average_rating", 4.5)
+				.gte("total_reviews", 10)
+				.order("average_rating", { ascending: false })
+				.order("total_reviews", { ascending: false })
+				.limit(6);
+
+			if (error) throw error;
+			setTopRatedRestaurants(data || []);
+		} catch (error) {
+			console.error("Error fetching top rated restaurants:", error);
+		}
+	}, []);
+
+	const fetchTrendingRestaurants = useCallback(async () => {
+		try {
+			// Simulate trending by combining recent bookings and high ratings
+			const { data, error } = await supabase
+				.from("restaurants")
+				.select("*")
+				.gte("average_rating", 4.0)
+				.gte("total_reviews", 5)
+				.order("total_reviews", { ascending: false })
+				.limit(6);
+
+			if (error) throw error;
+			setTrendingRestaurants(data || []);
+		} catch (error) {
+			console.error("Error fetching trending restaurants:", error);
+		}
+	}, []);
+
+	const fetchNearbyRestaurants = useCallback(async () => {
+		try {
+			// For now, fetch restaurants without location filtering
+			// In production, this would use PostGIS distance queries
+			const { data, error } = await supabase
+				.from("restaurants")
+				.select("*")
+				.order("average_rating", { ascending: false })
+				.limit(6);
+
+			if (error) throw error;
+			setNearbyRestaurants(data || []);
+		} catch (error) {
+			console.error("Error fetching nearby restaurants:", error);
 		}
 	}, [location]);
 
-	const fetchRecentBookings = useCallback(async () => {
-		if (!profile?.id) return;
-
-		try {
-			// 6.5 Fetch last 4 completed bookings with restaurant details
-			const { data, error } = await supabase
-				.from("bookings")
-				.select(`
-					*,
-					restaurant:restaurants (*)
-				`)
-				.eq("user_id", profile.id)
-				.eq("status", "completed")
-				.order("booking_time", { ascending: false })
-				.limit(4);
-
-			if (error) throw error;
-			
-			// 6.6 Validate booking data structure
-			const validBookings = (data || []).filter((booking) => {
-				if (!booking.restaurant || !booking.restaurant.id) {
-					console.warn('Invalid booking found (missing restaurant data):', booking);
-					return false;
-				}
-				return true;
-			});
-			
-			setRecentBookings(validBookings);
-		} catch (error) {
-			console.error("Error fetching recent bookings:", error);
-		}
-	}, [profile?.id]);
-
 	const fetchSpecialOffers = useCallback(async () => {
 		try {
-			// 6.7 Fetch active offers with complex date filtering
 			const now = new Date().toISOString();
 			const { data, error } = await supabase
 				.from("special_offers")
@@ -224,13 +331,8 @@ export default function HomeScreen() {
 
 			if (error) throw error;
 			
-			// 6.8 Validate offers data structure
 			const validOffers = (data || []).filter((offer) => {
-				if (!offer.restaurant || !offer.restaurant.id) {
-					console.warn('Invalid offer found (missing restaurant data):', offer);
-					return false;
-				}
-				return true;
+				return offer.restaurant && offer.restaurant.id;
 			});
 			
 			setSpecialOffers(validOffers);
@@ -239,55 +341,68 @@ export default function HomeScreen() {
 		}
 	}, []);
 
-	// 7. Unified Data Loading Function
+	// 8. Unified Data Loading Function
 	const loadAllData = useCallback(async () => {
 		setLoading(true);
 		
-		// 7.1 Parallel data fetching for performance
 		await Promise.all([
 			fetchFeaturedRestaurants(),
-			fetchRecentBookings(),
+			fetchNewRestaurants(),
+			fetchTopRatedRestaurants(),
+			fetchTrendingRestaurants(),
+			fetchNearbyRestaurants(),
 			fetchSpecialOffers(),
 		]);
 		
 		setLoading(false);
-	}, [fetchFeaturedRestaurants, fetchRecentBookings, fetchSpecialOffers]);
+	}, [
+		fetchFeaturedRestaurants,
+		fetchNewRestaurants,
+		fetchTopRatedRestaurants,
+		fetchTrendingRestaurants,
+		fetchNearbyRestaurants,
+		fetchSpecialOffers
+	]);
 
-	// 8. Lifecycle Management
+	// 9. Lifecycle Management
 	useEffect(() => {
-		// 8.1 Initial load sequence
 		const initializeHome = async () => {
 			if (!hasInitialLoad.current) {
-				await requestLocationPermission();
+				await loadLocation();
 				hasInitialLoad.current = true;
 			}
 		};
 
 		initializeHome();
-	}, [requestLocationPermission]);
+	}, [loadLocation]);
 
 	useEffect(() => {
-		// 8.2 Load data when location is available
 		if (location && profile) {
 			loadAllData();
 		}
 	}, [location, profile, loadAllData]);
 
-	// 9. User Interaction Handlers - FIXED WITH VALIDATION
+	useEffect(() => {
+		const unsubscribe = router.addListener?.('focus', () => {
+			checkForLocationUpdates();
+		});
+
+		return unsubscribe;
+	}, [router, checkForLocationUpdates]);
+
+	// 10. User Interaction Handlers
 	const handleRefresh = useCallback(async () => {
 		setRefreshing(true);
+		await checkForLocationUpdates();
 		await loadAllData();
 		setRefreshing(false);
-	}, [loadAllData]);
+	}, [loadAllData, checkForLocationUpdates]);
 
 	const handleLocationPress = useCallback(() => {
-		// 9.1 Navigate to location selector modal
 		router.push("/location-selector");
 	}, [router]);
 
-	// 9.2 FIXED: Safe restaurant navigation with validation
 	const handleRestaurantPress = useCallback((restaurantId: string) => {
-		// Validate restaurant ID
 		if (!restaurantId || typeof restaurantId !== 'string' || restaurantId.trim() === '') {
 			console.error('Invalid restaurant ID provided:', restaurantId);
 			Alert.alert('Error', 'Restaurant information is not available. Please try again.');
@@ -295,7 +410,6 @@ export default function HomeScreen() {
 		}
 
 		try {
-			console.log('Navigating to restaurant with ID:', restaurantId);
 			router.push({
 				pathname: "/restaurant/[id]",
 				params: { id: restaurantId.trim() },
@@ -306,31 +420,20 @@ export default function HomeScreen() {
 		}
 	}, [router]);
 
-	// 9.3 FIXED: Safe booking navigation with validation
-	const handleBookAgain = useCallback((restaurant: Restaurant) => {
-		// Validate restaurant object
-		if (!restaurant || !restaurant.id || !restaurant.name) {
-			console.error('Invalid restaurant object provided:', restaurant);
-			Alert.alert('Error', 'Restaurant information is incomplete. Please try again.');
-			return;
-		}
-
-		try {
-			router.push({
-				pathname: "/booking/create",
-				params: {
-					restaurantId: restaurant.id,
-					restaurantName: restaurant.name,
-					quickBook: "true",
-				},
-			});
-		} catch (error) {
-			console.error('Booking navigation error:', error);
-			Alert.alert('Error', 'Unable to start booking process. Please try again.');
-		}
+	const handleQuickFilter = useCallback((filter: QuickFilter) => {
+		router.push({
+			pathname: "/search",
+			params: filter.params,
+		});
 	}, [router]);
 
-	// 9.4 FIXED: Safe offer navigation with validation
+	const handleCuisinePress = useCallback((cuisine: string) => {
+		router.push({
+			pathname: "/search",
+			params: { cuisine },
+		});
+	}, [router]);
+
 	const handleOfferPress = useCallback((offer: SpecialOffer) => {
 		if (!offer?.restaurant?.id) {
 			console.error('Invalid offer or restaurant data:', offer);
@@ -339,7 +442,6 @@ export default function HomeScreen() {
 		}
 
 		try {
-			console.log('Navigating to restaurant from offer:', offer.restaurant.id);
 			router.push({
 				pathname: "/restaurant/[id]",
 				params: { 
@@ -353,7 +455,7 @@ export default function HomeScreen() {
 		}
 	}, [router]);
 
-	// 10. Time-based Greeting Logic
+	// 11. Time-based Greeting Logic
 	const getGreeting = useCallback(() => {
 		const hour = new Date().getHours();
 		if (hour < 12) return "Good Morning";
@@ -361,12 +463,45 @@ export default function HomeScreen() {
 		return "Good Evening";
 	}, []);
 
-	// 11. Component Render Functions - FIXED WITH VALIDATION
-	const renderFeaturedCard = ({ item }: { item: Restaurant }) => {
-		// Early return if invalid item
+	// 12. Component Render Functions
+	const renderRestaurantCard = ({ item, variant = "default" }: { item: Restaurant; variant?: "default" | "compact" | "featured" }) => {
 		if (!item || !item.id) {
 			console.warn('Invalid restaurant item:', item);
 			return null;
+		}
+
+		if (variant === "compact") {
+			return (
+				<Pressable
+					onPress={() => handleRestaurantPress(item.id)}
+					className="mr-3 w-64"
+				>
+					<View className="bg-card rounded-xl overflow-hidden shadow-sm">
+						<Image
+							source={{ uri: item.main_image_url }}
+							className="w-full h-32"
+							contentFit="cover"
+						/>
+						<View className="p-3">
+							<Text className="font-semibold text-sm mb-1" numberOfLines={1}>
+								{item.name}
+							</Text>
+							<Text className="text-xs text-muted-foreground mb-2" numberOfLines={1}>
+								{item.cuisine_type}
+							</Text>
+							<View className="flex-row items-center justify-between">
+								<View className="flex-row items-center gap-1">
+									<Star size={12} color="#f59e0b" fill="#f59e0b" />
+									<Text className="text-xs font-medium">{item.average_rating?.toFixed(1) || "N/A"}</Text>
+								</View>
+								<Text className="text-xs text-muted-foreground">
+									{"$".repeat(item.price_range || 1)}
+								</Text>
+							</View>
+						</View>
+					</View>
+				</Pressable>
+			);
 		}
 
 		return (
@@ -380,12 +515,17 @@ export default function HomeScreen() {
 						className="w-full h-48"
 						contentFit="cover"
 					/>
+					{variant === "featured" && (
+						<View className="absolute top-3 left-3 bg-primary px-2 py-1 rounded-full">
+							<Text className="text-xs text-primary-foreground font-medium">Featured</Text>
+						</View>
+					)}
 					<View className="p-4">
 						<H3 className="mb-1">{item.name}</H3>
 						<P className="text-muted-foreground mb-2">{item.cuisine_type}</P>
 						<View className="flex-row items-center justify-between">
 							<View className="flex-row items-center gap-1">
-								<Text className="text-yellow-500">★</Text>
+								<Star size={16} color="#f59e0b" fill="#f59e0b" />
 								<Text className="font-medium">{item.average_rating?.toFixed(1) || "N/A"}</Text>
 								<Text className="text-muted-foreground">({item.total_reviews || 0})</Text>
 							</View>
@@ -411,43 +551,21 @@ export default function HomeScreen() {
 		);
 	};
 
-	const renderBookAgainCard = ({ item }: { item: Booking }) => {
-		// Early return if invalid item
-		if (!item || !item.restaurant || !item.restaurant.id) {
-			console.warn('Invalid booking item:', item);
-			return null;
-		}
+	const renderSectionHeader = (title: string, subtitle: string, actionLabel?: string, onAction?: () => void) => (
+		<View className="px-4 mb-3 flex-row items-center justify-between">
+			<View>
+				<H3>{title}</H3>
+				<Muted className="text-sm">{subtitle}</Muted>
+			</View>
+			{actionLabel && onAction && (
+				<Pressable onPress={onAction}>
+					<Text className="text-primary text-sm">{actionLabel}</Text>
+				</Pressable>
+			)}
+		</View>
+	);
 
-		return (
-			<Pressable
-				onPress={() => handleBookAgain(item.restaurant)}
-				className="mr-3 w-64"
-			>
-				<View className="bg-card rounded-lg p-3 flex-row items-center gap-3">
-					<Image
-						source={{ uri: item.restaurant.main_image_url }}
-						className="w-16 h-16 rounded-lg"
-						contentFit="cover"
-					/>
-					<View className="flex-1">
-						<Text className="font-semibold">{item.restaurant.name}</Text>
-						<Muted className="text-sm">
-							Last visited {new Date(item.booking_time).toLocaleDateString()}
-						</Muted>
-						<Button
-							size="sm"
-							variant="secondary"
-							className="mt-2"
-						>
-							<Text>Book Again</Text>
-						</Button>
-					</View>
-				</View>
-			</Pressable>
-		);
-	};
-
-	// 12. Loading State Component
+	// 13. Loading State Component
 	if (loading) {
 		return (
 			<View className="flex-1 items-center justify-center bg-background">
@@ -457,7 +575,7 @@ export default function HomeScreen() {
 		);
 	}
 
-	// 13. Main Render
+	// 14. Main Render
 	return (
 		<ScrollView
 			ref={scrollViewRef}
@@ -471,9 +589,9 @@ export default function HomeScreen() {
 				/>
 			}
 		>
-			{/* 14. Header Section with Location */}
+			{/* Header Section with Location */}
 			<View className="px-4 pt-12 pb-4">
-				<H2>{getGreeting()}, {profile?.full_name?.split(" ")[0] || "User"}!</H2>
+				{/* <H2>{getGreeting()}, {profile?.full_name?.split(" ")[0] || "User"}!</H2> */}
 				<Pressable
 					onPress={handleLocationPress}
 					className="flex-row items-center gap-2 mt-2"
@@ -486,112 +604,142 @@ export default function HomeScreen() {
 				</Pressable>
 			</View>
 
-			{/* 15. Special Offers Banner - FIXED */}
+			<View className="mb-6">
+        <View className="px-4 mb-3">
+          <H3>Explore Cuisines</H3>
+          <Muted className="text-sm">What are you craving today?</Muted>
+        </View>
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          className="pl-4"
+        >
+          <View className="flex-row gap-3 pr-4">
+            {CUISINE_CATEGORIES.map((cuisine) => (
+              <Pressable
+                key={cuisine.id}
+                onPress={() => handleCuisinePress(cuisine.id)}
+                className="items-center"
+              >
+                <View className="w-16 h-16 bg-muted rounded-full items-center justify-center mb-2">
+                  <Text className="text-3xl">{cuisine.emoji}</Text>
+                </View>
+                <Text className="text-sm font-medium">{cuisine.label}</Text>
+                
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
+      </View>
+
+
+
+			{/* Special Offers Banner */}
 			{specialOffers.length > 0 && (
 				<View className="mb-6">
-					<View className="px-4 mb-3 flex-row items-center justify-between">
-						<View className="flex-row items-center gap-2">
-							<Sparkles size={20} color={colorScheme === "dark" ? "#fbbf24" : "#f59e0b"} />
-							<H3>Special Offers</H3>
-						</View>
-						<Pressable onPress={() => router.push("/offers")}>
-							<Text className="text-primary text-sm">View All</Text>
-						</Pressable>
-					</View>
+					{renderSectionHeader(
+						"Special Offers", 
+						"Limited time deals", 
+						"View All", 
+						() => router.push("/offers")
+					)}
 					<ScrollView
 						horizontal
 						showsHorizontalScrollIndicator={false}
 						contentContainerStyle={{ paddingHorizontal: 16 }}
 					>
-						{specialOffers.map((offer) => {
-							// Skip invalid offers
-							if (!offer?.restaurant?.id) {
-								console.warn('Skipping invalid offer:', offer);
-								return null;
-							}
-
-							return (
-								<Pressable
-									key={offer.id}
-									onPress={() => handleOfferPress(offer)}
-									className="mr-3 w-72"
-								>
-									<View className="bg-primary/10 border border-primary/20 rounded-lg p-4">
-										<Text className="font-bold text-primary mb-1">
-											{offer.discount_percentage}% OFF
-										</Text>
-										<Text className="font-semibold mb-1">{offer.title}</Text>
-										<Muted className="text-sm mb-2">{offer.restaurant.name}</Muted>
-										<Text className="text-xs text-muted-foreground">
-											Valid until {new Date(offer.valid_until).toLocaleDateString()}
-										</Text>
+						{specialOffers.map((offer) => (
+							<Pressable
+								key={offer.id}
+								onPress={() => handleOfferPress(offer)}
+								className="mr-3 w-72"
+							>
+								<View className="bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30 rounded-lg p-4">
+									<View className="flex-row items-center gap-2 mb-2">
+										<View className="bg-primary px-2 py-1 rounded-full">
+											<Text className="text-primary-foreground font-bold text-sm">
+												{offer.discount_percentage}% OFF
+											</Text>
+										</View>
+										<Sparkles size={16} color="#f59e0b" />
 									</View>
-								</Pressable>
-							);
-						})}
+									<Text className="font-semibold mb-1">{offer.title}</Text>
+									<Text className="text-sm text-muted-foreground mb-2">{offer.restaurant.name}</Text>
+									<Text className="text-xs text-muted-foreground">
+										Valid until {new Date(offer.valid_until).toLocaleDateString()}
+									</Text>
+								</View>
+							</Pressable>
+						))}
 					</ScrollView>
 				</View>
 			)}
 
-			{/* 16. Featured Restaurants */}
-			<View className="mb-6">
-				<View className="px-4 mb-3 flex-row items-center justify-between">
-					<View>
-						<H3>Featured This Week</H3>
-						<Muted className="text-sm">Hand-picked restaurants just for you</Muted>
-					</View>
-					<Pressable onPress={() => router.push("/search")}>
-						<Text className="text-primary text-sm">See All</Text>
-					</Pressable>
-				</View>
-				<FlatList
-					horizontal
-					data={featuredRestaurants}
-					renderItem={renderFeaturedCard}
-					keyExtractor={(item) => item.id || Math.random().toString()}
-					showsHorizontalScrollIndicator={false}
-					contentContainerStyle={{ paddingHorizontal: 16 }}
-				/>
-			</View>
-
-			{/* 17. Book Again Section */}
-			{recentBookings.length > 0 && (
+			{/* Featured Restaurants */}
+			{featuredRestaurants.length > 0 && (
 				<View className="mb-6">
-					<View className="px-4 mb-3">
-						<H3>Book Again</H3>
-						<Muted className="text-sm">Your recent favorites</Muted>
-					</View>
+					{renderSectionHeader(
+						"Featured This Week", 
+						"Hand-picked restaurants just for you", 
+						"See All", 
+						() => router.push("/search")
+					)}
 					<FlatList
 						horizontal
-						data={recentBookings}
-						renderItem={renderBookAgainCard}
-						keyExtractor={(item) => item.id || Math.random().toString()}
+						data={featuredRestaurants}
+						renderItem={({ item }) => renderRestaurantCard({ item, variant: "featured" })}
+						keyExtractor={(item) => item.id}
 						showsHorizontalScrollIndicator={false}
 						contentContainerStyle={{ paddingHorizontal: 16 }}
 					/>
 				</View>
 			)}
 
-			{/* 18. Cuisine Categories */}
-			<View className="px-4 mb-6">
-				<H3 className="mb-3">Explore by Cuisine</H3>
-				<View className="flex-row flex-wrap gap-2">
-					{["Lebanese", "Italian", "Japanese", "French", "Mexican", "Indian"].map((cuisine) => (
-						<Pressable
-							key={cuisine}
-							onPress={() => router.push({
-								pathname: "/search",
-								params: { cuisine }
-							})}
-							className="bg-muted px-4 py-2 rounded-full"
-						>
-							<Text>{cuisine}</Text>
-						</Pressable>
-					))}
+			{/* New Restaurants */}
+			{newRestaurants.length > 0 && (
+				<View className="mb-6">
+					{renderSectionHeader(
+						"New to the Platform", 
+						"Recently added restaurants", 
+						"Explore", 
+						() => router.push({ pathname: "/search", params: { sortBy: "newest" } })
+					)}
+					<FlatList
+						horizontal
+						data={newRestaurants}
+						renderItem={({ item }) => renderRestaurantCard({ item, variant: "compact" })}
+						keyExtractor={(item) => item.id}
+						showsHorizontalScrollIndicator={false}
+						contentContainerStyle={{ paddingHorizontal: 16 }}
+					/>
 				</View>
-			</View>
+			)}
 
-			{/* 19. Loyalty Points Widget */}
+			{/* Top Rated */}
+			{topRatedRestaurants.length > 0 && (
+				<View className="mb-6">
+					{renderSectionHeader(
+						"Top Rated", 
+						"Highest rated by diners", 
+						"View All", 
+						() => router.push({ pathname: "/search", params: { sortBy: "rating" } })
+					)}
+					<FlatList
+						horizontal
+						data={topRatedRestaurants}
+						renderItem={({ item }) => renderRestaurantCard({ item, variant: "compact" })}
+						keyExtractor={(item) => item.id}
+						showsHorizontalScrollIndicator={false}
+						contentContainerStyle={{ paddingHorizontal: 16 }}
+					/>
+				</View>
+			)}
+
+
+
+		
+
+			{/* Loyalty Points Widget */}
 			{profile?.loyalty_points && profile.loyalty_points > 0 && (
 				<Pressable
 					onPress={() => router.push("/profile/loyalty")}
@@ -612,8 +760,6 @@ export default function HomeScreen() {
 				</Pressable>
 			)}
 
-			{/* 20. Bottom Padding for Tab Bar */}
-			<View className="h-20" />
 		</ScrollView>
 	);
 }
