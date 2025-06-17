@@ -8,6 +8,7 @@ import {
 import { SplashScreen, useRouter } from "expo-router";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/config/supabase";
+import { View, ActivityIndicator, Text } from "react-native";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -58,11 +59,12 @@ export const AuthContext = createContext<AuthState>({
 
 export const useAuth = () => useContext(AuthContext);
 
-export function AuthProvider({ children }: PropsWithChildren) {
+function AuthContent({ children }: PropsWithChildren) {
 	const [initialized, setInitialized] = useState(false);
 	const [session, setSession] = useState<Session | null>(null);
 	const [user, setUser] = useState<User | null>(null);
 	const [profile, setProfile] = useState<Profile | null>(null);
+	const [isNavigating, setIsNavigating] = useState(false);
 	const router = useRouter();
 
 	// Fetch user profile
@@ -255,37 +257,47 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
 	// Handle navigation after initialization
 	useEffect(() => {
-		if (!initialized) return;
+		if (!initialized || isNavigating) return;
 
 		const handleNavigation = async () => {
-			try {
-				await SplashScreen.hideAsync();
-			} catch (error) {
-				console.error('Error hiding splash screen:', error);
-			}
+			setIsNavigating(true);
 			
-			if (session) {
-				if (profile) {
-					// User is authenticated and has profile
-					router.replace("/(protected)/(tabs)");
-				} else {
-					// User is authenticated but no profile - this can happen if profile fetch failed
-					// Try to fetch profile again or redirect to profile creation
-					console.warn('Session exists but no profile found, attempting to fetch...');
-					const fetchedProfile = await fetchProfile(session.user.id);
-					
-					if (fetchedProfile) {
+			try {
+				console.log('Handling navigation:', { session: !!session, profile: !!profile });
+				
+				// Hide splash screen
+				await SplashScreen.hideAsync();
+				
+				if (session) {
+					if (profile) {
+						// User is authenticated and has profile
+						console.log('Navigating to protected tabs');
 						router.replace("/(protected)/(tabs)");
 					} else {
-						// Profile fetch failed, but user is authenticated - handle gracefully
-						console.error('Could not fetch profile for authenticated user');
-						// You might want to redirect to a profile creation screen or sign out
-						router.replace("/welcome");
+						// User is authenticated but no profile - try to fetch again
+						console.warn('Session exists but no profile found, attempting to fetch...');
+						const fetchedProfile = await fetchProfile(session.user.id);
+						
+						if (fetchedProfile) {
+							console.log('Profile fetched, navigating to protected tabs');
+							router.replace("/(protected)/(tabs)");
+						} else {
+							// Profile fetch failed, but user is authenticated - handle gracefully
+							console.error('Could not fetch profile for authenticated user');
+							router.replace("/welcome");
+						}
 					}
+				} else {
+					// No session - go to welcome
+					console.log('No session, navigating to welcome');
+					router.replace("/welcome");
 				}
-			} else {
-				// No session - go to welcome
+			} catch (error) {
+				console.error('Error during navigation:', error);
+				// Fallback navigation
 				router.replace("/welcome");
+			} finally {
+				setIsNavigating(false);
 			}
 		};
 
@@ -293,7 +305,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
 		const timeoutId = setTimeout(handleNavigation, 100);
 		
 		return () => clearTimeout(timeoutId);
-	}, [initialized, session, profile, router]);
+	}, [initialized, session, profile, router, isNavigating]);
+
+	// Show loading screen while initializing
+	if (!initialized) {
+		return (
+			<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
+				<ActivityIndicator size="large" color="#fff" />
+				<Text style={{ color: '#fff', marginTop: 16 }}>Loading...</Text>
+			</View>
+		);
+	}
 
 	return (
 		<AuthContext.Provider
@@ -312,4 +334,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 			{children}
 		</AuthContext.Provider>
 	);
+}
+
+export function AuthProvider({ children }: PropsWithChildren) {
+	return <AuthContent>{children}</AuthContent>;
 }
