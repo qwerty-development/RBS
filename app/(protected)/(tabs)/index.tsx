@@ -41,6 +41,7 @@ import { RestaurantCard } from "@/components/home/RestaurantCard";
 import { SpecialOfferCard } from "@/components/home/SpecialOfferCard";
 import { CuisineCategory } from "@/components/home/CuisineCategory";
 import { SectionHeader } from "@/components/home/SectionHeader";
+import { LoyaltyWidget } from "@/components/home/LoyaltyWidget";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -676,30 +677,11 @@ export default function HomeScreen() {
       )}
 
       {/* Loyalty Points Widget */}
-      {profile?.loyalty_points && profile.loyalty_points > 0 && (
-        <Pressable
-          onPress={() => router.push("/(protected)/(tabs)/profile")}
-          className="mx-4 mb-6 p-4 bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl border border-primary/20"
-        >
-          <View className="flex-row items-center justify-between">
-            <View>
-              <View className="flex-row items-center gap-2 mb-1">
-                <Trophy
-                  size={20}
-                  color={colorScheme === "dark" ? "#fbbf24" : "#f59e0b"}
-                />
-                <Text className="font-bold text-lg">
-                  {profile.loyalty_points} Points
-                </Text>
-              </View>
-              <Muted className="text-sm">
-                {1000 - (profile.loyalty_points % 1000)} points to next reward
-              </Muted>
-            </View>
-            <ChevronRight size={20} color="#666" />
-          </View>
-        </Pressable>
-      )}
+      <LoyaltyWidget
+        loyaltyPoints={profile?.loyalty_points || 0}
+        onPress={() => router.push("/(protected)/(tabs)/profile")}
+        colorScheme={colorScheme}
+      />
     </ScrollView>
   );
 }

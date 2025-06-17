@@ -6,6 +6,16 @@ import { Text } from "@/components/ui/text";
 interface Restaurant {
   id: string;
   name: string;
+  cuisine_type: string;
+  main_image_url: string;
+  tags: string[];
+  average_rating: number;
+  total_reviews: number;
+  address: string;
+  price_range: number;
+  booking_policy: "instant" | "request";
+  created_at?: string;
+  featured?: boolean;
 }
 
 interface SpecialOffer {
