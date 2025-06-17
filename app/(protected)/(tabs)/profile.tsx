@@ -389,7 +389,10 @@ export default function ProfileScreen() {
           title: "My Reviews",
           subtitle: `${stats.totalReviews} reviews written`,
           icon: Star,
-          onPress: () => router.push("/profile/reviews"),
+          onPress: () => router.push({
+            pathname: "/profile/reviews",
+            params: { id: user?.id }
+          }),
         },
         {
           id: "insights",
