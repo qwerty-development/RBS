@@ -20,7 +20,7 @@ export interface Database {
           favorite_cuisines: string[] | null;
           dietary_restrictions: string[] | null;
           preferred_party_size: number | null;
-          notification_preferences: {
+          notification_preferences?: {
             email: boolean;
             push: boolean;
             sms: boolean;
