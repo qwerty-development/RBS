@@ -72,6 +72,8 @@ type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
   instagram_handle?: string;
   website_url?: string;
   whatsapp_number?: string;
+  average_rating?: number;
+  total_reviews?: number;
   // ENHANCED: Review summary integration
   review_summary?: {
     total_reviews: number;
@@ -167,6 +169,86 @@ export default function RestaurantDetailsScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const mapRef = useRef<MapView>(null);
 
+  // Calculate review summary from reviews data
+  const calculateReviewSummary = useCallback((reviewsData: Review[]) => {
+    if (!reviewsData || reviewsData.length === 0) {
+      return null;
+    }
+
+    const totalReviews = reviewsData.length;
+    const totalRating = reviewsData.reduce(
+      (sum, review) => sum + (review.rating || 0),
+      0
+    );
+    const averageRating = totalRating / totalReviews;
+
+    // Calculate rating distribution
+    const ratingDistribution: Record<string, number> = {
+      "1": 0,
+      "2": 0,
+      "3": 0,
+      "4": 0,
+      "5": 0,
+    };
+
+    reviewsData.forEach((review) => {
+      const rating = Math.round(review.rating || 0).toString();
+      if (ratingDistribution[rating] !== undefined) {
+        ratingDistribution[rating]++;
+      }
+    });
+
+    // Calculate detailed ratings (if available)
+    const foodRatings = reviewsData
+      .filter((r) => r.food_rating)
+      .map((r) => r.food_rating!);
+    const serviceRatings = reviewsData
+      .filter((r) => r.service_rating)
+      .map((r) => r.service_rating!);
+    const ambianceRatings = reviewsData
+      .filter((r) => r.ambiance_rating)
+      .map((r) => r.ambiance_rating!);
+    const valueRatings = reviewsData
+      .filter((r) => r.value_rating)
+      .map((r) => r.value_rating!);
+
+    const detailedRatings = {
+      food_avg:
+        foodRatings.length > 0
+          ? foodRatings.reduce((a, b) => a + b, 0) / foodRatings.length
+          : averageRating,
+      service_avg:
+        serviceRatings.length > 0
+          ? serviceRatings.reduce((a, b) => a + b, 0) / serviceRatings.length
+          : averageRating,
+      ambiance_avg:
+        ambianceRatings.length > 0
+          ? ambianceRatings.reduce((a, b) => a + b, 0) / ambianceRatings.length
+          : averageRating,
+      value_avg:
+        valueRatings.length > 0
+          ? valueRatings.reduce((a, b) => a + b, 0) / valueRatings.length
+          : averageRating,
+    };
+
+    // Calculate recommendation percentage
+    const recommendationsCount = reviewsData.filter(
+      (r) => r.recommend_to_friend
+    ).length;
+    const recommendationPercentage =
+      totalReviews > 0
+        ? Math.round((recommendationsCount / totalReviews) * 100)
+        : 0;
+
+    return {
+      total_reviews: totalReviews,
+      average_rating: averageRating,
+      rating_distribution: ratingDistribution,
+      detailed_ratings: detailedRatings,
+      recommendation_percentage: recommendationPercentage,
+    };
+  }, []);
+
   useEffect(() => {
     if (!id) {
       console.error("No restaurant ID provided");
@@ -205,6 +287,11 @@ export default function RestaurantDetailsScreen() {
       }
 
       console.log("Restaurant data fetched:", restaurantData.name);
+      console.log("Restaurant rating data:", {
+        average_rating: restaurantData.average_rating,
+        total_reviews: restaurantData.total_reviews,
+        review_summary: restaurantData.review_summary,
+      });
       setRestaurant(restaurantData);
 
       // 6.2 Check if restaurant is favorited
@@ -239,7 +326,33 @@ export default function RestaurantDetailsScreen() {
         console.warn("Reviews fetch error:", reviewsError);
       } else {
         console.log("Reviews fetched:", reviewsData?.length || 0);
+        if (reviewsData && reviewsData.length > 0) {
+          console.log("Sample review data:", reviewsData[0]);
+        }
         setReviews(reviewsData || []);
+
+        // If restaurant doesn't have review_summary, calculate it from reviews
+        if (
+          restaurantData &&
+          (!restaurantData.review_summary || !restaurantData.average_rating)
+        ) {
+          console.log("Calculating review summary from reviews data...");
+          const calculatedSummary = calculateReviewSummary(reviewsData || []);
+          console.log("Calculated summary:", calculatedSummary);
+          if (calculatedSummary) {
+            const updatedRestaurant = {
+              ...restaurantData,
+              review_summary: calculatedSummary,
+              average_rating: calculatedSummary.average_rating,
+              total_reviews: calculatedSummary.total_reviews,
+            };
+            console.log("Updated restaurant with calculated summary:", {
+              average_rating: updatedRestaurant.average_rating,
+              total_reviews: updatedRestaurant.total_reviews,
+            });
+            setRestaurant(updatedRestaurant);
+          }
+        }
       }
     } catch (error) {
       console.error("Error fetching restaurant details:", error);
