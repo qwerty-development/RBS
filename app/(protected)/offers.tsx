@@ -27,6 +27,7 @@ import {
   TrendingUp,
   Gift,
   X,
+  Share2,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
@@ -337,31 +338,31 @@ export default function SpecialOffersScreen() {
           <P className="text-muted-foreground mb-3">{offer.restaurant.name}</P>
           
           {offer.description && (
-            <P className="text-sm mb-3">{offer.description}</P>
+            <P className="text-sm mb-3" numberOfLines={3}>{offer.description}</P>
           )}
           
           {/* 10.5 Offer Metadata */}
-          <View className="flex-row flex-wrap gap-3 mb-3">
-            <View className="flex-row items-center gap-1">
+          <View className="flex-row flex-wrap mb-3">
+            <View className="flex-row items-center mr-3 mb-1">
               <Calendar size={14} color="#666" />
-              <Text className="text-xs text-muted-foreground">
+              <Text className="text-xs text-muted-foreground ml-1">
                 Valid until {new Date(offer.valid_until).toLocaleDateString()}
               </Text>
             </View>
             
             {isExpiringSoon && (
-              <View className="flex-row items-center gap-1">
+              <View className="flex-row items-center mr-3 mb-1">
                 <Clock size={14} color="#ef4444" />
-                <Text className="text-xs text-red-600">
+                <Text className="text-xs text-red-600 ml-1">
                   {daysUntilExpiry === 1 ? "Expires tomorrow" : `${daysUntilExpiry} days left`}
                 </Text>
               </View>
             )}
             
             {offer.minimum_party_size > 1 && (
-              <View className="flex-row items-center gap-1">
+              <View className="flex-row items-center mb-1">
                 <Users size={14} color="#666" />
-                <Text className="text-xs text-muted-foreground">
+                <Text className="text-xs text-muted-foreground ml-1">
                   Min {offer.minimum_party_size} people
                 </Text>
               </View>
@@ -372,11 +373,11 @@ export default function SpecialOffersScreen() {
           {offer.applicable_days && offer.applicable_days.length < 7 && (
             <View className="mb-3">
               <Text className="text-xs font-medium mb-1">Valid on:</Text>
-              <View className="flex-row gap-1">
+              <View className="flex-row flex-wrap">
                 {offer.applicable_days.map((day) => (
                   <View
                     key={day}
-                    className="bg-muted px-2 py-1 rounded"
+                    className="bg-muted px-2 py-1 rounded mr-1 mb-1"
                   >
                     <Text className="text-xs">{DAYS_OF_WEEK[day]}</Text>
                   </View>
@@ -394,30 +395,30 @@ export default function SpecialOffersScreen() {
                   offer.terms_conditions.join("\n\n")
                 );
               }}
-              className="flex-row items-center gap-1 mb-3"
+              className="flex-row items-center mb-3"
             >
               <Info size={14} color="#666" />
-              <Text className="text-xs text-primary">View terms</Text>
+              <Text className="text-xs text-primary ml-1">View terms</Text>
             </Pressable>
           )}
           
           {/* 10.8 Restaurant Info */}
           <View className="flex-row items-center justify-between pt-3 border-t border-border">
-            <View className="flex-row items-center gap-3">
-              <View className="flex-row items-center gap-1">
+            <View className="flex-row flex-wrap items-center">
+              <View className="flex-row items-center mr-3">
                 <Star size={14} color="#f59e0b" fill="#f59e0b" />
-                <Text className="text-sm font-medium">
+                <Text className="text-sm font-medium ml-1">
                   {offer.restaurant.average_rating?.toFixed(1) || "N/A"}
                 </Text>
               </View>
               
-              <Text className="text-sm text-muted-foreground">
+              <Text className="text-sm text-muted-foreground mr-3">
                 {offer.restaurant.cuisine_type}
               </Text>
               
-              <View className="flex-row items-center gap-1">
+              <View className="flex-row items-center">
                 <MapPin size={14} color="#666" />
-                <Text className="text-sm text-muted-foreground" numberOfLines={1}>
+                <Text className="text-sm text-muted-foreground ml-1" numberOfLines={1}>
                   {offer.restaurant.address.split(",")[0]}
                 </Text>
               </View>
@@ -427,11 +428,10 @@ export default function SpecialOffersScreen() {
           </View>
           
           {/* 10.9 Action Buttons */}
-          <View className="flex-row gap-2 mt-4">
+          <View className="flex-row mt-4 gap-3">
             {!offer.claimed ? (
               <Button
                 variant="default"
-                size="sm"
                 onPress={(e) => {
                   e.stopPropagation();
                   claimOffer(offer.id);
@@ -443,7 +443,7 @@ export default function SpecialOffersScreen() {
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <>
-                    <Tag size={16} />
+                    <Tag size={16} className="mr-1" />
                     <Text>Claim Offer</Text>
                   </>
                 )}
@@ -451,26 +451,24 @@ export default function SpecialOffersScreen() {
             ) : (
               <Button
                 variant="default"
-                size="sm"
                 onPress={(e) => {
                   e.stopPropagation();
                   bookWithOffer(offer);
                 }}
                 className="flex-1"
               >
-                <Calendar size={16} />
+                <Calendar size={16} className="mr-1" />
                 <Text>Book Now</Text>
               </Button>
             )}
             
             <Button
               variant="outline"
-              size="sm"
               onPress={(e) => {
                 e.stopPropagation();
                 shareOffer(offer);
               }}
-              className="px-3"
+              className="w-12 px-0"
             >
               <Share2 size={16} />
             </Button>
@@ -486,9 +484,9 @@ export default function SpecialOffersScreen() {
       horizontal
       showsHorizontalScrollIndicator={false}
       className="mb-4"
-      contentContainerStyle={{ paddingHorizontal: 16, gap: 8 }}
+      contentContainerStyle={{ paddingHorizontal: 16 }}
     >
-      {OFFER_CATEGORIES.map((category) => {
+      {OFFER_CATEGORIES.map((category, index) => {
         const Icon = category.icon;
         const isActive = selectedCategory === category.id;
         
@@ -499,13 +497,14 @@ export default function SpecialOffersScreen() {
               setSelectedCategory(category.id);
               Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
             }}
-            className={`flex-row items-center gap-2 px-4 py-2 rounded-full ${
+            className={`flex-row items-center px-4 py-2 rounded-full ${
               isActive ? "bg-primary" : "bg-muted"
-            }`}
+            } ${index > 0 ? "ml-2" : ""}`}
           >
             <Icon
               size={16}
               color={isActive ? "#fff" : colorScheme === "dark" ? "#fff" : "#000"}
+              className="mr-2"
             />
             <Text
               className={`font-medium ${
@@ -516,7 +515,7 @@ export default function SpecialOffersScreen() {
             </Text>
             {category.id === "claimed" && claimedOfferIds.size > 0 && (
               <View
-                className={`px-2 py-0.5 rounded-full ${
+                className={`px-2 py-0.5 rounded-full ml-1 ${
                   isActive ? "bg-white/20" : "bg-primary"
                 }`}
               >
@@ -605,6 +604,7 @@ export default function SpecialOffersScreen() {
         <Pressable
           onPress={() => setShowFilters(!showFilters)}
           className="p-2"
+          hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}
         >
           <Filter size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
         </Pressable>
