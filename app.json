@@ -7,6 +7,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
+    "owner": "qwerty-app",
     "assetBundlePatterns": [
       "**/*"
     ],
@@ -53,6 +54,12 @@
     "plugins": [
       "expo-router",
       "expo-secure-store"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9cb3f29d-a85c-439a-ac34-513843ed9279"
+      }
+    }
   }
 }
