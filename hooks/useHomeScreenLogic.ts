@@ -337,15 +337,18 @@ export function useHomeScreenLogic() {
     [router]
   );
 
-  const handleCuisinePress = useCallback(
-    (cuisine: string) => {
-      router.push({
-        pathname: "/search",
-        params: { cuisine },
-      });
-    },
-    [router]
-  );
+  const handleCuisinePress = useCallback((cuisine:any) => {
+  
+    
+    // Navigate to cuisine-specific screen
+    router.push({
+      pathname: "/(protected)/cuisine/[cuisineId]",
+      params: {
+        cuisineId: cuisine.id,
+        cuisineName: cuisine.name,
+      },
+    });
+  }, [router]);
 
   const handleOfferPress = useCallback(
     (offer: SpecialOffer) => {
