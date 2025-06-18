@@ -331,27 +331,46 @@ export default function RestaurantDetailsScreen() {
         }
         setReviews(reviewsData || []);
 
-        // If restaurant doesn't have review_summary, calculate it from reviews
-        if (
-          restaurantData &&
-          (!restaurantData.review_summary || !restaurantData.average_rating)
-        ) {
-          console.log("Calculating review summary from reviews data...");
-          const calculatedSummary = calculateReviewSummary(reviewsData || []);
-          console.log("Calculated summary:", calculatedSummary);
-          if (calculatedSummary) {
-            const updatedRestaurant = {
-              ...restaurantData,
-              review_summary: calculatedSummary,
-              average_rating: calculatedSummary.average_rating,
-              total_reviews: calculatedSummary.total_reviews,
-            };
-            console.log("Updated restaurant with calculated summary:", {
-              average_rating: updatedRestaurant.average_rating,
-              total_reviews: updatedRestaurant.total_reviews,
-            });
-            setRestaurant(updatedRestaurant);
-          }
+        // Always calculate review summary from actual reviews data to ensure accuracy
+        console.log("Calculating review summary from reviews data...");
+        const calculatedSummary = calculateReviewSummary(reviewsData || []);
+        console.log("Calculated summary:", calculatedSummary);
+
+        if (calculatedSummary) {
+          const updatedRestaurant = {
+            ...restaurantData,
+            review_summary: calculatedSummary,
+            average_rating: calculatedSummary.average_rating,
+            total_reviews: calculatedSummary.total_reviews,
+          };
+          console.log("Updated restaurant with calculated summary:", {
+            average_rating: updatedRestaurant.average_rating,
+            total_reviews: updatedRestaurant.total_reviews,
+            review_summary: updatedRestaurant.review_summary,
+          });
+          setRestaurant(updatedRestaurant);
+        } else {
+          // No reviews, but still set the restaurant data with zero values
+          const zeroSummary = {
+            total_reviews: 0,
+            average_rating: 0,
+            rating_distribution: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 },
+            detailed_ratings: {
+              food_avg: 0,
+              service_avg: 0,
+              ambiance_avg: 0,
+              value_avg: 0,
+            },
+            recommendation_percentage: 0,
+          };
+          const updatedRestaurant = {
+            ...restaurantData,
+            review_summary: zeroSummary,
+            average_rating: 0,
+            total_reviews: 0,
+          };
+          console.log("No reviews found, setting zero summary");
+          setRestaurant(updatedRestaurant);
         }
       }
     } catch (error) {
@@ -992,26 +1011,9 @@ export default function RestaurantDetailsScreen() {
         {activeTab === "reviews" && (
           <View className="px-4 mb-6">
             {/* Review Summary Section */}
-            {restaurant.review_summary ? (
-              <View className="mb-6">
-                <ReviewSummary reviewSummary={restaurant.review_summary} />
-              </View>
-            ) : (
-              <View className="mb-6">
-                <View className="flex-row items-center justify-between mb-4">
-                  <H3>Reviews & Ratings</H3>
-                  <View className="flex-row items-center gap-1">
-                    <Star size={20} color="#f59e0b" fill="#f59e0b" />
-                    <Text className="font-bold text-lg">
-                      {restaurant.average_rating?.toFixed(1) || "N/A"}
-                    </Text>
-                    <Text className="text-muted-foreground">
-                      ({restaurant.total_reviews || 0})
-                    </Text>
-                  </View>
-                </View>
-              </View>
-            )}
+            <View className="mb-6">
+              <ReviewSummary reviewSummary={restaurant.review_summary!} />
+            </View>
 
             {/* Write Review Button */}
             <View className="mb-6">
