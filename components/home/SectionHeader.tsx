@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Pressable } from "react-native";
-import { H3, Muted } from "@/components/ui/typography";
+import { H1, H3, H4, Muted } from "@/components/ui/typography";
 import { Text } from "@/components/ui/text";
 
 interface SectionHeaderProps {
@@ -19,8 +19,7 @@ export function SectionHeader({
   return (
     <View className="px-4 mb-3 flex-row items-center justify-between">
       <View>
-        <H3>{title}</H3>
-        <Muted className="text-sm">{subtitle}</Muted>
+        <H4>{title}</H4>
       </View>
       {actionLabel && onAction && (
         <Pressable onPress={onAction}>
