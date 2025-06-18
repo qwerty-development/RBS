@@ -1,7 +1,11 @@
 import React from "react";
-import { View, Pressable } from "react-native";
-import { Sparkles } from "lucide-react-native";
+import { View, Pressable, Dimensions } from "react-native";
+import { Sparkles, Calendar, MapPin } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
+import { H3, P } from "@/components/ui/typography";
+import { Image } from "@/components/image";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 interface Restaurant {
   id: string;
@@ -43,23 +47,66 @@ export function SpecialOfferCard({ offer, onPress }: SpecialOfferCardProps) {
   };
 
   return (
-    <Pressable onPress={handlePress} className="mr-3 w-72">
-      <View className="bg-gradient-to-r from-primary/20 to-primary/10 border border-primary/30 rounded-lg p-4">
-        <View className="flex-row items-center gap-2 mb-2">
-          <View className="bg-primary px-2 py-1 rounded-full">
-            <Text className="text-primary-foreground font-bold text-sm">
+    <Pressable onPress={handlePress} style={{ width: SCREEN_WIDTH - 32 }} className="mx-4">
+      <View className="bg-card rounded-2xl overflow-hidden shadow-lg shadow-black/10 border border-border/50">
+        {/* Restaurant Image */}
+        <View className="relative">
+          <Image 
+            source={{ uri: offer.restaurant.main_image_url }} 
+            className="w-full h-48" 
+            contentFit="cover" 
+          />
+          
+          {/* Enhanced Dark Overlay for Better Text Visibility */}
+          <View className="absolute inset-0 bg-black/40" />
+          <View className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+          
+          {/* Discount Badge */}
+          <View className="absolute top-4 right-4 bg-primary px-4 py-2 rounded-full shadow-lg">
+            <Text className="text-primary-foreground font-extrabold text-lg">
               {offer.discount_percentage}% OFF
             </Text>
           </View>
-          <Sparkles size={16} color="#f59e0b" />
+          
+          {/* Restaurant Info Overlay */}
+          <View className="absolute bottom-4 left-4 right-4">
+            <View className="flex-row items-center mb-2">
+              <Sparkles size={20} color="#fbbf24" />
+              <Text className="text-yellow-400 font-semibold ml-2">Special Offer</Text>
+            </View>
+            <H3 className="text-white mb-1 shadow-lg">{offer.title}</H3>
+            <View className="flex-row items-center">
+              <MapPin size={16} color="#ffffff" />
+              <Text className="text-white/90 ml-1 font-medium">{offer.restaurant.name}</Text>
+              <Text className="text-white/70 ml-2">• {offer.restaurant.cuisine_type}</Text>
+            </View>
+          </View>
         </View>
-        <Text className="font-semibold mb-1">{offer.title}</Text>
-        <Text className="text-sm text-muted-foreground mb-2">
-          {offer.restaurant.name}
-        </Text>
-        <Text className="text-xs text-muted-foreground">
-          Valid until {new Date(offer.valid_until).toLocaleDateString()}
-        </Text>
+        
+        {/* Card Content */}
+        <View className="p-4">
+          {offer.description && (
+            <P className="text-muted-foreground mb-3" numberOfLines={2}>
+              {offer.description}
+            </P>
+          )}
+          
+          {/* Metadata */}
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center bg-muted/50 rounded-full px-3 py-2">
+              <Calendar size={16} color="#6b7280" />
+              <Text className="text-sm text-muted-foreground ml-2">
+                Expires {new Date(offer.valid_until).toLocaleDateString()}
+              </Text>
+            </View>
+            
+            <View className="bg-green-100 dark:bg-green-900/30 px-3 py-1 rounded-full">
+              <Text className="text-green-700 dark:text-green-400 font-semibold text-sm">
+                Limited Time
+              </Text>
+            </View>
+          </View>
+        </View>
       </View>
     </Pressable>
   );
