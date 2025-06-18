@@ -40,8 +40,9 @@ interface RestaurantSearchCardProps {
   item: Restaurant;
   bookingFilters: BookingFilters;
   favorites: Set<string>;
-  onToggleFavorite: (restaurantId: string) => void;
-  onDirections: (restaurant: Restaurant) => void;
+  onToggleFavorite: (restaurantId: string) => Promise<void>;
+  onDirections: (restaurant: Restaurant) => Promise<void>;
+  onPress?: () => void;
 }
 
 export const RestaurantSearchCard = ({
@@ -50,11 +51,16 @@ export const RestaurantSearchCard = ({
   favorites,
   onToggleFavorite,
   onDirections,
+  onPress,
 }: RestaurantSearchCardProps) => {
   const router = useRouter();
 
   const handleRestaurantPress = () => {
-    router.push(`/restaurant/${item.id}`);
+    if (onPress) {
+      onPress();
+    } else {
+      router.push(`/restaurant/${item.id}`);
+    }
   };
 
   const handleFavoritePress = (e: any) => {

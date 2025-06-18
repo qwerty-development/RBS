@@ -23,7 +23,7 @@ type Restaurant = {
 interface RestaurantMapViewProps {
   restaurants: Restaurant[];
   mapRegion: Region;
-  mapRef: RefObject<MapView>;
+  mapRef?: RefObject<MapView>;
   onRegionChangeComplete: (region: Region) => void;
   onRestaurantPress: (restaurantId: string) => void;
 }
