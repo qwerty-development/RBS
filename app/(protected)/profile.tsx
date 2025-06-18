@@ -27,6 +27,7 @@ import {
   MapPin,
   Clock,
   CreditCard,
+  MessageCircle,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 
@@ -412,6 +413,13 @@ export default function ProfileScreen() {
           subtitle: "FAQs and contact support",
           icon: HelpCircle,
           onPress: () => router.push("/profile/help"),
+        },
+        {
+          id: "chat-test",
+          title: "AI Chat Test",
+          subtitle: "Test the AI chatbot",
+          icon: MessageCircle,
+          onPress: () => router.push("/chat-test"),
         },
         {
           id: "privacy",
