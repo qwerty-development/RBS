@@ -1,0 +1,90 @@
+import React from "react";
+import { View, ScrollView, Pressable, Dimensions } from "react-native";
+import { ChevronLeft, Camera } from "lucide-react-native";
+import { Image } from "@/components/image";
+import { Text } from "@/components/ui/text";
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const IMAGE_HEIGHT = 300;
+
+interface RestaurantImageGalleryProps {
+  images: string[];
+  imageIndex: number;
+  isRestaurantOpen: boolean;
+  onImageIndexChange: (index: number) => void;
+  onBackPress: () => void;
+  onCameraPress: () => void;
+}
+
+export const RestaurantImageGallery = ({
+  images,
+  imageIndex,
+  isRestaurantOpen,
+  onImageIndexChange,
+  onBackPress,
+  onCameraPress,
+}: RestaurantImageGalleryProps) => {
+  return (
+    <View className="relative" style={{ height: IMAGE_HEIGHT }}>
+      <ScrollView
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={(e) => {
+          const index = Math.round(
+            e.nativeEvent.contentOffset.x / SCREEN_WIDTH
+          );
+          onImageIndexChange(index);
+        }}
+        scrollEventThrottle={16}
+      >
+        {images.map((image, index) => (
+          <Pressable key={index} onPress={() => onCameraPress()}>
+            <Image
+              source={{ uri: image }}
+              style={{ width: SCREEN_WIDTH, height: IMAGE_HEIGHT }}
+              contentFit="cover"
+            />
+          </Pressable>
+        ))}
+      </ScrollView>
+
+      <View className="absolute bottom-4 left-0 right-0 flex-row justify-center gap-2">
+        {images.map((_, index) => (
+          <View
+            key={index}
+            className={`w-2 h-2 rounded-full ${
+              index === imageIndex ? "bg-white" : "bg-white/50"
+            }`}
+          />
+        ))}
+      </View>
+
+      <Pressable
+        onPress={onBackPress}
+        className="absolute top-4 left-4 bg-black/50 rounded-full p-2"
+      >
+        <ChevronLeft size={24} color="white" />
+      </Pressable>
+
+      <Pressable
+        onPress={onCameraPress}
+        className="absolute top-4 right-4 bg-black/50 rounded-full p-2"
+      >
+        <Camera size={24} color="white" />
+      </Pressable>
+
+      <View className="absolute bottom-16 right-4">
+        <View
+          className={`px-3 py-1 rounded-full ${
+            isRestaurantOpen ? "bg-green-500" : "bg-red-500"
+          }`}
+        >
+          <Text className="text-white text-sm font-medium">
+            {isRestaurantOpen ? "Open Now" : "Closed"}
+          </Text>
+        </View>
+      </View>
+    </View>
+  );
+};

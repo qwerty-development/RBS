@@ -42,11 +42,27 @@ export const RestaurantHeaderInfo = ({
         </Text>
         <Text className="text-muted-foreground">•</Text>
         <View className="flex-row items-center gap-1">
-          <Star size={16} color="#f59e0b" fill="#f59e0b" />
+          <Star
+            size={16}
+            color="#f59e0b"
+            fill={
+              (restaurant.review_summary?.average_rating ||
+                restaurant.average_rating ||
+                0) > 0
+                ? "#f59e0b"
+                : "transparent"
+            }
+          />
           <Text className="font-medium">
-            {restaurant.review_summary?.average_rating?.toFixed(1) ||
-              restaurant.average_rating?.toFixed(1) ||
-              "N/A"}
+            {(restaurant.review_summary?.average_rating ||
+              restaurant.average_rating ||
+              0) > 0
+              ? (
+                  restaurant.review_summary?.average_rating ||
+                  restaurant.average_rating ||
+                  0
+                ).toFixed(1)
+              : "0.0"}
           </Text>
           <Text className="text-muted-foreground">
             (

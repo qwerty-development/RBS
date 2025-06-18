@@ -21,6 +21,7 @@ interface ReviewSummaryProps {
 
 export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
   const renderStars = (rating: number, size: number = 20) => {
+    const validRating = rating || 0;
     return (
       <View className="flex-row">
         {[1, 2, 3, 4, 5].map((star) => (
@@ -28,7 +29,7 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
             key={star}
             size={size}
             color="#f59e0b"
-            fill={star <= rating ? "#f59e0b" : "transparent"}
+            fill={star <= validRating ? "#f59e0b" : "transparent"}
           />
         ))}
       </View>
@@ -37,8 +38,8 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
 
   const renderRatingBar = (rating: number, count: number) => {
     const percentage =
-      reviewSummary.total_reviews > 0
-        ? (count / reviewSummary.total_reviews) * 100
+      (reviewSummary.total_reviews || 0) > 0
+        ? (count / (reviewSummary.total_reviews || 1)) * 100
         : 0;
 
     return (
@@ -56,24 +57,29 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
         </View>
 
         <Text className="text-xs text-muted-foreground w-8 text-right">
-          {count}
+          {count || 0}
         </Text>
       </View>
     );
   };
+
+  // Safely get values with fallbacks
+  const avgRating = reviewSummary.average_rating || 0;
+  const totalReviews = reviewSummary.total_reviews || 0;
+  const recommendationPercentage = reviewSummary.recommendation_percentage || 0;
 
   return (
     <View>
       <View className="flex-row items-center justify-between mb-4">
         <H3>Reviews & Ratings</H3>
         <View className="flex-row items-center gap-1">
-          <Star size={20} color="#f59e0b" fill="#f59e0b" />
-          <Text className="font-bold text-lg">
-            {reviewSummary.average_rating.toFixed(1)}
-          </Text>
-          <Text className="text-muted-foreground">
-            ({reviewSummary.total_reviews})
-          </Text>
+          <Star
+            size={20}
+            color="#f59e0b"
+            fill={avgRating > 0 ? "#f59e0b" : "transparent"}
+          />
+          <Text className="font-bold text-lg">{avgRating.toFixed(1)}</Text>
+          <Text className="text-muted-foreground">({totalReviews})</Text>
         </View>
       </View>
 
@@ -81,26 +87,28 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
         {/* Overall Rating */}
         <View className="items-center mb-6">
           <Text className="text-4xl font-bold mb-2">
-            {reviewSummary.average_rating.toFixed(1)}
+            {avgRating.toFixed(1)}
           </Text>
-          {renderStars(Math.round(reviewSummary.average_rating), 24)}
+          {renderStars(Math.round(avgRating), 24)}
           <Text className="text-muted-foreground mt-2">
-            Based on {reviewSummary.total_reviews} reviews
+            Based on {totalReviews} reviews
           </Text>
           <Text className="text-green-600 text-sm mt-1">
-            {reviewSummary.recommendation_percentage}% would recommend
+            {recommendationPercentage}% would recommend
           </Text>
         </View>
 
         {/* Rating Distribution */}
         <View className="mb-6">
           <Text className="font-semibold mb-3">Rating Distribution</Text>
-          {[5, 4, 3, 2, 1].map((rating) =>
-            renderRatingBar(
-              rating,
-              reviewSummary.rating_distribution[rating] || 0
-            )
-          )}
+          {[5, 4, 3, 2, 1].map((rating) => (
+            <View key={rating}>
+              {renderRatingBar(
+                rating,
+                reviewSummary.rating_distribution[rating] || 0
+              )}
+            </View>
+          ))}
         </View>
 
         {/* Detailed Category Ratings */}
@@ -112,11 +120,11 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
                 <Text className="text-sm">Food</Text>
                 <View className="flex-row items-center gap-1">
                   {renderStars(
-                    Math.round(reviewSummary.detailed_ratings.food_avg),
+                    Math.round(reviewSummary.detailed_ratings?.food_avg || 0),
                     14
                   )}
                   <Text className="text-xs ml-1">
-                    {reviewSummary.detailed_ratings.food_avg.toFixed(1)}
+                    {(reviewSummary.detailed_ratings?.food_avg || 0).toFixed(1)}
                   </Text>
                 </View>
               </View>
@@ -125,11 +133,15 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
                 <Text className="text-sm">Service</Text>
                 <View className="flex-row items-center gap-1">
                   {renderStars(
-                    Math.round(reviewSummary.detailed_ratings.service_avg),
+                    Math.round(
+                      reviewSummary.detailed_ratings?.service_avg || 0
+                    ),
                     14
                   )}
                   <Text className="text-xs ml-1">
-                    {reviewSummary.detailed_ratings.service_avg.toFixed(1)}
+                    {(reviewSummary.detailed_ratings?.service_avg || 0).toFixed(
+                      1
+                    )}
                   </Text>
                 </View>
               </View>
@@ -140,11 +152,15 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
                 <Text className="text-sm">Ambiance</Text>
                 <View className="flex-row items-center gap-1">
                   {renderStars(
-                    Math.round(reviewSummary.detailed_ratings.ambiance_avg),
+                    Math.round(
+                      reviewSummary.detailed_ratings?.ambiance_avg || 0
+                    ),
                     14
                   )}
                   <Text className="text-xs ml-1">
-                    {reviewSummary.detailed_ratings.ambiance_avg.toFixed(1)}
+                    {(
+                      reviewSummary.detailed_ratings?.ambiance_avg || 0
+                    ).toFixed(1)}
                   </Text>
                 </View>
               </View>
@@ -153,11 +169,13 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
                 <Text className="text-sm">Value</Text>
                 <View className="flex-row items-center gap-1">
                   {renderStars(
-                    Math.round(reviewSummary.detailed_ratings.value_avg),
+                    Math.round(reviewSummary.detailed_ratings?.value_avg || 0),
                     14
                   )}
                   <Text className="text-xs ml-1">
-                    {reviewSummary.detailed_ratings.value_avg.toFixed(1)}
+                    {(reviewSummary.detailed_ratings?.value_avg || 0).toFixed(
+                      1
+                    )}
                   </Text>
                 </View>
               </View>
