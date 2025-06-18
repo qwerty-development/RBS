@@ -152,10 +152,25 @@ export const RestaurantSearchCard = ({
             </View>
 
             {/* Availability indicator */}
-            {bookingFilters.availableOnly && item.isAvailable && (
-              <View className="bg-green-100 dark:bg-green-900/20 px-2 py-1 rounded-full self-start mb-2">
-                <Text className="text-xs text-green-800 dark:text-green-200 font-medium">
-                  Available {bookingFilters.time}
+            {/* Availability indicator - always show if we have availability info */}
+            {typeof item.isAvailable === "boolean" && (
+              <View
+                className={`px-2 py-1 rounded-full self-start mb-2 ${
+                  item.isAvailable
+                    ? "bg-green-100 dark:bg-green-900/20"
+                    : "bg-red-100 dark:bg-red-900/20"
+                }`}
+              >
+                <Text
+                  className={`text-xs font-medium ${
+                    item.isAvailable
+                      ? "text-green-800 dark:text-green-200"
+                      : "text-red-800 dark:text-red-200"
+                  }`}
+                >
+                  {item.isAvailable
+                    ? `Available ${bookingFilters.time}`
+                    : `Fully booked ${bookingFilters.time}`}
                 </Text>
               </View>
             )}
