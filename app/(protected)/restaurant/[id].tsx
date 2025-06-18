@@ -56,6 +56,9 @@ import { LocationSection } from "@/components/restaurant/LocationSection";
 import { ContactSection } from "@/components/restaurant/ContactSection";
 import { MenuTab } from "@/components/restaurant/MenuTab";
 import { AboutSection } from "@/components/restaurant/AboutSection";
+import { RestaurantImageGallery } from "@/components/restaurant/RestaurantImageGallery";
+import { ReviewsTabContent } from "@/components/restaurant/ReviewsTabContent";
+import { useRestaurantHelpers } from "@/hooks/useRestaurantHelpers";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
   dietary_options?: string[];
@@ -168,6 +171,17 @@ export default function RestaurantDetailsScreen() {
 
   const scrollViewRef = useRef<ScrollView>(null);
   const mapRef = useRef<MapView>(null);
+
+  // Use restaurant helpers hook
+  const {
+    extractLocationCoordinates,
+    isRestaurantOpen,
+    getDistanceText,
+    handleCall,
+    handleWhatsApp,
+    openDirections,
+    generateTimeSlots,
+  } = useRestaurantHelpers();
 
   // Calculate review summary from reviews data
   const calculateReviewSummary = useCallback((reviewsData: Review[]) => {
@@ -481,63 +495,6 @@ export default function RestaurantDetailsScreen() {
     }
   }, [restaurant, selectedDate, partySize, id]);
 
-  // 8. Time Slot Generation Algorithm (Preserved)
-  const generateTimeSlots = (
-    openTime: string,
-    closeTime: string,
-    intervalMinutes: number = 30
-  ) => {
-    const slots: { time: string }[] = [];
-
-    try {
-      const [openHour, openMinute] = openTime.split(":").map(Number);
-      const [closeHour, closeMinute] = closeTime.split(":").map(Number);
-
-      let currentHour = openHour;
-      let currentMinute = openMinute;
-
-      let maxIterations = 50;
-      let iterations = 0;
-
-      while (
-        (currentHour < closeHour ||
-          (currentHour === closeHour && currentMinute < closeMinute)) &&
-        iterations < maxIterations
-      ) {
-        slots.push({
-          time: `${currentHour.toString().padStart(2, "0")}:${currentMinute
-            .toString()
-            .padStart(2, "0")}`,
-        });
-
-        currentMinute += intervalMinutes;
-        while (currentMinute >= 60) {
-          currentHour++;
-          currentMinute -= 60;
-        }
-
-        iterations++;
-      }
-
-      console.log(
-        `Generated ${slots.length} time slots from ${openTime} to ${closeTime}`
-      );
-      return slots;
-    } catch (error) {
-      console.error("Error generating time slots:", error);
-      return [
-        { time: "18:00" },
-        { time: "18:30" },
-        { time: "19:00" },
-        { time: "19:30" },
-        { time: "20:00" },
-        { time: "20:30" },
-        { time: "21:00" },
-        { time: "21:30" },
-      ];
-    }
-  };
-
   // 9. All other handlers (Preserved from original)
   const toggleFavorite = useCallback(async () => {
     if (!profile?.id || !restaurant || !id) return;
@@ -569,21 +526,6 @@ export default function RestaurantDetailsScreen() {
     }
   }, [profile?.id, restaurant, isFavorite, id]);
 
-  const handleCall = useCallback(() => {
-    if (!restaurant?.phone_number) return;
-    Linking.openURL(`tel:${restaurant.phone_number}`);
-  }, [restaurant]);
-
-  const handleWhatsApp = useCallback(() => {
-    if (!restaurant?.whatsapp_number) return;
-    const message = encodeURIComponent(
-      `Hi! I'd like to inquire about making a reservation at ${restaurant.name}.`
-    );
-    Linking.openURL(
-      `whatsapp://send?phone=${restaurant.whatsapp_number}&text=${message}`
-    );
-  }, [restaurant]);
-
   const handleShare = useCallback(async () => {
     if (!restaurant) return;
 
@@ -594,76 +536,6 @@ export default function RestaurantDetailsScreen() {
       });
     } catch (error) {
       console.error("Error sharing:", error);
-    }
-  }, [restaurant]);
-
-  const extractLocationCoordinates = (location: any) => {
-    if (!location) {
-      return null;
-    }
-
-    if (typeof location === "string" && location.startsWith("POINT(")) {
-      const coords = location.match(/POINT\(([^)]+)\)/);
-      if (coords && coords[1]) {
-        const [lng, lat] = coords[1].split(" ").map(Number);
-        return { latitude: lat, longitude: lng };
-      }
-    }
-
-    if (location.type === "Point" && Array.isArray(location.coordinates)) {
-      const [lng, lat] = location.coordinates;
-      return { latitude: lat, longitude: lng };
-    }
-
-    if (Array.isArray(location) && location.length >= 2) {
-      const [lng, lat] = location;
-      return { latitude: lat, longitude: lng };
-    }
-
-    if (location.lat && location.lng) {
-      return { latitude: location.lat, longitude: location.lng };
-    }
-
-    if (location.latitude && location.longitude) {
-      return { latitude: location.latitude, longitude: location.longitude };
-    }
-
-    console.warn("Unable to parse location:", location);
-    return null;
-  };
-
-  const openDirections = useCallback(() => {
-    if (!restaurant?.location) {
-      Alert.alert("Error", "Location data not available");
-      return;
-    }
-
-    const coords = extractLocationCoordinates(restaurant.location);
-
-    if (!coords) {
-      Alert.alert("Error", "Unable to parse location coordinates");
-      return;
-    }
-
-    const { latitude, longitude } = coords;
-
-    const scheme = Platform.select({
-      ios: "maps:0,0?q=",
-      android: "geo:0,0?q=",
-    });
-
-    const latLng = `${latitude},${longitude}`;
-    const label = encodeURIComponent(restaurant.name);
-    const url = Platform.select({
-      ios: `${scheme}${label}@${latLng}`,
-      android: `${scheme}${latLng}(${label})`,
-    });
-
-    if (url) {
-      Linking.openURL(url).catch((err) => {
-        console.error("Error opening maps:", err);
-        Alert.alert("Error", "Unable to open maps application");
-      });
     }
   }, [restaurant]);
 
@@ -758,29 +630,6 @@ export default function RestaurantDetailsScreen() {
     });
   }, [profile?.id, restaurant, id, router]);
 
-  // 11. Helper Functions (Preserved)
-  const isRestaurantOpen = () => {
-    if (!restaurant) return false;
-
-    const now = new Date();
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-    const [openHour, openMinute] = restaurant.opening_time
-      .split(":")
-      .map(Number);
-    const [closeHour, closeMinute] = restaurant.closing_time
-      .split(":")
-      .map(Number);
-    const openTime = openHour * 60 + openMinute;
-    const closeTime = closeHour * 60 + closeMinute;
-
-    return currentTime >= openTime && currentTime <= closeTime;
-  };
-
-  const getDistanceText = (distance: number) => {
-    if (distance < 1) return `${(distance * 1000).toFixed(0)}m`;
-    return `${distance.toFixed(1)}km`;
-  };
-
   // 12. Lifecycle Management
   useEffect(() => {
     if (id) {
@@ -868,68 +717,15 @@ export default function RestaurantDetailsScreen() {
         showsVerticalScrollIndicator={false}
         stickyHeaderIndices={[1]}
       >
-        {/* Image Gallery with Parallax Effect (Preserved) */}
-        <View className="relative" style={{ height: IMAGE_HEIGHT }}>
-          <ScrollView
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={(e) => {
-              const index = Math.round(
-                e.nativeEvent.contentOffset.x / SCREEN_WIDTH
-              );
-              setImageIndex(index);
-            }}
-            scrollEventThrottle={16}
-          >
-            {allImages.map((image, index) => (
-              <Pressable key={index} onPress={() => openImageGallery(index)}>
-                <Image
-                  source={{ uri: image }}
-                  style={{ width: SCREEN_WIDTH, height: IMAGE_HEIGHT }}
-                  contentFit="cover"
-                />
-              </Pressable>
-            ))}
-          </ScrollView>
-
-          <View className="absolute bottom-4 left-0 right-0 flex-row justify-center gap-2">
-            {allImages.map((_, index) => (
-              <View
-                key={index}
-                className={`w-2 h-2 rounded-full ${
-                  index === imageIndex ? "bg-white" : "bg-white/50"
-                }`}
-              />
-            ))}
-          </View>
-
-          <Pressable
-            onPress={() => router.back()}
-            className="absolute top-4 left-4 bg-black/50 rounded-full p-2"
-          >
-            <ChevronLeft size={24} color="white" />
-          </Pressable>
-
-          <Pressable
-            onPress={() => openImageGallery(imageIndex)}
-            className="absolute top-4 right-4 bg-black/50 rounded-full p-2"
-          >
-            <Camera size={24} color="white" />
-          </Pressable>
-
-          <View className="absolute bottom-16 right-4">
-            <View
-              className={`px-3 py-1 rounded-full ${
-                isRestaurantOpen() ? "bg-green-500" : "bg-red-500"
-              }`}
-            >
-              <Text className="text-white text-sm font-medium">
-                {isRestaurantOpen() ? "Open Now" : "Closed"}
-              </Text>
-            </View>
-          </View>
-        </View>
+        {/* Image Gallery with Parallax Effect */}
+        <RestaurantImageGallery
+          images={allImages}
+          imageIndex={imageIndex}
+          isRestaurantOpen={isRestaurantOpen(restaurant)}
+          onImageIndexChange={setImageIndex}
+          onBackPress={() => router.back()}
+          onCameraPress={() => openImageGallery(imageIndex)}
+        />
 
         {/* Quick Actions Bar */}
         <QuickActionsBar
@@ -938,9 +734,9 @@ export default function RestaurantDetailsScreen() {
           colorScheme={colorScheme}
           onToggleFavorite={toggleFavorite}
           onShare={handleShare}
-          onCall={handleCall}
-          onWhatsApp={handleWhatsApp}
-          onDirections={openDirections}
+          onCall={() => handleCall(restaurant)}
+          onWhatsApp={() => handleWhatsApp(restaurant)}
+          onDirections={() => openDirections(restaurant)}
         />
 
         {/* Restaurant Header Info */}
@@ -984,7 +780,7 @@ export default function RestaurantDetailsScreen() {
             {/* Hours of Operation */}
             <HoursSection
               restaurant={restaurant}
-              isRestaurantOpen={isRestaurantOpen}
+              isRestaurantOpen={() => isRestaurantOpen(restaurant)}
             />
 
             {/* Location Section */}
@@ -992,14 +788,14 @@ export default function RestaurantDetailsScreen() {
               restaurant={restaurant}
               mapCoordinates={mapCoordinates}
               mapRef={mapRef}
-              onDirectionsPress={openDirections}
+              onDirectionsPress={() => openDirections(restaurant)}
             />
 
             {/* Contact Information */}
             <ContactSection
               restaurant={restaurant}
-              onCall={handleCall}
-              onWhatsApp={handleWhatsApp}
+              onCall={() => handleCall(restaurant)}
+              onWhatsApp={() => handleWhatsApp(restaurant)}
             />
           </>
         )}
@@ -1007,82 +803,16 @@ export default function RestaurantDetailsScreen() {
         {/* Menu Tab */}
         {activeTab === "menu" && <MenuTab restaurant={restaurant} />}
 
-        {/* ENHANCED: Reviews Tab with Full Integration */}
+        {/* Reviews Tab with Full Integration */}
         {activeTab === "reviews" && (
-          <View className="px-4 mb-6">
-            {/* Review Summary Section */}
-            <View className="mb-6">
-              <ReviewSummary reviewSummary={restaurant.review_summary!} />
-            </View>
-
-            {/* Write Review Button */}
-            <View className="mb-6">
-              <Button
-                onPress={navigateToCreateReview}
-                variant="outline"
-                className="w-full"
-              >
-                <View className="flex-row items-center gap-2">
-                  <Star size={16} />
-                  <Text>Write a Review</Text>
-                </View>
-              </Button>
-            </View>
-
-            {/* Individual Reviews */}
-            {reviews.length > 0 ? (
-              <View>
-                <View className="flex-row items-center justify-between mb-4">
-                  <Text className="font-semibold">Recent Reviews</Text>
-                  {reviews.length > 5 && (
-                    <Pressable
-                      onPress={() => setShowAllReviews(!showAllReviews)}
-                    >
-                      <Text className="text-primary text-sm">
-                        {showAllReviews ? "Show Less" : "View All"}
-                      </Text>
-                    </Pressable>
-                  )}
-                </View>
-
-                {reviews
-                  .slice(0, showAllReviews ? undefined : 5)
-                  .map((review) => (
-                    <ReviewCard
-                      key={review.id}
-                      review={review}
-                      isOwner={profile?.id === review.user_id}
-                      showActions={false}
-                    />
-                  ))}
-
-                {reviews.length > 5 && !showAllReviews && (
-                  <Button
-                    variant="outline"
-                    onPress={() => setShowAllReviews(true)}
-                    className="w-full mt-2"
-                  >
-                    <Text>View All {reviews.length} Reviews</Text>
-                  </Button>
-                )}
-              </View>
-            ) : (
-              <View className="bg-card border border-border rounded-lg p-6 items-center">
-                <Star size={32} color="#d1d5db" />
-                <Text className="mt-2 font-medium">No Reviews Yet</Text>
-                <Muted className="text-center mt-1">
-                  Be the first to share your experience
-                </Muted>
-                <Button
-                  onPress={navigateToCreateReview}
-                  variant="default"
-                  className="mt-4"
-                >
-                  <Text>Write First Review</Text>
-                </Button>
-              </View>
-            )}
-          </View>
+          <ReviewsTabContent
+            reviewSummary={restaurant.review_summary!}
+            reviews={reviews}
+            showAllReviews={showAllReviews}
+            currentUserId={profile?.id}
+            onToggleShowAllReviews={() => setShowAllReviews(!showAllReviews)}
+            onWriteReview={navigateToCreateReview}
+          />
         )}
 
         {/* Bottom Padding */}
