@@ -74,6 +74,35 @@ export function useHomeScreenLogic() {
   // Performance optimization refs
   const hasInitialLoad = useRef(false);
 
+  // Helper function to get cuisine display name
+  const getCuisineName = useCallback((cuisineId: string): string => {
+    const cuisineNames: Record<string, string> = {
+      'lebanese': 'Lebanese',
+      'italian': 'Italian',
+      'japanese': 'Japanese',
+      'sushi': 'Sushi',
+      'indian': 'Indian',
+      'mexican': 'Mexican',
+      'chinese': 'Chinese',
+      'french': 'French',
+      'american': 'American',
+      'mediterranean': 'Mediterranean',
+      'thai': 'Thai',
+      'greek': 'Greek',
+      'turkish': 'Turkish',
+      'korean': 'Korean',
+      'vietnamese': 'Vietnamese',
+      'spanish': 'Spanish',
+      'brazilian': 'Brazilian',
+      'moroccan': 'Moroccan',
+      'persian': 'Persian',
+      'armenian': 'Armenian',
+    };
+    
+    return cuisineNames[cuisineId.toLowerCase()] || 
+           cuisineId.charAt(0).toUpperCase() + cuisineId.slice(1);
+  }, []);
+
   // Location Management
   const loadLocation = useCallback(async () => {
     try {
@@ -293,7 +322,7 @@ export function useHomeScreenLogic() {
   }, [loadAllData, checkForLocationUpdates]);
 
   const handleLocationPress = useCallback(() => {
-    router.push("/location-selector");
+    router.push("/(protected)/location-selector");
   }, [router]);
 
   const handleRestaurantPress = useCallback(
@@ -313,7 +342,7 @@ export function useHomeScreenLogic() {
 
       try {
         router.push({
-          pathname: "/restaurant/[id]",
+          pathname: "/(protected)/restaurant/[id]",
           params: { id: restaurantId.trim() },
         });
       } catch (error) {
@@ -330,25 +359,43 @@ export function useHomeScreenLogic() {
   const handleQuickFilter = useCallback(
     (filter: QuickFilter) => {
       router.push({
-        pathname: "/search",
+        pathname: "/(protected)/(tabs)/search",
         params: filter.params,
       });
     },
     [router]
   );
 
-  const handleCuisinePress = useCallback((cuisine:any) => {
-  
+  // FIXED: handleCuisinePress now correctly handles cuisineId string parameter
+  const handleCuisinePress = useCallback((cuisineId: string) => {
+    console.log("Navigating to cuisine:", cuisineId);
     
-    // Navigate to cuisine-specific screen
-    router.push({
-      pathname: "/(protected)/cuisine/[cuisineId]",
-      params: {
-        cuisineId: cuisine.id,
-        cuisineName: cuisine.name,
-      },
-    });
-  }, [router]);
+    if (!cuisineId || typeof cuisineId !== "string" || cuisineId.trim() === "") {
+      console.error("Invalid cuisine ID provided:", cuisineId);
+      Alert.alert(
+        "Error",
+        "Cuisine information is not available. Please try again."
+      );
+      return;
+    }
+
+    try {
+      // Navigate to cuisine-specific screen
+      router.push({
+        pathname: "/(protected)/cuisine/[cuisineId]",
+        params: {
+          cuisineId: cuisineId.trim(),
+          cuisineName: getCuisineName(cuisineId),
+        },
+      });
+    } catch (error) {
+      console.error("Cuisine navigation error:", error);
+      Alert.alert(
+        "Error",
+        "Unable to open cuisine page. Please try again."
+      );
+    }
+  }, [router, getCuisineName]);
 
   const handleOfferPress = useCallback(
     (offer: SpecialOffer) => {
@@ -363,7 +410,7 @@ export function useHomeScreenLogic() {
 
       try {
         router.push({
-          pathname: "/restaurant/[id]",
+          pathname: "/(protected)/restaurant/[id]",
           params: {
             id: offer.restaurant.id,
             highlightOfferId: offer.id,
@@ -411,16 +458,19 @@ export function useHomeScreenLogic() {
 
   // Navigation handlers
   const handleOffersPress = useCallback(() => {
-    router.push("/offers");
+    router.push("/(protected)/offers");
   }, [router]);
 
   const handleSearchPress = useCallback(() => {
-    router.push("/search");
+    router.push("/(protected)/(tabs)/search");
   }, [router]);
 
   const handleSearchWithParams = useCallback(
     (params: Record<string, string>) => {
-      router.push({ pathname: "/search", params });
+      router.push({ 
+        pathname: "/(protected)/(tabs)/search", 
+        params 
+      });
     },
     [router]
   );
