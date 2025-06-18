@@ -32,13 +32,6 @@ import { Database } from "@/types/supabase";
 
 // Type Definitions
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
-type CuisineCategory = {
-  id: string;
-  name: string;
-  image: any;
-  description?: string;
-  color?: string;
-};
 
 interface CuisineScreenParams {
   cuisineId: string;
@@ -80,49 +73,131 @@ export default function CuisineScreen() {
     openNow: false,
   });
 
-  // Cuisine Data Loading
+  // FIXED: Updated query based on actual database schema
   const fetchCuisineRestaurants = useCallback(async () => {
     try {
       setLoading(true);
       
+      console.log("Fetching restaurants for cuisine:", cuisineId);
+      
+      // Build base query using actual schema columns
       let query = supabase
         .from("restaurants")
-        .select(`
-          *,
-          operating_hours (*)
-        `)
-        .eq("cuisine_type", cuisineId)
-        .eq("is_active", true);
+        .select("*"); // No joins needed, no is_active column
 
-      // Apply filters
+      // Try multiple approaches to find restaurants by cuisine
+      let restaurantData: Restaurant[] = [];
+
+      // Method 1: Exact match on cuisine_type
+      const { data: exactData, error: exactError } = await query
+        .eq("cuisine_type", cuisineId);
+
+      if (exactError) {
+        console.error("Error with exact cuisine_type match:", exactError);
+      } else if (exactData && exactData.length > 0) {
+        restaurantData = exactData;
+        console.log(`Found ${restaurantData.length} restaurants with exact cuisine match`);
+      }
+
+      // Method 2: If no exact match, try case-insensitive search
+      if (restaurantData.length === 0) {
+        const { data: iLikeData, error: iLikeError } = await supabase
+          .from("restaurants")
+          .select("*")
+          .ilike("cuisine_type", `%${cuisineId}%`);
+
+        if (iLikeError) {
+          console.error("Error with ilike search:", iLikeError);
+        } else if (iLikeData && iLikeData.length > 0) {
+          restaurantData = iLikeData;
+          console.log(`Found ${restaurantData.length} restaurants with case-insensitive match`);
+        }
+      }
+
+      // Method 3: If still no results, search in tags array
+      if (restaurantData.length === 0) {
+        const { data: tagsData, error: tagsError } = await supabase
+          .from("restaurants")
+          .select("*")
+          .contains("tags", [cuisineId]);
+
+        if (tagsError) {
+          console.error("Error searching tags:", tagsError);
+        } else if (tagsData && tagsData.length > 0) {
+          restaurantData = tagsData;
+          console.log(`Found ${restaurantData.length} restaurants in tags`);
+        }
+      }
+
+      // Method 4: Last resort - search for any tag that contains the cuisine
+      if (restaurantData.length === 0) {
+        const { data: allData, error: allError } = await supabase
+          .from("restaurants")
+          .select("*");
+
+        if (allError) {
+          console.error("Error fetching all restaurants:", allError);
+        } else if (allData) {
+          // Filter in JavaScript for tags that include the cuisine
+          restaurantData = allData.filter(restaurant => 
+            restaurant.tags && 
+            restaurant.tags.some(tag => 
+              tag.toLowerCase().includes(cuisineId.toLowerCase())
+            )
+          );
+          console.log(`Found ${restaurantData.length} restaurants with tag containing cuisine`);
+        }
+      }
+
+      // Apply additional filters
+      let processedRestaurants = restaurantData;
+
+      // Rating filter
       if (filters.rating > 0) {
-        query = query.gte("average_rating", filters.rating);
+        processedRestaurants = processedRestaurants.filter(
+          (restaurant) => (restaurant.average_rating || 0) >= filters.rating
+        );
       }
 
+      // Price range filter
       if (filters.priceRange.length < 4) {
-        query = query.in("price_range", filters.priceRange);
+        processedRestaurants = processedRestaurants.filter(
+          (restaurant) => filters.priceRange.includes(restaurant.price_range)
+        );
       }
 
-      const { data, error } = await query;
-
-      if (error) {
-        console.error("Error fetching cuisine restaurants:", error);
-        return;
-      }
-
-      let processedRestaurants = data || [];
-
-      // Apply client-side filtering for open now
+      // Apply client-side filtering for open now using opening_time and closing_time
       if (filters.openNow) {
-        processedRestaurants = processedRestaurants.filter(isRestaurantOpen);
+        const now = new Date();
+        const currentTime = now.getHours() * 60 + now.getMinutes(); // Current time in minutes
+
+        processedRestaurants = processedRestaurants.filter(restaurant => {
+          if (!restaurant.opening_time || !restaurant.closing_time) return true;
+          
+          // Convert time strings to minutes
+          const [openHour, openMin] = restaurant.opening_time.split(':').map(Number);
+          const [closeHour, closeMin] = restaurant.closing_time.split(':').map(Number);
+          
+          const openTime = openHour * 60 + openMin;
+          const closeTime = closeHour * 60 + closeMin;
+          
+          // Handle overnight hours (e.g., open until 2 AM)
+          if (closeTime < openTime) {
+            return currentTime >= openTime || currentTime <= closeTime;
+          }
+          
+          return currentTime >= openTime && currentTime <= closeTime;
+        });
       }
 
       // Sort restaurants
       processedRestaurants.sort(getSortComparator(filters.sortBy));
 
+      console.log(`Final result: ${processedRestaurants.length} restaurants for cuisine: ${cuisineId}`);
       setRestaurants(processedRestaurants);
     } catch (error) {
       console.error("Error in fetchCuisineRestaurants:", error);
+      setRestaurants([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -130,15 +205,6 @@ export default function CuisineScreen() {
   }, [cuisineId, filters]);
 
   // Utility Functions
-  const isRestaurantOpen = (restaurant: Restaurant): boolean => {
-    const now = new Date();
-    const currentDay = now.getDay();
-    const currentTime = now.getHours() * 100 + now.getMinutes();
-
-    // Simplified check - you'll need to implement based on your operating_hours structure
-    return true; // Placeholder implementation
-  };
-
   const getSortComparator = (sortBy: FilterOptions["sortBy"]) => {
     return (a: Restaurant, b: Restaurant) => {
       switch (sortBy) {
@@ -149,7 +215,7 @@ export default function CuisineScreen() {
         case "price":
           return a.price_range - b.price_range;
         case "distance":
-          // Placeholder - implement distance calculation
+          // Placeholder - implement distance calculation if needed
           return 0;
         default:
           return 0;
@@ -232,29 +298,31 @@ export default function CuisineScreen() {
       </View>
 
       {/* Stats Bar */}
-      <View className="flex-row items-center justify-between px-4 py-3 bg-muted/30">
-        <View className="flex-row items-center gap-4">
-          <View className="flex-row items-center gap-1">
-            <Star size={16} color="#f59e0b" fill="#f59e0b" />
-            <Text className="text-sm font-medium">{stats.avgRating.toFixed(1)}</Text>
-          </View>
-          <View className="flex-row items-center gap-1">
-            <Text className="text-sm font-medium">
-              {"$".repeat(stats.priceRange)} avg
-            </Text>
-          </View>
-          {filters.openNow && (
+      {restaurants.length > 0 && (
+        <View className="flex-row items-center justify-between px-4 py-3 bg-muted/30">
+          <View className="flex-row items-center gap-4">
             <View className="flex-row items-center gap-1">
-              <Clock size={16} color="#10b981" />
-              <Text className="text-sm text-green-600 font-medium">Open Now</Text>
+              <Star size={16} color="#f59e0b" fill="#f59e0b" />
+              <Text className="text-sm font-medium">{stats.avgRating.toFixed(1)}</Text>
             </View>
-          )}
+            <View className="flex-row items-center gap-1">
+              <Text className="text-sm font-medium">
+                {"$".repeat(stats.priceRange)} avg
+              </Text>
+            </View>
+            {filters.openNow && (
+              <View className="flex-row items-center gap-1">
+                <Clock size={16} color="#10b981" />
+                <Text className="text-sm text-green-600 font-medium">Open Now</Text>
+              </View>
+            )}
+          </View>
+          
+          <Text className="text-sm text-muted-foreground">
+            Sorted by {SORT_OPTIONS.find(opt => opt.value === filters.sortBy)?.label}
+          </Text>
         </View>
-        
-        <Text className="text-sm text-muted-foreground">
-          Sorted by {SORT_OPTIONS.find(opt => opt.value === filters.sortBy)?.label}
-        </Text>
-      </View>
+      )}
 
       {/* Restaurant List */}
       <FlatList
@@ -264,7 +332,7 @@ export default function CuisineScreen() {
             <RestaurantCard
               item={item}
               variant="detailed"
-              onPress={handleRestaurantPress}
+              onPress={() => handleRestaurantPress(item)}
             />
           </View>
         )}
@@ -282,27 +350,32 @@ export default function CuisineScreen() {
           <View className="flex-1 items-center justify-center py-20">
             <Utensils size={48} color="#666" />
             <H3 className="mt-4 text-center">No restaurants found</H3>
-            <Muted className="mt-2 text-center">
-              Try adjusting your filters or check back later
+            <Muted className="mt-2 text-center px-4">
+              {loading 
+                ? "Loading restaurants..." 
+                : `No ${cuisineName || cuisineId} restaurants found. Try adjusting your filters or check back later.`
+              }
             </Muted>
-            <Button
-              variant="outline"
-              onPress={() => setFilters({
-                priceRange: [1, 2, 3, 4],
-                rating: 0,
-                distance: 50,
-                sortBy: "rating",
-                openNow: false,
-              })}
-              className="mt-4"
-            >
-              <Text>Clear Filters</Text>
-            </Button>
+            {!loading && (
+              <Button
+                variant="outline"
+                onPress={() => setFilters({
+                  priceRange: [1, 2, 3, 4],
+                  rating: 0,
+                  distance: 50,
+                  sortBy: "rating",
+                  openNow: false,
+                })}
+                className="mt-4"
+              >
+                <Text>Clear Filters</Text>
+              </Button>
+            )}
           </View>
         }
       />
 
-      {/* Filter Modal - Implementation would go here */}
+      {/* Filter Modal */}
       {showFilters && (
         <FilterModal
           filters={filters}
@@ -314,7 +387,7 @@ export default function CuisineScreen() {
   );
 }
 
-// Filter Modal Component (Simplified)
+// Filter Modal Component
 function FilterModal({
   filters,
   onApply,
