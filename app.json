@@ -9,13 +9,11 @@
     "userInterfaceStyle": "automatic",
     "owner": "qwerty-app",
     "assetBundlePatterns": ["**/*"],
-    "newArchEnabled": false,
+    "newArchEnabled": true,
 
     "ios": {
       "supportsTablet": true,
-      "config": { 
-        "usesNonExemptEncryption": false 
-      },
+      "config": { "usesNonExemptEncryption": false },
       
       "infoPlist": {
         "NSContactsUsageDescription": "Booklet needs optional access to your contacts only when you ask it to import guests or share a reservation."
@@ -35,15 +33,11 @@
         "dark": "./assets/icon-dark.png",
         "light": "./assets/icon.png"
       },
-      "bundleIdentifier": "com.notqwerty.booklet",
-      "buildNumber": "1",
-      "requireFullScreen": false
+      "bundleIdentifier": "com.notqwerty.booklet"
     },
 
     "android": {
-      "adaptiveIcon": { 
-        "foregroundImage": "./assets/adaptive-icon.png" 
-      },
+      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png" },
       "splash": {
         "image": "./assets/splash.png",
         "resizeMode": "cover",
@@ -53,40 +47,14 @@
           "resizeMode": "cover",
           "image": "./assets/splash-dark.png"
         }
-      },
-
-      "package": "com.notqwerty.booklet",
-      "versionCode": 1,
-      "compileSdkVersion": 34,
-      "targetSdkVersion": 34
-    },
-
-    "experiments": { 
-      "typedRoutes": true 
-    },
-    "plugins": [
-      "expo-router",
-      [
-        "expo-secure-store",
-        {
-          "faceIDPermission": "Allow $(PRODUCT_NAME) to access Face ID biometric data."
-        }
-      ]
-    ],
-    
-    "extra": {
-      "router": {
-        "origin": false
-      },
-      "eas": { 
-        "projectId": "9cb3f29d-a85c-439a-ac34-513843ed9279" 
       }
     },
-    "updates": {
-      "fallbackToCacheTimeout": 0
-    },
-    "runtimeVersion": {
-      "policy": "sdkVersion"
+
+    "experiments": { "typedRoutes": true },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "extra": {
+      "router": {},
+      "eas": { "projectId": "9cb3f29d-a85c-439a-ac34-513843ed9279" }
     }
   }
 }

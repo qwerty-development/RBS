@@ -10,7 +10,7 @@ import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/config/supabase";
 import { View, ActivityIndicator, Text } from "react-native";
 
-
+SplashScreen.preventAutoHideAsync();
 
 // Profile type definition
 type Profile = {
@@ -64,11 +64,10 @@ function AuthContent({ children }: PropsWithChildren) {
 	const [session, setSession] = useState<Session | null>(null);
 	const [user, setUser] = useState<User | null>(null);
 	const [profile, setProfile] = useState<Profile | null>(null);
-	const [isNavigationReady, setIsNavigationReady] = useState(false);
-	const [splashHidden, setSplashHidden] = useState(false);
+	const [isNavigating, setIsNavigating] = useState(false);
 	const router = useRouter();
 
-	// Fetch user profile with proper error handling
+	// Fetch user profile
 	const fetchProfile = async (userId: string): Promise<Profile | null> => {
 		try {
 			const { data, error } = await supabase
@@ -82,15 +81,17 @@ function AuthContent({ children }: PropsWithChildren) {
 				return null;
 			}
 			
+			setProfile(data);
 			return data;
 		} catch (error) {
-			console.error('Unexpected error fetching profile:', error);
+			console.error('Error fetching profile:', error);
 			return null;
 		}
 	};
 
 	const signUp = async (email: string, password: string, fullName: string, phoneNumber?: string) => {
 		try {
+			// 1. Sign up the user
 			const { data: authData, error: authError } = await supabase.auth.signUp({
 				email,
 				password,
@@ -104,6 +105,7 @@ function AuthContent({ children }: PropsWithChildren) {
 
 			if (authError) throw authError;
 
+			// 2. Create profile record
 			if (authData.user) {
 				const { error: profileError } = await supabase
 					.from('profiles')
@@ -122,11 +124,11 @@ function AuthContent({ children }: PropsWithChildren) {
 
 				if (profileError) throw profileError;
 
+				// Set session and profile
 				if (authData.session) {
 					setSession(authData.session);
 					setUser(authData.user);
-					const newProfile = await fetchProfile(authData.user.id);
-					setProfile(newProfile);
+					await fetchProfile(authData.user.id);
 				}
 			}
 		} catch (error) {
@@ -147,8 +149,7 @@ function AuthContent({ children }: PropsWithChildren) {
 			if (data.session && data.user) {
 				setSession(data.session);
 				setUser(data.user);
-				const userProfile = await fetchProfile(data.user.id);
-				setProfile(userProfile);
+				await fetchProfile(data.user.id);
 			}
 		} catch (error) {
 			console.error('Error signing in:', error);
@@ -191,22 +192,8 @@ function AuthContent({ children }: PropsWithChildren) {
 
 	const refreshProfile = async () => {
 		if (!user) return;
-		const userProfile = await fetchProfile(user.id);
-		setProfile(userProfile);
+		await fetchProfile(user.id);
 	};
-
-	// Initialize splash screen prevention
-	useEffect(() => {
-		const initSplash = async () => {
-			try {
-				await SplashScreen.preventAutoHideAsync();
-			} catch (error) {
-				console.warn('SplashScreen.preventAutoHideAsync failed:', error);
-			}
-		};
-		
-		initSplash();
-	}, []);
 
 	// Initialize auth state
 	useEffect(() => {
@@ -214,35 +201,26 @@ function AuthContent({ children }: PropsWithChildren) {
 
 		const initializeAuth = async () => {
 			try {
-				console.log('Starting auth initialization...');
-				
 				const { data: { session }, error } = await supabase.auth.getSession();
 				
 				if (error) {
 					console.error('Error getting session:', error);
-				}
-
-				if (session && isMounted) {
-					console.log('Session found, setting auth state...');
+				} else if (session && isMounted) {
 					setSession(session);
 					setUser(session.user);
 					
+					// Try to fetch profile, but don't block initialization
 					try {
-						const userProfile = await fetchProfile(session.user.id);
-						if (isMounted) {
-							setProfile(userProfile);
-						}
+						await fetchProfile(session.user.id);
 					} catch (profileError) {
 						console.error('Error fetching profile during initialization:', profileError);
+						// Continue with initialization even if profile fetch fails
 					}
-				}
-
-				if (isMounted) {
-					console.log('Auth initialization complete');
-					setInitialized(true);
 				}
 			} catch (error) {
 				console.error('Error initializing auth:', error);
+			} finally {
+				// Always set initialized to true, regardless of success/failure
 				if (isMounted) {
 					setInitialized(true);
 				}
@@ -251,20 +229,19 @@ function AuthContent({ children }: PropsWithChildren) {
 
 		initializeAuth();
 
+		// Listen for auth changes
 		const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-			console.log('Auth state changed:', event);
+			console.log('Auth state changed:', event, !!session);
 			
 			if (!isMounted) return;
 
 			if (session) {
 				setSession(session);
 				setUser(session.user);
-				try {
-					const userProfile = await fetchProfile(session.user.id);
-					setProfile(userProfile);
-				} catch (error) {
+				// Don't await this to prevent blocking
+				fetchProfile(session.user.id).catch(error => {
 					console.error('Error fetching profile on auth change:', error);
-				}
+				});
 			} else {
 				setSession(null);
 				setUser(null);
@@ -280,88 +257,62 @@ function AuthContent({ children }: PropsWithChildren) {
 
 	// Handle navigation after initialization
 	useEffect(() => {
-		if (!initialized || isNavigationReady) return;
+		if (!initialized || isNavigating) return;
 
 		const handleNavigation = async () => {
+			setIsNavigating(true);
+			
 			try {
-				console.log('Handling navigation...', { session: !!session, profile: !!profile });
+				console.log('Handling navigation:', { session: !!session, profile: !!profile });
 				
-				// Determine target route without navigating yet
-				let targetRoute: string;
+				// Hide splash screen
+				await SplashScreen.hideAsync();
 				
 				if (session) {
 					if (profile) {
-						targetRoute = "/(protected)/(tabs)";
+						// User is authenticated and has profile
+						console.log('Navigating to protected tabs');
+						router.replace("/(protected)/(tabs)");
 					} else {
-						// Wait a bit for profile to load
-						await new Promise(resolve => setTimeout(resolve, 1000));
+						// User is authenticated but no profile - try to fetch again
+						console.warn('Session exists but no profile found, attempting to fetch...');
+						const fetchedProfile = await fetchProfile(session.user.id);
 						
-						// Check again
-						if (profile) {
-							targetRoute = "/(protected)/(tabs)";
+						if (fetchedProfile) {
+							console.log('Profile fetched, navigating to protected tabs');
+							router.replace("/(protected)/(tabs)");
 						} else {
-							console.warn('Session exists but no profile found');
-							targetRoute = "/welcome";
+							// Profile fetch failed, but user is authenticated - handle gracefully
+							console.error('Could not fetch profile for authenticated user');
+							router.replace("/welcome");
 						}
 					}
 				} else {
-					targetRoute = "/welcome";
+					// No session - go to welcome
+					console.log('No session, navigating to welcome');
+					router.replace("/welcome");
 				}
-				
-				// Hide splash screen first
-				if (!splashHidden) {
-					try {
-						await SplashScreen.hideAsync();
-						setSplashHidden(true);
-					} catch (error) {
-						console.warn('Error hiding splash screen:', error);
-						setSplashHidden(true);
-					}
-				}
-				
-				// Small delay before navigation
-				await new Promise(resolve => setTimeout(resolve, 100));
-				
-				console.log(`Navigating to: ${targetRoute}`);
-				router.replace(targetRoute as any);
-				
-				setIsNavigationReady(true);
 			} catch (error) {
 				console.error('Error during navigation:', error);
-				
-				// Fallback: hide splash and go to welcome
-				try {
-					if (!splashHidden) {
-						await SplashScreen.hideAsync();
-						setSplashHidden(true);
-					}
-					router.replace("/welcome");
-					setIsNavigationReady(true);
-				} catch (fallbackError) {
-					console.error('Fallback navigation failed:', fallbackError);
-					setIsNavigationReady(true);
-				}
+				// Fallback navigation
+				router.replace("/welcome");
+			} finally {
+				setIsNavigating(false);
 			}
 		};
 
-		const timeoutId = setTimeout(handleNavigation, 200);
+		// Small delay to prevent navigation race conditions
+		const timeoutId = setTimeout(handleNavigation, 100);
 		
 		return () => clearTimeout(timeoutId);
-	}, [initialized, session, profile, router, isNavigationReady, splashHidden]);
+	}, [initialized, session, profile, router, isNavigating]);
 
 	// Show loading screen while initializing
-	if (!initialized || !isNavigationReady) {
+	if (!initialized) {
 		return (
-			<View style={{ 
-				flex: 1, 
-				justifyContent: 'center', 
-				alignItems: 'center', 
-				backgroundColor: '#000' 
-			}}>
+			<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
 				<ActivityIndicator size="large" color="#fff" />
-				<Text style={{ color: '#fff', marginTop: 16, fontSize: 16 }}>
-					{!initialized ? 'Initializing...' : 'Loading...'}
-				</Text>
+				<Text style={{ color: '#fff', marginTop: 16 }}>Loading...</Text>
 			</View>
 		);
 	}
