@@ -1,95 +1,52 @@
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { ActivityIndicator, View } from "react-native";
-import * as z from "zod";
+import React from "react";
+import { View } from "react-native";
+import { useRouter } from "expo-router";
 
+import { Image } from "@/components/image";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
-import { Form, FormField, FormInput } from "@/components/ui/form";
 import { Text } from "@/components/ui/text";
-import { H1 } from "@/components/ui/typography";
-import { useAuth } from "@/context/supabase-provider";
+import { H1, Muted } from "@/components/ui/typography";
+import { useColorScheme } from "@/lib/useColorScheme";
 
-const formSchema = z.object({
-	email: z.string().email("Please enter a valid email address."),
-	password: z
-		.string()
-
-		.max(64, "Please enter fewer than 64 characters."),
-});
-
-export default function SignIn() {
-	const { signIn } = useAuth();
-
-	const form = useForm<z.infer<typeof formSchema>>({
-		resolver: zodResolver(formSchema),
-		defaultValues: {
-			email: "",
-			password: "",
-		},
-	});
-
-	async function onSubmit(data: z.infer<typeof formSchema>) {
-		try {
-			await signIn(data.email, data.password);
-
-			form.reset();
-		} catch (error: Error | any) {
-			console.error(error.message);
-		}
-	}
+export default function WelcomeScreen() {
+	const router = useRouter();
+	const { colorScheme } = useColorScheme();
+	const appIcon =
+		colorScheme === "dark"
+			? require("@/assets/icon.png")
+			: require("@/assets/icon-dark.png");
 
 	return (
-		<SafeAreaView className="flex-1 bg-background p-4" edges={["bottom"]}>
-			<View className="flex-1 gap-4 web:m-4">
-				<H1 className="self-start ">Sign In</H1>
-				<Form {...form}>
-					<View className="gap-4">
-						<FormField
-							control={form.control}
-							name="email"
-							render={({ field }) => (
-								<FormInput
-									label="Email"
-									placeholder="Email"
-									autoCapitalize="none"
-									autoComplete="email"
-									autoCorrect={false}
-									keyboardType="email-address"
-									{...field}
-								/>
-							)}
-						/>
-						<FormField
-							control={form.control}
-							name="password"
-							render={({ field }) => (
-								<FormInput
-									label="Password"
-									placeholder="Password"
-									autoCapitalize="none"
-									autoCorrect={false}
-									secureTextEntry
-									{...field}
-								/>
-							)}
-						/>
-					</View>
-				</Form>
+		<SafeAreaView className="flex flex-1 bg-background p-4">
+			<View className="flex flex-1 items-center justify-center gap-y-4 web:m-4">
+				<Image source={appIcon} className="w-16 h-16 rounded-xl" />
+				<H1 className="text-center">Welcome to Expo Supabase Starter</H1>
+				<Muted className="text-center">
+					A comprehensive starter project for developing React Native and Expo
+					applications with Supabase as the backend.
+				</Muted>
 			</View>
-			<Button
-				size="default"
-				variant="default"
-				onPress={form.handleSubmit(onSubmit)}
-				disabled={form.formState.isSubmitting}
-				className="web:m-4"
-			>
-				{form.formState.isSubmitting ? (
-					<ActivityIndicator size="small" />
-				) : (
+			<View className="flex flex-col gap-y-4 web:m-4">
+				<Button
+					size="default"
+					variant="default"
+					onPress={() => {
+						router.push("/sign-up");
+					}}
+				>
+					<Text>Sign Up</Text>
+				</Button>
+				<Button
+					size="default"
+					variant="secondary"
+					onPress={() => {
+						router.push("/sign-in");
+					}}
+				>
 					<Text>Sign In</Text>
-				)}
-			</Button>
+				</Button>
+			</View>
 		</SafeAreaView>
 	);
 }
