@@ -48,7 +48,7 @@ export function SpecialOfferCard({ offer, onPress }: SpecialOfferCardProps) {
 
   return (
     <Pressable onPress={handlePress} style={{ width: SCREEN_WIDTH - 32 }} className="mx-4">
-      <View className="bg-card rounded-2xl overflow-hidden shadow-lg shadow-black/10 border border-border/50">
+      <View className="bg-card rounded-2xl overflow-hidden shadow-lg shadow-black/10 border border-border">
         {/* Restaurant Image */}
         <View className="relative">
           <Image 

@@ -43,7 +43,7 @@ export function RestaurantCard({
   if (variant === "compact") {
     return (
       <Pressable onPress={handlePress} className="mr-3 w-64">
-        <View className="bg-card border border-border/50 rounded-xl overflow-hidden shadow-sm">
+        <View className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
           <Image
             source={{ uri: item.main_image_url }}
             className="w-full h-32"
@@ -78,7 +78,7 @@ export function RestaurantCard({
 
   return (
     <Pressable onPress={handlePress} className="mr-4 w-72">
-      <View className="bg-card border border-border/50 rounded-xl overflow-hidden shadow-sm">
+      <View className="bg-card border border-border rounded-xl overflow-hidden shadow-sm">
         <Image
           source={{ uri: item.main_image_url }}
           className="w-full h-48"
