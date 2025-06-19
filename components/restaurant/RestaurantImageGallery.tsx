@@ -60,21 +60,9 @@ export const RestaurantImageGallery = ({
         ))}
       </View>
 
-      <Pressable
-        onPress={onBackPress}
-        className="absolute top-4 left-4 bg-black/50 rounded-full p-2"
-      >
-        <ChevronLeft size={24} color="white" />
-      </Pressable>
 
-      <Pressable
-        onPress={onCameraPress}
-        className="absolute top-4 right-4 bg-black/50 rounded-full p-2"
-      >
-        <Camera size={24} color="white" />
-      </Pressable>
 
-      <View className="absolute bottom-16 right-4">
+      <View className="absolute bottom-5 right-4">
         <View
           className={`px-3 py-1 rounded-full ${
             isRestaurantOpen ? "bg-green-500" : "bg-red-500"
