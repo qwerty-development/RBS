@@ -8,10 +8,20 @@ import { ourAgent, ChatMessage } from "@/ai/AI_Agent";
 
 interface ChatTestScreenProps {
   onClose?: () => void;
+  messages?: ChatMessage[];
+  setMessages?: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
 }
 
-export default function ChatTestScreen({ onClose }: ChatTestScreenProps) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+export default function ChatTestScreen({
+  onClose,
+  messages: externalMessages,
+  setMessages: externalSetMessages,
+}: ChatTestScreenProps) {
+  // Use external state if provided, otherwise use local state (for backwards compatibility)
+  const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
+  const messages = externalMessages ?? localMessages;
+  const setMessages = externalSetMessages ?? setLocalMessages;
+
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);

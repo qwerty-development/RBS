@@ -5,10 +5,12 @@ import { Text } from "@/components/ui/text";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
 import ChatTestScreen from "@/app/(protected)/chat-test";
+import { ChatMessage } from "@/ai/AI_Agent";
 
 export function GlobalChatTab() {
   const { colorScheme } = useColorScheme();
   const [showChatModal, setShowChatModal] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([]); // Moved from ChatTestScreen to persist chat history
   const [animatedValue] = useState(new Animated.Value(0));
 
   React.useEffect(() => {
@@ -92,7 +94,11 @@ export function GlobalChatTab() {
         presentationStyle="pageSheet"
         onRequestClose={() => setShowChatModal(false)}
       >
-        <ChatTestScreen onClose={() => setShowChatModal(false)} />
+        <ChatTestScreen
+          onClose={() => setShowChatModal(false)}
+          messages={messages}
+          setMessages={setMessages}
+        />
       </Modal>
     </>
   );
