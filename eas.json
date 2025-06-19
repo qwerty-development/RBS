@@ -3,19 +3,30 @@
     "version": ">= 12.1.0",
     "appVersionSource": "remote"
   },
+
   "build": {
-    "development": {
+    "dev": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "channel": "dev"
     },
-    "preview": {
-      "distribution": "internal"
-    },
+
+
     "production": {
-      "autoIncrement": true
+      "developmentClient": false,      
+      "distribution": "internal",
+      "channel": "production"
+    },
+
+
+    "store": {
+      "autoIncrement": true,
+      "distribution": "store",
+      "channel": "production"
     }
   },
+
   "submit": {
-    "production": {}
+    "store": {}
   }
 }
