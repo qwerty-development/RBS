@@ -1,92 +1,27 @@
 import React, { useState } from "react";
-import { View, Pressable, Modal, Animated } from "react-native";
-import { MessageCircle } from "lucide-react-native";
+import { View, Pressable, Modal } from "react-native";
 import { Text } from "@/components/ui/text";
-import { useColorScheme } from "@/lib/useColorScheme";
-import { colors } from "@/constants/colors";
 import ChatTestScreen from "@/app/(protected)/chat-test";
 import { ChatMessage } from "@/ai/AI_Agent";
 
 export function GlobalChatTab() {
-  const { colorScheme } = useColorScheme();
   const [showChatModal, setShowChatModal] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]); // Moved from ChatTestScreen to persist chat history
-  const [animatedValue] = useState(new Animated.Value(0));
-
-  React.useEffect(() => {
-    const bounceAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(animatedValue, {
-          toValue: 1,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(animatedValue, {
-          toValue: 0,
-          duration: 2000,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-
-    const timeout = setTimeout(() => {
-      bounceAnimation.start();
-    }, 3000); // Start animation after 3 seconds
-
-    return () => {
-      clearTimeout(timeout);
-      bounceAnimation.stop();
-    };
-  }, [animatedValue]);
-
-  const animatedScale = animatedValue.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [1, 1.1, 1],
-  });
 
   return (
     <>
-      <Animated.View
-        style={{
-          position: "absolute",
-          right: 0,
-          top: "50%",
-          transform: [{ translateY: -50 }, { scale: animatedScale }],
-          zIndex: 1000,
-        }}
-      >
+      <View className="absolute right-0 top-[35%] -translate-y-1/2 z-50">
         <Pressable
           onPress={() => setShowChatModal(true)}
-          style={{
-            backgroundColor:
-              colorScheme === "dark"
-                ? colors.dark.primary
-                : colors.light.primary,
-            paddingVertical: 20,
-            paddingHorizontal: 12,
-            borderTopLeftRadius: 24,
-            borderBottomLeftRadius: 24,
-            shadowColor: "#000",
-            shadowOffset: {
-              width: -2,
-              height: 2,
-            },
-            shadowOpacity: 0.25,
-            shadowRadius: 8,
-            elevation: 8,
-          }}
-          className="items-center justify-center"
+          className="items-center bg-white/85 justify-center py-4 px-2 rounded-l-md shadow-sm elevation-3"
         >
-          <View className="items-center gap-2">
-            <MessageCircle size={28} color="white" strokeWidth={2} />
-            <View style={{ transform: [{ rotate: "-90deg" }] }}>
-              <Text className="text-primary-foreground text-xs font-bold tracking-wider">
-                DINEMATE
-              </Text>
-            </View>
+          <View className="-rotate-90">
+            <Text className="text-blue-500 text-xs font-semibold tracking-wider">
+              DineMate
+            </Text>
           </View>
         </Pressable>
-      </Animated.View>
+      </View>
 
       <Modal
         visible={showChatModal}
