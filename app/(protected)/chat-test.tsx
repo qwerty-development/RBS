@@ -1,10 +1,21 @@
 import React, { useState, useCallback, useRef, useEffect, memo } from "react";
-import { View, ScrollView, TextInput, Pressable } from "react-native";
+import {
+  View,
+  ScrollView,
+  TextInput,
+  Pressable,
+  FlatList,
+  Dimensions,
+} from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { H3 } from "@/components/ui/typography";
 import { Send, X } from "lucide-react-native";
 import { ourAgent, ChatMessage } from "@/ai/AI_Agent";
+import { RestaurantCard } from "@/components/restaurant/RestaurantCard";
+import { router } from "expo-router";
+
+const { width: screenWidth } = Dimensions.get("window");
 
 interface ChatTestScreenProps {
   onClose?: () => void;
@@ -12,22 +23,87 @@ interface ChatTestScreenProps {
   setMessages?: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
 }
 
-// Memoized message component for better performance
-const MessageBubble = memo(({ message }: { message: ChatMessage }) => (
-  <View
-    className={`mb-4 p-3 rounded-lg ${
-      message.role === "user" ? "bg-primary ml-12" : "bg-muted mr-12"
-    }`}
-  >
-    <Text
-      className={
-        message.role === "user" ? "text-primary-foreground" : "text-foreground"
-      }
-    >
-      {message.content}
-    </Text>
-  </View>
-));
+// Enhanced message component that can display text and restaurant cards
+const MessageBubble = memo(
+  ({
+    message,
+    onRestaurantPress,
+  }: {
+    message: ChatMessage;
+    onRestaurantPress?: (restaurant: any) => void;
+  }) => {
+    const isUser = message.role === "user";
+    const hasRestaurants =
+      message.restaurants && message.restaurants.length > 0;
+
+    const cardWidth = screenWidth - 80; // Account for message margins and padding
+
+    const renderRestaurantCard = ({
+      item: restaurant,
+      index,
+    }: {
+      item: any;
+      index: number;
+    }) => (
+      <View style={{ width: cardWidth, paddingRight: 12 }}>
+        <RestaurantCard
+          key={restaurant.id || index}
+          restaurant={restaurant}
+          variant="featured"
+          className="shadow-sm"
+          onPress={() => onRestaurantPress?.(restaurant)}
+        />
+      </View>
+    );
+
+    return (
+      <View className={`mb-4 ${isUser ? "ml-12" : "mr-12"}`}>
+        {/* Text content */}
+        {message.content && (
+          <View
+            className={`p-3 rounded-lg ${isUser ? "bg-primary" : "bg-muted"}`}
+          >
+            <Text
+              className={isUser ? "text-primary-foreground" : "text-foreground"}
+            >
+              {message.content}
+            </Text>
+          </View>
+        )}
+
+        {/* Restaurant cards - Horizontal scrollable */}
+        {hasRestaurants && (
+          <View className="mt-3">
+            <FlatList
+              data={message.restaurants}
+              renderItem={renderRestaurantCard}
+              keyExtractor={(restaurant, index) =>
+                restaurant.id || index.toString()
+              }
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              pagingEnabled
+              snapToInterval={cardWidth + 12}
+              decelerationRate="fast"
+              contentContainerStyle={{
+                paddingLeft: 4,
+                paddingRight: 4,
+              }}
+            />
+            {message.restaurants!.length > 1 && (
+              <View className="flex-row justify-center mt-2">
+                <Text className="text-xs text-muted-foreground">
+                  Swipe to see more restaurants ({message.restaurants!.length}{" "}
+                  total)
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+      </View>
+    );
+  }
+);
 
 const ChatTestScreen = memo(function ChatTestScreen({
   onClose,
@@ -46,8 +122,10 @@ const ChatTestScreen = memo(function ChatTestScreen({
   // Auto-scroll to bottom when messages change (optimized for speed)
   useEffect(() => {
     if (scrollViewRef.current) {
-      // Immediate scroll for better perceived performance
-      scrollViewRef.current.scrollToEnd({ animated: false });
+      // Small delay to allow for card rendering
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
     }
   }, [messages]);
 
@@ -89,6 +167,19 @@ const ChatTestScreen = memo(function ChatTestScreen({
     }
   }, [input, messages, setMessages]);
 
+  const handleRestaurantPress = useCallback(
+    (restaurant: any) => {
+      // Close the chat when restaurant is pressed
+      if (onClose) {
+        onClose();
+      }
+
+      router.push(`/restaurant/${restaurant.id}`);
+      console.log("Restaurant pressed:", restaurant.id);
+    },
+    [onClose]
+  );
+
   return (
     <View className="flex-1 bg-background">
       <View className="p-4 border-b border-border">
@@ -113,24 +204,38 @@ const ChatTestScreen = memo(function ChatTestScreen({
       <ScrollView
         ref={scrollViewRef}
         className="flex-1 p-4"
-        onContentSizeChange={() =>
-          scrollViewRef.current?.scrollToEnd({ animated: false })
-        }
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => {
+          // Delay scroll to allow for card rendering
+          setTimeout(() => {
+            scrollViewRef.current?.scrollToEnd({ animated: true });
+          }, 100);
+        }}
       >
         {messages.length === 0 && (
           <View className="flex-1 items-center justify-center py-8">
             <Text className="text-muted-foreground text-center mb-4">
               👋 Hi! I'm DineMate, your AI dining assistant.
             </Text>
-            <Text className="text-muted-foreground text-center text-sm">
+            <Text className="text-muted-foreground text-center text-sm mb-4">
               I can help you find restaurants, make reservations, get
               recommendations, and answer questions about dining options.
             </Text>
+            <View className="bg-muted p-3 rounded-lg">
+              <Text className="text-sm text-muted-foreground text-center">
+                Try asking: "Show me Italian restaurants" or "Find places with
+                outdoor seating"
+              </Text>
+            </View>
           </View>
         )}
 
         {messages.map((message, index) => (
-          <MessageBubble key={index} message={message} />
+          <MessageBubble
+            key={index}
+            message={message}
+            onRestaurantPress={handleRestaurantPress}
+          />
         ))}
 
         {isLoading && (
@@ -146,9 +251,11 @@ const ChatTestScreen = memo(function ChatTestScreen({
             value={input}
             onChangeText={setInput}
             placeholder="Ask me about restaurants, make a reservation..."
-            className="flex-1 border border-border rounded-lg px-3 py-2"
+            className="flex-1 border border-border rounded-lg px-3 py-2 text-foreground"
             multiline
             maxLength={500}
+            onSubmitEditing={handleSend}
+            blurOnSubmit={false}
           />
           <Button onPress={handleSend} disabled={isLoading || !input.trim()}>
             <Send size={20} color="white" />
