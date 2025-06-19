@@ -1,9 +1,10 @@
 import React from "react";
 import { View, Pressable, Dimensions } from "react-native";
-import { Sparkles, Calendar, MapPin } from "lucide-react-native";
+import { Sparkles, Calendar, MapPin, Tag, Clock, CheckCircle } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { H3, P } from "@/components/ui/typography";
 import { Image } from "@/components/image";
+import { EnrichedOffer } from "@/hooks/useOffers";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -22,6 +23,42 @@ interface Restaurant {
   featured?: boolean;
 }
 
+const OfferStatus: React.FC<{ offer: EnrichedOffer }> = ({ offer }) => {
+  if (offer.used) {
+    return (
+      <View className="flex-row items-center bg-green-100 px-3 py-1 rounded-full">
+        <CheckCircle size={14} color="#16a34a" />
+        <Text className="text-green-700 text-sm ml-1">Used</Text>
+      </View>
+    );
+  }
+
+  if (offer.isExpired) {
+    return (
+      <View className="flex-row items-center bg-red-100 px-3 py-1 rounded-full">
+        <Clock size={14} color="#dc2626" />
+        <Text className="text-red-700 text-sm ml-1">Expired</Text>
+      </View>
+    );
+  }
+
+  if (offer.claimed) {
+    const daysLeft = offer.expiresAt ? 
+      Math.max(0, Math.ceil((new Date(offer.expiresAt).getTime() - new Date().getTime()) / (24 * 60 * 60 * 1000))) : 0;
+    
+    return (
+      <View className="flex-row items-center bg-blue-100 px-3 py-1 rounded-full">
+        <Tag size={14} color="#2563eb" />
+        <Text className="text-blue-700 text-sm ml-1">
+          {daysLeft === 0 ? "Expires today" : `${daysLeft}d left`}
+        </Text>
+      </View>
+    );
+  }
+
+  return null;
+};
+
 interface SpecialOffer {
   id: string;
   title: string;
@@ -32,8 +69,8 @@ interface SpecialOffer {
 }
 
 interface SpecialOfferCardProps {
-  offer: SpecialOffer;
-  onPress: (offer: SpecialOffer) => void;
+  offer: EnrichedOffer;
+  onPress: (offer: EnrichedOffer) => void;
 }
 
 export function SpecialOfferCard({ offer, onPress }: SpecialOfferCardProps) {
@@ -61,6 +98,12 @@ export function SpecialOfferCard({ offer, onPress }: SpecialOfferCardProps) {
           <View className="absolute inset-0 bg-black/40" />
           <View className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
           
+          {/* Discount Badge */}
+                    {/* Offer Status */}
+          <View className="absolute top-4 left-4">
+            <OfferStatus offer={offer} />
+          </View>
+
           {/* Discount Badge */}
           <View className="absolute top-4 right-4 bg-primary px-4 py-2 rounded-full shadow-lg">
             <Text className="text-primary-foreground font-extrabold text-lg">

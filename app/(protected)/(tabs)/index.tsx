@@ -23,6 +23,7 @@ import { SectionHeader } from "@/components/home/SectionHeader";
 import { LoyaltyWidget } from "@/components/home/LoyaltyWidget";
 import { LocationHeader } from "@/components/home/LocationHeader";
 import { useHomeScreenLogic } from "@/hooks/useHomeScreenLogic";
+import { useOffers } from "@/hooks/useOffers";
 import { CUISINE_CATEGORIES } from "@/constants/homeScreenData";
 import { SpecialOffersCarousel } from "@/components/home/SpecialOffersCarousel";
 
@@ -36,7 +37,6 @@ export default function HomeScreen() {
     featuredRestaurants,
     newRestaurants,
     topRatedRestaurants,
-    specialOffers,
     location,
     refreshing,
     loading,
@@ -45,12 +45,13 @@ export default function HomeScreen() {
     handleLocationPress,
     handleRestaurantPress,
     handleCuisinePress,
-    handleOfferPress,
-    handleOffersPress,
+
     handleSearchPress,
     handleSearchWithParams,
     handleProfilePress,
   } = useHomeScreenLogic();
+
+  const { offers: specialOffers, loading: offersLoading } = useOffers();
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const [totalHeaderHeight, setTotalHeaderHeight] = useState(0);
@@ -72,7 +73,7 @@ export default function HomeScreen() {
     extrapolate: "clamp",
   });
 
-  if (loading) {
+  if (loading || offersLoading) {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center">
@@ -192,12 +193,17 @@ export default function HomeScreen() {
               title="Special Offers"
               subtitle="Limited time deals"
               actionLabel="View All"
-              onAction={handleOffersPress}
+              onAction={() => router.push("/offers")}
             />
 
             <SpecialOffersCarousel
               offers={specialOffers}
-              onPress={handleOfferPress}
+              onPress={(offer) => {
+                router.push({
+                  pathname: "/restaurant/[id]",
+                  params: { id: offer.restaurant.id, highlightOfferId: offer.id },
+                });
+              }}
             />
           </View>
         )}

@@ -27,6 +27,13 @@ import {
   Mail,
   Utensils,
   Star,
+  Trophy,
+  Tag,
+  Percent,
+  QrCode,
+  Sparkles,
+  Crown,
+  Award,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -36,7 +43,7 @@ import * as z from "zod";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { H1, H2, H3, P, Muted } from "@/components/ui/typography";
+import { H1, H2, H3, H4, P, Muted } from "@/components/ui/typography";
 import { Form, FormField, FormInput, FormTextarea } from "@/components/ui/form";
 import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
@@ -44,8 +51,7 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
 
-// 1. Type Definitions and Schema Architecture
-// 1.1 Booking Form Data Structure
+// Enhanced Type Definitions
 interface BookingFormData {
   guestName: string;
   guestEmail: string;
@@ -57,14 +63,12 @@ interface BookingFormData {
   acceptTerms: boolean;
 }
 
-// 1.2 Restaurant Type Extension
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
   booking_window_days?: number;
   cancellation_window_hours?: number;
   table_turnover_minutes?: number;
 };
 
-// 1.3 Booking Step Configuration
 interface BookingStep {
   id: number;
   title: string;
@@ -73,7 +77,45 @@ interface BookingStep {
   validation: (data: Partial<BookingFormData>) => boolean;
 }
 
-// 2. Form Validation Schema with Lebanese Context
+// Tier Configuration (moved to component level to fix import issues)
+const TIER_CONFIG = {
+  bronze: {
+    name: "Bronze",
+    color: "#CD7F32",
+    icon: Award,
+    minPoints: 0,
+    benefits: ["Basic rewards", "Birthday discount"],
+    pointsMultiplier: 1,
+  },
+  silver: {
+    name: "Silver", 
+    color: "#C0C0C0",
+    icon: Star,
+    minPoints: 500,
+    benefits: ["All Bronze benefits", "Exclusive offers", "Priority support"],
+    pointsMultiplier: 1.1,
+  },
+  gold: {
+    name: "Gold",
+    color: "#FFD700", 
+    icon: Crown,
+    minPoints: 1500,
+    benefits: ["All Silver benefits", "VIP experiences", "Free delivery"],
+    pointsMultiplier: 1.2,
+  },
+  platinum: {
+    name: "Platinum",
+    color: "#E5E4E2",
+    icon: Sparkles,
+    minPoints: 3000,
+    benefits: ["All Gold benefits", "Personal concierge", "Exclusive events"],
+    pointsMultiplier: 1.5,
+  },
+} as const;
+
+type TierType = keyof typeof TIER_CONFIG;
+
+// Enhanced Form Validation Schema
 const bookingFormSchema = z.object({
   guestName: z
     .string()
@@ -91,7 +133,6 @@ const bookingFormSchema = z.object({
       "Please enter a valid Lebanese phone number"
     )
     .transform((val) => {
-      // 2.1 Normalize Lebanese phone number format
       if (val.startsWith("03") || val.startsWith("7") || val.startsWith("8")) {
         return `+961${val.replace(/^0/, "")}`;
       }
@@ -109,8 +150,7 @@ const bookingFormSchema = z.object({
     .refine((val) => val === true, "You must accept the booking terms"),
 });
 
-// 3. Configuration Constants
-// 3.1 Special Occasions for Lebanese Market
+// Enhanced Configuration Constants
 const OCCASIONS = [
   { id: "none", label: "No Special Occasion", icon: null },
   { id: "birthday", label: "Birthday", icon: "🎂" },
@@ -122,7 +162,6 @@ const OCCASIONS = [
   { id: "other", label: "Other Celebration", icon: "🎉" },
 ];
 
-// 3.2 Dietary Restrictions
 const DIETARY_RESTRICTIONS = [
   "Vegetarian",
   "Vegan",
@@ -134,7 +173,6 @@ const DIETARY_RESTRICTIONS = [
   "Kosher",
 ];
 
-// 3.3 Table Preferences
 const TABLE_PREFERENCES = [
   "Window Seat",
   "Outdoor Seating",
@@ -145,8 +183,160 @@ const TABLE_PREFERENCES = [
   "Wheelchair Accessible",
 ];
 
+// Simplified Loyalty Tier Badge Component (fixed)
+const LoyaltyTierBadge: React.FC<{
+  userTier: TierType;
+  userPoints: number;
+  earnablePoints: number;
+}> = ({ userTier, userPoints, earnablePoints }) => {
+  const tierConfig = TIER_CONFIG[userTier] || TIER_CONFIG.bronze;
+  const IconComponent = tierConfig.icon;
+
+  return (
+    <View className="bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/20 rounded-xl p-4 mb-4">
+      <View className="flex-row items-center justify-between mb-3">
+        <View className="flex-row items-center">
+          <Trophy size={20} color="#3b82f6" />
+          <Text className="font-bold text-lg ml-2">Loyalty Rewards</Text>
+        </View>
+        <View className="flex-row items-center bg-primary/20 px-3 py-1 rounded-full">
+          <IconComponent size={14} color={tierConfig.color} />
+          <Text className="font-bold text-sm ml-1" style={{ color: tierConfig.color }}>
+            {tierConfig.name.toUpperCase()}
+          </Text>
+        </View>
+      </View>
+      
+      <View className="flex-row items-center justify-between">
+        <View>
+          <Text className="text-sm text-muted-foreground">You'll earn</Text>
+          <View className="flex-row items-center">
+            <Text className="text-2xl font-bold text-primary">+{earnablePoints}</Text>
+            <Text className="text-sm text-muted-foreground ml-1">points</Text>
+          </View>
+        </View>
+        
+        <View className="items-end">
+          <Text className="text-sm text-muted-foreground">Current balance</Text>
+          <Text className="text-lg font-bold">{userPoints} pts</Text>
+        </View>
+      </View>
+      
+      <Text className="text-xs text-muted-foreground mt-2">
+        Points are automatically awarded after your successful dining experience
+      </Text>
+    </View>
+  );
+};
+
+// Enhanced Offer Selection Component (fixed)
+const OfferSelectionCard: React.FC<{
+  offers: any[];
+  selectedOfferId: string | null;
+  onSelectOffer: (offerId: string | null) => void;
+}> = ({ offers, selectedOfferId, onSelectOffer }) => {
+  return (
+    <View className="bg-card border border-border rounded-xl p-4 mb-4">
+      <View className="flex-row items-center mb-3">
+        <Gift size={20} color="#3b82f6" />
+        <Text className="font-bold text-lg ml-2">Apply Special Offer</Text>
+        <View className="bg-primary/20 px-2 py-1 rounded-full ml-auto">
+          <Text className="text-primary font-bold text-xs">
+            {offers.length} available
+          </Text>
+        </View>
+      </View>
+
+      {offers.length === 0 ? (
+        <View className="py-4 items-center">
+          <Text className="text-muted-foreground text-center">
+            No special offers available for this restaurant at the moment.
+          </Text>
+          <Text className="text-xs text-muted-foreground text-center mt-1">
+            Check our offers page for deals at other restaurants!
+          </Text>
+        </View>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View className="flex-row gap-3">
+            {/* No offer option */}
+            <Pressable
+              onPress={() => onSelectOffer(null)}
+              className={`p-3 rounded-lg border-2 min-w-[120px] ${
+                selectedOfferId === null 
+                  ? "border-primary bg-primary/10" 
+                  : "border-border bg-background"
+              }`}
+            >
+              <Text className="font-medium text-center">No Offer</Text>
+              <Text className="text-xs text-muted-foreground text-center mt-1">
+                Pay full price
+              </Text>
+            </Pressable>
+
+            {/* Available offers */}
+            {offers.map((offer) => {
+              const offerId = offer.offer_id || offer.id || offer.special_offer?.id;
+              const title = offer.offer_title || offer.title || offer.special_offer?.title || "Special Offer";
+              const description = offer.offer_description || offer.description || offer.special_offer?.description || "Get a discount on your meal";
+              const discountPercent = offer.discount_percentage || offer.special_offer?.discount_percentage || 0;
+              const redemptionCode = offer.redemption_code || offer.redemptionCode || offer.id;
+              const expiryDate = offer.expires_at || offer.expiresAt || offer.valid_until || offer.special_offer?.valid_until;
+
+              return (
+                <Pressable
+                  key={offerId}
+                  onPress={() => onSelectOffer(offerId)}
+                  className={`p-3 rounded-lg border-2 min-w-[200px] ${
+                    selectedOfferId === offerId 
+                      ? "border-primary bg-primary/10" 
+                      : "border-border bg-background"
+                  }`}
+                >
+                  <View className="flex-row items-center justify-between mb-2">
+                    <Text className="font-bold text-sm flex-1" numberOfLines={1}>
+                      {title}
+                    </Text>
+                    <View className="bg-primary rounded-full px-2 py-1 ml-2">
+                      <Text className="text-white font-bold text-xs">
+                        {discountPercent}%
+                      </Text>
+                    </View>
+                  </View>
+                  
+                  <Text className="text-xs text-muted-foreground mb-2" numberOfLines={2}>
+                    {description}
+                  </Text>
+                  
+                  {redemptionCode && (
+                    <View className="bg-muted/50 rounded px-2 py-1">
+                      <Text className="text-xs font-mono">
+                        Code: {redemptionCode.toString().slice(-6).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  <Text className="text-xs text-muted-foreground mt-1">
+                    Expires {expiryDate ? new Date(expiryDate).toLocaleDateString() : "Soon"}
+                  </Text>
+                  
+                  {selectedOfferId === offerId && (
+                    <View className="absolute top-2 right-2">
+                      <CheckCircle size={16} color="#3b82f6" />
+                    </View>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+        </ScrollView>
+      )}
+    </View>
+  );
+};
+
 export default function BookingCreateScreen() {
-  // 4. Core State Management Architecture
+  // Route parameters with enhanced offer support
   const params = useLocalSearchParams<{
     restaurantId: string;
     restaurantName?: string;
@@ -154,33 +344,57 @@ export default function BookingCreateScreen() {
     time?: string;
     partySize?: string;
     quickBook?: string;
+    offerId?: string;
+    redemptionCode?: string;
+    earnablePoints?: string;
+    discount?: string;
   }>();
   
   const { profile } = useAuth();
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-  
-  // 4.1 Restaurant and Booking Details State
+
+  // Core state management
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  
-  // 4.2 Multi-step Form State Management
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
-  
-  // 4.3 Booking Details from Navigation
+  const [selectedOfferId, setSelectedOfferId] = useState<string | null>(params.offerId || null);
+
+  // User loyalty data (simplified for now)
+  const [userPoints, setUserPoints] = useState(profile?.loyalty_points || 0);
+  const [userTier, setUserTier] = useState<TierType>((profile?.membership_tier as TierType) || "bronze");
+
+  // Available offers (simplified - you can replace with actual hook)
+  const [availableOffers, setAvailableOffers] = useState<any[]>([]);
+
+  // Booking details from navigation
   const bookingDate = params.date ? new Date(params.date) : new Date();
   const bookingTime = params.time || "";
   const partySize = parseInt(params.partySize || "2", 10);
   const isQuickBook = params.quickBook === "true";
-  
-  // 4.4 Form State with Default Values
+  const presetEarnablePoints = parseInt(params.earnablePoints || "0", 10);
+
+  // Calculate loyalty points for this booking
+  const calculateBookingPoints = useCallback((partySize: number, priceRange: number) => {
+    const basePoints = 50;
+    const sizeMultiplier = Math.min(partySize * 0.2 + 0.8, 2);
+    const priceMultiplier = priceRange * 0.3 + 0.7;
+    const tierMultiplier = TIER_CONFIG[userTier].pointsMultiplier;
+    
+    return Math.round(basePoints * sizeMultiplier * priceMultiplier * tierMultiplier);
+  }, [userTier]);
+
+  const earnablePoints = presetEarnablePoints || 
+    (restaurant ? calculateBookingPoints(partySize, restaurant.price_range || 2) : 0);
+
+  // Form with enhanced default values
   const form = useForm<BookingFormData>({
     resolver: zodResolver(bookingFormSchema),
     defaultValues: {
       guestName: profile?.full_name || "",
-      guestEmail: profile?.email || "",
+      guestEmail: "",
       guestPhone: profile?.phone_number || "",
       specialRequests: "",
       occasion: "none",
@@ -190,7 +404,7 @@ export default function BookingCreateScreen() {
     },
   });
 
-  // 5. Step Configuration with Validation Logic
+  // Enhanced step configuration
   const steps: BookingStep[] = [
     {
       id: 0,
@@ -203,13 +417,20 @@ export default function BookingCreateScreen() {
     },
     {
       id: 1,
-      title: "Special Requirements",
-      subtitle: "Any special needs for your visit?",
-      icon: Utensils,
-      validation: () => true, // Optional step
+      title: "Offers & Rewards",
+      subtitle: "Maximize your savings and points",
+      icon: Gift,
+      validation: () => true,
     },
     {
       id: 2,
+      title: "Special Requirements",
+      subtitle: "Any special needs for your visit?",
+      icon: Utensils,
+      validation: () => true,
+    },
+    {
+      id: 3,
       title: "Review & Confirm",
       subtitle: "Review your booking details",
       icon: CheckCircle,
@@ -217,7 +438,7 @@ export default function BookingCreateScreen() {
     },
   ];
 
-  // 6. Restaurant Data Fetching
+  // Enhanced restaurant data fetching
   const fetchRestaurant = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -228,6 +449,65 @@ export default function BookingCreateScreen() {
       
       if (error) throw error;
       setRestaurant(data);
+
+      // Fetch user's available offers for this restaurant
+      if (profile?.id) {
+        try {
+          // Try to fetch from the detailed view first
+          const { data: userOffersData, error: viewError } = await supabase
+            .from("user_offers_detailed")
+            .select("*")
+            .eq("user_id", profile.id)
+            .eq("restaurant_id", params.restaurantId)
+            .eq("can_use", true);
+
+          if (viewError) {
+            console.log("View not available, fetching from base tables:", viewError);
+            
+            // Fallback: fetch from base tables
+            const { data: baseOffersData } = await supabase
+              .from("user_offers")
+              .select(`
+                *,
+                special_offer:special_offers (
+                  *,
+                  restaurant:restaurants (*)
+                )
+              `)
+              .eq("user_id", profile.id)
+              .is("used_at", null)
+              .gte("expires_at", new Date().toISOString());
+
+            // Filter for this restaurant and transform data
+            const restaurantOffersData = (baseOffersData || [])
+              .filter(offer => offer.special_offer?.restaurant_id === params.restaurantId)
+              .map(offer => ({
+                ...offer,
+                offer_title: offer.special_offer?.title || "Special Offer",
+                offer_description: offer.special_offer?.description || "Get a discount on your meal",
+                discount_percentage: offer.special_offer?.discount_percentage || 0,
+                restaurant_name: offer.special_offer?.restaurant?.name || restaurant?.name,
+                expires_at: offer.expires_at,
+                can_use: true,
+              }));
+
+            setAvailableOffers(restaurantOffersData);
+          } else {
+            // Debug: Log the offer data structure
+            console.log("Available offers data:", userOffersData);
+            setAvailableOffers(userOffersData || []);
+          }
+        } catch (error) {
+          console.error("Error fetching offers:", error);
+          setAvailableOffers([]);
+        }
+
+        // Get user email from auth
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          form.setValue("guestEmail", user.email);
+        }
+      }
     } catch (error) {
       console.error("Error fetching restaurant:", error);
       Alert.alert("Error", "Failed to load restaurant details");
@@ -235,16 +515,53 @@ export default function BookingCreateScreen() {
     } finally {
       setLoading(false);
     }
-  }, [params.restaurantId, router]);
+  }, [params.restaurantId, router, profile, form]);
 
-  // 7. Booking Submission Implementation
+  // Award loyalty points function
+  const awardLoyaltyPoints = useCallback(async (userId: string, points: number) => {
+    try {
+      const { error } = await supabase.rpc("award_loyalty_points_with_tracking", {
+        p_user_id: userId,
+        p_points: points,
+        p_activity_type: "booking_completed",
+        p_description: `Earned points for booking at ${restaurant?.name}`,
+      });
+      
+      if (error) throw error;
+      console.log(`Awarded ${points} loyalty points`);
+    } catch (error) {
+      console.error("Failed to award loyalty points:", error);
+    }
+  }, [restaurant]);
+
+  // Use offer function
+  const useOffer = useCallback(async (offerId: string, bookingId: string) => {
+    try {
+      const { error } = await supabase
+        .from("user_offers")
+        .update({ 
+          used_at: new Date().toISOString(),
+          booking_id: bookingId,
+        })
+        .eq("offer_id", offerId)
+        .eq("user_id", profile?.id);
+
+      if (error) throw error;
+      console.log("Offer applied successfully");
+    } catch (error) {
+      console.error("Failed to apply offer:", error);
+      throw error;
+    }
+  }, [profile?.id]);
+
+  // Enhanced booking submission with full integration
   const submitBooking = useCallback(async (formData: BookingFormData) => {
     if (!restaurant || !profile?.id) return;
     
     setSubmitting(true);
     
     try {
-      // 7.1 Validate booking time is still in the future
+      // Validate booking time is still in the future
       const bookingDateTime = new Date(bookingDate);
       const [hours, minutes] = bookingTime.split(":").map(Number);
       bookingDateTime.setHours(hours, minutes, 0, 0);
@@ -253,7 +570,7 @@ export default function BookingCreateScreen() {
         throw new Error("Booking time must be in the future");
       }
       
-      // 7.2 Check restaurant booking window
+      // Check restaurant booking window
       const maxBookingDate = new Date();
       maxBookingDate.setDate(
         maxBookingDate.getDate() + (restaurant.booking_window_days || 30)
@@ -261,11 +578,11 @@ export default function BookingCreateScreen() {
       
       if (bookingDateTime > maxBookingDate) {
         throw new Error(
-          `Bookings can only be made up to ${restaurant.booking_window_days} days in advance`
+          `Bookings can only be made up to ${restaurant.booking_window_days || 30} days in advance`
         );
       }
       
-      // 7.3 Create booking record
+      // Create booking record with enhanced data
       const { data: booking, error: bookingError } = await supabase
         .from("bookings")
         .insert({
@@ -278,37 +595,59 @@ export default function BookingCreateScreen() {
           occasion: formData.occasion !== "none" ? formData.occasion : null,
           dietary_notes: formData.dietaryRestrictions,
           table_preferences: formData.tablePreferences,
+          confirmation_code: `BK${Date.now().toString().slice(-8).toUpperCase()}`,
         })
         .select()
         .single();
       
       if (bookingError) throw bookingError;
       
-      // 7.4 Update restaurant availability
-      await updateRestaurantAvailability(
-        restaurant.id,
-        bookingDate,
-        bookingTime,
-        partySize
-      );
+      // Use selected offer if applicable
+      if (selectedOfferId) {
+        try {
+          await useOffer(selectedOfferId, booking.id);
+        } catch (offerError) {
+          console.error("Failed to apply offer:", offerError);
+          // Don't fail the booking, just log the error
+        }
+      }
       
-      // 7.5 Calculate and award loyalty points
-      const loyaltyPoints = calculateLoyaltyPoints(partySize, restaurant.price_range);
-      await awardLoyaltyPoints(profile.id, loyaltyPoints);
+      // Award loyalty points
+      if (earnablePoints > 0) {
+        try {
+          await awardLoyaltyPoints(profile.id, earnablePoints);
+        } catch (pointsError) {
+          console.error("Failed to award loyalty points:", pointsError);
+          // Don't fail the booking, just log the error
+        }
+      }
       
-      // 7.6 Send confirmation notifications
-      await sendBookingConfirmation(booking);
+      // Update restaurant availability (if function exists)
+      try {
+        await updateRestaurantAvailability(
+          restaurant.id,
+          bookingDate,
+          bookingTime,
+          partySize
+        );
+      } catch (availabilityError) {
+        console.error("Failed to update availability:", availabilityError);
+        // Don't fail the booking
+      }
       
-      // 7.7 Haptic feedback for success
+      // Haptic feedback for success
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       
-      // 7.8 Navigate to success screen
+      // Navigate to success screen with enhanced data
       router.replace({
         pathname: "/booking/success",
         params: {
           bookingId: booking.id,
           restaurantName: restaurant.name,
           confirmationCode: booking.confirmation_code,
+          earnedPoints: earnablePoints.toString(),
+          appliedOffer: selectedOfferId ? "true" : "false",
+          userTier,
         },
       });
     } catch (error: any) {
@@ -320,17 +659,28 @@ export default function BookingCreateScreen() {
     } finally {
       setSubmitting(false);
     }
-  }, [restaurant, profile, bookingDate, bookingTime, partySize, router]);
+  }, [
+    restaurant, 
+    profile, 
+    bookingDate, 
+    bookingTime, 
+    partySize, 
+    router, 
+    selectedOfferId, 
+    useOffer, 
+    earnablePoints, 
+    awardLoyaltyPoints, 
+    userTier, 
+    isQuickBook
+  ]);
 
-  // 8. Availability Update Function
+  // Enhanced availability update function
   const updateRestaurantAvailability = async (
     restaurantId: string,
     date: Date,
     time: string,
     partySize: number
   ) => {
-    // 8.1 Implementation depends on restaurant capacity management
-    // This is a placeholder for the actual implementation
     const dateStr = date.toISOString().split("T")[0];
     
     const { error } = await supabase.rpc("update_restaurant_availability", {
@@ -342,63 +692,29 @@ export default function BookingCreateScreen() {
     
     if (error) {
       console.error("Failed to update availability:", error);
+      throw error;
     }
   };
 
-  // 9. Loyalty Points Calculation
-  const calculateLoyaltyPoints = (partySize: number, priceRange: number) => {
-    // 9.1 Base points calculation
-    const basePoints = 50;
-    const sizeMultiplier = partySize;
-    const priceMultiplier = priceRange * 0.5;
-    
-    return Math.floor(basePoints * sizeMultiplier * priceMultiplier);
-  };
-
-  // 10. Award Loyalty Points
-  const awardLoyaltyPoints = async (userId: string, points: number) => {
-    const { error } = await supabase.rpc("award_loyalty_points", {
-      p_user_id: userId,
-      p_points: points,
-    });
-    
-    if (error) {
-      console.error("Failed to award loyalty points:", error);
-    }
-  };
-
-  // 11. Send Booking Confirmation
-  const sendBookingConfirmation = async (booking: any) => {
-    // 11.1 This would integrate with a notification service
-    // Placeholder implementation
-    console.log("Sending booking confirmation:", booking);
-  };
-
-  // 12. Step Navigation Functions
+  // Enhanced step navigation
   const handleNextStep = useCallback(async () => {
-    // 12.1 Validate current step
     const currentStepData = form.getValues();
     const isValid = steps[currentStep].validation(currentStepData);
     
     if (!isValid) {
-      // 12.2 Trigger form validation to show errors
       await form.trigger();
       return;
     }
     
-    // 12.3 Mark step as completed
     setCompletedSteps((prev) => [...new Set([...prev, currentStep])]);
     
-    // 12.4 Move to next step or submit
     if (currentStep === steps.length - 1) {
-      // Final step - submit booking
       form.handleSubmit((data) => submitBooking(data))();
     } else {
       setCurrentStep((prev) => prev + 1);
-      // 12.5 Haptic feedback
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-  }, [currentStep, form, submitBooking]);
+  }, [currentStep, form, submitBooking, steps]);
 
   const handlePreviousStep = useCallback(async () => {
     if (currentStep > 0) {
@@ -407,17 +723,32 @@ export default function BookingCreateScreen() {
     }
   }, [currentStep]);
 
-  // 13. Lifecycle Management
+  // Auto-select offer from params
+  useEffect(() => {
+    if (params.offerId && availableOffers.length > 0) {
+      const offer = availableOffers.find(o => 
+        o.offer_id === params.offerId || 
+        o.id === params.offerId ||
+        o.special_offer?.id === params.offerId
+      );
+      if (offer) {
+        setSelectedOfferId(params.offerId);
+      }
+    }
+  }, [params.offerId, availableOffers]);
+
+  // Lifecycle management
   useEffect(() => {
     fetchRestaurant();
   }, [fetchRestaurant]);
 
-  // 14. Loading State
+  // Loading state
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#000"} />
+          <Text className="mt-4 text-muted-foreground">Loading booking details...</Text>
         </View>
       </SafeAreaView>
     );
@@ -436,14 +767,21 @@ export default function BookingCreateScreen() {
     );
   }
 
-  // 15. Main Render Implementation
+  // Get selected offer details
+  const selectedOffer = selectedOfferId ? 
+    availableOffers.find(offer => 
+      offer.offer_id === selectedOfferId || 
+      offer.id === selectedOfferId ||
+      offer.special_offer?.id === selectedOfferId
+    ) : null;
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
-        {/* 15.1 Header */}
+        {/* Enhanced Header */}
         <View className="px-4 py-3 border-b border-border">
           <View className="flex-row items-center justify-between">
             <Pressable onPress={() => router.back()} className="p-2 -ml-2">
@@ -457,8 +795,8 @@ export default function BookingCreateScreen() {
           </View>
         </View>
 
-        {/* 15.2 Booking Summary Card */}
-        <View className="mx-4 mt-4 p-4 bg-card rounded-lg shadow-sm">
+        {/* Enhanced Booking Summary Card */}
+        <View className="mx-4 mt-4 p-4 bg-card rounded-lg shadow-sm border border-border">
           <View className="flex-row items-center gap-3">
             <Image
               source={{ uri: restaurant.main_image_url }}
@@ -483,11 +821,30 @@ export default function BookingCreateScreen() {
                   {partySize} {partySize === 1 ? "Guest" : "Guests"}
                 </Text>
               </View>
+              
+              {/* Enhanced summary with offer and points */}
+              <View className="flex-row items-center gap-4 mt-2">
+                {selectedOffer && (
+                  <View className="flex-row items-center">
+                    <Tag size={12} color="#3b82f6" />
+                    <Text className="text-xs text-primary ml-1">
+                      {selectedOffer.discount_percentage}% OFF
+                    </Text>
+                  </View>
+                )}
+                
+                <View className="flex-row items-center">
+                  <Trophy size={12} color="#f59e0b" />
+                  <Text className="text-xs text-amber-600 ml-1">
+                    +{earnablePoints} pts
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
         </View>
 
-        {/* 15.3 Progress Indicator */}
+        {/* Enhanced Progress Indicator */}
         <View className="flex-row items-center justify-center px-4 py-4">
           {steps.map((step, index) => (
             <React.Fragment key={step.id}>
@@ -528,10 +885,10 @@ export default function BookingCreateScreen() {
           ))}
         </View>
 
-        {/* 15.4 Form Content */}
+        {/* Form Content */}
         <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
           <Form {...form}>
-            {/* 15.4.1 Step 0: Guest Information */}
+            {/* Step 0: Guest Information */}
             {currentStep === 0 && (
               <View className="gap-4 py-4">
                 <View>
@@ -595,8 +952,54 @@ export default function BookingCreateScreen() {
               </View>
             )}
 
-            {/* 15.4.2 Step 1: Special Requirements */}
+            {/* Step 1: Enhanced Offers & Rewards */}
             {currentStep === 1 && (
+              <View className="gap-4 py-4">
+                <View>
+                  <H3>Offers & Rewards</H3>
+                  <Muted className="mt-1">
+                    Maximize your savings and earn loyalty points
+                  </Muted>
+                </View>
+
+                {/* Loyalty Points Display */}
+                <LoyaltyTierBadge
+                  userTier={userTier}
+                  userPoints={userPoints}
+                  earnablePoints={earnablePoints}
+                />
+
+                {/* Offer Selection */}
+                <OfferSelectionCard
+                  offers={availableOffers}
+                  selectedOfferId={selectedOfferId}
+                  onSelectOffer={setSelectedOfferId}
+                />
+
+                {/* Tier Benefits Info */}
+                <View className="bg-muted/30 rounded-lg p-4">
+                  <View className="flex-row items-center mb-2">
+                    <Crown size={16} color="#f59e0b" />
+                    <Text className="font-medium ml-2">Your {TIER_CONFIG[userTier].name} Benefits</Text>
+                  </View>
+                  {TIER_CONFIG[userTier].benefits.slice(0, 2).map((benefit, index) => (
+                    <Text key={index} className="text-sm text-muted-foreground">
+                      • {benefit}
+                    </Text>
+                  ))}
+                  <Pressable
+                    onPress={() => router.push("/profile/loyalty")}
+                    className="flex-row items-center mt-2"
+                  >
+                    <Text className="text-primary text-sm">View all benefits</Text>
+                    <ChevronRight size={14} color="#3b82f6" />
+                  </Pressable>
+                </View>
+              </View>
+            )}
+
+            {/* Step 2: Special Requirements */}
+            {currentStep === 2 && (
               <View className="gap-4 py-4">
                 <View>
                   <H3>Special Requirements</H3>
@@ -740,8 +1143,8 @@ export default function BookingCreateScreen() {
               </View>
             )}
 
-            {/* 15.4.3 Step 2: Review & Confirm */}
-            {currentStep === 2 && (
+            {/* Step 3: Enhanced Review & Confirm */}
+            {currentStep === 3 && (
               <View className="gap-4 py-4">
                 <View>
                   <H3>Review Your Booking</H3>
@@ -750,8 +1153,8 @@ export default function BookingCreateScreen() {
                   </Muted>
                 </View>
 
-                {/* Booking Summary */}
-                <View className="bg-card p-4 rounded-lg space-y-3">
+                {/* Enhanced Booking Summary */}
+                <View className="bg-card p-4 rounded-lg space-y-3 border border-border">
                   <View className="flex-row justify-between">
                     <Text className="text-muted-foreground">Restaurant</Text>
                     <Text className="font-medium">{restaurant.name}</Text>
@@ -778,6 +1181,50 @@ export default function BookingCreateScreen() {
                       <Text className="text-sm text-muted-foreground">
                         {form.watch("guestPhone")}
                       </Text>
+                    </View>
+                  </View>
+
+                  {/* Enhanced Offer Display */}
+                  {selectedOffer && (
+                    <View className="border-t border-border pt-3">
+                      <View className="flex-row justify-between items-center">
+                        <Text className="text-muted-foreground">Applied Offer</Text>
+                        <View className="items-end">
+                          <View className="flex-row items-center">
+                            <Text className="font-medium">
+                              {selectedOffer.offer_title || selectedOffer.title || "Special Offer"}
+                            </Text>
+                            <View className="bg-green-500 rounded-full px-2 py-1 ml-2">
+                              <Text className="text-white text-xs font-bold">
+                                {selectedOffer.discount_percentage}% OFF
+                              </Text>
+                            </View>
+                          </View>
+                          {(selectedOffer.redemption_code || selectedOffer.redemptionCode) && (
+                            <Text className="text-xs text-muted-foreground mt-1">
+                              Code: {(selectedOffer.redemption_code || selectedOffer.redemptionCode).slice(-6).toUpperCase()}
+                            </Text>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Loyalty Points Display */}
+                  <View className="border-t border-border pt-3">
+                    <View className="flex-row justify-between items-center">
+                      <Text className="text-muted-foreground">Loyalty Rewards</Text>
+                      <View className="items-end">
+                        <View className="flex-row items-center">
+                          <Trophy size={16} color="#f59e0b" />
+                          <Text className="font-bold text-amber-600 ml-1">
+                            +{earnablePoints} points
+                          </Text>
+                        </View>
+                        <Text className="text-xs text-muted-foreground">
+                          {TIER_CONFIG[userTier].name.toUpperCase()} tier benefits applied
+                        </Text>
+                      </View>
                     </View>
                   </View>
                 </View>
@@ -828,8 +1275,8 @@ export default function BookingCreateScreen() {
                   </View>
                 )}
 
-                {/* Booking Policy */}
-                <View className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
+                {/* Enhanced Booking Policy */}
+                <View className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200">
                   <View className="flex-row items-start gap-2">
                     <AlertCircle size={20} color="#f59e0b" />
                     <View className="flex-1">
@@ -873,34 +1320,18 @@ export default function BookingCreateScreen() {
                       <Text className="flex-1 text-sm">
                         I agree to the{" "}
                         <Text className="text-primary underline">booking terms</Text> and
-                        understand the cancellation policy
+                        understand the cancellation policy. I also consent to earning and using loyalty points.
                       </Text>
                     </Pressable>
                   )}
                 />
-
-                {/* Estimated Loyalty Points */}
-                <View className="bg-primary/10 p-4 rounded-lg flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-2">
-                    <Star size={20} color="#f59e0b" />
-                    <View>
-                      <Text className="font-medium">Earn Loyalty Points</Text>
-                      <Text className="text-sm text-muted-foreground">
-                        Complete this booking to earn points
-                      </Text>
-                    </View>
-                  </View>
-                  <Text className="font-bold text-lg text-primary">
-                    +{calculateLoyaltyPoints(partySize, restaurant.price_range)} pts
-                  </Text>
-                </View>
               </View>
             )}
           </Form>
         </ScrollView>
 
-        {/* 15.5 Bottom Navigation */}
-        <View className="p-4 border-t border-border">
+        {/* Enhanced Bottom Navigation */}
+        <View className="p-4 border-t border-border bg-background">
           <View className="flex-row gap-3">
             {currentStep > 0 && (
               <Button
@@ -925,16 +1356,26 @@ export default function BookingCreateScreen() {
               ) : currentStep === steps.length - 1 ? (
                 <>
                   <Text>Confirm Booking</Text>
-                  <CheckCircle size={20} color="white" />
+                  <CheckCircle size={20} color="white" className="ml-2" />
                 </>
               ) : (
                 <>
                   <Text>Next</Text>
-                  <ChevronRight size={20} />
+                  <ChevronRight size={20} className="ml-2" />
                 </>
               )}
             </Button>
           </View>
+          
+          {/* Enhanced Bottom Info */}
+          {currentStep === steps.length - 1 && (
+            <View className="mt-3 flex-row justify-center">
+              <Text className="text-xs text-muted-foreground text-center">
+                {selectedOffer ? `${selectedOffer.discount_percentage}% discount + ` : ""}
+                {earnablePoints} loyalty points • {TIER_CONFIG[userTier].name.toUpperCase()} tier
+              </Text>
+            </View>
+          )}
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

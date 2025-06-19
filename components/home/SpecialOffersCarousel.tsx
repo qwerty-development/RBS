@@ -20,18 +20,11 @@ interface Restaurant {
   featured?: boolean;
 }
 
-interface SpecialOffer {
-  id: string;
-  title: string;
-  description: string;
-  discount_percentage: number;
-  valid_until: string;
-  restaurant: Restaurant;
-}
+import { EnrichedOffer } from "@/hooks/useOffers";
 
 interface SpecialOffersCarouselProps {
-  offers: SpecialOffer[];
-  onPress: (offer: SpecialOffer) => void;
+  offers: EnrichedOffer[];
+  onPress: (offer: EnrichedOffer) => void;
 }
 
 export function SpecialOffersCarousel({ offers, onPress }: SpecialOffersCarouselProps) {
