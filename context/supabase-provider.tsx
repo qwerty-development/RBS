@@ -72,9 +72,10 @@ function AuthContent({ children }: PropsWithChildren) {
 	const navigationAttempted = useRef(false);
 	const splashHidden = useRef(false);
 
-	// Fetch user profile with enhanced error handling
+	// Fetch user profile - PURE function, no side effects during navigation
 	const fetchProfile = async (userId: string): Promise<Profile | null> => {
 		try {
+			console.log('Fetching profile for user:', userId);
 			const { data, error } = await supabase
 				.from('profiles')
 				.select('*')
@@ -86,7 +87,7 @@ function AuthContent({ children }: PropsWithChildren) {
 				return null;
 			}
 			
-			setProfile(data);
+			console.log('Profile fetched successfully');
 			return data;
 		} catch (error) {
 			console.error('Unexpected error fetching profile:', error);
@@ -129,9 +130,9 @@ function AuthContent({ children }: PropsWithChildren) {
 					console.error('Profile creation error:', profileError);
 					// Don't throw here - user is created, profile can be created later
 				}
-
-				// Don't set session here - let onAuthStateChange handle it
 			}
+			
+			// Don't set state here - let auth state change handler do it
 		} catch (error) {
 			console.error('Error signing up:', error);
 			throw error;
@@ -146,8 +147,8 @@ function AuthContent({ children }: PropsWithChildren) {
 			});
 
 			if (error) throw error;
-
-			// Don't set session here - let onAuthStateChange handle it
+			
+			// Don't set state here - let auth state change handler do it
 		} catch (error) {
 			console.error('Error signing in:', error);
 			throw error;
@@ -158,8 +159,9 @@ function AuthContent({ children }: PropsWithChildren) {
 		try {
 			const { error } = await supabase.auth.signOut();
 			if (error) throw error;
-
-			// State will be cleared by onAuthStateChange
+			
+			// Reset refs when signing out
+			navigationAttempted.current = false;
 		} catch (error) {
 			console.error('Error signing out:', error);
 			throw error;
@@ -187,137 +189,125 @@ function AuthContent({ children }: PropsWithChildren) {
 
 	const refreshProfile = async () => {
 		if (!user) return;
-		await fetchProfile(user.id);
-	};
-
-	// Safe navigation function that prevents multiple calls
-	const navigateBasedOnAuth = async (currentSession: Session | null, currentProfile: Profile | null) => {
-		if (navigationAttempted.current) {
-			console.log('Navigation already attempted, skipping');
-			return;
-		}
-
-		navigationAttempted.current = true;
-
 		try {
-			// Hide splash screen safely
-			if (!splashHidden.current) {
-				await SplashScreen.hideAsync();
-				splashHidden.current = true;
-			}
-			
-			if (currentSession && currentSession.user) {
-				if (currentProfile) {
-					console.log('Navigating to protected area with full auth');
-					router.replace("/(protected)/(tabs)");
-				} else {
-					console.log('Session exists but no profile, attempting to fetch');
-					const fetchedProfile = await fetchProfile(currentSession.user.id);
-					
-					if (fetchedProfile) {
-						console.log('Profile fetched successfully, navigating to protected area');
-						router.replace("/(protected)/(tabs)");
-					} else {
-						console.warn('Could not fetch profile, navigating to welcome');
-						router.replace("/welcome");
-					}
-				}
-			} else {
-				console.log('No session, navigating to welcome');
-				router.replace("/welcome");
+			const profileData = await fetchProfile(user.id);
+			if (profileData) {
+				setProfile(profileData);
 			}
 		} catch (error) {
-			console.error('Navigation error:', error);
-			// Fallback navigation
-			try {
-				router.replace("/welcome");
-			} catch (fallbackError) {
-				console.error('Fallback navigation failed:', fallbackError);
-			}
+			console.error('Error refreshing profile:', error);
 		}
 	};
 
-	// Initialize auth state with enhanced error handling
+	// Initialize auth state - RUNS ONLY ONCE
 	useEffect(() => {
 		if (initializationAttempted.current) return;
 		initializationAttempted.current = true;
 
 		const initializeAuth = async () => {
 			try {
-				console.log('Initializing auth state...');
+				console.log('🔄 Initializing auth state...');
 				
 				const { data: { session }, error } = await supabase.auth.getSession();
 				
 				if (error) {
-					console.error('Error getting session:', error);
-					setSession(null);
-					setUser(null);
-					setProfile(null);
+					console.error('❌ Error getting session:', error);
 				} else if (session) {
-					console.log('Session found, setting auth state');
+					console.log('✅ Session found during initialization');
 					setSession(session);
 					setUser(session.user);
-					
-					// Fetch profile
-					const profile = await fetchProfile(session.user.id);
-					
-					// Navigate with current state
-					setTimeout(() => navigateBasedOnAuth(session, profile), 100);
 				} else {
-					console.log('No session found');
-					setSession(null);
-					setUser(null);
-					setProfile(null);
-					
-					// Navigate to welcome
-					setTimeout(() => navigateBasedOnAuth(null, null), 100);
+					console.log('ℹ️ No session found during initialization');
 				}
 			} catch (error) {
-				console.error('Error initializing auth:', error);
-				// Set safe defaults and navigate to welcome
-				setSession(null);
-				setUser(null);
-				setProfile(null);
-				setTimeout(() => navigateBasedOnAuth(null, null), 100);
+				console.error('❌ Error initializing auth:', error);
 			} finally {
 				setInitialized(true);
+				console.log('✅ Auth initialization complete');
 			}
 		};
 
 		initializeAuth();
 
-		// Listen for auth changes with enhanced error handling
+		// Listen for auth changes
 		const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-			console.log('Auth state changed:', event, !!session);
+			console.log('🔄 Auth state changed:', event, !!session);
 			
-			// Reset navigation flag on auth change
-			navigationAttempted.current = false;
-			
-			try {
-				if (session) {
-					setSession(session);
-					setUser(session.user);
-					
-					// Fetch profile and navigate
-					const profile = await fetchProfile(session.user.id);
-					setTimeout(() => navigateBasedOnAuth(session, profile), 100);
-				} else {
-					setSession(null);
-					setUser(null);
-					setProfile(null);
-					
-					// Navigate to welcome
-					setTimeout(() => navigateBasedOnAuth(null, null), 100);
-				}
-			} catch (error) {
-				console.error('Error handling auth state change:', error);
+			if (session) {
+				setSession(session);
+				setUser(session.user);
+				// Reset navigation flag when getting new session
+				navigationAttempted.current = false;
+			} else {
+				setSession(null);
+				setUser(null);
+				setProfile(null);
+				// Reset navigation flag when session ends
+				navigationAttempted.current = false;
 			}
 		});
 
 		return () => {
 			subscription.unsubscribe();
 		};
-	}, []);
+	}, []); // NO DEPENDENCIES - runs only once
+
+	// Fetch profile when user changes - SEPARATE EFFECT
+	useEffect(() => {
+		if (user && !profile) {
+			console.log('🔄 User found, fetching profile...');
+			fetchProfile(user.id)
+				.then(profileData => {
+					if (profileData) {
+						setProfile(profileData);
+						console.log('✅ Profile loaded');
+					} else {
+						console.log('⚠️ Profile not found');
+					}
+				})
+				.catch(error => {
+					console.error('❌ Failed to fetch profile:', error);
+				});
+		}
+	}, [user?.id]); // Only depend on user ID, not profile
+
+	// Handle navigation - CLEAN and SIMPLE
+	useEffect(() => {
+		if (!initialized || navigationAttempted.current) return;
+
+		const navigate = async () => {
+			navigationAttempted.current = true;
+			
+			try {
+				console.log('🔄 Handling navigation...');
+				
+				// Hide splash screen only once
+				if (!splashHidden.current) {
+					await SplashScreen.hideAsync();
+					splashHidden.current = true;
+					console.log('✅ Splash screen hidden');
+				}
+				
+				// Simple navigation based ONLY on session
+				if (session) {
+					console.log('✅ Session exists, navigating to protected area');
+					router.replace("/(protected)/(tabs)");
+				} else {
+					console.log('ℹ️ No session, navigating to welcome');
+					router.replace("/welcome");
+				}
+			} catch (error) {
+				console.error('❌ Navigation error:', error);
+				// Reset flag to allow retry
+				navigationAttempted.current = false;
+			}
+		};
+
+		// Small delay to ensure router is ready
+		const timeout = setTimeout(navigate, 100);
+		
+		return () => clearTimeout(timeout);
+	}, [initialized, !!session]); // Only session boolean, not the object itself
 
 	// Show loading screen while initializing
 	if (!initialized) {
@@ -329,7 +319,7 @@ function AuthContent({ children }: PropsWithChildren) {
 				backgroundColor: '#000' 
 			}}>
 				<ActivityIndicator size="large" color="#fff" />
-				<Text style={{ color: '#fff', marginTop: 16 }}>Loading...</Text>
+				<Text style={{ color: '#fff', marginTop: 16 }}>Initializing...</Text>
 			</View>
 		);
 	}
