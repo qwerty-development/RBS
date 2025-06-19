@@ -8,88 +8,95 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "owner": "qwerty-app",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "assetBundlePatterns": [
-      "**/*"
-    ],
-    "newArchEnabled": false,
+
+
+    "assetBundlePatterns": ["**/*"],
+
+
+    "runtimeVersion": { "policy": "appVersion" },
+
+    "updates": {
+      "url": "https://u.expo.dev/9cb3f29d-a85c-439a-ac34-513843ed9279",
+      "fallbackToCacheTimeout": 0          
+    },
+
     "ios": {
       "supportsTablet": true,
-      "config": {
-        "usesNonExemptEncryption": false
-      },
+      "config": { "usesNonExemptEncryption": false },
+      "bundleIdentifier": "com.notqwerty.booklet",
+
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Booklet uses your location to find nearby restaurants and provide personalized recommendations.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Booklet uses your location to find nearby restaurants and provide personalized recommendations.",
-        "NSContactsUsageDescription": "Booklet needs optional access to your contacts only when you ask it to import guests or share a reservation."
+        "NSLocationWhenInUseUsageDescription":
+          "Booklet uses your location to find nearby restaurants and provide personalized recommendations.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription":
+          "Booklet uses your location to find nearby restaurants and provide personalized recommendations.",
+        "NSContactsUsageDescription":
+          "Booklet needs optional access to your contacts only when you ask it to import guests or share a reservation."
       },
+
       "splash": {
         "image": "./assets/splash.png",
         "resizeMode": "cover",
         "backgroundColor": "#ffffff",
         "dark": {
-          "backgroundColor": "#000000",
+          "image": "./assets/splash-dark.png",
           "resizeMode": "cover",
-          "image": "./assets/splash-dark.png"
+          "backgroundColor": "#000000"
         }
       },
+
       "icon": {
-        "dark": "./assets/icon-dark.png",
-        "light": "./assets/icon.png"
-      },
-      "bundleIdentifier": "com.notqwerty.booklet"
+        "light": "./assets/icon.png",
+        "dark": "./assets/icon-dark.png"
+      }
     },
+
     "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png"
-      },
+      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png" },
+
+
       "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
+
       "splash": {
         "image": "./assets/splash.png",
         "resizeMode": "cover",
         "backgroundColor": "#ffffff",
         "dark": {
-          "backgroundColor": "#000000",
+          "image": "./assets/splash-dark.png",
           "resizeMode": "cover",
-          "image": "./assets/splash-dark.png"
+          "backgroundColor": "#000000"
         }
       }
     },
-    "experiments": {
-      "typedRoutes": true
-    },
+
+
+    "newArchEnabled": false,
+
+
+    "experiments": { "typedRoutes": true },
+
+
     "plugins": [
       "expo-router",
       "expo-secure-store",
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Booklet uses your location to find nearby restaurants and provide personalized recommendations."
+          "locationAlwaysAndWhenInUsePermission":
+            "Booklet uses your location to find nearby restaurants and provide personalized recommendations."
         }
       ]
     ],
+
+
     "extra": {
       "router": {},
-      "eas": {
-        "projectId": "9cb3f29d-a85c-439a-ac34-513843ed9279"
-      }
-    },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/9cb3f29d-a85c-439a-ac34-513843ed9279"
+      "eas": { "projectId": "9cb3f29d-a85c-439a-ac34-513843ed9279" }
     }
   }
 }
