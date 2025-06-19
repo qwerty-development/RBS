@@ -5,11 +5,12 @@ import {
 	useEffect,
 	useState,
 	useRef,
+	useCallback,
 } from "react";
 import { SplashScreen, useRouter } from "expo-router";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/config/supabase";
-import { View, ActivityIndicator, Text } from "react-native";
+import { View, ActivityIndicator, Text, Alert } from "react-native";
 
 // Prevent auto hide initially
 SplashScreen.preventAutoHideAsync().catch(console.warn);
@@ -69,13 +70,13 @@ function AuthContent({ children }: PropsWithChildren) {
 	
 	const router = useRouter();
 	const initializationAttempted = useRef(false);
-	const navigationAttempted = useRef(false);
 	const splashHidden = useRef(false);
 
-	// Fetch user profile - PURE function, no side effects during navigation
-	const fetchProfile = async (userId: string): Promise<Profile | null> => {
+	// Fetch user profile with enhanced error handling
+	const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
 		try {
-			console.log('Fetching profile for user:', userId);
+			console.log('🔄 Fetching profile for user:', userId);
+			
 			const { data, error } = await supabase
 				.from('profiles')
 				.select('*')
@@ -83,20 +84,29 @@ function AuthContent({ children }: PropsWithChildren) {
 				.single();
 
 			if (error) {
-				console.error('Error fetching profile:', error);
-				return null;
+				console.error('❌ Error fetching profile:', error);
+				
+				// If profile doesn't exist, try to create it
+				if (error.code === 'PGRST116') {
+					console.log('⚠️ Profile not found, will be created on next sign-up');
+					return null;
+				}
+				
+				throw error;
 			}
 			
-			console.log('Profile fetched successfully');
+			console.log('✅ Profile fetched successfully');
 			return data;
 		} catch (error) {
-			console.error('Unexpected error fetching profile:', error);
+			console.error('❌ Unexpected error fetching profile:', error);
 			return null;
 		}
-	};
+	}, []);
 
-	const signUp = async (email: string, password: string, fullName: string, phoneNumber?: string) => {
+	const signUp = useCallback(async (email: string, password: string, fullName: string, phoneNumber?: string) => {
 		try {
+			console.log('🔄 Starting sign-up process for:', email);
+			
 			const { data: authData, error: authError } = await supabase.auth.signUp({
 				email,
 				password,
@@ -108,9 +118,24 @@ function AuthContent({ children }: PropsWithChildren) {
 				},
 			});
 
-			if (authError) throw authError;
+			if (authError) {
+				console.error('❌ Auth sign-up error:', authError);
+				throw authError;
+			}
 
-			if (authData.user) {
+			console.log('✅ Auth sign-up successful');
+
+			// Create profile if user was created
+			if (authData.user && !authData.session) {
+				console.log('ℹ️ User created but needs email confirmation');
+				Alert.alert(
+					"Check Your Email",
+					"We've sent you a confirmation link. Please check your email and click the link to activate your account.",
+					[{ text: "OK" }]
+				);
+			} else if (authData.user) {
+				console.log('🔄 Creating user profile...');
+				
 				const { error: profileError } = await supabase
 					.from('profiles')
 					.insert({
@@ -127,51 +152,64 @@ function AuthContent({ children }: PropsWithChildren) {
 					});
 
 				if (profileError) {
-					console.error('Profile creation error:', profileError);
+					console.error('⚠️ Profile creation error (non-critical):', profileError);
 					// Don't throw here - user is created, profile can be created later
+				} else {
+					console.log('✅ Profile created successfully');
 				}
 			}
-			
-			// Don't set state here - let auth state change handler do it
 		} catch (error) {
-			console.error('Error signing up:', error);
+			console.error('❌ Sign-up error:', error);
 			throw error;
 		}
-	};
+	}, []);
 
-	const signIn = async (email: string, password: string) => {
+	const signIn = useCallback(async (email: string, password: string) => {
 		try {
+			console.log('🔄 Starting sign-in process for:', email);
+			
 			const { data, error } = await supabase.auth.signInWithPassword({
 				email,
 				password,
 			});
 
-			if (error) throw error;
+			if (error) {
+				console.error('❌ Sign-in error:', error);
+				throw error;
+			}
 			
-			// Don't set state here - let auth state change handler do it
+			console.log('✅ Sign-in successful');
 		} catch (error) {
-			console.error('Error signing in:', error);
+			console.error('❌ Sign-in error:', error);
 			throw error;
 		}
-	};
+	}, []);
 
-	const signOut = async () => {
+	const signOut = useCallback(async () => {
 		try {
+			console.log('🔄 Starting sign-out process...');
+			
 			const { error } = await supabase.auth.signOut();
-			if (error) throw error;
+			if (error) {
+				console.error('❌ Sign-out error:', error);
+				throw error;
+			}
 			
-			// Reset refs when signing out
-			navigationAttempted.current = false;
+			console.log('✅ Sign-out successful');
 		} catch (error) {
-			console.error('Error signing out:', error);
+			console.error('❌ Sign-out error:', error);
 			throw error;
 		}
-	};
+	}, []);
 
-	const updateProfile = async (updates: Partial<Profile>) => {
-		if (!user) return;
+	const updateProfile = useCallback(async (updates: Partial<Profile>) => {
+		if (!user) {
+			throw new Error('No user logged in');
+		}
 
 		try {
+			console.log('🔄 Updating profile...');
+			
 			const { data, error } = await supabase
 				.from('profiles')
 				.update(updates)
@@ -179,25 +217,33 @@ function AuthContent({ children }: PropsWithChildren) {
 				.select()
 				.single();
 
-			if (error) throw error;
+			if (error) {
+				console.error('❌ Profile update error:', error);
+				throw error;
+			}
+			
 			setProfile(data);
+			console.log('✅ Profile updated successfully');
 		} catch (error) {
-			console.error('Error updating profile:', error);
+			console.error('❌ Error updating profile:', error);
 			throw error;
 		}
-	};
+	}, [user]);
 
-	const refreshProfile = async () => {
+	const refreshProfile = useCallback(async () => {
 		if (!user) return;
+		
 		try {
+			console.log('🔄 Refreshing profile...');
 			const profileData = await fetchProfile(user.id);
 			if (profileData) {
 				setProfile(profileData);
+				console.log('✅ Profile refreshed successfully');
 			}
 		} catch (error) {
-			console.error('Error refreshing profile:', error);
+			console.error('❌ Error refreshing profile:', error);
 		}
-	};
+	}, [user, fetchProfile]);
 
 	// Initialize auth state - RUNS ONLY ONCE
 	useEffect(() => {
@@ -212,6 +258,7 @@ function AuthContent({ children }: PropsWithChildren) {
 				
 				if (error) {
 					console.error('❌ Error getting session:', error);
+					// Don't throw here, just log the error
 				} else if (session) {
 					console.log('✅ Session found during initialization');
 					setSession(session);
@@ -229,30 +276,30 @@ function AuthContent({ children }: PropsWithChildren) {
 
 		initializeAuth();
 
-		// Listen for auth changes
+		// Listen for auth changes with enhanced error handling
 		const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
 			console.log('🔄 Auth state changed:', event, !!session);
 			
-			if (session) {
-				setSession(session);
-				setUser(session.user);
-				// Reset navigation flag when getting new session
-				navigationAttempted.current = false;
-			} else {
-				setSession(null);
-				setUser(null);
-				setProfile(null);
-				// Reset navigation flag when session ends
-				navigationAttempted.current = false;
+			try {
+				if (session) {
+					setSession(session);
+					setUser(session.user);
+				} else {
+					setSession(null);
+					setUser(null);
+					setProfile(null);
+				}
+			} catch (error) {
+				console.error('❌ Error handling auth state change:', error);
 			}
 		});
 
 		return () => {
 			subscription.unsubscribe();
 		};
-	}, []); // NO DEPENDENCIES - runs only once
+	}, []);
 
-	// Fetch profile when user changes - SEPARATE EFFECT
+	// Fetch profile when user changes
 	useEffect(() => {
 		if (user && !profile) {
 			console.log('🔄 User found, fetching profile...');
@@ -269,17 +316,15 @@ function AuthContent({ children }: PropsWithChildren) {
 					console.error('❌ Failed to fetch profile:', error);
 				});
 		}
-	}, [user?.id]); // Only depend on user ID, not profile
+	}, [user?.id, profile, fetchProfile]);
 
-	// Handle navigation - CLEAN and SIMPLE
+	// Handle navigation - SIMPLIFIED
 	useEffect(() => {
-		if (!initialized || navigationAttempted.current) return;
+		if (!initialized) return;
 
 		const navigate = async () => {
-			navigationAttempted.current = true;
-			
 			try {
-				console.log('🔄 Handling navigation...');
+				console.log('🔄 Handling navigation...', { hasSession: !!session });
 				
 				// Hide splash screen only once
 				if (!splashHidden.current) {
@@ -288,7 +333,7 @@ function AuthContent({ children }: PropsWithChildren) {
 					console.log('✅ Splash screen hidden');
 				}
 				
-				// Simple navigation based ONLY on session
+				// Simple navigation based on session
 				if (session) {
 					console.log('✅ Session exists, navigating to protected area');
 					router.replace("/(protected)/(tabs)");
@@ -298,16 +343,20 @@ function AuthContent({ children }: PropsWithChildren) {
 				}
 			} catch (error) {
 				console.error('❌ Navigation error:', error);
-				// Reset flag to allow retry
-				navigationAttempted.current = false;
+				// Fallback navigation
+				if (session) {
+					router.replace("/(protected)/(tabs)");
+				} else {
+					router.replace("/welcome");
+				}
 			}
 		};
 
 		// Small delay to ensure router is ready
-		const timeout = setTimeout(navigate, 100);
+		const timeout = setTimeout(navigate, 200);
 		
 		return () => clearTimeout(timeout);
-	}, [initialized, !!session]); // Only session boolean, not the object itself
+	}, [initialized, session, router]);
 
 	// Show loading screen while initializing
 	if (!initialized) {
