@@ -22,7 +22,7 @@ export const FavoritesInsightsBanner: React.FC<
 
   return (
     <View className="absolute bottom-1 left-4 right-4">
-      <View className="bg-primary rounded-xl p-4 shadow-lg">
+      <View className="bg-primary/80 rounded-xl p-4 shadow-lg">
         <View className="flex-row items-center">
           <Sparkles size={24} color="#fff" />
           <Pressable onPress={onInsightsPress} className="flex-1 ml-3">
