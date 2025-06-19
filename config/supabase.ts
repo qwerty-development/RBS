@@ -15,34 +15,41 @@ if (!supabaseUrl || !supabaseAnonKey) {
 	throw new Error('Supabase configuration is missing. Please check your environment variables.');
 }
 
-// Enhanced secure storage implementation with better error handling
+// Enhanced secure storage implementation with better error handling and fallbacks
 class SecureStorage {
+	private memoryFallback: Map<string, string> = new Map();
+
 	async getItem(key: string): Promise<string | null> {
 		try {
 			const item = await SecureStore.getItemAsync(key);
 			return item;
 		} catch (error) {
-			console.warn('SecureStorage getItem error:', error);
-			// Return null instead of throwing to prevent crashes
-			return null;
+			console.warn('SecureStorage getItem error, using memory fallback:', error);
+			// Use memory fallback in case of SecureStore issues
+			return this.memoryFallback.get(key) || null;
 		}
 	}
 
 	async setItem(key: string, value: string): Promise<void> {
 		try {
 			await SecureStore.setItemAsync(key, value);
+			// Also store in memory as backup
+			this.memoryFallback.set(key, value);
 		} catch (error) {
-			console.warn('SecureStorage setItem error:', error);
-			// Don't throw - let Supabase handle the fallback gracefully
+			console.warn('SecureStorage setItem error, using memory fallback:', error);
+			// Store in memory fallback if SecureStore fails
+			this.memoryFallback.set(key, value);
 		}
 	}
 
 	async removeItem(key: string): Promise<void> {
 		try {
 			await SecureStore.deleteItemAsync(key);
+			this.memoryFallback.delete(key);
 		} catch (error) {
 			console.warn('SecureStorage removeItem error:', error);
-			// Don't throw - let Supabase handle the fallback gracefully
+			// Always remove from memory fallback
+			this.memoryFallback.delete(key);
 		}
 	}
 }
@@ -55,6 +62,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 		persistSession: true,
 		detectSessionInUrl: false,
 		storageKey: 'supabase.auth.token',
+		// Add retry logic for auth requests
+		flowType: 'pkce',
 	},
 	// Add timeout and retry configuration
 	global: {
