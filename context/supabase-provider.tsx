@@ -4,13 +4,15 @@ import {
 	useContext,
 	useEffect,
 	useState,
+	useRef,
 } from "react";
 import { SplashScreen, useRouter } from "expo-router";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/config/supabase";
 import { View, ActivityIndicator, Text } from "react-native";
 
-SplashScreen.preventAutoHideAsync();
+// Prevent auto hide initially
+SplashScreen.preventAutoHideAsync().catch(console.warn);
 
 // Profile type definition
 type Profile = {
@@ -65,9 +67,11 @@ function AuthContent({ children }: PropsWithChildren) {
 	const [user, setUser] = useState<User | null>(null);
 	const [profile, setProfile] = useState<Profile | null>(null);
 	const [isNavigating, setIsNavigating] = useState(false);
+	
 	const router = useRouter();
+	const initializationAttempted = useRef(false);
 
-	// Fetch user profile
+	// Fetch user profile with enhanced error handling
 	const fetchProfile = async (userId: string): Promise<Profile | null> => {
 		try {
 			const { data, error } = await supabase
@@ -84,14 +88,13 @@ function AuthContent({ children }: PropsWithChildren) {
 			setProfile(data);
 			return data;
 		} catch (error) {
-			console.error('Error fetching profile:', error);
+			console.error('Unexpected error fetching profile:', error);
 			return null;
 		}
 	};
 
 	const signUp = async (email: string, password: string, fullName: string, phoneNumber?: string) => {
 		try {
-			// 1. Sign up the user
 			const { data: authData, error: authError } = await supabase.auth.signUp({
 				email,
 				password,
@@ -105,7 +108,6 @@ function AuthContent({ children }: PropsWithChildren) {
 
 			if (authError) throw authError;
 
-			// 2. Create profile record
 			if (authData.user) {
 				const { error: profileError } = await supabase
 					.from('profiles')
@@ -122,9 +124,11 @@ function AuthContent({ children }: PropsWithChildren) {
 						},
 					});
 
-				if (profileError) throw profileError;
+				if (profileError) {
+					console.error('Profile creation error:', profileError);
+					// Don't throw here - user is created, profile can be created later
+				}
 
-				// Set session and profile
 				if (authData.session) {
 					setSession(authData.session);
 					setUser(authData.user);
@@ -195,67 +199,68 @@ function AuthContent({ children }: PropsWithChildren) {
 		await fetchProfile(user.id);
 	};
 
-	// Initialize auth state
+	// Initialize auth state with enhanced error handling
 	useEffect(() => {
-		let isMounted = true;
+		if (initializationAttempted.current) return;
+		initializationAttempted.current = true;
 
 		const initializeAuth = async () => {
 			try {
+				console.log('Initializing auth state...');
+				
 				const { data: { session }, error } = await supabase.auth.getSession();
 				
 				if (error) {
 					console.error('Error getting session:', error);
-				} else if (session && isMounted) {
+				} else if (session) {
+					console.log('Session found, setting auth state');
 					setSession(session);
 					setUser(session.user);
 					
-					// Try to fetch profile, but don't block initialization
-					try {
-						await fetchProfile(session.user.id);
-					} catch (profileError) {
-						console.error('Error fetching profile during initialization:', profileError);
-						// Continue with initialization even if profile fetch fails
-					}
+					// Fetch profile in background
+					fetchProfile(session.user.id).catch(error => {
+						console.error('Background profile fetch failed:', error);
+					});
+				} else {
+					console.log('No session found');
 				}
 			} catch (error) {
 				console.error('Error initializing auth:', error);
 			} finally {
-				// Always set initialized to true, regardless of success/failure
-				if (isMounted) {
-					setInitialized(true);
-				}
+				setInitialized(true);
 			}
 		};
 
 		initializeAuth();
 
-		// Listen for auth changes
+		// Listen for auth changes with enhanced error handling
 		const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
 			console.log('Auth state changed:', event, !!session);
 			
-			if (!isMounted) return;
-
-			if (session) {
-				setSession(session);
-				setUser(session.user);
-				// Don't await this to prevent blocking
-				fetchProfile(session.user.id).catch(error => {
-					console.error('Error fetching profile on auth change:', error);
-				});
-			} else {
-				setSession(null);
-				setUser(null);
-				setProfile(null);
+			try {
+				if (session) {
+					setSession(session);
+					setUser(session.user);
+					// Fetch profile in background
+					fetchProfile(session.user.id).catch(error => {
+						console.error('Profile fetch failed on auth change:', error);
+					});
+				} else {
+					setSession(null);
+					setUser(null);
+					setProfile(null);
+				}
+			} catch (error) {
+				console.error('Error handling auth state change:', error);
 			}
 		});
 
 		return () => {
-			isMounted = false;
 			subscription.unsubscribe();
 		};
 	}, []);
 
-	// Handle navigation after initialization
+	// Handle navigation after initialization - SIMPLIFIED
 	useEffect(() => {
 		if (!initialized || isNavigating) return;
 
@@ -263,54 +268,57 @@ function AuthContent({ children }: PropsWithChildren) {
 			setIsNavigating(true);
 			
 			try {
-				console.log('Handling navigation:', { session: !!session, profile: !!profile });
-				
-				// Hide splash screen
+				// Hide splash screen safely
 				await SplashScreen.hideAsync();
 				
-				if (session) {
+				if (session && user) {
 					if (profile) {
-						// User is authenticated and has profile
-						console.log('Navigating to protected tabs');
+						console.log('Navigating to protected area with full auth');
 						router.replace("/(protected)/(tabs)");
 					} else {
-						// User is authenticated but no profile - try to fetch again
-						console.warn('Session exists but no profile found, attempting to fetch...');
-						const fetchedProfile = await fetchProfile(session.user.id);
+						console.log('Session exists but no profile, attempting to fetch');
+						const fetchedProfile = await fetchProfile(user.id);
 						
 						if (fetchedProfile) {
-							console.log('Profile fetched, navigating to protected tabs');
+							console.log('Profile fetched successfully, navigating to protected area');
 							router.replace("/(protected)/(tabs)");
 						} else {
-							// Profile fetch failed, but user is authenticated - handle gracefully
-							console.error('Could not fetch profile for authenticated user');
+							console.warn('Could not fetch profile, navigating to welcome');
 							router.replace("/welcome");
 						}
 					}
 				} else {
-					// No session - go to welcome
 					console.log('No session, navigating to welcome');
 					router.replace("/welcome");
 				}
 			} catch (error) {
-				console.error('Error during navigation:', error);
+				console.error('Navigation error:', error);
 				// Fallback navigation
-				router.replace("/welcome");
+				try {
+					router.replace("/welcome");
+				} catch (fallbackError) {
+					console.error('Fallback navigation failed:', fallbackError);
+				}
 			} finally {
 				setIsNavigating(false);
 			}
 		};
 
-		// Small delay to prevent navigation race conditions
-		const timeoutId = setTimeout(handleNavigation, 100);
+		// Small delay to ensure navigation is ready
+		const timeout = setTimeout(handleNavigation, 100);
 		
-		return () => clearTimeout(timeoutId);
-	}, [initialized, session, profile, router, isNavigating]);
+		return () => clearTimeout(timeout);
+	}, [initialized, session, profile, isNavigating]);
 
 	// Show loading screen while initializing
 	if (!initialized) {
 		return (
-			<View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
+			<View style={{ 
+				flex: 1, 
+				justifyContent: 'center', 
+				alignItems: 'center', 
+				backgroundColor: '#000' 
+			}}>
 				<ActivityIndicator size="large" color="#fff" />
 				<Text style={{ color: '#fff', marginTop: 16 }}>Loading...</Text>
 			</View>
