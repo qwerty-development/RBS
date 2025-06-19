@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from "react";
+import React, { useState, useCallback, useRef, useEffect, memo } from "react";
 import { View, ScrollView, TextInput, Pressable } from "react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
@@ -12,7 +12,24 @@ interface ChatTestScreenProps {
   setMessages?: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
 }
 
-export default function ChatTestScreen({
+// Memoized message component for better performance
+const MessageBubble = memo(({ message }: { message: ChatMessage }) => (
+  <View
+    className={`mb-4 p-3 rounded-lg ${
+      message.role === "user" ? "bg-primary ml-12" : "bg-muted mr-12"
+    }`}
+  >
+    <Text
+      className={
+        message.role === "user" ? "text-primary-foreground" : "text-foreground"
+      }
+    >
+      {message.content}
+    </Text>
+  </View>
+));
+
+const ChatTestScreen = memo(function ChatTestScreen({
   onClose,
   messages: externalMessages,
   setMessages: externalSetMessages,
@@ -26,38 +43,51 @@ export default function ChatTestScreen({
   const [isLoading, setIsLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change (optimized for speed)
   useEffect(() => {
     if (scrollViewRef.current) {
-      scrollViewRef.current.scrollToEnd({ animated: true });
+      // Immediate scroll for better perceived performance
+      scrollViewRef.current.scrollToEnd({ animated: false });
     }
   }, [messages]);
 
   const handleSend = useCallback(async () => {
-    if (!input.trim()) return;
+    const trimmedInput = input.trim();
+    if (!trimmedInput) return;
+
+    // Store current input and clear immediately for better UX
+    const userMessage: ChatMessage = { role: "user", content: trimmedInput };
+    const currentMessages = [...messages, userMessage];
+
+    // Single batch update: add user message, clear input, set loading
+    setMessages(currentMessages);
+    setInput("");
+    setIsLoading(true);
 
     try {
-      setIsLoading(true);
-      console.log("Sending message:", input);
+      console.log("Sending message:", trimmedInput);
 
-      // Add user message to chat
-      const userMessage: ChatMessage = { role: "user", content: input };
-      setMessages((prev) => [...prev, userMessage]);
-      setInput("");
-
-      // Call the AI agent
+      // Call AI agent with current message context
       console.log("Calling AI agent...");
-      const response = await ourAgent([...messages, userMessage]);
-      console.log("AI response:", response);
+      const response = await ourAgent(currentMessages);
+      console.log("AI response received:", response);
 
-      // Add AI response to chat
+      // Single atomic update: add response and clear loading
       setMessages((prev) => [...prev, response]);
+      setIsLoading(false);
     } catch (error) {
       console.error("Error in chat:", error);
-    } finally {
       setIsLoading(false);
+      // Optionally add error message to chat
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: "assistant",
+          content: "Sorry, I encountered an error. Please try again.",
+        },
+      ]);
     }
-  }, [input, messages]);
+  }, [input, messages, setMessages]);
 
   return (
     <View className="flex-1 bg-background">
@@ -84,7 +114,7 @@ export default function ChatTestScreen({
         ref={scrollViewRef}
         className="flex-1 p-4"
         onContentSizeChange={() =>
-          scrollViewRef.current?.scrollToEnd({ animated: true })
+          scrollViewRef.current?.scrollToEnd({ animated: false })
         }
       >
         {messages.length === 0 && (
@@ -100,22 +130,7 @@ export default function ChatTestScreen({
         )}
 
         {messages.map((message, index) => (
-          <View
-            key={index}
-            className={`mb-4 p-3 rounded-lg ${
-              message.role === "user" ? "bg-primary ml-12" : "bg-muted mr-12"
-            }`}
-          >
-            <Text
-              className={
-                message.role === "user"
-                  ? "text-primary-foreground"
-                  : "text-foreground"
-              }
-            >
-              {message.content}
-            </Text>
-          </View>
+          <MessageBubble key={index} message={message} />
         ))}
 
         {isLoading && (
@@ -142,4 +157,6 @@ export default function ChatTestScreen({
       </View>
     </View>
   );
-}
+});
+
+export default ChatTestScreen;
