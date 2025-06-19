@@ -1,5 +1,5 @@
 import React from "react";
-import { Redirect, Stack } from "expo-router";
+import { Stack } from "expo-router";
 import { useAuth } from "@/context/supabase-provider";
 import { GlobalChatTab } from "@/components/ui/global-chat-tab";
 import { View, ActivityIndicator, Text } from "react-native";
@@ -28,13 +28,9 @@ export default function ProtectedLayout() {
     );
   }
 
-  // Redirect to welcome if no session - let AuthProvider handle this
-  if (!session) {
-    return <Redirect href="/welcome" />;
-  }
-
   // Show loading while profile is being fetched
-  if (!profile) {
+  // Don't redirect here - let AuthProvider handle navigation
+  if (!session || !profile) {
     return (
       <View
         style={{

@@ -66,10 +66,11 @@ function AuthContent({ children }: PropsWithChildren) {
 	const [session, setSession] = useState<Session | null>(null);
 	const [user, setUser] = useState<User | null>(null);
 	const [profile, setProfile] = useState<Profile | null>(null);
-	const [isNavigating, setIsNavigating] = useState(false);
 	
 	const router = useRouter();
 	const initializationAttempted = useRef(false);
+	const navigationAttempted = useRef(false);
+	const splashHidden = useRef(false);
 
 	// Fetch user profile with enhanced error handling
 	const fetchProfile = async (userId: string): Promise<Profile | null> => {
@@ -129,11 +130,7 @@ function AuthContent({ children }: PropsWithChildren) {
 					// Don't throw here - user is created, profile can be created later
 				}
 
-				if (authData.session) {
-					setSession(authData.session);
-					setUser(authData.user);
-					await fetchProfile(authData.user.id);
-				}
+				// Don't set session here - let onAuthStateChange handle it
 			}
 		} catch (error) {
 			console.error('Error signing up:', error);
@@ -150,11 +147,7 @@ function AuthContent({ children }: PropsWithChildren) {
 
 			if (error) throw error;
 
-			if (data.session && data.user) {
-				setSession(data.session);
-				setUser(data.user);
-				await fetchProfile(data.user.id);
-			}
+			// Don't set session here - let onAuthStateChange handle it
 		} catch (error) {
 			console.error('Error signing in:', error);
 			throw error;
@@ -166,9 +159,7 @@ function AuthContent({ children }: PropsWithChildren) {
 			const { error } = await supabase.auth.signOut();
 			if (error) throw error;
 
-			setSession(null);
-			setUser(null);
-			setProfile(null);
+			// State will be cleared by onAuthStateChange
 		} catch (error) {
 			console.error('Error signing out:', error);
 			throw error;
@@ -199,6 +190,53 @@ function AuthContent({ children }: PropsWithChildren) {
 		await fetchProfile(user.id);
 	};
 
+	// Safe navigation function that prevents multiple calls
+	const navigateBasedOnAuth = async (currentSession: Session | null, currentProfile: Profile | null) => {
+		if (navigationAttempted.current) {
+			console.log('Navigation already attempted, skipping');
+			return;
+		}
+
+		navigationAttempted.current = true;
+
+		try {
+			// Hide splash screen safely
+			if (!splashHidden.current) {
+				await SplashScreen.hideAsync();
+				splashHidden.current = true;
+			}
+			
+			if (currentSession && currentSession.user) {
+				if (currentProfile) {
+					console.log('Navigating to protected area with full auth');
+					router.replace("/(protected)/(tabs)");
+				} else {
+					console.log('Session exists but no profile, attempting to fetch');
+					const fetchedProfile = await fetchProfile(currentSession.user.id);
+					
+					if (fetchedProfile) {
+						console.log('Profile fetched successfully, navigating to protected area');
+						router.replace("/(protected)/(tabs)");
+					} else {
+						console.warn('Could not fetch profile, navigating to welcome');
+						router.replace("/welcome");
+					}
+				}
+			} else {
+				console.log('No session, navigating to welcome');
+				router.replace("/welcome");
+			}
+		} catch (error) {
+			console.error('Navigation error:', error);
+			// Fallback navigation
+			try {
+				router.replace("/welcome");
+			} catch (fallbackError) {
+				console.error('Fallback navigation failed:', fallbackError);
+			}
+		}
+	};
+
 	// Initialize auth state with enhanced error handling
 	useEffect(() => {
 		if (initializationAttempted.current) return;
@@ -212,20 +250,35 @@ function AuthContent({ children }: PropsWithChildren) {
 				
 				if (error) {
 					console.error('Error getting session:', error);
+					setSession(null);
+					setUser(null);
+					setProfile(null);
 				} else if (session) {
 					console.log('Session found, setting auth state');
 					setSession(session);
 					setUser(session.user);
 					
-					// Fetch profile in background
-					fetchProfile(session.user.id).catch(error => {
-						console.error('Background profile fetch failed:', error);
-					});
+					// Fetch profile
+					const profile = await fetchProfile(session.user.id);
+					
+					// Navigate with current state
+					setTimeout(() => navigateBasedOnAuth(session, profile), 100);
 				} else {
 					console.log('No session found');
+					setSession(null);
+					setUser(null);
+					setProfile(null);
+					
+					// Navigate to welcome
+					setTimeout(() => navigateBasedOnAuth(null, null), 100);
 				}
 			} catch (error) {
 				console.error('Error initializing auth:', error);
+				// Set safe defaults and navigate to welcome
+				setSession(null);
+				setUser(null);
+				setProfile(null);
+				setTimeout(() => navigateBasedOnAuth(null, null), 100);
 			} finally {
 				setInitialized(true);
 			}
@@ -237,18 +290,24 @@ function AuthContent({ children }: PropsWithChildren) {
 		const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
 			console.log('Auth state changed:', event, !!session);
 			
+			// Reset navigation flag on auth change
+			navigationAttempted.current = false;
+			
 			try {
 				if (session) {
 					setSession(session);
 					setUser(session.user);
-					// Fetch profile in background
-					fetchProfile(session.user.id).catch(error => {
-						console.error('Profile fetch failed on auth change:', error);
-					});
+					
+					// Fetch profile and navigate
+					const profile = await fetchProfile(session.user.id);
+					setTimeout(() => navigateBasedOnAuth(session, profile), 100);
 				} else {
 					setSession(null);
 					setUser(null);
 					setProfile(null);
+					
+					// Navigate to welcome
+					setTimeout(() => navigateBasedOnAuth(null, null), 100);
 				}
 			} catch (error) {
 				console.error('Error handling auth state change:', error);
@@ -259,56 +318,6 @@ function AuthContent({ children }: PropsWithChildren) {
 			subscription.unsubscribe();
 		};
 	}, []);
-
-	// Handle navigation after initialization - SIMPLIFIED
-	useEffect(() => {
-		if (!initialized || isNavigating) return;
-
-		const handleNavigation = async () => {
-			setIsNavigating(true);
-			
-			try {
-				// Hide splash screen safely
-				await SplashScreen.hideAsync();
-				
-				if (session && user) {
-					if (profile) {
-						console.log('Navigating to protected area with full auth');
-						router.replace("/(protected)/(tabs)");
-					} else {
-						console.log('Session exists but no profile, attempting to fetch');
-						const fetchedProfile = await fetchProfile(user.id);
-						
-						if (fetchedProfile) {
-							console.log('Profile fetched successfully, navigating to protected area');
-							router.replace("/(protected)/(tabs)");
-						} else {
-							console.warn('Could not fetch profile, navigating to welcome');
-							router.replace("/welcome");
-						}
-					}
-				} else {
-					console.log('No session, navigating to welcome');
-					router.replace("/welcome");
-				}
-			} catch (error) {
-				console.error('Navigation error:', error);
-				// Fallback navigation
-				try {
-					router.replace("/welcome");
-				} catch (fallbackError) {
-					console.error('Fallback navigation failed:', fallbackError);
-				}
-			} finally {
-				setIsNavigating(false);
-			}
-		};
-
-		// Small delay to ensure navigation is ready
-		const timeout = setTimeout(handleNavigation, 100);
-		
-		return () => clearTimeout(timeout);
-	}, [initialized, session, profile, isNavigating]);
 
 	// Show loading screen while initializing
 	if (!initialized) {
