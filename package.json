@@ -50,6 +50,7 @@
 		"nativewind": "^4.1.23",
 		"react": "19.0.0",
 		"react-dom": "19.0.0",
+		"react-error-boundary": "^6.0.0",
 		"react-hook-form": "^7.55.0",
 		"react-native": "0.79.2",
 		"react-native-gesture-handler": "~2.24.0",

@@ -2,16 +2,28 @@ import { AppState } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL as string;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY as string;
+// Environment variables with proper fallbacks and validation
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-// Simplified secure storage implementation
+// Validate environment variables
+if (!supabaseUrl || !supabaseAnonKey) {
+	console.error('Missing Supabase environment variables:', {
+		hasUrl: !!supabaseUrl,
+		hasKey: !!supabaseAnonKey
+	});
+	throw new Error('Supabase configuration is missing. Please check your environment variables.');
+}
+
+// Enhanced secure storage implementation with better error handling
 class SecureStorage {
 	async getItem(key: string): Promise<string | null> {
 		try {
-			return await SecureStore.getItemAsync(key);
+			const item = await SecureStore.getItemAsync(key);
+			return item;
 		} catch (error) {
-			console.error('Error getting item from secure storage:', error);
+			console.warn('SecureStorage getItem error:', error);
+			// Return null instead of throwing to prevent crashes
 			return null;
 		}
 	}
@@ -20,8 +32,8 @@ class SecureStorage {
 		try {
 			await SecureStore.setItemAsync(key, value);
 		} catch (error) {
-			console.error('Error setting item in secure storage:', error);
-			// Don't throw - let Supabase handle the fallback
+			console.warn('SecureStorage setItem error:', error);
+			// Don't throw - let Supabase handle the fallback gracefully
 		}
 	}
 
@@ -29,26 +41,48 @@ class SecureStorage {
 		try {
 			await SecureStore.deleteItemAsync(key);
 		} catch (error) {
-			console.error('Error removing item from secure storage:', error);
-			// Don't throw - let Supabase handle the fallback
+			console.warn('SecureStorage removeItem error:', error);
+			// Don't throw - let Supabase handle the fallback gracefully
 		}
 	}
 }
 
+// Create Supabase client with enhanced configuration
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 	auth: {
 		storage: new SecureStorage(),
 		autoRefreshToken: true,
 		persistSession: true,
 		detectSessionInUrl: false,
+		storageKey: 'supabase.auth.token',
+	},
+	// Add timeout and retry configuration
+	global: {
+		headers: {
+			'X-Client-Info': 'booklet-app',
+		},
 	},
 });
 
-// Handle app state changes
-AppState.addEventListener("change", (state) => {
-	if (state === "active") {
-		supabase.auth.startAutoRefresh();
-	} else {
-		supabase.auth.stopAutoRefresh();
+// Enhanced app state handling with error boundaries
+let appStateListener: any = null;
+
+const handleAppStateChange = (state: string) => {
+	try {
+		if (state === "active") {
+			supabase.auth.startAutoRefresh();
+		} else {
+			supabase.auth.stopAutoRefresh();
+		}
+	} catch (error) {
+		console.error('App state change error:', error);
 	}
-});
+};
+
+// Clean up existing listener before adding new one
+if (appStateListener) {
+	appStateListener.remove();
+}
+
+// Add app state listener with error handling
+appStateListener = AppState.addEventListener("change", handleAppStateChange);

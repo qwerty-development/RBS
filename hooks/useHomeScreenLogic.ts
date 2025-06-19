@@ -476,7 +476,7 @@ export function useHomeScreenLogic() {
   );
 
   const handleProfilePress = useCallback(() => {
-    router.push("/(protected)/(tabs)/profile");
+    router.push("/(protected)/profile/loyalty");
   }, [router]);
 
   return {
