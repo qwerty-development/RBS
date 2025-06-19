@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Dimensions,
+  Modal,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,7 +26,7 @@ import { Text } from "@/components/ui/text";
 import { H1, H2, H3, P, Muted } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { Image } from "@/components/image";
-import { RestaurantCard } from "@/components/home/RestaurantCard";
+import { EnhancedRestaurantCard } from "@/components/restaurant/LongRestaurantCard";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { supabase } from "@/config/supabase";
 import { Database } from "@/types/supabase";
@@ -46,7 +47,7 @@ interface FilterOptions {
   openNow: boolean;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const SORT_OPTIONS = [
   { value: "rating", label: "Highest Rated" },
@@ -328,11 +329,12 @@ export default function CuisineScreen() {
       <FlatList
         data={restaurants}
         renderItem={({ item }) => (
-          <View className="px-4 mb-3">
-            <RestaurantCard
-              item={item}
+          <View style={{ width: SCREEN_WIDTH, paddingHorizontal: 16, marginBottom: 12 }}>
+            <EnhancedRestaurantCard
+              restaurant={item}
               variant="detailed"
               onPress={() => handleRestaurantPress(item)}
+              showQuickActions={true}
             />
           </View>
         )}
@@ -375,20 +377,25 @@ export default function CuisineScreen() {
         }
       />
 
-      {/* Filter Modal */}
-      {showFilters && (
-        <FilterModal
+      {/* Bottom Sheet Filter Modal */}
+      <Modal
+        visible={showFilters}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowFilters(false)}
+      >
+        <FilterBottomSheet
           filters={filters}
           onApply={applyFilters}
           onClose={() => setShowFilters(false)}
         />
-      )}
+      </Modal>
     </SafeAreaView>
   );
 }
 
-// Filter Modal Component
-function FilterModal({
+// Bottom Sheet Filter Component
+function FilterBottomSheet({
   filters,
   onApply,
   onClose,
@@ -400,119 +407,140 @@ function FilterModal({
   const [tempFilters, setTempFilters] = useState(filters);
 
   return (
-    <View className="absolute inset-0 bg-background z-50">
-      <SafeAreaView className="flex-1">
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
-          <Button variant="ghost" onPress={onClose}>
-            <Text>Cancel</Text>
-          </Button>
-          <H3>Filters</H3>
-          <Button
-            onPress={() => onApply(tempFilters)}
-            variant="default"
-          >
-            <Text>Apply</Text>
-          </Button>
-        </View>
-
-        <ScrollView className="flex-1 px-4 py-6">
-          {/* Sort By */}
-          <View className="mb-6">
-            <H3 className="mb-3">Sort By</H3>
-            {SORT_OPTIONS.map((option) => (
-              <Pressable
-                key={option.value}
-                onPress={() => setTempFilters(prev => ({ ...prev, sortBy: option.value }))}
-                className="flex-row items-center justify-between py-3"
-              >
-                <Text>{option.label}</Text>
-                <View className={`w-5 h-5 rounded-full border-2 items-center justify-center ${
-                  tempFilters.sortBy === option.value ? "border-primary" : "border-muted"
-                }`}>
-                  {tempFilters.sortBy === option.value && (
-                    <View className="w-2 h-2 rounded-full bg-primary" />
-                  )}
-                </View>
-              </Pressable>
-            ))}
+    <View className="flex-1 justify-end">
+      {/* Backdrop */}
+      <Pressable 
+        className="flex-1 bg-black/50" 
+        onPress={onClose}
+      />
+      
+      {/* Bottom Sheet Content */}
+      <View 
+        style={{ 
+          height: SCREEN_HEIGHT * 0.75,
+          backgroundColor: 'white'
+        }}
+        className="bg-background rounded-t-3xl"
+      >
+        <SafeAreaView className="flex-1">
+          {/* Handle Bar */}
+          <View className="items-center py-3">
+            <View className="w-10 h-1 bg-muted rounded-full" />
           </View>
 
-          {/* Price Range */}
-          <View className="mb-6">
-            <H3 className="mb-3">Price Range</H3>
-            <View className="flex-row gap-2">
-              {[1, 2, 3, 4].map((price) => (
-                <Pressable
-                  key={price}
-                  onPress={() => {
-                    const isSelected = tempFilters.priceRange.includes(price);
-                    setTempFilters(prev => ({
-                      ...prev,
-                      priceRange: isSelected
-                        ? prev.priceRange.filter(p => p !== price)
-                        : [...prev.priceRange, price]
-                    }));
-                  }}
-                  className={`px-4 py-2 rounded-lg border ${
-                    tempFilters.priceRange.includes(price)
-                      ? "bg-primary border-primary"
-                      : "bg-background border-border"
-                  }`}
-                >
-                  <Text className={
-                    tempFilters.priceRange.includes(price)
-                      ? "text-primary-foreground"
-                      : "text-foreground"
-                  }>
-                    {"$".repeat(price)}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          {/* Rating Filter */}
-          <View className="mb-6">
-            <H3 className="mb-3">Minimum Rating</H3>
-            <View className="flex-row gap-2">
-              {[0, 3, 4, 4.5].map((rating) => (
-                <Pressable
-                  key={rating}
-                  onPress={() => setTempFilters(prev => ({ ...prev, rating }))}
-                  className={`px-4 py-2 rounded-lg border ${
-                    tempFilters.rating === rating
-                      ? "bg-primary border-primary"
-                      : "bg-background border-border"
-                  }`}
-                >
-                  <Text className={
-                    tempFilters.rating === rating
-                      ? "text-primary-foreground"
-                      : "text-foreground"
-                  }>
-                    {rating === 0 ? "Any" : `${rating}+ ⭐`}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-          </View>
-
-          {/* Open Now Toggle */}
-          <View className="flex-row items-center justify-between">
-            <H3>Open Now</H3>
-            <Pressable
-              onPress={() => setTempFilters(prev => ({ ...prev, openNow: !prev.openNow }))}
-              className={`w-12 h-6 rounded-full p-1 ${
-                tempFilters.openNow ? "bg-primary" : "bg-muted"
-              }`}
+          {/* Header */}
+          <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
+            <Button variant="ghost" onPress={onClose}>
+              <Text>Cancel</Text>
+            </Button>
+            <H3>Filters</H3>
+            <Button
+              onPress={() => onApply(tempFilters)}
+              variant="default"
             >
-              <View className={`w-4 h-4 rounded-full bg-white transition-transform ${
-                tempFilters.openNow ? "translate-x-6" : "translate-x-0"
-              }`} />
-            </Pressable>
+              <Text>Apply</Text>
+            </Button>
           </View>
-        </ScrollView>
-      </SafeAreaView>
+
+          <ScrollView className="flex-1 px-4 py-6">
+            {/* Sort By */}
+            <View className="mb-6">
+              <H3 className="mb-3">Sort By</H3>
+              {SORT_OPTIONS.map((option) => (
+                <Pressable
+                  key={option.value}
+                  onPress={() => setTempFilters(prev => ({ ...prev, sortBy: option.value }))}
+                  className="flex-row items-center justify-between py-3"
+                >
+                  <Text>{option.label}</Text>
+                  <View className={`w-5 h-5 rounded-full border-2 items-center justify-center ${
+                    tempFilters.sortBy === option.value ? "border-primary" : "border-muted"
+                  }`}>
+                    {tempFilters.sortBy === option.value && (
+                      <View className="w-2 h-2 rounded-full bg-primary" />
+                    )}
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+
+            {/* Price Range */}
+            <View className="mb-6">
+              <H3 className="mb-3">Price Range</H3>
+              <View className="flex-row gap-2">
+                {[1, 2, 3, 4].map((price) => (
+                  <Pressable
+                    key={price}
+                    onPress={() => {
+                      const isSelected = tempFilters.priceRange.includes(price);
+                      setTempFilters(prev => ({
+                        ...prev,
+                        priceRange: isSelected
+                          ? prev.priceRange.filter(p => p !== price)
+                          : [...prev.priceRange, price]
+                      }));
+                    }}
+                    className={`px-4 py-2 rounded-lg border ${
+                      tempFilters.priceRange.includes(price)
+                        ? "bg-primary border-primary"
+                        : "bg-background border-border"
+                    }`}
+                  >
+                    <Text className={
+                      tempFilters.priceRange.includes(price)
+                        ? "text-primary-foreground"
+                        : "text-foreground"
+                    }>
+                      {"$".repeat(price)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            {/* Rating Filter */}
+            <View className="mb-6">
+              <H3 className="mb-3">Minimum Rating</H3>
+              <View className="flex-row gap-2">
+                {[0, 3, 4, 4.5].map((rating) => (
+                  <Pressable
+                    key={rating}
+                    onPress={() => setTempFilters(prev => ({ ...prev, rating }))}
+                    className={`px-4 py-2 rounded-lg border ${
+                      tempFilters.rating === rating
+                        ? "bg-primary border-primary"
+                        : "bg-background border-border"
+                    }`}
+                  >
+                    <Text className={
+                      tempFilters.rating === rating
+                        ? "text-primary-foreground"
+                        : "text-foreground"
+                    }>
+                      {rating === 0 ? "Any" : `${rating}+ ⭐`}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            {/* Open Now Toggle */}
+            <View className="flex-row items-center justify-between">
+              <H3>Open Now</H3>
+              <Pressable
+                onPress={() => setTempFilters(prev => ({ ...prev, openNow: !prev.openNow }))}
+                className={`w-12 h-6 rounded-full p-1 ${
+                  tempFilters.openNow ? "bg-primary" : "bg-muted"
+                }`}
+              >
+                <View className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                  tempFilters.openNow ? "translate-x-6" : "translate-x-0"
+                }`} />
+              </Pressable>
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </View>
     </View>
   );
 }

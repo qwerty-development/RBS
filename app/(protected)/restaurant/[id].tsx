@@ -277,7 +277,7 @@ export default function RestaurantDetailsScreen() {
 
   // 15. MAIN RENDER WITH ENHANCED REVIEW INTEGRATION
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+    <View className="flex-1 bg-background" edges={["top"]}>
       <ScrollView
         ref={scrollViewRef}
         showsVerticalScrollIndicator={false}
@@ -380,6 +380,6 @@ export default function RestaurantDetailsScreen() {
           </Pressable>
         </View>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
