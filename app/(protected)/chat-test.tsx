@@ -1,14 +1,18 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { View, ScrollView, TextInput } from 'react-native';
-import { Button } from '@/components/ui/button';
-import { Text } from '@/components/ui/text';
-import { H3 } from '@/components/ui/typography';
-import { Send } from 'lucide-react-native';
-import { ourAgent, ChatMessage } from '@/ai/AI_Agent';
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { View, ScrollView, TextInput, Pressable } from "react-native";
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
+import { H3 } from "@/components/ui/typography";
+import { Send, X } from "lucide-react-native";
+import { ourAgent, ChatMessage } from "@/ai/AI_Agent";
 
-export default function ChatTestScreen() {
+interface ChatTestScreenProps {
+  onClose?: () => void;
+}
+
+export default function ChatTestScreen({ onClose }: ChatTestScreenProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -24,23 +28,22 @@ export default function ChatTestScreen() {
 
     try {
       setIsLoading(true);
-      console.log('Sending message:', input);
+      console.log("Sending message:", input);
 
       // Add user message to chat
-      const userMessage: ChatMessage = { role: 'user', content: input };
-      setMessages(prev => [...prev, userMessage]);
-      setInput('');
+      const userMessage: ChatMessage = { role: "user", content: input };
+      setMessages((prev) => [...prev, userMessage]);
+      setInput("");
 
       // Call the AI agent
-      console.log('Calling AI agent...');
+      console.log("Calling AI agent...");
       const response = await ourAgent([...messages, userMessage]);
-      console.log('AI response:', response);
+      console.log("AI response:", response);
 
       // Add AI response to chat
-      setMessages(prev => [...prev, response]);
-
+      setMessages((prev) => [...prev, response]);
     } catch (error) {
-      console.error('Error in chat:', error);
+      console.error("Error in chat:", error);
     } finally {
       setIsLoading(false);
     }
@@ -49,37 +52,67 @@ export default function ChatTestScreen() {
   return (
     <View className="flex-1 bg-background">
       <View className="p-4 border-b border-border">
-        <H3>AI Chat Test</H3>
-        <Text className="text-muted-foreground">
-          Test the AI chatbot and check console logs
-        </Text>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-1">
+            <H3>DineMate AI Assistant</H3>
+            <Text className="text-muted-foreground">
+              Ask me anything about restaurants, dining, or make a reservation!
+            </Text>
+          </View>
+          {onClose && (
+            <Pressable
+              onPress={onClose}
+              className="ml-4 p-2 rounded-full bg-muted"
+            >
+              <X size={20} color="#666" />
+            </Pressable>
+          )}
+        </View>
       </View>
 
-      <ScrollView 
+      <ScrollView
         ref={scrollViewRef}
         className="flex-1 p-4"
-        onContentSizeChange={() => scrollViewRef.current?.scrollToEnd({ animated: true })}
+        onContentSizeChange={() =>
+          scrollViewRef.current?.scrollToEnd({ animated: true })
+        }
       >
+        {messages.length === 0 && (
+          <View className="flex-1 items-center justify-center py-8">
+            <Text className="text-muted-foreground text-center mb-4">
+              👋 Hi! I'm DineMate, your AI dining assistant.
+            </Text>
+            <Text className="text-muted-foreground text-center text-sm">
+              I can help you find restaurants, make reservations, get
+              recommendations, and answer questions about dining options.
+            </Text>
+          </View>
+        )}
+
         {messages.map((message, index) => (
           <View
             key={index}
             className={`mb-4 p-3 rounded-lg ${
-              message.role === 'user'
-                ? 'bg-primary ml-12'
-                : 'bg-muted mr-12'
+              message.role === "user" ? "bg-primary ml-12" : "bg-muted mr-12"
             }`}
           >
             <Text
               className={
-                message.role === 'user'
-                  ? 'text-primary-foreground'
-                  : 'text-foreground'
+                message.role === "user"
+                  ? "text-primary-foreground"
+                  : "text-foreground"
               }
             >
               {message.content}
             </Text>
           </View>
         ))}
+
+        {isLoading && (
+          <View className="mb-4 p-3 rounded-lg bg-muted mr-12">
+            <Text className="text-foreground">DineMate is thinking...</Text>
+          </View>
+        )}
       </ScrollView>
 
       <View className="p-4 border-t border-border">
@@ -87,18 +120,16 @@ export default function ChatTestScreen() {
           <TextInput
             value={input}
             onChangeText={setInput}
-            placeholder="Type your message..."
+            placeholder="Ask me about restaurants, make a reservation..."
             className="flex-1 border border-border rounded-lg px-3 py-2"
             multiline
+            maxLength={500}
           />
-          <Button
-            onPress={handleSend}
-            disabled={isLoading || !input.trim()}
-          >
+          <Button onPress={handleSend} disabled={isLoading || !input.trim()}>
             <Send size={20} color="white" />
           </Button>
         </View>
       </View>
     </View>
   );
-} 
+}

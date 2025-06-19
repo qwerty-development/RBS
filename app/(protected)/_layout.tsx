@@ -1,36 +1,44 @@
+import React from "react";
+import { View } from "react-native";
 import { Redirect, Stack } from "expo-router";
 import { useAuth } from "@/context/supabase-provider";
+import { GlobalChatTab } from "@/components/ui/global-chat-tab";
 
 export const unstable_settings = {
-	initialRouteName: "(tabs)",
+  initialRouteName: "(tabs)",
 };
 
 export default function ProtectedLayout() {
-	const { initialized, session, profile } = useAuth();
+  const { initialized, session, profile } = useAuth();
 
-	// Show nothing while initializing to prevent flashing
-	if (!initialized) {
-		return null;
-	}
+  // Show nothing while initializing to prevent flashing
+  if (!initialized) {
+    return null;
+  }
 
-	// Redirect to welcome if no session
-	if (!session) {
-		return <Redirect href="/welcome" />;
-	}
+  // Redirect to welcome if no session
+  if (!session) {
+    return <Redirect href="/welcome" />;
+  }
 
-	// Wait for profile to load if we have a session
-	if (!profile) {
-		return null; // Could show a loading spinner here
-	}
+  // Wait for profile to load if we have a session
+  if (!profile) {
+    return null; // Could show a loading spinner here
+  }
 
-	return (
-		<Stack
-			screenOptions={{
-				headerShown: false,
-			}}
-		>
-			<Stack.Screen name="(tabs)" />
-			<Stack.Screen name="modal" options={{ presentation: "modal" }} />
-		</Stack>
-	);
+  return (
+    <View className="flex-1">
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+      >
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="modal" options={{ presentation: "modal" }} />
+      </Stack>
+
+      {/* Global AI Chat Tab */}
+      <GlobalChatTab />
+    </View>
+  );
 }
