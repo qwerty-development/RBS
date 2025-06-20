@@ -450,6 +450,7 @@ export default function RestaurantDetailsScreen() {
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "menu" | "reviews" | "offers">("overview");
+  const [pendingHighlightOfferId, setPendingHighlightOfferId] = useState<string | undefined>(highlightOfferId);
   const [showImageGallery, setShowImageGallery] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [processingOfferId, setProcessingOfferId] = useState<string | null>(null);
@@ -563,12 +564,13 @@ export default function RestaurantDetailsScreen() {
       { id: "reviews", label: "Reviews" },
     ];
     
-    if (restaurantOffers.length > 0) {
+    // FIXED: Only add offers tab when data is loaded and offers exist
+    if (!offersLoading && restaurantOffers.length > 0) {
       baseTabs.push({ id: "offers", label: "Offers" });
     }
     
     return baseTabs;
-  }, [restaurantOffers.length]);
+  }, [offersLoading, restaurantOffers.length]);
   
   // 10. CALLBACK HOOKS (all useCallback calls)
   const handleClaimOffer = useCallback(async (offerId: string) => {
@@ -660,10 +662,15 @@ export default function RestaurantDetailsScreen() {
   
   // 11. EFFECT HOOKS (all useEffect calls)
   useEffect(() => {
-    if (highlightOfferId) {
-      setActiveTab("offers");
+    // FIXED: Only switch to offers tab after data is loaded and offers exist
+    if (pendingHighlightOfferId && !offersLoading && restaurantOffers.length > 0) {
+      const offerExists = restaurantOffers.some(offer => offer.id === pendingHighlightOfferId);
+      if (offerExists) {
+        setActiveTab("offers");
+        setPendingHighlightOfferId(undefined); // Clear pending state
+      }
     }
-  }, [highlightOfferId]);
+  }, [pendingHighlightOfferId, offersLoading, restaurantOffers]);
   
   useEffect(() => {
     if (restaurant && id && fetchAvailableSlots) {
@@ -676,12 +683,12 @@ export default function RestaurantDetailsScreen() {
   }, [selectedDate, partySize, restaurant, fetchAvailableSlots, id]);
 
   useEffect(() => {
-    if (highlightOfferId && activeTab === "offers") {
+    if (activeTab === "offers" && highlightOfferId) {
       setTimeout(() => {
         scrollViewRef.current?.scrollTo({ y: 800, animated: true });
       }, 500);
     }
-  }, [highlightOfferId, activeTab]);
+  }, [activeTab, highlightOfferId]);
   
   // =============================================================================
   // END OF HOOK EXECUTION SECTION
@@ -784,8 +791,9 @@ export default function RestaurantDetailsScreen() {
           />
         )}
 
-        {/* Special Offers Highlight */}
-        {highlightOfferId && restaurantOffers.length > 0 && (
+        {/* Special Offers Highlight - FIXED: Only show when data is loaded and offer exists */}
+        {highlightOfferId && !offersLoading && restaurantOffers.length > 0 && 
+         restaurantOffers.some(offer => offer.id === highlightOfferId) && (
           <View className="px-4 mb-4">
             <View className="bg-primary/10 border-2 border-primary/30 rounded-xl p-4">
               <View className="flex-row items-center mb-2">
@@ -881,19 +889,26 @@ export default function RestaurantDetailsScreen() {
           />
         )}
 
-        {/* Offers Tab with Error Boundary */}
+        {/* Offers Tab with Enhanced Error Handling */}
         {activeTab === "offers" && (
           <View className="py-6">
-            <OffersErrorBoundary>
-              <SpecialOffersSection
-                offers={restaurantOffers}
-                highlightOfferId={highlightOfferId}
-                onClaimOffer={handleClaimOffer}
-                onUseOffer={handleUseOffer}
-                onBookWithOffer={handleBookWithOffer}
-                processing={!!processingOfferId}
-              />
-            </OffersErrorBoundary>
+            {offersLoading ? (
+              <View className="px-4 py-8 items-center">
+                <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#000"} />
+                <Text className="mt-4 text-muted-foreground">Loading offers...</Text>
+              </View>
+            ) : (
+              <OffersErrorBoundary>
+                <SpecialOffersSection
+                  offers={restaurantOffers}
+                  highlightOfferId={highlightOfferId}
+                  onClaimOffer={handleClaimOffer}
+                  onUseOffer={handleUseOffer}
+                  onBookWithOffer={handleBookWithOffer}
+                  processing={!!processingOfferId}
+                />
+              </OffersErrorBoundary>
+            )}
           </View>
         )}
 

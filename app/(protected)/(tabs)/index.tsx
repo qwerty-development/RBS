@@ -85,51 +85,98 @@ export default function HomeScreen() {
   return (
     <View className="flex-1 bg-background">
       <Animated.View
-        className="absolute top-0 left-0 right-0 z-10 bg-background border-b border-border/20"
+        className="absolute top-0 left-0 right-0 bg-background border-b border-border/20"
         onLayout={(event) => {
           setTotalHeaderHeight(event.nativeEvent.layout.height);
         }}
         style={{
           paddingTop: insets.top,
           transform: [{ translateY: headerTranslateY }],
+          zIndex: 100, // Lower z-index than profile picture
+          elevation: 100, // Android elevation
         }}
+        // Ensure child elements can receive touch events
+        pointerEvents="box-none"
       >
         <Animated.View
           onLayout={(event) => {
             setCollapsibleHeaderHeight(event.nativeEvent.layout.height);
           }}
           style={{ opacity: greetingOpacity }}
+          // Allow touch events to pass through to child elements
+          pointerEvents="box-none"
         >
-          <View className="flex-row items-center justify-between px-4 pt-2">
-            <View className="flex-1">
+          <View 
+            className="flex-row items-center justify-between px-4 pt-2"
+            // Allow touch events for child elements
+            pointerEvents="box-none"
+          >
+            <View 
+              className="flex-1"
+              // Prevent this container from capturing touch events meant for the profile picture
+              pointerEvents="none"
+            >
               <Text className="text-2xl font-bold text-foreground">
                 Hello {profile?.full_name?.split(" ")[0] || "there"}{" "}
                 <Text className="text-2xl">👋</Text>
               </Text>
             </View>
 
-            {/* Fixed Profile Picture - Now uses handleProfilePress from hook */}
             <Pressable
-              onPress={()=> router.push('/(protected)/profile')}
-              className="ml-3 p-1" // Added padding for better touch target
+              onPress={() => {
+        
+                router.push('/(protected)/profile')
+              }}
               style={({ pressed }) => ({ 
+                marginLeft: 12,
+                padding: 4,
+                zIndex: 999, // Explicit high z-index for production
+                elevation: 999, // Android elevation
                 opacity: pressed ? 0.7 : 1,
-                transform: [{ scale: pressed ? 0.95 : 1 }] // Added scale animation
+                transform: [{ scale: pressed ? 0.95 : 1 }]
               })}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} // Increased touch area
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+              // Ensure touch events are captured
+              pointerEvents="box-only"
             >
-              <View className="relative">
+              <View 
+                style={{
+                  position: 'relative',
+                  zIndex: 999,
+                  elevation: 999,
+                }}
+              >
                 <Image
                   source={
                     profile?.avatar_url
                       ? { uri: profile.avatar_url }
                       : require("@/assets/default-avatar.jpeg")
                   }
-                  className="w-10 h-10 rounded-full border-2 border-primary/20"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    borderWidth: 2,
+                    borderColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+                  }}
                   contentFit="cover"
                 />
                 {/* Online status indicator */}
-                <View className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
+                <View 
+                  style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    right: 0,
+                    width: 12,
+                    height: 12,
+                    backgroundColor: '#22c55e',
+                    borderRadius: 6,
+                    borderWidth: 2,
+                    borderColor: colorScheme === 'dark' ? '#000' : '#fff',
+                    zIndex: 1000,
+                    elevation: 1000,
+                  }}
+                />
               </View>
             </Pressable>
           </View>
