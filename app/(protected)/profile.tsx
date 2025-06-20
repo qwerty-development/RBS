@@ -1,4 +1,4 @@
-// app/(protected)/profile.tsx
+// app/(protected)/profile.tsx - Integrated with Rating System
 import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
@@ -31,6 +31,8 @@ import {
   UserPlus,
   MessageCircle,
   Gift,
+  BarChart3,
+  Award,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
@@ -43,6 +45,11 @@ import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
+
+// Rating System Components
+import { UserRating } from "@/components/rating/UserRating";
+import { UserRatingBadge } from "@/components/rating/UserRatingBadge";
+import { useUserRating } from "@/hooks/useUserRating";
 
 // 1. Enhanced Type Definitions for Profile Analytics
 interface ProfileStats {
@@ -147,6 +154,14 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
+  // 3.3 User Rating Hook
+  const { 
+    stats: ratingStats, 
+    loading: ratingLoading, 
+    currentRating,
+    refresh: refreshRating 
+  } = useUserRating();
+
   // 4. Enhanced Profile Statistics Calculation with Friends
   const fetchProfileStats = useCallback(async () => {
     if (!profile?.id) return;
@@ -179,26 +194,27 @@ export default function ProfileScreen() {
           .select("*", { count: "exact", head: true })
           .eq("user_id", profile.id),
         
-        // Friends count
+        // Friends count (Note: Replace with actual table names if different)
         supabase
-          .from("friends")
+          .from("social_connections")
           .select("*", { count: "exact", head: true })
-          .eq("user_id", profile.id),
+          .eq("user_id", profile.id)
+          .eq("status", "accepted"),
         
-        // Pending friend requests
+        // Pending friend requests (Note: Replace with actual table names if different)
         supabase
-          .from("friend_requests")
+          .from("social_connections")
           .select("*", { count: "exact", head: true })
-          .eq("to_user_id", profile.id)
+          .eq("friend_id", profile.id)
           .eq("status", "pending"),
         
         // Recent friend activity (last 7 days)
         supabase
-          .from("friend_requests")
+          .from("social_connections")
           .select("*", { count: "exact", head: true })
-          .eq("to_user_id", profile.id)
+          .eq("friend_id", profile.id)
           .eq("status", "accepted")
-          .gte("updated_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+          .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
       ]);
 
       const bookings = bookingsResult.data || [];
@@ -400,10 +416,10 @@ export default function ProfileScreen() {
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchProfileStats();
-  }, [fetchProfileStats]);
+    Promise.all([fetchProfileStats(), refreshRating()]);
+  }, [fetchProfileStats, refreshRating]);
 
-  // 9. Enhanced Menu Items Configuration with Friends
+  // 9. Enhanced Menu Items Configuration with Rating and Friends
   const menuSections: { title: string; items: MenuItem[] }[] = [
     {
       title: "Account",
@@ -414,6 +430,13 @@ export default function ProfileScreen() {
           subtitle: "Update your personal information",
           icon: Edit3,
           onPress: () => router.push("/profile/edit"),
+        },
+        {
+          id: "rating-details",
+          title: "Reliability Score",
+          subtitle: ratingStats ? `${ratingStats.current_rating.toFixed(1)} stars • ${ratingStats.reliability_score}` : "View your booking reliability",
+          icon: BarChart3,
+          onPress: () => router.push("/profile/rating-details"),
         },
         {
           id: "friends",
@@ -567,7 +590,7 @@ export default function ProfileScreen() {
           />
         }
       >
-        {/* 11.1 Profile Header */}
+        {/* 11.1 Enhanced Profile Header with Rating */}
         <View className="items-center pt-6 pb-4">
           <Pressable onPress={handleAvatarUpload} disabled={uploadingAvatar}>
             <View className="relative">
@@ -596,56 +619,96 @@ export default function ProfileScreen() {
           <H2 className="mt-3">{profile?.full_name}</H2>
           <Muted>{user?.email}</Muted>
 
-          {/* 11.2 Member Since Badge */}
-          <View className="flex-row items-center gap-2 mt-2 bg-muted px-3 py-1 rounded-full">
-            <Calendar size={14} color="#666" />
-            <Text className="text-sm text-muted-foreground">
-              Member since{" "}
-              {new Date(stats.memberSince).toLocaleDateString("en-US", {
-                month: "long",
-                year: "numeric",
-              })}
-            </Text>
+          {/* 11.2 Enhanced Member Since Badge with Rating */}
+          <View className="flex-row items-center gap-3 mt-3">
+            <View className="flex-row items-center gap-2 bg-muted px-3 py-1 rounded-full">
+              <Calendar size={14} color="#666" />
+              <Text className="text-sm text-muted-foreground">
+                Member since{" "}
+                {new Date(stats.memberSince).toLocaleDateString("en-US", {
+                  month: "long",
+                  year: "numeric",
+                })}
+              </Text>
+            </View>
+            
+            {/* User Rating Badge */}
+            {!ratingLoading && ratingStats && (
+              <UserRatingBadge 
+                rating={currentRating}
+                trend={ratingStats.rating_trend.toLowerCase() as any}
+                compact={true}
+              />
+            )}
           </View>
         </View>
 
-        {/* 11.3 Loyalty Status Card */}
-        <View className="mx-4 mb-6 p-4 bg-card rounded-xl shadow-sm">
-          <View className="flex-row items-center justify-between mb-3">
-            <View className="flex-row items-center gap-2">
+        {/* 11.3 Enhanced Loyalty & Rating Status Cards */}
+        <View className="flex-row mx-4 mb-6 gap-3">
+          {/* Loyalty Status Card */}
+          <View className="flex-1 p-4 bg-card rounded-xl shadow-sm">
+            <View className="flex-row items-center gap-2 mb-2">
               <Trophy
-                size={24}
+                size={20}
                 color={LOYALTY_TIERS[profile?.membership_tier || "bronze"].color}
               />
-              <View>
-                <Text className="font-bold text-lg">
-                  {LOYALTY_TIERS[profile?.membership_tier || "bronze"].name} Member
-                </Text>
-                <Text className="text-sm text-muted-foreground">
-                  {profile?.loyalty_points || 0} points
-                </Text>
-              </View>
+              <Text className="font-bold text-sm">
+                {LOYALTY_TIERS[profile?.membership_tier || "bronze"].name}
+              </Text>
             </View>
-            <ChevronRight size={20} color="#666" />
+            <Text className="text-lg font-bold text-primary">
+              {profile?.loyalty_points || 0}
+            </Text>
+            <Text className="text-xs text-muted-foreground">
+              Loyalty Points
+            </Text>
+            
+            {/* Progress Bar for Loyalty */}
+            {tierProgress.nextTier && (
+              <>
+                <View className="h-1.5 bg-muted rounded-full overflow-hidden mt-2">
+                  <View
+                    className="h-full bg-primary"
+                    style={{ width: `${Math.max(0, Math.min(100, tierProgress.progress * 100))}%` }}
+                  />
+                </View>
+                <Text className="text-xs text-muted-foreground mt-1">
+                  {tierProgress.pointsToNext} to {LOYALTY_TIERS[tierProgress.nextTier].name}
+                </Text>
+              </>
+            )}
           </View>
 
-          {/* 11.4 Progress Bar */}
-          {tierProgress.nextTier && (
-            <>
-              <View className="h-2 bg-muted rounded-full overflow-hidden mb-2">
-                <View
-                  className="h-full bg-primary"
-                  style={{ width: `${Math.max(0, Math.min(100, tierProgress.progress * 100))}%` }}
+          {/* Reliability Score Card */}
+          <View className="flex-1 p-4 bg-card rounded-xl shadow-sm">
+            <View className="flex-row items-center gap-2 mb-2">
+              <Award size={20} color="#FFD700" />
+              <Text className="font-bold text-sm">Reliability</Text>
+            </View>
+            {!ratingLoading && ratingStats ? (
+              <>
+                <UserRating 
+                  rating={currentRating} 
+                  size="sm" 
+                  showNumber={false}
                 />
+                <Text className="text-lg font-bold text-primary mt-1">
+                  {currentRating.toFixed(1)}
+                </Text>
+                <Text className="text-xs text-muted-foreground">
+                  {ratingStats.completion_rate.toFixed(0)}% completion rate
+                </Text>
+              </>
+            ) : (
+              <View className="py-2">
+                <ActivityIndicator size="small" />
+                <Text className="text-xs text-muted-foreground mt-1">Loading...</Text>
               </View>
-              <Text className="text-xs text-muted-foreground text-center">
-                {tierProgress.pointsToNext} points to {LOYALTY_TIERS[tierProgress.nextTier].name}
-              </Text>
-            </>
-          )}
+            )}
+          </View>
         </View>
 
-        {/* 11.5 Enhanced Quick Stats Grid with Friends */}
+        {/* 11.4 Enhanced Quick Stats Grid with Rating Stats */}
         <View className="mx-4 mb-6">
           <H3 className="mb-3">Your Dining Journey</H3>
           <View className="flex-row flex-wrap gap-3">
@@ -691,6 +754,7 @@ export default function ProfileScreen() {
               <Muted className="text-sm">Reviews</Muted>
             </View>
 
+            {/* Enhanced with Rating-specific Stats */}
             <View className="flex-1 min-w-[45%] bg-card p-4 rounded-lg">
               <View className="flex-row items-center gap-2 mb-1">
                 <TrendingUp size={20} color="#8b5cf6" />
@@ -709,7 +773,7 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* 11.6 Enhanced Favorite Insights */}
+        {/* 11.5 Enhanced Favorite Insights */}
         {(stats.mostVisitedCuisine !== "Not available" || stats.mostVisitedRestaurant) && (
           <View className="mx-4 mb-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
             <Text className="font-semibold mb-2">Your Favorites</Text>
@@ -735,6 +799,34 @@ export default function ProfileScreen() {
           </View>
         )}
 
+        {/* 11.6 Rating Insights Card */}
+        {ratingStats && ratingStats.total_bookings > 0 && (
+          <Pressable 
+            onPress={() => router.push("/profile/rating-details")}
+            className="mx-4 mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200"
+          >
+            <View className="flex-row items-center justify-between mb-2">
+              <Text className="font-semibold text-blue-800">Reliability Insights</Text>
+              <ChevronRight size={16} color="#2563eb" />
+            </View>
+            <View className="flex-row items-center gap-4">
+              <View className="flex-1">
+                <Text className="text-blue-700 text-sm">
+                  Completion Rate: <Text className="font-medium">{ratingStats.completion_rate.toFixed(0)}%</Text>
+                </Text>
+                <Text className="text-blue-700 text-sm">
+                  Rating Trend: <Text className="font-medium">{ratingStats.rating_trend}</Text>
+                </Text>
+              </View>
+              <UserRating 
+                rating={currentRating}
+                size="md"
+                showNumber={true}
+              />
+            </View>
+          </Pressable>
+        )}
+
         {/* 11.7 Enhanced Menu Sections */}
         {menuSections.map((section, sectionIndex) => (
           <View key={sectionIndex} className="mb-6">
@@ -747,7 +839,10 @@ export default function ProfileScreen() {
               {section.items.map((item, itemIndex) => (
                 <Pressable
                   key={item.id}
-                  onPress={item.onPress}
+                  onPress={async () => {
+                    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    item.onPress();
+                  }}
                   className={`flex-row items-center px-4 py-4 ${
                     itemIndex < section.items.length - 1 ? "border-b border-border" : ""
                   }`}
