@@ -6,23 +6,14 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
-  Linking,
-  Platform,
   Dimensions,
-  Share,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-  Heart,
-  Share2,
-  Phone,
-  MessageCircle,
-  MapPin,
   Clock,
   Users,
   Star,
-  ChevronLeft,
-  ChevronRight,
+
   Calendar,
   DollarSign,
   CheckCircle,
@@ -40,14 +31,13 @@ import {
   ExternalLink,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
-import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
+import MapView from "react-native-maps";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { H1, H2, H3, H4, P, Muted } from "@/components/ui/typography";
-import { Image } from "@/components/image";
-import { supabase } from "@/config/supabase";
+import { H1, H2, H3, H4, P, } from "@/components/ui/typography";
+
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
