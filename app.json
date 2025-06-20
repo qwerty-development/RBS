@@ -13,7 +13,10 @@
 
     "updates": {
       "url": "https://u.expo.dev/9cb3f29d-a85c-439a-ac34-513843ed9279",
-      "fallbackToCacheTimeout": 0          
+      "fallbackToCacheTimeout": 0,
+      "requestHeaders": {
+        "expo-channel-name": "production"
+      }
     },
 
     "ios": {

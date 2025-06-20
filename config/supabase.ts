@@ -1,54 +1,13 @@
 import { AppState } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { createClient } from "@supabase/supabase-js";
-import Constants from 'expo-constants';
 
-// Enhanced environment variable loading with multiple fallback strategies
-const getEnvVar = (key: string): string | undefined => {
-	// Try multiple sources for environment variables
-	return (
-		process.env[key] || 
-		Constants.expoConfig?.extra?.[key] || 
-		Constants.manifest?.extra?.[key] ||
-		Constants.manifest2?.extra?.[key]
-	);
-};
+
 
 // Environment variables with enhanced validation and debugging
-const supabaseUrl = getEnvVar('EXPO_PUBLIC_SUPABASE_URL');
-const supabaseAnonKey = getEnvVar('EXPO_PUBLIC_SUPABASE_ANON_KEY');
+const supabaseUrl = 'https://xsovqvbigdettnpeisjs.supabase.co'
+const supabaseAnonKey ='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhzb3ZxdmJpZ2RldHRucGVpc2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwNzUzODIsImV4cCI6MjA2NTY1MTM4Mn0.QY4L0oKNEjJE5dv7dok2zz4TouiehxqibbfBGnmjLO8'
 
-// Debug environment variable loading
-console.log('🔍 Environment variable loading:');
-console.log('  - EXPO_PUBLIC_SUPABASE_URL:', supabaseUrl ? '✅ Found' : '❌ Missing');
-console.log('  - EXPO_PUBLIC_SUPABASE_ANON_KEY:', supabaseAnonKey ? '✅ Found' : '❌ Missing');
-console.log('  - Build type:', __DEV__ ? 'Development' : 'Production');
-
-// Validate environment variables with detailed error reporting
-if (!supabaseUrl) {
-	const error = 'EXPO_PUBLIC_SUPABASE_URL is missing. Please check your environment configuration.';
-	console.error('❌', error);
-	throw new Error(error);
-}
-
-if (!supabaseAnonKey) {
-	const error = 'EXPO_PUBLIC_SUPABASE_ANON_KEY is missing. Please check your environment configuration.';
-	console.error('❌', error);
-	throw new Error(error);
-}
-
-// Validate URL format
-try {
-	new URL(supabaseUrl);
-} catch {
-	const error = 'EXPO_PUBLIC_SUPABASE_URL is not a valid URL.';
-	console.error('❌', error);
-	throw new Error(error);
-}
-
-console.log('✅ Supabase environment variables validated successfully');
-
-// Enhanced secure storage implementation with better error handling and fallbacks
 class SecureStorage {
 	private memoryFallback: Map<string, string> = new Map();
 	private hasSecureStoreAccess: boolean | null = null;
@@ -59,11 +18,6 @@ class SecureStorage {
 		}
 
 		try {
-			// Test SecureStore access
-			await SecureStore.setItemAsync('__test__', 'test');
-			await SecureStore.deleteItemAsync('__test__');
-			this.hasSecureStoreAccess = true;
-			console.log('✅ SecureStore access confirmed');
 			return true;
 		} catch (error) {
 			console.warn('⚠️ SecureStore not available, using memory fallback:', error);
