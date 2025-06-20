@@ -1,156 +1,165 @@
+
+// components/home/SpecialOfferCard.tsx
 import React from "react";
-import { View, Pressable, Dimensions } from "react-native";
-import { Sparkles, Calendar, MapPin, Tag, Clock, CheckCircle } from "lucide-react-native";
+import { View, Pressable } from "react-native";
+import { 
+  Star, 
+  MapPin, 
+  Calendar, 
+  Users, 
+  Tag, 
+  Clock,
+  CheckCircle,
+  Gift,
+} from "lucide-react-native";
+
 import { Text } from "@/components/ui/text";
-import { H3, P } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 import { EnrichedOffer } from "@/hooks/useOffers";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-
-interface Restaurant {
-  id: string;
-  name: string;
-  cuisine_type: string;
-  main_image_url: string;
-  tags: string[];
-  average_rating: number;
-  total_reviews: number;
-  address: string;
-  price_range: number;
-  booking_policy: "instant" | "request";
-  created_at?: string;
-  featured?: boolean;
-}
-
-const OfferStatus: React.FC<{ offer: EnrichedOffer }> = ({ offer }) => {
-  if (offer.used) {
-    return (
-      <View className="flex-row items-center bg-green-100 px-3 py-1 rounded-full">
-        <CheckCircle size={14} color="#16a34a" />
-        <Text className="text-green-700 text-sm ml-1">Used</Text>
-      </View>
-    );
-  }
-
-  if (offer.isExpired) {
-    return (
-      <View className="flex-row items-center bg-red-100 px-3 py-1 rounded-full">
-        <Clock size={14} color="#dc2626" />
-        <Text className="text-red-700 text-sm ml-1">Expired</Text>
-      </View>
-    );
-  }
-
-  if (offer.claimed) {
-    const daysLeft = offer.expiresAt ? 
-      Math.max(0, Math.ceil((new Date(offer.expiresAt).getTime() - new Date().getTime()) / (24 * 60 * 60 * 1000))) : 0;
-    
-    return (
-      <View className="flex-row items-center bg-blue-100 px-3 py-1 rounded-full">
-        <Tag size={14} color="#2563eb" />
-        <Text className="text-blue-700 text-sm ml-1">
-          {daysLeft === 0 ? "Expires today" : `${daysLeft}d left`}
-        </Text>
-      </View>
-    );
-  }
-
-  return null;
-};
-
-interface SpecialOffer {
-  id: string;
-  title: string;
-  description: string;
-  discount_percentage: number;
-  valid_until: string;
-  restaurant: Restaurant;
-}
-
 interface SpecialOfferCardProps {
   offer: EnrichedOffer;
-  onPress: (offer: EnrichedOffer) => void;
 }
 
-export function SpecialOfferCard({ offer, onPress }: SpecialOfferCardProps) {
-  if (!offer?.restaurant?.id) {
-    console.warn("Invalid offer or restaurant data:", offer);
-    return null;
-  }
-
-  const handlePress = () => {
-    onPress(offer);
+export function SpecialOfferCard({ offer }: SpecialOfferCardProps) {
+  // Helper functions
+  const formatDate = (dateString: string) => {
+    try {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      });
+    } catch (error) {
+      return "Soon";
+    }
   };
 
-  return (
-    <Pressable onPress={handlePress} style={{ width: SCREEN_WIDTH - 32 }} className="mx-4">
-      <View className="bg-card rounded-2xl overflow-hidden shadow-lg shadow-black/10 border border-border">
-        {/* Restaurant Image */}
-        <View className="relative">
-          <Image 
-            source={{ uri: offer.restaurant.main_image_url }} 
-            className="w-full h-48" 
-            contentFit="cover" 
-          />
-          
-          {/* Enhanced Dark Overlay for Better Text Visibility */}
-          <View className="absolute inset-0 bg-black/40" />
-          <View className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
-          
-          {/* Discount Badge */}
-                    {/* Offer Status */}
-          <View className="absolute top-4 left-4">
-            <OfferStatus offer={offer} />
-          </View>
+  const getOfferStatus = () => {
+    if (offer.used) {
+      return {
+        label: "Used",
+        color: "#10b981",
+        bgColor: "#d1fae5",
+        icon: CheckCircle,
+      };
+    }
+    
+    if (offer.isExpired) {
+      return {
+        label: "Expired",
+        color: "#ef4444",
+        bgColor: "#fee2e2",
+        icon: Clock,
+      };
+    }
+    
+    if (offer.claimed) {
+      return {
+        label: `${offer.daysUntilExpiry || 0}d left`,
+        color: "#3b82f6",
+        bgColor: "#dbeafe",
+        icon: Tag,
+      };
+    }
+    
+    return {
+      label: "Available",
+      color: "#10b981",
+      bgColor: "#d1fae5",
+      icon: Gift,
+    };
+  };
 
-          {/* Discount Badge */}
-          <View className="absolute top-4 right-4 bg-primary px-4 py-2 rounded-full shadow-lg">
-            <Text className="text-primary-foreground font-extrabold text-lg">
-              {offer.discount_percentage}% OFF
-            </Text>
-          </View>
-          
-          {/* Restaurant Info Overlay */}
-          <View className="absolute bottom-4 left-4 right-4">
-            <View className="flex-row items-center mb-2">
-              <Sparkles size={20} color="#fbbf24" />
-              <Text className="text-yellow-400 font-semibold ml-2">Special Offer</Text>
-            </View>
-            <H3 className="text-white mb-1 shadow-lg">{offer.title}</H3>
-            <View className="flex-row items-center">
-              <MapPin size={16} color="#ffffff" />
-              <Text className="text-white/90 ml-1 font-medium">{offer.restaurant.name}</Text>
-              <Text className="text-white/70 ml-2">• {offer.restaurant.cuisine_type}</Text>
-            </View>
-          </View>
+  const status = getOfferStatus();
+  const StatusIcon = status.icon;
+
+  return (
+    <View className="mx-4 bg-card border border-border rounded-2xl overflow-hidden shadow-lg shadow-black/5">
+      {/* Restaurant Image with Overlay Info */}
+      <View className="relative">
+        <Image 
+          source={{ uri: offer.restaurant.main_image_url }} 
+          className="w-full h-48" 
+          contentFit="cover" 
+        />
+        
+        {/* Gradient Overlay */}
+        <View className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        
+        {/* Status Badge */}
+        <View 
+          className="absolute top-3 left-3 px-3 py-1 rounded-full flex-row items-center gap-1"
+          style={{ backgroundColor: status.bgColor }}
+        >
+          <StatusIcon size={14} color={status.color} />
+          <Text className="text-sm font-medium" style={{ color: status.color }}>
+            {status.label}
+          </Text>
         </View>
         
-        {/* Card Content */}
-        <View className="p-4">
-          {offer.description && (
-            <P className="text-muted-foreground mb-3" numberOfLines={2}>
-              {offer.description}
-            </P>
-          )}
-          
-          {/* Metadata */}
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center bg-muted/50 rounded-full px-3 py-2">
-              <Calendar size={16} color="#6b7280" />
-              <Text className="text-sm text-muted-foreground ml-2">
-                Expires {new Date(offer.valid_until).toLocaleDateString()}
+        {/* Discount Badge - Top Right */}
+        <View className="absolute top-3 right-3 bg-primary h-14 w-14 rounded-full items-center justify-center border-2 border-white">
+          <Text className="text-white font-extrabold text-lg">
+            {offer.discount_percentage}
+          </Text>
+          <Text className="text-white font-bold text-xs -mt-1">%</Text>
+        </View>
+        
+        {/* Restaurant Info Overlay */}
+        <View className="absolute bottom-3 left-3 right-3">
+          <Text className="text-white font-bold text-xl mb-1">
+            {offer.restaurant.name}
+          </Text>
+          <View className="flex-row items-center gap-2 mb-2">
+            <View className="flex-row items-center gap-1">
+              <Star size={14} color="#f59e0b" fill="#f59e0b" />
+              <Text className="text-white text-sm font-medium">
+                {offer.restaurant.average_rating?.toFixed(1) || "4.5"}
+              </Text>
+            </View>
+            <Text className="text-white/80 text-sm">•</Text>
+            <Text className="text-white/80 text-sm">
+              {offer.restaurant.cuisine_type}
+            </Text>
+          </View>
+        </View>
+      </View>
+      
+      {/* Offer Details */}
+      <View className="p-4">
+        <Text className="font-bold text-lg mb-2" numberOfLines={1}>
+          {offer.title}
+        </Text>
+        
+        {offer.description && (
+          <Text className="text-muted-foreground text-sm mb-3" numberOfLines={2}>
+            {offer.description}
+          </Text>
+        )}
+        
+        {/* Metadata Row */}
+        <View className="flex-row items-center justify-between mb-4">
+          <View className="flex-row items-center gap-4">
+            <View className="flex-row items-center gap-1">
+              <Calendar size={14} color="#666" />
+              <Text className="text-xs text-muted-foreground">
+                Until {formatDate(offer.valid_until)}
               </Text>
             </View>
             
-            <View className="bg-green-100 dark:bg-green-900/30 px-3 py-1 rounded-full">
-              <Text className="text-green-700 dark:text-green-400 font-semibold text-sm">
-                Limited Time
-              </Text>
-            </View>
+            {offer.minimum_party_size && offer.minimum_party_size > 1 && (
+              <View className="flex-row items-center gap-1">
+                <Users size={14} color="#666" />
+                <Text className="text-xs text-muted-foreground">
+                  {offer.minimum_party_size}+ guests
+                </Text>
+              </View>
+            )}
           </View>
         </View>
+        
+ 
       </View>
-    </Pressable>
+    </View>
   );
 }

@@ -130,13 +130,12 @@ export default function HomeScreen() {
               style={({ pressed }) => ({ 
                 marginLeft: 12,
                 padding: 4,
-                zIndex: 999, // Explicit high z-index for production
-                elevation: 999, // Android elevation
+                zIndex: 999, 
+                elevation: 999,
                 opacity: pressed ? 0.7 : 1,
                 transform: [{ scale: pressed ? 0.95 : 1 }]
               })}
               hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-              // Ensure touch events are captured
               pointerEvents="box-only"
             >
               <View 

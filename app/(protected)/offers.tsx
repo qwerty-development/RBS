@@ -1,3 +1,4 @@
+// app/(protected)/offers.tsx
 import React from "react";
 import {
   View,
@@ -98,19 +99,59 @@ export default function SpecialOffersScreen() {
     });
   }, [router]);
 
-  // Book with offer
+  // FIXED: Book with offer - now goes through availability selection first
   const bookWithOffer = React.useCallback((offer: any) => {
+    // Check if offer is still valid and can be used
+    if (!offer.canUse) {
+      Alert.alert(
+        "Offer Not Available", 
+        "This offer has expired or has already been used.",
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    // Navigate to availability selection with offer pre-selected
     router.push({
-      pathname: "/booking/create",
+      pathname: "/booking/availability",
       params: {
         restaurantId: offer.restaurant_id,
         restaurantName: offer.restaurant.name,
-        offerId: offer.id,
+        // Pass offer information to be carried through the booking flow
+        preselectedOfferId: offer.id,
         offerTitle: offer.title,
-        redemptionCode: offer.redemptionCode,
+        offerDiscount: offer.discount_percentage.toString(),
+        redemptionCode: offer.redemptionCode || offer.id,
       },
     });
   }, [router]);
+
+  // Enhanced claim offer with better error handling
+  const handleClaimOffer = React.useCallback(async (offer: any) => {
+    if (processingOfferId === offer.id) return;
+    
+    setProcessingOfferId(offer.id);
+    
+    try {
+      await claimOffer(offer.id);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      
+      Alert.alert(
+        "Offer Claimed! 🎉",
+        `You've successfully claimed ${offer.discount_percentage}% off at ${offer.restaurant.name}. You can now use this offer when booking.`,
+        [
+          { text: "View Restaurant", onPress: () => navigateToRestaurant(offer.restaurant_id, offer.id) },
+          { text: "Book Now", onPress: () => bookWithOffer(offer) },
+          { text: "OK", style: "cancel" }
+        ]
+      );
+    } catch (err: any) {
+      console.error("Error claiming offer:", err);
+      Alert.alert("Error", err.message || "Failed to claim offer. Please try again.");
+    } finally {
+      setProcessingOfferId(null);
+    }
+  }, [claimOffer, processingOfferId, navigateToRestaurant, bookWithOffer]);
 
   // Refresh handler
   const handleRefresh = React.useCallback(() => {
@@ -136,10 +177,56 @@ export default function SpecialOffersScreen() {
       }
     };
 
+    // Get offer status for display
+    const getOfferStatus = () => {
+      if (offer.used) {
+        return {
+          component: (
+            <View className="flex-row items-center bg-green-100 dark:bg-green-900/30 px-3 py-1 rounded-full">
+              <CheckCircle size={14} color="#16a34a" />
+              <Text className="text-green-700 dark:text-green-300 text-sm ml-1">Used</Text>
+            </View>
+          ),
+          canUse: false
+        };
+      }
+      
+      if (offer.isExpired) {
+        return {
+          component: (
+            <View className="flex-row items-center bg-red-100 dark:bg-red-900/30 px-3 py-1 rounded-full">
+              <Clock size={14} color="#dc2626" />
+              <Text className="text-red-700 dark:text-red-300 text-sm ml-1">Expired</Text>
+            </View>
+          ),
+          canUse: false
+        };
+      }
+      
+      if (offer.claimed) {
+        const daysLeft = offer.daysUntilExpiry || 0;
+        return {
+          component: (
+            <View className="flex-row items-center bg-blue-100 dark:bg-blue-900/30 px-3 py-1 rounded-full">
+              <Tag size={14} color="#2563eb" />
+              <Text className="text-blue-700 dark:text-blue-300 text-sm ml-1">
+                {daysLeft === 0 ? "Expires today" : `${daysLeft}d left`}
+              </Text>
+            </View>
+          ),
+          canUse: true
+        };
+      }
+      
+      return { component: null, canUse: false };
+    };
+
+    const status = getOfferStatus();
+
     return (
       <Pressable
         onPress={handleCardPress}
-        className="bg-card border border-gray-200 rounded-2xl overflow-hidden mb-6 shadow-lg shadow-black/5"
+        className="bg-card border border-gray-200 dark:border-gray-700 rounded-2xl overflow-hidden mb-6 shadow-lg shadow-black/5"
       >
         {/* Restaurant Image */}
         <View className="relative">
@@ -149,30 +236,13 @@ export default function SpecialOffersScreen() {
             contentFit="cover" 
           />
           {/* Status overlay */}
-          {(offer.claimed || offer.isExpired) && (
+          {status.component && (
             <View className="absolute top-3 left-3">
-              {/* OfferStatus logic inline */}
-              {offer.used ? (
-                <View className="flex-row items-center bg-green-100 px-3 py-1 rounded-full">
-                  <CheckCircle size={14} color="#16a34a" />
-                  <Text className="text-green-700 text-sm ml-1">Used</Text>
-                </View>
-              ) : offer.isExpired ? (
-                <View className="flex-row items-center bg-red-100 px-3 py-1 rounded-full">
-                  <Clock size={14} color="#dc2626" />
-                  <Text className="text-red-700 text-sm ml-1">Expired</Text>
-                </View>
-              ) : offer.claimed ? (
-                <View className="flex-row items-center bg-blue-100 px-3 py-1 rounded-full">
-                  <Tag size={14} color="#2563eb" />
-                  <Text className="text-blue-700 text-sm ml-1">
-                    {offer.daysUntilExpiry === 0 ? "Expires today" : `${offer.daysUntilExpiry}d left`}
-                  </Text>
-                </View>
-              ) : null}
+              {status.component}
             </View>
           )}
         </View>
+        
         {/* Offer Details */}
         <View className="p-4">
           {/* Discount Badge - Overlapping */}
@@ -182,19 +252,35 @@ export default function SpecialOffersScreen() {
             </Text>
             <Text className="text-primary-foreground font-bold text-xs -mt-1">%</Text>
           </View>
+          
           {/* Restaurant Info */}
           <Pressable 
             onPress={() => navigateToRestaurant(offer.restaurant_id)} 
             className="flex-row items-center mb-3 mt-1"
           >
-            <Text className="font-bold text-2xl">{offer.restaurant.name}</Text>
+            <View className="flex-1">
+              <Text className="font-bold text-2xl">{offer.restaurant.name}</Text>
+              <View className="flex-row items-center mt-1">
+                <Star size={14} color="#f59e0b" fill="#f59e0b" />
+                <Text className="text-sm font-medium ml-1">
+                  {offer.restaurant.average_rating?.toFixed(1) || "4.5"}
+                </Text>
+                <Text className="text-sm text-muted-foreground ml-1">•</Text>
+                <Text className="text-sm text-muted-foreground ml-1">
+                  {offer.restaurant.cuisine_type}
+                </Text>
+              </View>
+            </View>
+            <ChevronRight size={20} color="#666" />
           </Pressable>
-          <Text className="mb-2 text-l w-4/5">{offer.title}</Text>
+          
+          <Text className="mb-2 text-lg font-semibold w-4/5">{offer.title}</Text>
           {offer.description && (
             <P className="text-sm text-muted-foreground mb-4" numberOfLines={2}>
               {offer.description}
             </P>
           )}
+          
           {/* Metadata Chips */}
           <View className="flex-row flex-wrap mb-4">
             <View className="flex-row items-center bg-muted/50 rounded-full px-3 py-1 mr-2 mb-2">
@@ -212,28 +298,23 @@ export default function SpecialOffersScreen() {
               </View>
             )}
             {offer.claimed && offer.redemptionCode && (
-              <View className="flex-row items-center bg-blue-50 rounded-full px-3 py-1 mr-2 mb-2">
+              <View className="flex-row items-center bg-blue-50 dark:bg-blue-900/30 rounded-full px-3 py-1 mr-2 mb-2">
                 <QrCode size={14} color="#2563eb" />
-                <Text className="text-xs text-blue-700 ml-1.5">
+                <Text className="text-xs text-blue-700 dark:text-blue-300 ml-1.5">
                   Code: {offer.redemptionCode.slice(-6).toUpperCase()}
                 </Text>
               </View>
             )}
           </View>
+          
           {/* Action Buttons */}
           <View className="flex-row mt-2 gap-3">
             {!offer.claimed ? (
               <Button 
                 variant="default" 
-                onPress={async (e) => { 
+                onPress={(e) => { 
                   e.stopPropagation(); 
-                  setProcessingOfferId(offer.id);
-                  try {
-                    await claimOffer(offer.id);
-                  } catch (err: any) {
-                    Alert.alert("Error", err.message || "Failed to claim offer. Please try again.");
-                  }
-                  setProcessingOfferId(null);
+                  handleClaimOffer(offer);
                 }} 
                 disabled={processingOfferId === offer.id} 
                 className="flex-1 h-12"
@@ -243,11 +324,11 @@ export default function SpecialOffersScreen() {
                 ) : (
                   <>
                     <Tag size={18} className="mr-2" />
-                    <Text className="font-bold text-base">Claim Offer</Text>
+                    <Text className="font-bold text-base text-white">Claim Offer</Text>
                   </>
                 )}
               </Button>
-            ) : offer.canUse ? (
+            ) : status.canUse ? (
               <Button 
                 variant="default" 
                 onPress={(e) => { 
@@ -257,7 +338,7 @@ export default function SpecialOffersScreen() {
                 className="flex-1 h-12"
               >
                 <Calendar size={18} className="mr-2" />
-                <Text className="font-bold text-base">Book with Offer</Text>
+                <Text className="font-bold text-base text-white">Book with Offer</Text>
               </Button>
             ) : (
               <Button 
@@ -329,9 +410,10 @@ export default function SpecialOffersScreen() {
     </View>
   );
 
-  // Offer details modal
+  // Enhanced offer details modal
   const OfferDetailsModal = () => {
     if (!selectedOffer) return null;
+    
     return (
       <Modal
         animationType="slide"
@@ -348,38 +430,45 @@ export default function SpecialOffersScreen() {
                 <X size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
               </Pressable>
             </View>
+            
             {/* Offer info */}
             <View className="mb-6">
               <Text className="font-bold text-xl mb-2">{selectedOffer.title}</Text>
               <Text className="text-muted-foreground mb-4">{selectedOffer.description}</Text>
+              
               <View className="flex-row items-center mb-2">
                 <MapPin size={16} color="#666" />
-                <Text className="ml-2">{selectedOffer.restaurant.name}</Text>
+                <Text className="ml-2 font-medium">{selectedOffer.restaurant.name}</Text>
               </View>
+              
               <View className="flex-row items-center mb-4">
                 <Percent size={16} color="#666" />
                 <Text className="ml-2">{selectedOffer.discount_percentage}% discount</Text>
               </View>
-              {/* OfferStatus logic inline */}
-              {selectedOffer.used ? (
-                <View className="flex-row items-center bg-green-100 px-3 py-1 rounded-full">
-                  <CheckCircle size={14} color="#16a34a" />
-                  <Text className="text-green-700 text-sm ml-1">Used</Text>
-                </View>
-              ) : selectedOffer.isExpired ? (
-                <View className="flex-row items-center bg-red-100 px-3 py-1 rounded-full">
-                  <Clock size={14} color="#dc2626" />
-                  <Text className="text-red-700 text-sm ml-1">Expired</Text>
-                </View>
-              ) : selectedOffer.claimed ? (
-                <View className="flex-row items-center bg-blue-100 px-3 py-1 rounded-full">
-                  <Tag size={14} color="#2563eb" />
-                  <Text className="text-blue-700 text-sm ml-1">
-                    {selectedOffer.daysUntilExpiry === 0 ? "Expires today" : `${selectedOffer.daysUntilExpiry}d left`}
-                  </Text>
-                </View>
-              ) : null}
+              
+              {/* Status display */}
+              <View className="mb-4">
+                {selectedOffer.used ? (
+                  <View className="flex-row items-center bg-green-100 dark:bg-green-900/30 px-3 py-1 rounded-full">
+                    <CheckCircle size={14} color="#16a34a" />
+                    <Text className="text-green-700 dark:text-green-300 text-sm ml-1">Used</Text>
+                  </View>
+                ) : selectedOffer.isExpired ? (
+                  <View className="flex-row items-center bg-red-100 dark:bg-red-900/30 px-3 py-1 rounded-full">
+                    <Clock size={14} color="#dc2626" />
+                    <Text className="text-red-700 dark:text-red-300 text-sm ml-1">Expired</Text>
+                  </View>
+                ) : selectedOffer.claimed ? (
+                  <View className="flex-row items-center bg-blue-100 dark:bg-blue-900/30 px-3 py-1 rounded-full">
+                    <Tag size={14} color="#2563eb" />
+                    <Text className="text-blue-700 dark:text-blue-300 text-sm ml-1">
+                      {selectedOffer.daysUntilExpiry === 0 ? "Expires today" : `${selectedOffer.daysUntilExpiry}d left`}
+                    </Text>
+                  </View>
+                ) : null}
+              </View>
             </View>
+            
             {/* Redemption code */}
             {selectedOffer.claimed && selectedOffer.redemptionCode && (
               <View className="bg-muted/50 rounded-xl p-4 mb-6">
@@ -395,6 +484,7 @@ export default function SpecialOffersScreen() {
                 </Text>
               </View>
             )}
+            
             {/* Terms and conditions */}
             {selectedOffer.terms_conditions && selectedOffer.terms_conditions.length > 0 && (
               <View className="mb-6">
@@ -406,6 +496,7 @@ export default function SpecialOffersScreen() {
                 ))}
               </View>
             )}
+            
             {/* Action buttons */}
             <View className="flex-row gap-3">
               {selectedOffer.canUse && (
@@ -434,6 +525,7 @@ export default function SpecialOffersScreen() {
                               try {
                                 await useOffer(selectedOffer.id);
                                 setShowOfferDetails(false);
+                                await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                               } catch (err: any) {
                                 Alert.alert("Error", err.message || "Failed to mark offer as used");
                               }
@@ -462,7 +554,7 @@ export default function SpecialOffersScreen() {
     );
   };
 
-  // Filter sheet component (unchanged, but uses updateFilters)
+  // Filter sheet component
   const FilterSheet = ({ 
     isVisible, 
     onClose, 
@@ -476,9 +568,11 @@ export default function SpecialOffersScreen() {
   }) => {
     const [localFilters, setLocalFilters] = React.useState(currentFilters);
     const Cuisines = ["Italian", "Lebanese", "Japanese", "Indian", "French", "American"];
+    
     React.useEffect(() => {
       setLocalFilters(currentFilters);
     }, [currentFilters]);
+    
     const toggleCuisine = (cuisine: string) => {
       setLocalFilters((prev: any) => {
         const newCuisines = new Set(prev.cuisineTypes);
@@ -490,6 +584,7 @@ export default function SpecialOffersScreen() {
         return { ...prev, cuisineTypes: Array.from(newCuisines) };
       });
     };
+    
     return (
       <Modal
         animationType="slide"
@@ -508,6 +603,7 @@ export default function SpecialOffersScreen() {
                 <X size={24} color={colorScheme === 'dark' ? '#fff' : '#000'} />
               </Pressable>
             </View>
+            
             {/* Sort By */}
             <Text className="font-semibold mb-3">Sort By</Text>
             <View className="flex-row justify-between mb-6">
@@ -522,6 +618,7 @@ export default function SpecialOffersScreen() {
                 </Button>
               ))}
             </View>
+            
             {/* Minimum Discount */}
             <Text className="font-semibold mb-2">
               Minimum Discount: {localFilters.minDiscount}%
@@ -537,6 +634,7 @@ export default function SpecialOffersScreen() {
               maximumTrackTintColor={colorScheme === 'dark' ? '#4b5563' : '#d1d5db'}
               thumbTintColor={colorScheme === 'dark' ? '#3b82f6' : '#2563eb'}
             />
+            
             {/* Cuisine Types */}
             <Text className="font-semibold mb-3 mt-4">Cuisine</Text>
             <View className="flex-row flex-wrap">
@@ -551,9 +649,10 @@ export default function SpecialOffersScreen() {
                 </Button>
               ))}
             </View>
+            
             {/* Apply Button */}
             <Button onPress={() => onApply(localFilters)} size="lg" className="mt-8">
-              <Text className="font-bold text-lg">Apply Filters</Text>
+              <Text className="font-bold text-lg text-white">Apply Filters</Text>
             </Button>
           </Pressable>
         </Pressable>
@@ -567,6 +666,54 @@ export default function SpecialOffersScreen() {
       <SafeAreaView className="flex-1 bg-background justify-center items-center">
         <ActivityIndicator size="large" />
         <Text className="mt-4 text-muted-foreground">Loading offers...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <SafeAreaView className="flex-1 bg-background justify-center items-center px-4">
+        <AlertCircle size={48} color="#ef4444" className="mb-4" />
+        <H3 className="text-center mb-2">Something went wrong</H3>
+        <Text className="text-center text-muted-foreground mb-4">{error}</Text>
+        <Button onPress={handleRefresh}>
+          <Text className="text-white">Try Again</Text>
+        </Button>
+      </SafeAreaView>
+    );
+  }
+
+  // Empty state
+  if (!loading && offers.length === 0) {
+    return (
+      <SafeAreaView className="flex-1 bg-background">
+        <View 
+          style={{ paddingTop: insets.top }}
+          className="bg-background border-b border-border/50"
+        >
+          <View className="px-4 pt-4 pb-2 flex-row items-center justify-between">
+            <View>
+              <H2>Special Offers</H2>
+              <Muted>No offers available</Muted>
+            </View>
+            <Pressable onPress={() => setShowFilters(true)} className="p-2">
+              <Filter size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
+            </Pressable>
+          </View>
+          <CategoryTabs />
+        </View>
+        
+        <View className="flex-1 justify-center items-center px-4">
+          <Gift size={48} color="#666" className="mb-4" />
+          <H3 className="text-center mb-2">No offers found</H3>
+          <Text className="text-center text-muted-foreground mb-4">
+            Check back later for new deals or try adjusting your filters.
+          </Text>
+          <Button onPress={handleRefresh}>
+            <Text className="text-white">Refresh</Text>
+          </Button>
+        </View>
       </SafeAreaView>
     );
   }
@@ -592,6 +739,7 @@ export default function SpecialOffersScreen() {
         {/* Category Tabs */}
         <CategoryTabs />
       </View>
+      
       {/* Content */}
       <FlatList
         data={offers}
@@ -600,6 +748,7 @@ export default function SpecialOffersScreen() {
         contentContainerStyle={{ 
           paddingHorizontal: 16,
           paddingTop: 16,
+          paddingBottom: insets.bottom + 16,
         }}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -610,6 +759,7 @@ export default function SpecialOffersScreen() {
           />
         }
       />
+      
       {/* Modals */}
       <FilterSheet 
         isVisible={showFilters} 

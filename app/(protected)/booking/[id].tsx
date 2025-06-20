@@ -44,6 +44,7 @@ import {
   Sparkles,
   ExternalLink,
   Info,
+  DollarSign,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
@@ -58,21 +59,25 @@ import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
-import { useLoyalty } from "@/hooks/useLoyalty";
-import { useOffers } from "@/hooks/useOffers";
 
-// Enhanced types with loyalty and offers data
+// Enhanced types with comprehensive offer data
 type Booking = Database["public"]["Tables"]["bookings"]["Row"] & {
   restaurant: Database["public"]["Tables"]["restaurants"]["Row"];
-  metadata?: {
-    earnablePoints?: number;
-    selectedOfferId?: string;
-    userTier?: string;
-    bookingSource?: string;
-    quickBook?: boolean;
-    offerDiscount?: number;
-    tierMultiplier?: number;
-  };
+};
+
+type AppliedOfferDetails = {
+  special_offer_id: string;
+  special_offer_title: string;
+  special_offer_description: string;
+  discount_percentage: number;
+  user_offer_id: string;
+  redemption_code: string;
+  used_at: string;
+  claimed_at: string;
+  estimated_savings: number;
+  terms_conditions?: string[];
+  valid_until: string;
+  minimum_party_size?: number;
 };
 
 type LoyaltyActivity = {
@@ -82,16 +87,6 @@ type LoyaltyActivity = {
   description: string;
   created_at: string;
   points_multiplier: number;
-};
-
-type AppliedOffer = {
-  id: string;
-  title: string;
-  description: string;
-  discount_percentage: number;
-  redemption_code: string;
-  used_at: string;
-  restaurant_name: string;
 };
 
 // Enhanced booking status configuration
@@ -148,29 +143,189 @@ const TIER_DISPLAY_CONFIG = {
   platinum: { name: "Platinum", color: "#E5E4E2", icon: Sparkles },
 };
 
-// Loyalty Points Card Component
+// Enhanced Applied Offer Card Component
+const AppliedOfferCard: React.FC<{
+  offerDetails: AppliedOfferDetails;
+  onCopyCode: () => void;
+  onViewOffers: () => void;
+  onShareOffer: () => void;
+}> = ({ offerDetails, onCopyCode, onViewOffers, onShareOffer }) => {
+  const formatDate = useCallback((dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  }, []);
+
+  return (
+    <View className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border-2 border-green-300 dark:border-green-700 rounded-2xl p-6 mb-4 shadow-lg">
+      {/* Header */}
+      <View className="flex-row items-center justify-between mb-4">
+        <View className="flex-row items-center gap-3">
+          <View className="bg-green-500 rounded-full p-2">
+            <Gift size={24} color="white" />
+          </View>
+          <View>
+            <Text className="font-bold text-xl text-green-800 dark:text-green-200">
+              Special Offer Applied
+            </Text>
+            <Text className="text-green-700 dark:text-green-300 text-sm">
+              Active discount on this booking
+            </Text>
+          </View>
+        </View>
+        
+        <View className="bg-green-600 rounded-full px-4 py-2">
+          <Text className="text-white font-bold text-lg">
+            {offerDetails.discount_percentage}% OFF
+          </Text>
+        </View>
+      </View>
+
+      {/* Offer Details */}
+      <View className="mb-4">
+        <Text className="font-bold text-lg text-green-800 dark:text-green-200 mb-2">
+          {offerDetails.special_offer_title}
+        </Text>
+        <Text className="text-green-700 dark:text-green-300 text-base leading-relaxed">
+          {offerDetails.special_offer_description}
+        </Text>
+      </View>
+
+      {/* Savings & Usage Info */}
+      <View className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-4">
+        <View className="flex-row items-center justify-between mb-3">
+          <View>
+            <Text className="text-green-700 dark:text-green-300 text-sm font-medium">
+              Estimated Savings
+            </Text>
+            <View className="flex-row items-center gap-2">
+              <DollarSign size={20} color="#059669" />
+              <Text className="text-green-800 dark:text-green-200 text-2xl font-bold">
+                {offerDetails.estimated_savings.toFixed(2)} 
+              </Text>
+            </View>
+          </View>
+          
+          <View className="items-end">
+            <Text className="text-green-700 dark:text-green-300 text-sm font-medium">
+              Status
+            </Text>
+            <View className="flex-row items-center gap-1">
+              <CheckCircle size={16} color="#059669" />
+              <Text className="text-green-800 dark:text-green-200 font-bold">
+                Applied
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Usage timestamp */}
+        <Text className="text-green-600 dark:text-green-400 text-xs">
+          Used on {formatDate(offerDetails.used_at)}
+        </Text>
+      </View>
+
+      {/* Redemption Code Section */}
+      <View className="bg-green-100 dark:bg-green-800 rounded-xl border-2 border-dashed border-green-400 p-4 mb-4">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-1">
+            <Text className="text-green-700 dark:text-green-300 text-sm font-medium mb-1">
+              Redemption Code
+            </Text>
+            <Text className="font-mono text-xl font-bold text-green-800 dark:text-green-200">
+              {offerDetails.redemption_code.slice(-8).toUpperCase()}
+            </Text>
+          </View>
+          <Pressable 
+            onPress={onCopyCode}
+            className="bg-green-500 rounded-full p-3"
+          >
+            <Copy size={20} color="white" />
+          </Pressable>
+        </View>
+        <Text className="text-green-600 dark:text-green-400 text-xs mt-2">
+          This code was used for your discount
+        </Text>
+      </View>
+
+      {/* Action Buttons */}
+      <View className="flex-row gap-3 mb-4">
+        <Button
+          variant="outline"
+          onPress={onShareOffer}
+          className="flex-1 border-green-400"
+        >
+          <Share2 size={16} color="#059669" />
+          <Text className="text-green-700 ml-2">Share Deal</Text>
+        </Button>
+        
+        <Button
+          variant="outline"
+          onPress={onViewOffers}
+          className="flex-1 border-green-400"
+        >
+          <Tag size={16} color="#059669" />
+          <Text className="text-green-700 ml-2">More Offers</Text>
+        </Button>
+      </View>
+
+      {/* Terms & Conditions */}
+      {offerDetails.terms_conditions && offerDetails.terms_conditions.length > 0 && (
+        <View className="border-t border-green-200 dark:border-green-700 pt-4">
+          <Text className="text-green-700 dark:text-green-300 text-sm font-medium mb-2">
+            Terms & Conditions
+          </Text>
+          {offerDetails.terms_conditions.slice(0, 3).map((term, index) => (
+            <Text key={index} className="text-green-600 dark:text-green-400 text-xs mb-1">
+              • {term}
+            </Text>
+          ))}
+          {offerDetails.terms_conditions.length > 3 && (
+            <Text className="text-green-600 dark:text-green-400 text-xs mt-1 font-medium">
+              +{offerDetails.terms_conditions.length - 3} more terms
+            </Text>
+          )}
+        </View>
+      )}
+
+      {/* Additional info */}
+      <View className="mt-4 p-3 bg-green-200 dark:bg-green-900 rounded-lg">
+        <Text className="text-green-800 dark:text-green-200 text-sm font-medium text-center">
+          🎉 This offer saved you money on your dining experience!
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+// Enhanced Loyalty Points Card Component
 const LoyaltyPointsCard: React.FC<{
   pointsEarned: number;
   userTier: string;
   tierMultiplier?: number;
   onViewLoyalty: () => void;
-}> = ({ pointsEarned, userTier, tierMultiplier = 1, onViewLoyalty }) => {
+  hasOffer: boolean;
+}> = ({ pointsEarned, userTier, tierMultiplier = 1, onViewLoyalty, hasOffer }) => {
   const tierConfig = TIER_DISPLAY_CONFIG[userTier as keyof typeof TIER_DISPLAY_CONFIG] || TIER_DISPLAY_CONFIG.bronze;
   const IconComponent = tierConfig.icon;
 
   return (
     <Pressable
       onPress={onViewLoyalty}
-      className="bg-gradient-to-r from-primary/10 to-primary/5 border-2 border-primary/20 rounded-xl p-4 mb-4"
+      className="bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border-2 border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-4"
     >
       <View className="flex-row items-center justify-between mb-3">
         <View className="flex-row items-center">
-          <Trophy size={20} color="#3b82f6" />
-          <Text className="font-bold text-lg ml-2">Loyalty Points Earned</Text>
+          <Trophy size={20} color="#f59e0b" />
+          <Text className="font-bold text-lg ml-2 text-amber-800 dark:text-amber-200">
+            {hasOffer ? "Double Rewards Earned!" : "Loyalty Points Earned"}
+          </Text>
         </View>
-        <View className="flex-row items-center bg-primary/20 px-3 py-1 rounded-full">
+        <View className="flex-row items-center bg-amber-200 dark:bg-amber-800 px-3 py-1 rounded-full">
           <IconComponent size={14} color={tierConfig.color} />
-          <Text className="font-bold text-sm ml-1" style={{ color: tierConfig.color }}>
+          <Text className="font-bold text-sm ml-1 text-amber-800 dark:text-amber-200">
             {tierConfig.name.toUpperCase()}
           </Text>
         </View>
@@ -179,128 +334,35 @@ const LoyaltyPointsCard: React.FC<{
       <View className="flex-row items-center justify-between">
         <View>
           <View className="flex-row items-center mb-1">
-            <Text className="text-3xl font-bold text-primary">+{pointsEarned}</Text>
-            <Text className="text-sm text-muted-foreground ml-2">points</Text>
+            <Text className="text-3xl font-bold text-amber-800 dark:text-amber-200">+{pointsEarned}</Text>
+            <Text className="text-sm text-amber-700 dark:text-amber-300 ml-2">points</Text>
           </View>
           {tierMultiplier > 1 && (
             <Text className="text-xs text-green-600">
               {tierConfig.name} bonus: {((tierMultiplier - 1) * 100).toFixed(0)}% extra
             </Text>
           )}
+          {hasOffer && (
+            <Text className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              ⭐ Plus discount savings applied!
+            </Text>
+          )}
         </View>
         
         <View className="items-center">
-          <ChevronRight size={20} color="#3b82f6" />
-          <Text className="text-xs text-primary">View Rewards</Text>
+          <ChevronRight size={20} color="#f59e0b" />
+          <Text className="text-xs text-amber-600 dark:text-amber-400">View Rewards</Text>
         </View>
       </View>
       
-      <Text className="text-xs text-muted-foreground mt-2">
+      <Text className="text-xs text-amber-700 dark:text-amber-300 mt-2">
         Points awarded after successful dining experience
       </Text>
     </Pressable>
   );
 };
 
-// Applied Offer Card Component
-const AppliedOfferCard: React.FC<{
-  offer: AppliedOffer;
-  savings: number;
-  onViewOffers: () => void;
-}> = ({ offer, savings, onViewOffers }) => {
-  return (
-    <Pressable
-      onPress={onViewOffers}
-      className="bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-800 rounded-xl p-4 mb-4"
-    >
-      <View className="flex-row items-center justify-between mb-3">
-        <View className="flex-row items-center">
-          <Tag size={20} color="#16a34a" />
-          <Text className="font-bold text-lg ml-2 text-green-800 dark:text-green-200">
-            Offer Applied
-          </Text>
-        </View>
-        <View className="bg-green-600 rounded-full px-3 py-1">
-          <Text className="text-white font-bold text-sm">
-            {offer.discount_percentage}% OFF
-          </Text>
-        </View>
-      </View>
-      
-      <View className="mb-3">
-        <Text className="font-bold text-green-800 dark:text-green-200 mb-1">
-          {offer.title}
-        </Text>
-        <Text className="text-sm text-green-700 dark:text-green-300">
-          {offer.description}
-        </Text>
-      </View>
-      
-      <View className="flex-row items-center justify-between">
-        <View>
-          <Text className="text-sm text-green-600 dark:text-green-400">
-            Estimated savings: AED {savings.toFixed(2)}
-          </Text>
-          <Text className="text-xs text-green-600 dark:text-green-400">
-            Code: {offer.redemption_code.slice(-6).toUpperCase()}
-          </Text>
-        </View>
-        
-        <View className="items-center">
-          <ChevronRight size={20} color="#16a34a" />
-          <Text className="text-xs text-green-600">View Offers</Text>
-        </View>
-      </View>
-    </Pressable>
-  );
-};
 
-// Booking Value Summary Component
-const BookingValueSummary: React.FC<{
-  pointsEarned: number;
-  savings?: number;
-  tier: string;
-}> = ({ pointsEarned, savings = 0, tier }) => {
-  const totalValue = savings + (pointsEarned * 0.05); // Assume 1 point = 0.05 AED value
-
-  return (
-    <View className="bg-card border border-border rounded-xl p-4 mb-4">
-      <View className="flex-row items-center mb-3">
-        <TrendingUp size={20} color="#3b82f6" />
-        <Text className="font-bold text-lg ml-2">Your Rewards Summary</Text>
-      </View>
-      
-      <View className="space-y-2">
-        {savings > 0 && (
-          <View className="flex-row justify-between">
-            <Text className="text-muted-foreground">Offer Discount</Text>
-            <Text className="font-bold text-green-600">-AED {savings.toFixed(2)}</Text>
-          </View>
-        )}
-        
-        <View className="flex-row justify-between">
-          <Text className="text-muted-foreground">Loyalty Points Value</Text>
-          <Text className="font-bold text-primary">~AED {(pointsEarned * 0.05).toFixed(2)}</Text>
-        </View>
-        
-        {totalValue > 0 && (
-          <>
-            <View className="border-t border-border pt-2">
-              <View className="flex-row justify-between">
-                <Text className="font-medium">Total Value Gained</Text>
-                <Text className="font-bold text-lg text-primary">AED {totalValue.toFixed(2)}</Text>
-              </View>
-            </View>
-            
-            <Text className="text-xs text-center text-muted-foreground mt-2">
-              You're maximizing your dining value as a {tier.toUpperCase()} member!
-            </Text>
-          </>
-        )}
-      </View>
-    </View>
-  );
-};
 
 export default function BookingDetailsScreen() {
   const params = useLocalSearchParams<{ id: string }>();
@@ -314,11 +376,7 @@ export default function BookingDetailsScreen() {
   const [processing, setProcessing] = useState(false);
   const [hasReview, setHasReview] = useState(false);
   const [loyaltyActivity, setLoyaltyActivity] = useState<LoyaltyActivity | null>(null);
-  const [appliedOffer, setAppliedOffer] = useState<AppliedOffer | null>(null);
-
-  // Hooks integration
-  const { userPoints, userTier, TIER_CONFIG } = useLoyalty();
-  const { offers } = useOffers();
+  const [appliedOfferDetails, setAppliedOfferDetails] = useState<AppliedOfferDetails | null>(null);
 
   // Extract coordinates from PostGIS geography type
   const extractLocationCoordinates = (location: any) => {
@@ -348,13 +406,13 @@ export default function BookingDetailsScreen() {
     return null;
   };
 
-  // Enhanced fetch booking details with loyalty and offers data
+  // Enhanced fetch booking details with comprehensive offer data
   const fetchBookingDetails = useCallback(async () => {
     if (!params.id) return;
     
     try {
       // Fetch booking with enhanced data
-      const { data, error } = await supabase
+      const { data: bookingData, error: bookingError } = await supabase
         .from("bookings")
         .select(`
           *,
@@ -363,16 +421,16 @@ export default function BookingDetailsScreen() {
         .eq("id", params.id)
         .single();
       
-      if (error) throw error;
+      if (bookingError) throw bookingError;
       
-      if (!data) {
+      if (!bookingData) {
         throw new Error("Booking not found");
       }
       
-      setBooking(data);
+      setBooking(bookingData);
       
       // Check if review exists for completed bookings
-      if (data.status === "completed") {
+      if (bookingData.status === "completed") {
         const { data: reviewData } = await supabase
           .from("reviews")
           .select("id")
@@ -384,50 +442,85 @@ export default function BookingDetailsScreen() {
 
       // Fetch loyalty activity for this booking
       if (profile?.id) {
-        const { data: loyaltyData } = await supabase
-          .from("loyalty_activities")
-          .select("*")
-          .eq("user_id", profile.id)
-          .eq("related_booking_id", params.id)
-          .eq("activity_type", "booking_completed")
-          .single();
-        
-        if (loyaltyData) {
-          setLoyaltyActivity(loyaltyData);
+        // Try to fetch from loyalty_activities table if it exists
+        try {
+          const { data: loyaltyData } = await supabase
+            .from("loyalty_activities")
+            .select("*")
+            .eq("user_id", profile.id)
+            .eq("related_booking_id", params.id)
+            .eq("activity_type", "booking_completed")
+            .single();
+          
+          if (loyaltyData) {
+            setLoyaltyActivity(loyaltyData);
+          }
+        } catch (loyaltyError) {
+          console.log("Loyalty activities table not available or no data found");
         }
       }
 
-      // Fetch applied offer data
-      if (data.metadata?.selectedOfferId) {
-        const { data: userOfferData } = await supabase
-          .from("user_offers")
-          .select(`
-            *,
-            special_offer:special_offers (
-              title,
-              description,
-              discount_percentage
-            )
-          `)
-          .eq("offer_id", data.metadata.selectedOfferId)
-          .eq("user_id", profile?.id)
-          .eq("booking_id", params.id)
-          .single();
+      // Enhanced: Fetch applied offer details using applied_offer_id
+      if (bookingData.applied_offer_id) {
+        console.log("Fetching applied offer details for offer ID:", bookingData.applied_offer_id);
         
-        if (userOfferData && userOfferData.special_offer) {
-          setAppliedOffer({
-            id: userOfferData.id,
-            title: userOfferData.special_offer.title,
-            description: userOfferData.special_offer.description,
-            discount_percentage: userOfferData.special_offer.discount_percentage,
-            redemption_code: userOfferData.id,
-            used_at: userOfferData.used_at || userOfferData.claimed_at,
-            restaurant_name: data.restaurant.name,
-          });
+        try {
+          // Get the special offer details
+          const { data: specialOfferData, error: specialOfferError } = await supabase
+            .from("special_offers")
+            .select("*")
+            .eq("id", bookingData.applied_offer_id)
+            .single();
+
+          if (specialOfferError) {
+            console.error("Error fetching special offer:", specialOfferError);
+          } else if (specialOfferData) {
+            console.log("Found special offer:", specialOfferData.title);
+
+            // Get the user_offer details for redemption code and usage info
+            const { data: userOfferData, error: userOfferError } = await supabase
+              .from("user_offers")
+              .select("*")
+              .eq("booking_id", params.id)
+              .eq("user_id", profile?.id)
+              .single();
+
+            if (userOfferError) {
+              console.error("Error fetching user offer:", userOfferError);
+            }
+
+            // Calculate estimated savings based on party size and price range
+            const estimatedSavings = Math.round(
+              (bookingData.party_size * ((bookingData.restaurant.price_range || 2) * 30)) * 
+              (specialOfferData.discount_percentage / 100)
+            );
+
+            const offerDetails: AppliedOfferDetails = {
+              special_offer_id: specialOfferData.id,
+              special_offer_title: specialOfferData.title,
+              special_offer_description: specialOfferData.description,
+              discount_percentage: specialOfferData.discount_percentage,
+              user_offer_id: userOfferData?.id || "",
+              redemption_code: userOfferData?.id || specialOfferData.id,
+              used_at: userOfferData?.used_at || userOfferData?.claimed_at || bookingData.created_at,
+              claimed_at: userOfferData?.claimed_at || bookingData.created_at,
+              estimated_savings: estimatedSavings,
+              terms_conditions: specialOfferData.terms_conditions,
+              valid_until: specialOfferData.valid_until,
+              minimum_party_size: specialOfferData.minimum_party_size,
+            };
+
+            console.log("Applied offer details:", offerDetails);
+            setAppliedOfferDetails(offerDetails);
+          }
+        } catch (offerError) {
+          console.error("Error fetching applied offer details:", offerError);
         }
+      } else {
+        console.log("No applied offer for this booking");
       }
     } catch (error) {
-      console.error("Error fetching booking:", error);
+      console.error("Error fetching booking details:", error);
       Alert.alert("Error", "Failed to load booking details");
     } finally {
       setLoading(false);
@@ -440,7 +533,9 @@ export default function BookingDetailsScreen() {
     
     Alert.alert(
       "Cancel Booking",
-      "Are you sure you want to cancel this booking? This action cannot be undone.",
+      appliedOfferDetails 
+        ? "Are you sure you want to cancel this booking? Your applied offer will be restored to your account." 
+        : "Are you sure you want to cancel this booking? This action cannot be undone.",
       [
         { text: "No", style: "cancel" },
         {
@@ -460,15 +555,34 @@ export default function BookingDetailsScreen() {
               
               if (error) throw error;
               
-              // Note: In a real implementation, you might want to handle
-              // loyalty points refund or offer restoration here
+              // If there was an applied offer, restore it
+              if (appliedOfferDetails?.user_offer_id) {
+                try {
+                  await supabase
+                    .from("user_offers")
+                    .update({ 
+                      used_at: null,
+                      booking_id: null,
+                    })
+                    .eq("id", appliedOfferDetails.user_offer_id);
+                  
+                  console.log("Offer restored to user account");
+                } catch (restoreError) {
+                  console.error("Error restoring offer:", restoreError);
+                }
+              }
               
               await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               
               // Refresh booking data
               await fetchBookingDetails();
               
-              Alert.alert("Success", "Your booking has been cancelled");
+              Alert.alert(
+                "Success", 
+                appliedOfferDetails 
+                  ? "Your booking has been cancelled and your offer has been restored." 
+                  : "Your booking has been cancelled"
+              );
             } catch (error) {
               console.error("Error cancelling booking:", error);
               Alert.alert("Error", "Failed to cancel booking");
@@ -479,7 +593,7 @@ export default function BookingDetailsScreen() {
         },
       ]
     );
-  }, [booking, fetchBookingDetails]);
+  }, [booking, fetchBookingDetails, appliedOfferDetails]);
 
   // Enhanced communication actions
   const callRestaurant = useCallback(async () => {
@@ -498,8 +612,12 @@ export default function BookingDetailsScreen() {
   const messageRestaurant = useCallback(async () => {
     if (!booking?.restaurant.whatsapp_number) return;
     
-    const offerText = appliedOffer ? ` I have a ${appliedOffer.discount_percentage}% discount offer applied.` : '';
-    const pointsText = loyaltyActivity ? ` I'm a ${userTier.toUpperCase()} loyalty member.` : '';
+    const offerText = appliedOfferDetails 
+      ? ` I have a ${appliedOfferDetails.discount_percentage}% discount offer applied (Code: ${appliedOfferDetails.redemption_code.slice(-6).toUpperCase()}).` 
+      : '';
+    const loyaltyText = loyaltyActivity 
+      ? ` I'm a loyalty member with ${loyaltyActivity.points_earned} points earned from this booking.` 
+      : '';
     
     const message = encodeURIComponent(
       `Hi! I have a booking at ${booking.restaurant.name} on ${new Date(
@@ -508,7 +626,7 @@ export default function BookingDetailsScreen() {
         booking.booking_time
       ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} for ${
         booking.party_size
-      } people. Confirmation code: ${booking.confirmation_code}${offerText}${pointsText}`
+      } people. Confirmation code: ${booking.confirmation_code}${offerText}${loyaltyText}`
     );
     
     const url = `whatsapp://send?phone=${booking.restaurant.whatsapp_number}&text=${message}`;
@@ -519,7 +637,7 @@ export default function BookingDetailsScreen() {
     } else {
       Alert.alert("Error", "WhatsApp is not installed");
     }
-  }, [booking, appliedOffer, loyaltyActivity, userTier]);
+  }, [booking, appliedOfferDetails, loyaltyActivity]);
 
   // Enhanced directions
   const openDirections = useCallback(async () => {
@@ -556,8 +674,8 @@ export default function BookingDetailsScreen() {
   const shareBooking = useCallback(async () => {
     if (!booking) return;
     
-    const offerText = appliedOffer ? ` I got ${appliedOffer.discount_percentage}% off with a special offer!` : '';
-    const pointsText = loyaltyActivity ? ` Plus I earned ${loyaltyActivity.points_earned} loyalty points!` : '';
+    const offerText = appliedOfferDetails ? ` Plus I saved ${appliedOfferDetails.discount_percentage}% with a special offer!` : '';
+    const pointsText = loyaltyActivity ? ` I also earned ${loyaltyActivity.points_earned} loyalty points!` : '';
     
     const shareMessage = `I have a reservation at ${booking.restaurant.name} on ${new Date(
       booking.booking_time
@@ -575,7 +693,7 @@ export default function BookingDetailsScreen() {
     } catch (error) {
       console.error("Error sharing booking:", error);
     }
-  }, [booking, appliedOffer, loyaltyActivity]);
+  }, [booking, appliedOfferDetails, loyaltyActivity]);
 
   // Enhanced copy confirmation code
   const copyConfirmationCode = useCallback(async () => {
@@ -585,6 +703,29 @@ export default function BookingDetailsScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert("Copied!", `Confirmation code ${booking.confirmation_code} copied to clipboard`);
   }, [booking]);
+
+  // Copy offer redemption code
+  const copyOfferCode = useCallback(async () => {
+    if (!appliedOfferDetails?.redemption_code) return;
+    
+    await Clipboard.setStringAsync(appliedOfferDetails.redemption_code);
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Alert.alert("Copied!", "Offer redemption code copied to clipboard");
+  }, [appliedOfferDetails]);
+
+  // Share applied offer
+  const shareAppliedOffer = useCallback(async () => {
+    if (!appliedOfferDetails || !booking) return;
+    
+    try {
+      await Share.share({
+        message: `I saved ${appliedOfferDetails.discount_percentage}% at ${booking.restaurant.name} with a special offer! 🎉 Check out the app for more deals.`,
+        title: "Great Deal Alert!",
+      });
+    } catch (error) {
+      console.error("Error sharing offer:", error);
+    }
+  }, [appliedOfferDetails, booking]);
 
   // Enhanced navigation actions
   const navigateToReview = useCallback(() => {
@@ -622,12 +763,11 @@ export default function BookingDetailsScreen() {
     if (!booking) return;
     
     router.push({
-      pathname: "/booking/create",
+      pathname: "/booking/availability",
       params: {
         restaurantId: booking.restaurant_id,
         restaurantName: booking.restaurant.name,
         partySize: booking.party_size.toString(),
-        quickBook: "true",
       },
     });
   }, [booking, router]);
@@ -655,10 +795,6 @@ export default function BookingDetailsScreen() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     return new Date(booking.booking_time).toDateString() === tomorrow.toDateString();
   };
-
-  // Calculate estimated savings
-  const estimatedSavings = appliedOffer ? 
-    (100 * appliedOffer.discount_percentage / 100) : 0; // Rough estimate
 
   // Loading state
   if (loading) {
@@ -737,17 +873,17 @@ export default function BookingDetailsScreen() {
                   
                   {/* Enhanced info badges */}
                   <View className="flex-row items-center gap-2">
-                    {appliedOffer && (
+                    {appliedOfferDetails && (
                       <View className="bg-green-100 px-2 py-1 rounded-full">
                         <Text className="text-green-700 text-xs font-bold">
-                          {appliedOffer.discount_percentage}% OFF
+                          {appliedOfferDetails.discount_percentage}% OFF APPLIED
                         </Text>
                       </View>
                     )}
                     {loyaltyActivity && (
-                      <View className="bg-primary/10 px-2 py-1 rounded-full">
-                        <Text className="text-primary text-xs font-bold">
-                          +{loyaltyActivity.points_earned} pts
+                      <View className="bg-amber-100 px-2 py-1 rounded-full">
+                        <Text className="text-amber-700 text-xs font-bold">
+                          +{loyaltyActivity.points_earned} PTS
                         </Text>
                       </View>
                     )}
@@ -784,33 +920,27 @@ export default function BookingDetailsScreen() {
 
         {/* Enhanced Rewards Section */}
         <View className="p-4">
+          {/* Applied Offer Card - Show prominently */}
+          {appliedOfferDetails && (
+            <AppliedOfferCard
+              offerDetails={appliedOfferDetails}
+              onCopyCode={copyOfferCode}
+              onViewOffers={navigateToOffers}
+              onShareOffer={shareAppliedOffer}
+            />
+          )}
+
           {/* Loyalty Points Card */}
           {loyaltyActivity && (
             <LoyaltyPointsCard
               pointsEarned={loyaltyActivity.points_earned}
-              userTier={booking.metadata?.userTier || userTier}
+              userTier={booking.metadata?.userTier || "bronze"}
               tierMultiplier={loyaltyActivity.points_multiplier}
               onViewLoyalty={navigateToLoyalty}
+              hasOffer={!!appliedOfferDetails}
             />
           )}
 
-          {/* Applied Offer Card */}
-          {appliedOffer && (
-            <AppliedOfferCard
-              offer={appliedOffer}
-              savings={estimatedSavings}
-              onViewOffers={navigateToOffers}
-            />
-          )}
-
-          {/* Booking Value Summary */}
-          {(loyaltyActivity || appliedOffer) && (
-            <BookingValueSummary
-              pointsEarned={loyaltyActivity?.points_earned || 0}
-              savings={estimatedSavings}
-              tier={booking.metadata?.userTier || userTier}
-            />
-          )}
         </View>
 
         {/* Enhanced Booking Details */}
@@ -869,21 +999,6 @@ export default function BookingDetailsScreen() {
             <Text className="text-xs text-muted-foreground mt-2">
               Tap to copy • Show this code at the restaurant
             </Text>
-            
-            {/* Additional codes if applicable */}
-            {appliedOffer && (
-              <View className="mt-3 pt-3 border-t border-border">
-                <Text className="font-medium mb-2">Offer Redemption Code</Text>
-                <View className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
-                  <Text className="font-mono font-bold text-green-800 dark:text-green-200">
-                    {appliedOffer.redemption_code.slice(-8).toUpperCase()}
-                  </Text>
-                  <Text className="text-xs text-green-600 dark:text-green-400 mt-1">
-                    Show for {appliedOffer.discount_percentage}% discount
-                  </Text>
-                </View>
-              </View>
-            )}
           </View>
         </View>
 
@@ -966,12 +1081,12 @@ export default function BookingDetailsScreen() {
             )}
           </View>
           
-          {(appliedOffer || loyaltyActivity) && (
+          {(appliedOfferDetails || loyaltyActivity) && (
             <View className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <View className="flex-row items-center gap-2">
                 <Info size={16} color="#3b82f6" />
                 <Text className="text-sm text-blue-800 dark:text-blue-200 flex-1">
-                  Your loyalty status and applied offers will be mentioned when contacting the restaurant.
+                  Your {appliedOfferDetails ? 'discount offer and ' : ''}loyalty status will be mentioned when contacting the restaurant.
                 </Text>
               </View>
             </View>
@@ -1086,11 +1201,11 @@ export default function BookingDetailsScreen() {
               onPress={navigateToLoyalty}
               className="flex-none px-4"
             >
-              <Trophy size={16} color="#3b82f6" />
+              <Trophy size={16} color="#f59e0b" />
             </Button>
           )}
           
-          {appliedOffer && (
+          {appliedOfferDetails && (
             <Button
               variant="outline"
               onPress={navigateToOffers}
@@ -1100,6 +1215,18 @@ export default function BookingDetailsScreen() {
             </Button>
           )}
         </View>
+        
+        {/* Enhanced bottom message */}
+        {(appliedOfferDetails || loyaltyActivity) && (
+          <Text className="text-center text-xs text-muted-foreground mt-3">
+            {appliedOfferDetails && loyaltyActivity
+              ? `🎉 You saved ${appliedOfferDetails.discount_percentage}% and earned ${loyaltyActivity.points_earned} points!`
+              : appliedOfferDetails
+                ? `💰 You saved ${appliedOfferDetails.discount_percentage}% with your special offer`
+                : `⭐ You earned ${loyaltyActivity?.points_earned} loyalty points`
+            }
+          </Text>
+        )}
       </View>
     </SafeAreaView>
   );
