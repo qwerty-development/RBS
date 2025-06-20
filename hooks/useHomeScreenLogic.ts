@@ -22,15 +22,6 @@ interface Restaurant {
   featured?: boolean;
 }
 
-interface SpecialOffer {
-  id: string;
-  title: string;
-  description: string;
-  discount_percentage: number;
-  restaurant: Restaurant;
-  valid_until: string;
-}
-
 interface LocationData {
   latitude?: number;
   longitude?: number;
@@ -61,7 +52,7 @@ export function useHomeScreenLogic() {
   const [trendingRestaurants, setTrendingRestaurants] = useState<Restaurant[]>(
     []
   );
-  const [specialOffers, setSpecialOffers] = useState<SpecialOffer[]>([]);
+
   const [nearbyRestaurants, setNearbyRestaurants] = useState<Restaurant[]>([]);
   const [location, setLocation] = useState<LocationData | null>(null);
 
@@ -262,33 +253,7 @@ export function useHomeScreenLogic() {
     }
   }, [location]);
 
-  const fetchSpecialOffers = useCallback(async () => {
-    try {
-      const now = new Date().toISOString();
-      const { data, error } = await supabase
-        .from("special_offers")
-        .select(
-          `
-					*,
-					restaurant:restaurants (*)
-				`
-        )
-        .lte("valid_from", now)
-        .gte("valid_until", now)
-        .order("discount_percentage", { ascending: false })
-        .limit(5);
 
-      if (error) throw error;
-
-      const validOffers = (data || []).filter((offer) => {
-        return offer.restaurant && offer.restaurant.id;
-      });
-
-      setSpecialOffers(validOffers);
-    } catch (error) {
-      console.error("Error fetching special offers:", error);
-    }
-  }, []);
 
   // Unified Data Loading
   const loadAllData = useCallback(async () => {
@@ -300,7 +265,6 @@ export function useHomeScreenLogic() {
       fetchTopRatedRestaurants(),
       fetchTrendingRestaurants(),
       fetchNearbyRestaurants(),
-      fetchSpecialOffers(),
     ]);
 
     setLoading(false);
@@ -310,7 +274,6 @@ export function useHomeScreenLogic() {
     fetchTopRatedRestaurants,
     fetchTrendingRestaurants,
     fetchNearbyRestaurants,
-    fetchSpecialOffers,
   ]);
 
   // Event Handlers
@@ -397,36 +360,6 @@ export function useHomeScreenLogic() {
     }
   }, [router, getCuisineName]);
 
-  const handleOfferPress = useCallback(
-    (offer: SpecialOffer) => {
-      if (!offer?.restaurant?.id) {
-        console.error("Invalid offer or restaurant data:", offer);
-        Alert.alert(
-          "Error",
-          "Offer information is not available. Please try again."
-        );
-        return;
-      }
-
-      try {
-        router.push({
-          pathname: "/(protected)/restaurant/[id]",
-          params: {
-            id: offer.restaurant.id,
-            highlightOfferId: offer.id,
-          },
-        });
-      } catch (error) {
-        console.error("Offer navigation error:", error);
-        Alert.alert(
-          "Error",
-          "Unable to open restaurant details. Please try again."
-        );
-      }
-    },
-    [router]
-  );
-
   const getGreeting = useCallback(() => {
     const hour = new Date().getHours();
     if (hour < 12) return "Good Morning";
@@ -457,10 +390,6 @@ export function useHomeScreenLogic() {
   }, [checkForLocationUpdates]);
 
   // Navigation handlers
-  const handleOffersPress = useCallback(() => {
-    router.push("/(protected)/offers");
-  }, [router]);
-
   const handleSearchPress = useCallback(() => {
     router.push("/(protected)/(tabs)/search");
   }, [router]);
@@ -485,7 +414,7 @@ export function useHomeScreenLogic() {
     newRestaurants,
     topRatedRestaurants,
     trendingRestaurants,
-    specialOffers,
+
     nearbyRestaurants,
     location,
     refreshing,
@@ -499,8 +428,6 @@ export function useHomeScreenLogic() {
     handleRestaurantPress,
     handleQuickFilter,
     handleCuisinePress,
-    handleOfferPress,
-    handleOffersPress,
     handleSearchPress,
     handleSearchWithParams,
     handleProfilePress,
