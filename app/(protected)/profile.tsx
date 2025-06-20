@@ -46,7 +46,6 @@ import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 
-// Rating System Components
 import { UserRating } from "@/components/rating/UserRating";
 import { UserRatingBadge } from "@/components/rating/UserRatingBadge";
 import { useUserRating } from "@/hooks/useUserRating";
