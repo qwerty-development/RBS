@@ -11,7 +11,6 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-// FIX: Import the hook to get safe area dimensions
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { Muted } from "@/components/ui/typography";
@@ -30,7 +29,6 @@ import { SpecialOffersCarousel } from "@/components/home/SpecialOffersCarousel";
 export default function HomeScreen() {
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-  // FIX: Get the safe area insets, especially the top one for the status bar
   const insets = useSafeAreaInsets();
 
   const {
@@ -45,7 +43,6 @@ export default function HomeScreen() {
     handleLocationPress,
     handleRestaurantPress,
     handleCuisinePress,
-
     handleSearchPress,
     handleSearchWithParams,
     handleProfilePress,
@@ -56,10 +53,6 @@ export default function HomeScreen() {
   const scrollY = useRef(new Animated.Value(0)).current;
   const [totalHeaderHeight, setTotalHeaderHeight] = useState(0);
   const [collapsibleHeaderHeight, setCollapsibleHeaderHeight] = useState(0);
-
-  const handleProfilePicturePress = () => {
-    router.push("/profile");
-  };
 
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, collapsibleHeaderHeight],
@@ -90,8 +83,6 @@ export default function HomeScreen() {
   }
 
   return (
-    // FIX: We use a normal View here because the SafeAreaView from expo-router's layout already handles the main area.
-    // The main reason for the bug was our absolute header ignoring the safe area.
     <View className="flex-1 bg-background">
       <Animated.View
         className="absolute top-0 left-0 right-0 z-10 bg-background border-b border-border/20"
@@ -99,7 +90,6 @@ export default function HomeScreen() {
           setTotalHeaderHeight(event.nativeEvent.layout.height);
         }}
         style={{
-          // FIX: Apply the top inset as padding to push the content below the status bar.
           paddingTop: insets.top,
           transform: [{ translateY: headerTranslateY }],
         }}
@@ -110,7 +100,6 @@ export default function HomeScreen() {
           }}
           style={{ opacity: greetingOpacity }}
         >
-          {/* FIX: Removed pb-1 (padding-bottom) to reduce the gap between greeting and location. */}
           <View className="flex-row items-center justify-between px-4 pt-2">
             <View className="flex-1">
               <Text className="text-2xl font-bold text-foreground">
@@ -119,10 +108,15 @@ export default function HomeScreen() {
               </Text>
             </View>
 
+            {/* Fixed Profile Picture - Now uses handleProfilePress from hook */}
             <Pressable
-              onPress={handleProfilePicturePress}
-              className="ml-3"
-              style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+              onPress={()=> router.push('/(protected)/profile')}
+              className="ml-3 p-1" // Added padding for better touch target
+              style={({ pressed }) => ({ 
+                opacity: pressed ? 0.7 : 1,
+                transform: [{ scale: pressed ? 0.95 : 1 }] // Added scale animation
+              })}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }} // Increased touch area
             >
               <View className="relative">
                 <Image
@@ -134,6 +128,7 @@ export default function HomeScreen() {
                   className="w-10 h-10 rounded-full border-2 border-primary/20"
                   contentFit="cover"
                 />
+                {/* Online status indicator */}
                 <View className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
               </View>
             </Pressable>

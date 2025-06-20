@@ -80,7 +80,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 		detectSessionInUrl: false,
 		storageKey: 'supabase.auth.token',
 		flowType: 'pkce',
-		debug: __DEV__, // Enable debug mode in development
+		
 	},
 	global: {
 		headers: {

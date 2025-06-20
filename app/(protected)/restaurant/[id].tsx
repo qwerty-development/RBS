@@ -14,20 +14,13 @@ import {
   Users,
   Star,
   Calendar,
-  DollarSign,
   CheckCircle,
-  Camera,
-  X,
-  ThumbsUp,
-  MoreVertical,
   Gift,
   Trophy,
   Tag,
   Sparkles,
-  Percent,
   QrCode,
   AlertCircle,
-  ExternalLink,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import MapView from "react-native-maps";
@@ -56,6 +49,9 @@ import { AboutSection } from "@/components/restaurant/AboutSection";
 import { RestaurantImageGallery } from "@/components/restaurant/RestaurantImageGallery";
 import { ReviewsTabContent } from "@/components/restaurant/ReviewsTabContent";
 import { OverviewTabContent } from "@/components/restaurant/OverviewTabContent";
+
+// Import hooks - these should be available in your codebase
+// If any of these don't exist, you'll need to create them or remove the functionality
 import { useRestaurantHelpers } from "@/hooks/useRestaurantHelpers";
 import { useRestaurantData } from "@/hooks/useRestaurantData";
 import { useLoyalty } from "@/hooks/useLoyalty";
@@ -121,24 +117,15 @@ type SpecialOffer = Database["public"]["Tables"]["special_offers"]["Row"] & {
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const IMAGE_HEIGHT = 300;
 
-// FIXED: Move components outside main component to prevent re-creation on every render
+// COMPONENT DEFINITIONS OUTSIDE MAIN COMPONENT
 // Loyalty Points Card Component
 const LoyaltyPointsCard = React.memo<{
   restaurant: Restaurant;
   userTier: string;
   userPoints: number;
-  calculateBookingPoints: (partySize: number, priceRange: number) => number;
+  earnablePoints: number;
   partySize: number;
-}>(({ restaurant, userTier, userPoints, calculateBookingPoints, partySize }) => {
-  const earnablePoints = React.useMemo(() => {
-    try {
-      return calculateBookingPoints(partySize, restaurant.price_range || 2);
-    } catch (error) {
-      console.warn("Error calculating booking points:", error);
-      return 0;
-    }
-  }, [calculateBookingPoints, partySize, restaurant.price_range]);
-
+}>(({ restaurant, userTier, userPoints, earnablePoints, partySize }) => {
   return (
     <View className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-4 mb-4 border border-primary/20">
       <View className="flex-row items-center justify-between mb-3">
@@ -228,7 +215,6 @@ const OfferCard = React.memo<{
     }
   }, []);
 
-  // FIXED: Add error boundary for offer data
   if (!offer || typeof offer !== 'object') {
     console.warn("Invalid offer data:", offer);
     return null;
@@ -309,7 +295,7 @@ const OfferCard = React.memo<{
           <Button
             onPress={onBookWithOffer}
             className="w-full"
-            size="sm"
+            size="default"
           >
             <Calendar size={16} className="mr-2" />
             <Text className="text-white font-medium">Book with Offer</Text>
@@ -354,14 +340,7 @@ const SpecialOffersSection = React.memo<{
   onBookWithOffer: (offer: SpecialOffer) => void;
   processing: boolean;
 }>(({ offers, highlightOfferId, onClaimOffer, onUseOffer, onBookWithOffer, processing }) => {
-  // FIXED: Add safety checks for offers array
-  const safeOffers = React.useMemo(() => {
-    if (!Array.isArray(offers)) {
-      console.warn("Offers is not an array:", offers);
-      return [];
-    }
-    return offers.filter(offer => offer && typeof offer === 'object' && offer.id);
-  }, [offers]);
+  const safeOffers = Array.isArray(offers) ? offers.filter(offer => offer && typeof offer === 'object' && offer.id) : [];
 
   if (safeOffers.length === 0) {
     return (
@@ -411,20 +390,10 @@ const OffersErrorBoundary: React.FC<{
   children: React.ReactNode;
   fallback?: React.ReactNode;
 }> = ({ children, fallback }) => {
-  const [hasError, setHasError] = React.useState(false);
+  const [hasError, setHasError] = useState(false);
 
-  React.useEffect(() => {
-    const errorHandler = (error: Error) => {
-      console.error("Offers section error:", error);
-      setHasError(true);
-    };
-
-    // Reset error state when children change
+  useEffect(() => {
     setHasError(false);
-
-    return () => {
-      // Cleanup if needed
-    };
   }, [children]);
 
   if (hasError) {
@@ -459,113 +428,149 @@ const OffersErrorBoundary: React.FC<{
   }
 };
 
-// Main Component
+// MAIN COMPONENT WITH FIXED HOOK ORDER
 export default function RestaurantDetailsScreen() {
+  // =============================================================================
+  // HOOK EXECUTION SECTION - ALL HOOKS MUST BE CALLED HERE IN FIXED ORDER
+  // =============================================================================
+  
+  // 1. CORE REACT HOOKS (always first)
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();
   const router = useRouter();
-
-  // FIXED: Improved parameter extraction with better error handling
+  
+  // 2. EXPO ROUTER HOOKS
   const params = useLocalSearchParams<{ id: string; highlightOfferId?: string }>();
-  const id = React.useMemo(() => {
-    if (!params || typeof params !== 'object') {
-      console.warn("Invalid params:", params);
-      return undefined;
-    }
-    
-    const paramId = params.id;
-    if (typeof paramId !== 'string' || !paramId.trim()) {
-      console.warn("Invalid restaurant ID:", paramId);
-      return undefined;
-    }
-    
-    return paramId;
-  }, [params]);
-
-  const highlightOfferId = React.useMemo(() => {
-    return params?.highlightOfferId || undefined;
-  }, [params]);
-
-  // UI state
+  
+  // 3. STATE HOOKS (all useState calls)
   const [imageIndex, setImageIndex] = useState(0);
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [selectedTime, setSelectedTime] = useState("");
   const [partySize, setPartySize] = useState(2);
   const [showFullDescription, setShowFullDescription] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
-  const [activeTab, setActiveTab] = useState<"overview" | "menu" | "reviews" | "offers">(() => 
-    highlightOfferId ? "offers" : "overview"
-  );
+  const [activeTab, setActiveTab] = useState<"overview" | "menu" | "reviews" | "offers">("overview");
   const [showImageGallery, setShowImageGallery] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [processingOfferId, setProcessingOfferId] = useState<string | null>(null);
-
+  
+  // 4. REF HOOKS
   const scrollViewRef = useRef<ScrollView>(null);
   const mapRef = useRef<MapView>(null);
-
-  // Custom hooks with error handling
+  
+  // 5. CUSTOM HOOKS (always called, never conditional)
   const restaurantHelpers = useRestaurantHelpers();
-  const restaurantData = useRestaurantData(id, restaurantHelpers?.generateTimeSlots);
   const loyalty = useLoyalty();
   const offersHook = useOffers();
-
-  // FIXED: Add safety checks for hook returns
+  
+  // 6. DERIVED VALUES AND MEMOS
+  const id = React.useMemo(() => {
+    if (!params || typeof params !== 'object') return undefined;
+    const paramId = params.id;
+    return (typeof paramId === 'string' && paramId.trim()) ? paramId : undefined;
+  }, [params]);
+  
+  const highlightOfferId = React.useMemo(() => {
+    return params?.highlightOfferId || undefined;
+  }, [params]);
+  
+  const generateTimeSlots = React.useMemo(() => {
+    return restaurantHelpers?.generateTimeSlots || (() => []);
+  }, [restaurantHelpers]);
+  
+  // 7. DEPENDENT CUSTOM HOOKS (with stable parameters)
+  const restaurantData = useRestaurantData(id, generateTimeSlots);
+  
+  // 8. EXTRACT VALUES FROM CUSTOM HOOKS
   const {
-    extractLocationCoordinates,
-    isRestaurantOpen,
-    getDistanceText,
-    handleCall,
-    handleWhatsApp,
-    openDirections,
-    generateTimeSlots,
+    extractLocationCoordinates = () => null,
+    isRestaurantOpen = () => false,
+    getDistanceText = () => '',
+    handleCall = () => {},
+    handleWhatsApp = () => {},
+    openDirections = () => {},
   } = restaurantHelpers || {};
-
+  
   const {
-    restaurant,
+    restaurant = null,
     reviews = [],
     isFavorite = false,
     loading = true,
     availableSlots = [],
     loadingSlots = false,
-    fetchAvailableSlots,
-    toggleFavorite,
-    handleShare,
-    handleBooking,
-    navigateToCreateReview,
+    fetchAvailableSlots = () => {},
+    toggleFavorite = () => {},
+    handleShare = () => {},
+    handleBooking = () => {},
+    navigateToCreateReview = () => {},
   } = restaurantData || {};
-
+  
   const {
     userPoints = 0,
     userTier = "bronze",
-    calculateBookingPoints,
-    awardPoints,
+    calculateBookingPoints = () => 0,
+    awardPoints = () => {},
   } = loyalty || {};
-
+  
   const {
     offers = [],
-    claimOffer,
-    useOffer,
+    claimOffer = async () => {},
+    useOffer = async () => {},
     loading: offersLoading = false,
   } = offersHook || {};
-
-  // FIXED: Safer offer filtering with error handling
+  
+  // 9. COMPUTED VALUES
   const restaurantOffers = React.useMemo(() => {
-    try {
-      if (!Array.isArray(offers) || !id) {
-        return [];
-      }
-      return offers.filter(offer => 
-        offer && 
-        typeof offer === 'object' && 
-        offer.restaurant_id === id
-      );
-    } catch (error) {
-      console.warn("Error filtering restaurant offers:", error);
-      return [];
-    }
+    if (!Array.isArray(offers) || !id) return [];
+    return offers.filter(offer => 
+      offer && typeof offer === 'object' && offer.restaurant_id === id
+    );
   }, [offers, id]);
-
-  // FIXED: Memoized handlers to prevent unnecessary re-renders
+  
+  const earnablePoints = React.useMemo(() => {
+    if (!restaurant || !calculateBookingPoints) return 0;
+    try {
+      return calculateBookingPoints(partySize, restaurant.price_range || 2);
+    } catch (error) {
+      console.warn("Error calculating booking points:", error);
+      return 0;
+    }
+  }, [calculateBookingPoints, partySize, restaurant]);
+  
+  const allImages = React.useMemo(() => {
+    if (!restaurant) return [];
+    const images = [restaurant.main_image_url];
+    if (Array.isArray(restaurant.image_urls)) {
+      images.push(...restaurant.image_urls);
+    }
+    return images.filter(Boolean);
+  }, [restaurant?.main_image_url, restaurant?.image_urls]);
+  
+  const mapCoordinates = React.useMemo(() => {
+    if (!restaurant || !extractLocationCoordinates) {
+      return { latitude: 33.8938, longitude: 35.5018 };
+    }
+    return extractLocationCoordinates(restaurant.location) || {
+      latitude: 33.8938,
+      longitude: 35.5018,
+    };
+  }, [extractLocationCoordinates, restaurant?.location]);
+  
+  const enhancedTabs = React.useMemo(() => {
+    const baseTabs = [
+      { id: "overview", label: "Overview" },
+      { id: "menu", label: "Menu" },
+      { id: "reviews", label: "Reviews" },
+    ];
+    
+    if (restaurantOffers.length > 0) {
+      baseTabs.push({ id: "offers", label: "Offers" });
+    }
+    
+    return baseTabs;
+  }, [restaurantOffers.length]);
+  
+  // 10. CALLBACK HOOKS (all useCallback calls)
   const handleClaimOffer = useCallback(async (offerId: string) => {
     if (!claimOffer || processingOfferId) return;
 
@@ -626,11 +631,9 @@ export default function RestaurantDetailsScreen() {
   }, [router, id, restaurant]);
 
   const handleEnhancedBooking = useCallback(async () => {
-    if (!restaurant || !calculateBookingPoints) return;
+    if (!restaurant) return;
 
     try {
-      const earnablePoints = calculateBookingPoints(partySize, restaurant.price_range || 2);
-      
       router.push({
         pathname: "/booking/create",
         params: {
@@ -648,14 +651,20 @@ export default function RestaurantDetailsScreen() {
         handleBooking(selectedDate, selectedTime, partySize);
       }
     }
-  }, [restaurant, calculateBookingPoints, partySize, router, id, selectedDate, selectedTime, handleBooking]);
+  }, [restaurant, router, id, selectedDate, selectedTime, partySize, earnablePoints, handleBooking]);
 
   const openImageGallery = useCallback((index: number) => {
     setSelectedImageIndex(index);
     setShowImageGallery(true);
   }, []);
-
-  // FIXED: Add error handling for fetchAvailableSlots
+  
+  // 11. EFFECT HOOKS (all useEffect calls)
+  useEffect(() => {
+    if (highlightOfferId) {
+      setActiveTab("offers");
+    }
+  }, [highlightOfferId]);
+  
   useEffect(() => {
     if (restaurant && id && fetchAvailableSlots) {
       try {
@@ -673,8 +682,12 @@ export default function RestaurantDetailsScreen() {
       }, 500);
     }
   }, [highlightOfferId, activeTab]);
-
-  // Loading and Error States
+  
+  // =============================================================================
+  // END OF HOOK EXECUTION SECTION
+  // =============================================================================
+  
+  // CONDITIONAL LOGIC AND EARLY RETURNS (after all hooks)
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-background">
@@ -729,43 +742,7 @@ export default function RestaurantDetailsScreen() {
     );
   }
 
-  // FIXED: Safe image array creation
-  const allImages = React.useMemo(() => {
-    const images = [restaurant.main_image_url];
-    if (Array.isArray(restaurant.image_urls)) {
-      images.push(...restaurant.image_urls);
-    }
-    return images.filter(Boolean);
-  }, [restaurant.main_image_url, restaurant.image_urls]);
-
-  const mapCoordinates = React.useMemo(() => {
-    if (extractLocationCoordinates && restaurant.location) {
-      return extractLocationCoordinates(restaurant.location) || {
-        latitude: 33.8938,
-        longitude: 35.5018,
-      };
-    }
-    return {
-      latitude: 33.8938,
-      longitude: 35.5018,
-    };
-  }, [extractLocationCoordinates, restaurant.location]);
-
-  // Enhanced tab navigation with offers
-  const enhancedTabs = React.useMemo(() => {
-    const baseTabs = [
-      { id: "overview", label: "Overview" },
-      { id: "menu", label: "Menu" },
-      { id: "reviews", label: "Reviews" },
-    ];
-    
-    if (restaurantOffers.length > 0) {
-      baseTabs.push({ id: "offers", label: "Offers" });
-    }
-    
-    return baseTabs;
-  }, [restaurantOffers.length]);
-
+  // MAIN RENDER (no hooks called here)
   return (
     <View className="flex-1 bg-background" edges={["top"]}>
       <ScrollView
@@ -778,7 +755,7 @@ export default function RestaurantDetailsScreen() {
           <RestaurantImageGallery
             images={allImages}
             imageIndex={imageIndex}
-            isRestaurantOpen={isRestaurantOpen ? isRestaurantOpen(restaurant) : false}
+            isRestaurantOpen={isRestaurantOpen(restaurant)}
             onImageIndexChange={setImageIndex}
             onBackPress={() => router.back()}
             onCameraPress={() => openImageGallery(imageIndex)}
@@ -791,11 +768,11 @@ export default function RestaurantDetailsScreen() {
             restaurant={restaurant}
             isFavorite={isFavorite}
             colorScheme={colorScheme}
-            onToggleFavorite={toggleFavorite || (() => {})}
-            onShare={handleShare || (() => {})}
-            onCall={() => handleCall && handleCall(restaurant)}
-            onWhatsApp={() => handleWhatsApp && handleWhatsApp(restaurant)}
-            onDirections={() => openDirections && openDirections(restaurant)}
+            onToggleFavorite={toggleFavorite}
+            onShare={handleShare}
+            onCall={() => handleCall(restaurant)}
+            onWhatsApp={() => handleWhatsApp(restaurant)}
+            onDirections={() => openDirections(restaurant)}
           />
         )}
 
@@ -823,13 +800,13 @@ export default function RestaurantDetailsScreen() {
         )}
 
         {/* Loyalty Points Card */}
-        {profile && calculateBookingPoints && (
+        {profile && restaurant && (
           <View className="px-4">
             <LoyaltyPointsCard
               restaurant={restaurant}
               userTier={userTier}
               userPoints={userPoints}
-              calculateBookingPoints={calculateBookingPoints}
+              earnablePoints={earnablePoints}
               partySize={partySize}
             />
           </View>
@@ -880,10 +857,10 @@ export default function RestaurantDetailsScreen() {
             onPartySizeChange={setPartySize}
             onBooking={handleEnhancedBooking}
             onToggleDescription={() => setShowFullDescription(!showFullDescription)}
-            onCall={() => handleCall && handleCall(restaurant)}
-            onWhatsApp={() => handleWhatsApp && handleWhatsApp(restaurant)}
-            onDirectionsPress={() => openDirections && openDirections(restaurant)}
-            isRestaurantOpen={() => isRestaurantOpen ? isRestaurantOpen(restaurant) : false}
+            onCall={() => handleCall(restaurant)}
+            onWhatsApp={() => handleWhatsApp(restaurant)}
+            onDirectionsPress={() => openDirections(restaurant)}
+            isRestaurantOpen={() => isRestaurantOpen(restaurant)}
           />
         )}
 
@@ -900,11 +877,11 @@ export default function RestaurantDetailsScreen() {
             showAllReviews={showAllReviews}
             currentUserId={profile?.id}
             onToggleShowAllReviews={() => setShowAllReviews(!showAllReviews)}
-            onWriteReview={navigateToCreateReview || (() => {})}
+            onWriteReview={navigateToCreateReview}
           />
         )}
 
-        {/* FIXED: Offers Tab with Error Boundary */}
+        {/* Offers Tab with Error Boundary */}
         {activeTab === "offers" && (
           <View className="py-6">
             <OffersErrorBoundary>
@@ -956,7 +933,7 @@ export default function RestaurantDetailsScreen() {
       </View>
 
       {/* Enhanced Booking Bar */}
-      {activeTab === "overview" && calculateBookingPoints && (
+      {activeTab === "overview" && (
         <View className="absolute bottom-0 left-0 right-0 bg-background border-t border-border p-4">
           <View className="flex-row items-center gap-3">
             <View className="flex-1">
@@ -964,7 +941,7 @@ export default function RestaurantDetailsScreen() {
                 Party of {partySize} • {selectedTime || "Select time"}
               </Text>
               <Text className="font-bold">
-                Earn {calculateBookingPoints(partySize, restaurant.price_range || 2)} points
+                Earn {earnablePoints} points
               </Text>
             </View>
             <Button
