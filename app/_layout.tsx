@@ -6,17 +6,7 @@ import { colors } from "@/constants/colors";
 import { LogBox, Alert} from "react-native";
 import { useEffect, useState } from "react";
 import * as Updates from "expo-updates";
-
-// Filter out known development warnings
-LogBox.ignoreLogs([
-	"Setting a timer",
-	"Non-serializable values were found in the navigation state",
-	"Warning: Failed prop type: Invalid prop `children` of type `object` supplied to `TabBarLabel`, expected `node`.",
-	"Require cycle:", 
-	"Text strings must be rendered within a <Text> component",
-	"Warning: Failed prop type: Invalid prop `children` of type `object` supplied to `TabBarIcon`, expected `node`.",
-
-]);
+LogBox.ignoreAllLogs();
 
 export default function AppLayout() {
 	const { colorScheme } = useColorScheme();
