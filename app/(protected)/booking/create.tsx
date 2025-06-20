@@ -29,6 +29,7 @@ import {
   Award,
   X,
   AlertCircle,
+  UserPlus,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -44,6 +45,7 @@ import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
+import { InviteFriends } from "@/components/booking/invite-friend";
 
 // Enhanced Type Definitions
 interface BookingFormData {
@@ -125,6 +127,7 @@ const OCCASIONS = [
   { id: "date", label: "Date Night", icon: "❤️" },
   { id: "engagement", label: "Engagement", icon: "💍" },
   { id: "graduation", label: "Graduation", icon: "🎓" },
+  { id: "family", label: "Family Gathering", icon: "👨‍👩‍👧‍👦" },
   { id: "other", label: "Other Celebration", icon: "🎉" },
 ];
 
@@ -148,6 +151,35 @@ const TABLE_PREFERENCES = [
   "High Chair Needed",
   "Wheelchair Accessible",
 ];
+
+// Date Validation Utilities
+const isValidDate = (dateString: string | undefined): boolean => {
+  if (!dateString) return false;
+  const date = new Date(dateString);
+  return !isNaN(date.getTime()) && date.getTime() > 0;
+};
+
+const parseDate = (dateString: string | undefined, fallback: Date = new Date()): Date => {
+  if (!dateString) return fallback;
+  
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      console.warn("Invalid date string:", dateString);
+      return fallback;
+    }
+    return date;
+  } catch (error) {
+    console.warn("Error parsing date:", dateString, error);
+    return fallback;
+  }
+};
+
+const isValidTime = (timeString: string | undefined): boolean => {
+  if (!timeString) return false;
+  const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+  return timeRegex.test(timeString);
+};
 
 // Custom Textarea Component
 const CustomTextarea: React.FC<{
@@ -262,11 +294,13 @@ const OfferCard: React.FC<{
 }> = ({ offer, isSelected, onSelect, onDeselect, partySize }) => {
   const formatDate = useCallback((dateString: string) => {
     try {
+      if (!isValidDate(dateString)) return "Soon";
       return new Date(dateString).toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
       });
     } catch (error) {
+      console.warn("Error formatting date:", dateString, error);
       return "Soon";
     }
   }, []);
@@ -276,7 +310,7 @@ const OfferCard: React.FC<{
     partySize >= offer.special_offer.minimum_party_size;
 
   // Check if offer is expired
-  const isExpired = new Date(offer.expires_at) < new Date();
+  const isExpired = isValidDate(offer.expires_at) && new Date(offer.expires_at) < new Date();
 
   const canUse = isValidForPartySize && !isExpired && !offer.used_at;
 
@@ -387,6 +421,7 @@ const OffersSelection: React.FC<{
   // Filter valid offers for this party size
   const validOffers = availableOffers.filter(offer => 
     !offer.used_at && 
+    isValidDate(offer.expires_at) &&
     new Date(offer.expires_at) > new Date() &&
     (!offer.special_offer.minimum_party_size || partySize >= offer.special_offer.minimum_party_size)
   );
@@ -442,8 +477,54 @@ const OffersSelection: React.FC<{
   );
 };
 
+// Friends Invitation Display Component
+const FriendsInvitationSection: React.FC<{
+  invitedFriends: string[];
+  restaurantName: string;
+  bookingTime: string;
+  partySize: number;
+  onInvitesSent: (friendIds: string[]) => void;
+}> = ({ invitedFriends, restaurantName, bookingTime, partySize, onInvitesSent }) => {
+  return (
+    <View className="bg-card border border-border rounded-xl p-4">
+      <View className="flex-row items-center gap-3 mb-4">
+        <UserPlus size={20} color="#3b82f6" />
+        <Text className="font-bold text-lg">Invite Friends</Text>
+      </View>
+
+      {invitedFriends.length > 0 ? (
+        <View className="mb-4">
+          <View className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg mb-3">
+            <View className="flex-row items-center">
+              <CheckCircle size={20} color="#10b981" />
+              <Text className="ml-2 text-green-700 dark:text-green-400 font-medium">
+                {invitedFriends.length} friend{invitedFriends.length > 1 ? 's' : ''} will be invited
+              </Text>
+            </View>
+            <Text className="text-green-600 dark:text-green-300 text-sm mt-1">
+              They'll receive an invitation after your booking is confirmed
+            </Text>
+          </View>
+        </View>
+      ) : (
+        <Text className="text-muted-foreground mb-4">
+          Dining with friends? Invite them to join your booking and make it a group experience.
+        </Text>
+      )}
+
+      <InviteFriends
+        restaurantName={restaurantName}
+        bookingTime={bookingTime}
+        partySize={partySize}
+        onInvitesSent={onInvitesSent}
+        existingInvites={invitedFriends}
+      />
+    </View>
+  );
+};
+
 export default function BookingCreateScreen() {
-  // Route parameters
+  // Route parameters with validation
   const params = useLocalSearchParams<{
     restaurantId: string;
     restaurantName?: string;
@@ -451,13 +532,41 @@ export default function BookingCreateScreen() {
     time?: string;
     partySize?: string;
     earnablePoints?: string;
-    offerId?: string; // Pre-selected special_offer ID (from offers flow)
-    preselectedOfferId?: string; // Pre-selected special_offer ID (from availability flow)
+    offerId?: string;
+    preselectedOfferId?: string;
   }>();
   
   const { profile } = useAuth();
   const { colorScheme } = useColorScheme();
   const router = useRouter();
+
+  // Validate and parse parameters
+  const restaurantId = params.restaurantId;
+  const rawDate = params.date;
+  const rawTime = params.time;
+  const rawPartySize = params.partySize;
+  const rawEarnablePoints = params.earnablePoints;
+
+  // Validation
+  useEffect(() => {
+    if (!restaurantId) {
+      Alert.alert("Error", "Restaurant ID is required");
+      router.back();
+      return;
+    }
+
+    if (rawDate && !isValidDate(rawDate)) {
+      Alert.alert("Error", "Invalid booking date provided");
+      router.back();
+      return;
+    }
+
+    if (rawTime && !isValidTime(rawTime)) {
+      Alert.alert("Error", "Invalid booking time provided");
+      router.back();
+      return;
+    }
+  }, [restaurantId, rawDate, rawTime, router]);
 
   // Core state management
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -466,15 +575,18 @@ export default function BookingCreateScreen() {
   const [selectedOfferUserId, setSelectedOfferUserId] = useState<string | null>(null);
   const [availableOffers, setAvailableOffers] = useState<UserOfferWithDetails[]>([]);
 
+  // Friends functionality state
+  const [invitedFriends, setInvitedFriends] = useState<string[]>([]);
+
   // User data
   const [userPoints] = useState(profile?.loyalty_points || 0);
   const [userTier] = useState<TierType>((profile?.membership_tier as TierType) || "bronze");
 
-  // Booking details from navigation
-  const bookingDate = params.date ? new Date(params.date) : new Date();
-  const bookingTime = params.time || "";
-  const partySize = parseInt(params.partySize || "2", 10);
-  const earnablePoints = parseInt(params.earnablePoints || "0", 10);
+  // Safely parse booking details from navigation
+  const bookingDate = parseDate(rawDate);
+  const bookingTime = isValidTime(rawTime) ? rawTime! : "19:00";
+  const partySize = rawPartySize ? Math.max(1, parseInt(rawPartySize, 10)) || 2 : 2;
+  const earnablePoints = rawEarnablePoints ? Math.max(0, parseInt(rawEarnablePoints, 10)) || 0 : 0;
 
   // Pre-selected offer handling
   const preselectedOfferId = params.offerId || params.preselectedOfferId;
@@ -501,6 +613,9 @@ export default function BookingCreateScreen() {
   // Watch form values
   const watchedValues = watch();
 
+  // Calculate total party size including invited friends
+  const totalPartySize = partySize + invitedFriends.length;
+
   // Fetch restaurant and offers data
   const fetchData = useCallback(async () => {
     try {
@@ -508,7 +623,7 @@ export default function BookingCreateScreen() {
       const { data: restaurantData, error: restaurantError } = await supabase
         .from("restaurants")
         .select("*")
-        .eq("id", params.restaurantId)
+        .eq("id", restaurantId)
         .single();
       
       if (restaurantError) throw restaurantError;
@@ -544,7 +659,8 @@ export default function BookingCreateScreen() {
           if (!offersError && userOffersData) {
             // Filter for this restaurant and properly type the data
             const restaurantOffers = userOffersData
-              .filter(offer => offer.special_offer?.restaurant_id === params.restaurantId)
+              .filter(offer => offer.special_offer?.restaurant_id === restaurantId)
+              .filter(offer => offer.special_offer !== null)
               .map(offer => ({
                 ...offer,
                 special_offer: offer.special_offer!
@@ -552,21 +668,14 @@ export default function BookingCreateScreen() {
 
             setAvailableOffers(restaurantOffers);
             
-            console.log("Available offers:", restaurantOffers);
-            console.log("Preselected offer ID:", preselectedOfferId);
-            
             // Auto-select offer if one was pre-selected
             if (preselectedOfferId) {
-              // Find the user_offer that corresponds to the special_offer ID
               const matchingUserOffer = restaurantOffers.find(
                 offer => offer.special_offer.id === preselectedOfferId
               );
               
               if (matchingUserOffer) {
-                console.log("Found matching user offer:", matchingUserOffer.id);
                 setSelectedOfferUserId(matchingUserOffer.id);
-              } else {
-                console.log("No matching user offer found for preselected offer");
               }
             }
           }
@@ -582,18 +691,32 @@ export default function BookingCreateScreen() {
     } finally {
       setLoading(false);
     }
-  }, [params.restaurantId, preselectedOfferId, profile]);
+  }, [restaurantId, preselectedOfferId, profile]);
 
-  // Enhanced booking submission with proper offer tracking
+  // Handle friend invitations
+  const handleInvitesSent = useCallback((friendIds: string[]) => {
+    setInvitedFriends(friendIds);
+  }, []);
+
+  // Enhanced booking submission with proper date handling
   const submitBooking = useCallback(async (formData: BookingFormData) => {
     if (!restaurant || !profile?.id) return;
     
     setSubmitting(true);
     
     try {
-      // Validate booking time
+      // Validate and create booking date time
+      if (!isValidDate(bookingDate.toISOString()) || !isValidTime(bookingTime)) {
+        throw new Error("Invalid booking date or time");
+      }
+
       const bookingDateTime = new Date(bookingDate);
       const [hours, minutes] = bookingTime.split(":").map(Number);
+      
+      if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        throw new Error("Invalid booking time format");
+      }
+      
       bookingDateTime.setHours(hours, minutes, 0, 0);
       
       if (bookingDateTime <= new Date()) {
@@ -604,26 +727,24 @@ export default function BookingCreateScreen() {
       const selectedOffer = selectedOfferUserId 
         ? availableOffers.find(offer => offer.id === selectedOfferUserId)
         : null;
-
-      console.log("Selected offer for booking:", selectedOffer);
       
       // Prepare booking data
       const bookingData = {
         user_id: profile.id,
         restaurant_id: restaurant.id,
         booking_time: bookingDateTime.toISOString(),
-        party_size: partySize,
+        party_size: totalPartySize,
         status: restaurant.booking_policy === "instant" ? "confirmed" : "pending",
         special_requests: formData.specialRequests,
         occasion: formData.occasion !== "none" ? formData.occasion : null,
         dietary_notes: formData.dietaryRestrictions,
         table_preferences: formData.tablePreferences,
         confirmation_code: `BK${Date.now().toString().slice(-8).toUpperCase()}`,
-        // FIXED: Add applied_offer_id to track which special offer was applied
+        is_group_booking: invitedFriends.length > 0,
+        organizer_id: invitedFriends.length > 0 ? profile.id : null,
+        attendees: totalPartySize,
         applied_offer_id: selectedOffer ? selectedOffer.special_offer.id : null,
       };
-
-      console.log("Creating booking with data:", bookingData);
       
       // Create booking record
       const { data: booking, error: bookingError } = await supabase
@@ -636,79 +757,79 @@ export default function BookingCreateScreen() {
         console.error("Booking creation error:", bookingError);
         throw bookingError;
       }
-      
-      console.log("Booking created successfully:", booking.id);
+
+      // Handle friend invitations if any
+      if (invitedFriends.length > 0) {
+        try {
+          const invites = invitedFriends.map(friendId => ({
+            booking_id: booking.id,
+            from_user_id: profile.id,
+            to_user_id: friendId,
+            message: `Join me at ${restaurant.name} on ${bookingDateTime.toLocaleDateString()} at ${bookingTime}!`,
+          }));
+
+          await supabase.from('booking_invites').insert(invites);
+          
+          // Add organizer as confirmed attendee
+          await supabase.from('booking_attendees').insert({
+            booking_id: booking.id,
+            user_id: profile.id,
+            status: 'confirmed',
+            is_organizer: true,
+          });
+        } catch (friendError) {
+          console.error("Failed to handle friend invitations:", friendError);
+        }
+      }
       
       // Mark the user_offer as used if an offer was selected
       if (selectedOfferUserId && selectedOffer) {
         try {
-          console.log("Marking user offer as used:", selectedOfferUserId);
-          
-          const { error: offerError } = await supabase
+          await supabase
             .from("user_offers")
             .update({ 
               used_at: new Date().toISOString(),
-              booking_id: booking.id,
             })
             .eq("id", selectedOfferUserId)
             .eq("user_id", profile.id);
-          
-          if (offerError) {
-            console.error("Offer update error:", offerError);
-            // Don't fail the booking, just log the error
-          } else {
-            console.log("Offer marked as used successfully");
-          }
         } catch (offerError) {
           console.error("Failed to mark offer as used:", offerError);
-          // Don't fail the booking, just log the error
         }
       }
       
       // Award loyalty points
       if (earnablePoints > 0) {
         try {
-          console.log("Awarding loyalty points:", earnablePoints);
-          
-          const { error: pointsError } = await supabase.rpc("award_loyalty_points", {
+          await supabase.rpc("award_loyalty_points", {
             p_user_id: profile.id,
             p_points: earnablePoints,
           });
-          
-          if (pointsError) {
-            console.error("Points error:", pointsError);
-            // Don't fail the booking, just log the error
-          } else {
-            console.log("Points awarded successfully");
-          }
         } catch (pointsError) {
           console.error("Failed to award loyalty points:", pointsError);
-          // Don't fail the booking, just log the error
         }
       }
       
       // Haptic feedback
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       
-      // Navigate to success screen with enhanced data
+      // Navigate to success screen
       const successParams = {
         bookingId: booking.id,
         restaurantName: restaurant.name,
         confirmationCode: booking.confirmation_code,
         earnedPoints: earnablePoints.toString(),
         appliedOffer: selectedOffer ? "true" : "false",
+        invitedFriends: invitedFriends.length.toString(),
+        isGroupBooking: invitedFriends.length > 0 ? "true" : "false",
         userTier,
       };
 
-      // Add offer details if one was applied
       if (selectedOffer) {
         Object.assign(successParams, {
           offerTitle: selectedOffer.special_offer.title,
           offerDiscount: selectedOffer.special_offer.discount_percentage.toString(),
         });
       }
-
-      console.log("Navigating to success with params:", successParams);
       
       router.replace({
         pathname: "/booking/success",
@@ -728,12 +849,13 @@ export default function BookingCreateScreen() {
     profile,
     bookingDate,
     bookingTime,
-    partySize,
+    totalPartySize,
     router,
     selectedOfferUserId,
     availableOffers,
     earnablePoints,
     userTier,
+    invitedFriends,
   ]);
 
   // Helper functions for form arrays
@@ -831,7 +953,8 @@ export default function BookingCreateScreen() {
                 <Text className="text-sm text-muted-foreground">{bookingTime}</Text>
                 <Users size={14} color="#666" />
                 <Text className="text-sm text-muted-foreground">
-                  {partySize} {partySize === 1 ? "Guest" : "Guests"}
+                  {totalPartySize} {totalPartySize === 1 ? "Guest" : "Guests"}
+                  {invitedFriends.length > 0 && ` (${invitedFriends.length} friends invited)`}
                 </Text>
               </View>
             </View>
@@ -875,12 +998,21 @@ export default function BookingCreateScreen() {
               />
             )}
 
+            {/* Friends Invitation Section */}
+            <FriendsInvitationSection
+              invitedFriends={invitedFriends}
+              restaurantName={restaurant.name}
+              bookingTime={bookingDate.toISOString()}
+              partySize={partySize}
+              onInvitesSent={handleInvitesSent}
+            />
+
             {/* Offers Selection */}
             <OffersSelection
               availableOffers={availableOffers}
               selectedOfferUserId={selectedOfferUserId}
               onSelectOffer={setSelectedOfferUserId}
-              partySize={partySize}
+              partySize={totalPartySize}
             />
 
             {/* Special Requirements */}
@@ -1024,7 +1156,8 @@ export default function BookingCreateScreen() {
                     <Text className="flex-1 text-sm">
                       I agree to the{" "}
                       <Text className="text-primary underline">booking terms</Text> and
-                      understand the cancellation policy. I also consent to earning loyalty points.
+                      understand the cancellation policy. I also consent to earning loyalty points
+                      {invitedFriends.length > 0 && " and sending invitations to selected friends"}.
                     </Text>
                   </Pressable>
                 )}
@@ -1051,6 +1184,7 @@ export default function BookingCreateScreen() {
                 <CheckCircle size={20} className="mr-2" />
                 <Text className="text-white font-bold text-lg">
                   {restaurant.booking_policy === "instant" ? "Confirm Booking" : "Request Booking"}
+                  {invitedFriends.length > 0 && ` (${invitedFriends.length} friends)`}
                 </Text>
               </>
             )}
@@ -1060,6 +1194,7 @@ export default function BookingCreateScreen() {
             <Text className="text-xs text-muted-foreground text-center">
               {selectedOffer ? `${selectedOffer.special_offer.discount_percentage}% discount + ` : ""}
               {earnablePoints} loyalty points • {TIER_CONFIG[userTier].name.toUpperCase()} tier
+              {invitedFriends.length > 0 && ` • ${invitedFriends.length} friends invited`}
             </Text>
           </View>
         </View>

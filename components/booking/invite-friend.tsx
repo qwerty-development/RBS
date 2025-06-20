@@ -1,0 +1,352 @@
+// components/booking/invite-friends.tsx
+import React, { useState, useCallback, useEffect } from "react";
+import {
+  View,
+  ScrollView,
+  Pressable,
+  TextInput,
+  ActivityIndicator,
+  Alert,
+  Modal,
+} from "react-native";
+import {
+  Users,
+  Search,
+  UserPlus,
+  X,
+  Check,
+  MessageCircle,
+  Send,
+} from "lucide-react-native";
+import * as Haptics from "expo-haptics";
+
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
+import { H3, P, Muted } from "@/components/ui/typography";
+import { Image } from "@/components/image";
+import { supabase } from "@/config/supabase";
+import { useColorScheme } from "@/lib/useColorScheme";
+import { useAuth } from "@/context/supabase-provider";
+
+interface Friend {
+  id: string;
+  full_name: string;
+  avatar_url: string | null;
+}
+
+interface InviteFriendsProps {
+  bookingId?: string;
+  restaurantName: string;
+  bookingTime: string;
+  partySize: number;
+  onInvitesSent?: (invitedFriends: string[]) => void;
+  existingInvites?: string[];
+}
+
+export function InviteFriends({
+  bookingId,
+  restaurantName,
+  bookingTime,
+  partySize,
+  onInvitesSent,
+  existingInvites = [],
+}: InviteFriendsProps) {
+  const { profile } = useAuth();
+  const { colorScheme } = useColorScheme();
+  
+  const [modalVisible, setModalVisible] = useState(false);
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [filteredFriends, setFilteredFriends] = useState<Friend[]>([]);
+  const [selectedFriends, setSelectedFriends] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [inviteMessage, setInviteMessage] = useState("");
+  const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    if (modalVisible) {
+      loadFriends();
+    }
+  }, [modalVisible]);
+
+  useEffect(() => {
+    if (searchQuery) {
+      const filtered = friends.filter(friend =>
+        friend.full_name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredFriends(filtered);
+    } else {
+      setFilteredFriends(friends);
+    }
+  }, [searchQuery, friends]);
+
+  const loadFriends = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('friends')
+        .select(`
+          *,
+          friend:friend_id(id, full_name, avatar_url)
+        `)
+        .eq('user_id', profile?.id);
+
+      if (!error && data) {
+        const friendsList = data
+          .map(item => item.friend)
+          .filter(friend => !existingInvites.includes(friend.id));
+        setFriends(friendsList);
+        setFilteredFriends(friendsList);
+      }
+    } catch (error) {
+      console.error('Error loading friends:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleFriendSelection = (friendId: string) => {
+    setSelectedFriends(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(friendId)) {
+        newSet.delete(friendId);
+      } else {
+        // Check party size limit
+        if (newSet.size + existingInvites.length + 1 >= partySize) {
+          Alert.alert(
+            "Party Size Limit",
+            `You can only invite up to ${partySize - 1 - existingInvites.length} more friends for this booking.`
+          );
+          return prev;
+        }
+        newSet.add(friendId);
+      }
+      return newSet;
+    });
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const sendInvites = async () => {
+    if (selectedFriends.size === 0) {
+      Alert.alert("No Friends Selected", "Please select at least one friend to invite.");
+      return;
+    }
+
+    setSending(true);
+    try {
+      if (bookingId) {
+        // Send invites for existing booking
+        const invites = Array.from(selectedFriends).map(friendId => ({
+          booking_id: bookingId,
+          from_user_id: profile?.id,
+          to_user_id: friendId,
+          message: inviteMessage || `Join me at ${restaurantName}!`,
+        }));
+
+        const { error } = await supabase
+          .from('booking_invites')
+          .insert(invites);
+
+        if (error) throw error;
+
+        // Update booking as group booking
+        await supabase
+          .from('bookings')
+          .update({
+            is_group_booking: true,
+            organizer_id: profile?.id,
+          })
+          .eq('id', bookingId);
+
+      } else {
+        // For new bookings, just return selected friends
+        onInvitesSent?.(Array.from(selectedFriends));
+      }
+
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert(
+        "Invites Sent!",
+        `Successfully invited ${selectedFriends.size} friend${selectedFriends.size > 1 ? 's' : ''}.`
+      );
+      
+      setModalVisible(false);
+      setSelectedFriends(new Set());
+      setInviteMessage("");
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to send invites");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const renderFriend = (friend: Friend) => {
+    const isSelected = selectedFriends.has(friend.id);
+    
+    return (
+      <Pressable
+        key={friend.id}
+        onPress={() => toggleFriendSelection(friend.id)}
+        className={`flex-row items-center p-3 mb-2 rounded-xl ${
+          isSelected 
+            ? 'bg-red-50 dark:bg-red-900/20 border-2 border-red-500' 
+            : 'bg-gray-50 dark:bg-gray-800 border-2 border-transparent'
+        }`}
+      >
+        <Image
+          source={{ 
+            uri: friend.avatar_url || `https://ui-avatars.com/api/?name=${friend.full_name}` 
+          }}
+          className="w-12 h-12 rounded-full bg-gray-200"
+        />
+        
+        <Text className="flex-1 ml-3 font-medium">
+          {friend.full_name}
+        </Text>
+        
+        <View className={`w-6 h-6 rounded-full items-center justify-center ${
+          isSelected ? 'bg-red-600' : 'bg-gray-200 dark:bg-gray-700'
+        }`}>
+          {isSelected && <Check size={16} color="white" />}
+        </View>
+      </Pressable>
+    );
+  };
+
+  return (
+    <>
+      {/* Invite Button */}
+      <Pressable
+        onPress={() => setModalVisible(true)}
+        className="flex-row items-center justify-center py-3 px-4 bg-red-600 rounded-xl"
+      >
+        <UserPlus size={20} color="white" />
+        <Text className="ml-2 text-white font-semibold">
+          Invite Friends
+        </Text>
+        {existingInvites.length > 0 && (
+          <View className="ml-2 bg-white/20 rounded-full px-2 py-0.5">
+            <Text className="text-white text-xs font-semibold">
+              {existingInvites.length}
+            </Text>
+          </View>
+        )}
+      </Pressable>
+
+      {/* Invite Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View className="flex-1 bg-white dark:bg-gray-900">
+          {/* Header */}
+          <View className="px-4 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <View className="flex-row items-center justify-between">
+              <Pressable
+                onPress={() => {
+                  setModalVisible(false);
+                  setSelectedFriends(new Set());
+                  setInviteMessage("");
+                }}
+                className="p-2"
+              >
+                <X size={24} color={colorScheme === 'dark' ? 'white' : 'black'} />
+              </Pressable>
+              
+              <H3>Invite Friends</H3>
+              
+              <View className="w-10" />
+            </View>
+
+            {/* Booking Info */}
+            <View className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+              <Text className="font-semibold text-base">{restaurantName}</Text>
+              <Muted className="text-sm mt-1">
+                {new Date(bookingTime).toLocaleString('en-US', {
+                  dateStyle: 'medium',
+                  timeStyle: 'short',
+                })}
+              </Muted>
+              <View className="flex-row items-center mt-2">
+                <Users size={16} color="#6b7280" />
+                <Muted className="ml-1 text-sm">
+                  {selectedFriends.size + existingInvites.length + 1} / {partySize} guests
+                </Muted>
+              </View>
+            </View>
+          </View>
+
+          {/* Search Bar */}
+          <View className="px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+            <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-4 py-2">
+              <Search size={20} color="#6b7280" />
+              <TextInput
+                placeholder="Search friends..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                className="flex-1 ml-2 text-base text-gray-900 dark:text-white"
+                placeholderTextColor="#6b7280"
+              />
+            </View>
+          </View>
+
+          {/* Friends List */}
+          <ScrollView className="flex-1 px-4 py-4">
+            {loading ? (
+              <View className="items-center justify-center py-8">
+                <ActivityIndicator size="large" />
+              </View>
+            ) : filteredFriends.length === 0 ? (
+              <View className="items-center justify-center py-8">
+                <Users size={48} color="#9ca3af" />
+                <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
+                  {friends.length === 0 
+                    ? "No friends to invite yet"
+                    : "No friends found matching your search"
+                  }
+                </Text>
+              </View>
+            ) : (
+              filteredFriends.map(renderFriend)
+            )}
+          </ScrollView>
+
+          {/* Message Input */}
+          {selectedFriends.size > 0 && (
+            <View className="px-4 py-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700">
+              <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-4 py-2 mb-3">
+                <MessageCircle size={20} color="#6b7280" />
+                <TextInput
+                  placeholder="Add a message (optional)..."
+                  value={inviteMessage}
+                  onChangeText={setInviteMessage}
+                  className="flex-1 ml-2 text-base text-gray-900 dark:text-white"
+                  placeholderTextColor="#6b7280"
+                  multiline
+                />
+              </View>
+
+              <Button
+                onPress={sendInvites}
+                disabled={sending}
+                className="w-full"
+              >
+                {sending ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <>
+                    <Send size={20} color="white" />
+                    <Text className="text-white font-semibold ml-2">
+                      Send {selectedFriends.size} Invite{selectedFriends.size > 1 ? 's' : ''}
+                    </Text>
+                  </>
+                )}
+              </Button>
+            </View>
+          )}
+        </View>
+      </Modal>
+    </>
+  );
+}
