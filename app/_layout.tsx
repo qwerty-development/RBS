@@ -12,7 +12,10 @@ LogBox.ignoreLogs([
 	"Setting a timer",
 	"Non-serializable values were found in the navigation state",
 	"Warning: Failed prop type: Invalid prop `children` of type `object` supplied to `TabBarLabel`, expected `node`.",
-	"Require cycle:", // Common in React Native development
+	"Require cycle:", 
+	"Text strings must be rendered within a <Text> component",
+	"Warning: Failed prop type: Invalid prop `children` of type `object` supplied to `TabBarIcon`, expected `node`.",
+
 ]);
 
 export default function AppLayout() {

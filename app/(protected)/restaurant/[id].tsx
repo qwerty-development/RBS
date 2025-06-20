@@ -270,7 +270,6 @@ const OfferCard: React.FC<{
         highlighted ? 'border-primary shadow-lg' : 'border-border'
       }`}
     >
-      {/* Header */}
       <View className="flex-row items-start justify-between mb-3">
         <View className="flex-1">
           <Text className="font-bold text-lg" numberOfLines={1}>
@@ -287,7 +286,7 @@ const OfferCard: React.FC<{
         </View>
       </View>
 
-      {/* Status and expiry */}
+
       <View className="flex-row items-center justify-between mb-3">
         {getOfferStatus()}
         <Text className="text-xs text-muted-foreground">
@@ -295,7 +294,7 @@ const OfferCard: React.FC<{
         </Text>
       </View>
 
-      {/* Terms */}
+
       {offer.minimum_party_size > 1 && (
         <View className="flex-row items-center mb-3">
           <Users size={14} color="#666" />
@@ -305,7 +304,7 @@ const OfferCard: React.FC<{
         </View>
       )}
 
-      {/* Action button */}
+
       <View>
         {!offer.claimed ? (
           <Button
@@ -347,7 +346,7 @@ const OfferCard: React.FC<{
         )}
       </View>
       
-      {/* Redemption code for claimed offers */}
+
       {offer.claimed && offer.redemptionCode && (
         <View className="mt-3 bg-muted/50 rounded-lg p-2">
           <View className="flex-row items-center justify-between">
