@@ -38,8 +38,7 @@ import { Image } from "@/components/image";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
-import { useRestaurantData } from "@/hooks/useRestaurantData";
-import { useRestaurantHelpers } from "@/hooks/useRestaurantHelpers";
+import { useRestaurant } from "@/hooks/useRestaurant";
 
 // Type definitions
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
@@ -82,7 +81,9 @@ const ImageGallery: React.FC<{
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={(event) => {
-          const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+          const index = Math.round(
+            event.nativeEvent.contentOffset.x / SCREEN_WIDTH
+          );
           setActiveIndex(index);
         }}
       >
@@ -134,13 +135,17 @@ const QuickActionsBar: React.FC<{
   onShare: () => void;
   onCall: () => void;
   onDirections: () => void;
-}> = ({ restaurant, isFavorite, onToggleFavorite, onShare, onCall, onDirections }) => {
+}> = ({
+  restaurant,
+  isFavorite,
+  onToggleFavorite,
+  onShare,
+  onCall,
+  onDirections,
+}) => {
   return (
     <View className="flex-row justify-around py-4 border-b border-border bg-background">
-      <Pressable
-        onPress={onToggleFavorite}
-        className="items-center gap-1 p-2"
-      >
+      <Pressable onPress={onToggleFavorite} className="items-center gap-1 p-2">
         <Heart
           size={24}
           color={isFavorite ? "#ef4444" : "#666"}
@@ -172,7 +177,9 @@ const QuickActionsBar: React.FC<{
 };
 
 // Restaurant Header Info Component
-const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({ restaurant }) => {
+const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({
+  restaurant,
+}) => {
   const isOpen = () => {
     // Simplified open status - you can enhance this with actual logic
     return true;
@@ -183,9 +190,11 @@ const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({ restaurant
       <View className="flex-row items-start justify-between mb-2">
         <View className="flex-1">
           <H1 className="text-2xl font-bold mb-1">{restaurant.name}</H1>
-          <Text className="text-muted-foreground">{restaurant.cuisine_type}</Text>
+          <Text className="text-muted-foreground">
+            {restaurant.cuisine_type}
+          </Text>
         </View>
-        
+
         <View className="items-end">
           <View className="flex-row items-center gap-1 mb-1">
             <Star size={16} color="#f59e0b" fill="#f59e0b" />
@@ -219,9 +228,9 @@ const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({ restaurant
             {restaurant.location}
           </Text>
         </View>
-        
+
         <Text className="text-muted-foreground">•</Text>
-        
+
         <Text className="text-sm text-muted-foreground">
           {"$".repeat(restaurant.price_range || 2)}
         </Text>
@@ -247,9 +256,10 @@ const AboutSection: React.FC<{ restaurant: Restaurant }> = ({ restaurant }) => {
   if (!restaurant.description) return null;
 
   const shouldTruncate = restaurant.description.length > 150;
-  const displayText = shouldTruncate && !showFullDescription
-    ? restaurant.description.substring(0, 150) + "..."
-    : restaurant.description;
+  const displayText =
+    shouldTruncate && !showFullDescription
+      ? restaurant.description.substring(0, 150) + "..."
+      : restaurant.description;
 
   return (
     <View className="p-4 border-b border-border">
@@ -269,13 +279,17 @@ const AboutSection: React.FC<{ restaurant: Restaurant }> = ({ restaurant }) => {
 };
 
 // Features Section Component
-const FeaturesSection: React.FC<{ restaurant: Restaurant }> = ({ restaurant }) => {
+const FeaturesSection: React.FC<{ restaurant: Restaurant }> = ({
+  restaurant,
+}) => {
   const features = [];
-  
+
   if (restaurant.parking_available) features.push("Parking available");
   if (restaurant.outdoor_seating) features.push("Outdoor seating");
-  if (restaurant.dietary_options?.includes("vegetarian")) features.push("Vegetarian options");
-  if (restaurant.dietary_options?.includes("vegan")) features.push("Vegan options");
+  if (restaurant.dietary_options?.includes("vegetarian"))
+    features.push("Vegetarian options");
+  if (restaurant.dietary_options?.includes("vegan"))
+    features.push("Vegan options");
 
   if (features.length === 0) return null;
 
@@ -302,24 +316,34 @@ const ContactInfo: React.FC<{
   return (
     <View className="p-4 border-b border-border">
       <H3 className="mb-3">Contact & Info</H3>
-      
+
       {restaurant.phone_number && (
-        <Pressable onPress={onCall} className="flex-row items-center gap-3 p-3 rounded-lg bg-muted/30 mb-3">
+        <Pressable
+          onPress={onCall}
+          className="flex-row items-center gap-3 p-3 rounded-lg bg-muted/30 mb-3"
+        >
           <Phone size={20} color="#3b82f6" />
           <View className="flex-1">
             <Text className="font-medium">Call restaurant</Text>
-            <Text className="text-sm text-muted-foreground">{restaurant.phone_number}</Text>
+            <Text className="text-sm text-muted-foreground">
+              {restaurant.phone_number}
+            </Text>
           </View>
           <ChevronRight size={20} color="#666" />
         </Pressable>
       )}
 
       {restaurant.website_url && (
-        <Pressable onPress={onWebsite} className="flex-row items-center gap-3 p-3 rounded-lg bg-muted/30">
+        <Pressable
+          onPress={onWebsite}
+          className="flex-row items-center gap-3 p-3 rounded-lg bg-muted/30"
+        >
           <Globe size={20} color="#3b82f6" />
           <View className="flex-1">
             <Text className="font-medium">Visit website</Text>
-            <Text className="text-sm text-muted-foreground">View menu and more info</Text>
+            <Text className="text-sm text-muted-foreground">
+              View menu and more info
+            </Text>
           </View>
           <ExternalLink size={16} color="#666" />
         </Pressable>
@@ -342,12 +366,15 @@ const LocationMap: React.FC<{
     <View className="p-4 border-b border-border">
       <View className="flex-row items-center justify-between mb-3">
         <H3>Location</H3>
-        <Pressable onPress={onDirections} className="flex-row items-center gap-1">
+        <Pressable
+          onPress={onDirections}
+          className="flex-row items-center gap-1"
+        >
           <Text className="text-primary font-medium">Directions</Text>
           <Navigation size={16} color="#3b82f6" />
         </Pressable>
       </View>
-      
+
       <View className="rounded-lg overflow-hidden h-48 mb-3">
         <MapView
           style={{ flex: 1 }}
@@ -362,7 +389,7 @@ const LocationMap: React.FC<{
           <Marker coordinate={coordinates} />
         </MapView>
       </View>
-      
+
       <Text className="text-muted-foreground">{restaurant.location}</Text>
     </View>
   );
@@ -378,7 +405,10 @@ const ReviewsSummary: React.FC<{
     <View className="p-4 border-b border-border mb-7">
       <View className="flex-row items-center justify-between mb-3">
         <H3>Reviews</H3>
-        <Pressable onPress={onViewAllReviews} className="flex-row items-center gap-1">
+        <Pressable
+          onPress={onViewAllReviews}
+          className="flex-row items-center gap-1"
+        >
           <Text className="text-primary font-medium">See all</Text>
           <ChevronRight size={16} color="#3b82f6" />
         </Pressable>
@@ -386,14 +416,20 @@ const ReviewsSummary: React.FC<{
 
       <View className="flex-row items-center gap-4 mb-4">
         <View className="items-center">
-          <Text className="text-3xl font-bold">{restaurant.average_rating?.toFixed(1) || "4.5"}</Text>
+          <Text className="text-3xl font-bold">
+            {restaurant.average_rating?.toFixed(1) || "4.5"}
+          </Text>
           <View className="flex-row">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
                 size={16}
                 color="#f59e0b"
-                fill={star <= (restaurant.average_rating || 4.5) ? "#f59e0b" : "none"}
+                fill={
+                  star <= (restaurant.average_rating || 4.5)
+                    ? "#f59e0b"
+                    : "none"
+                }
               />
             ))}
           </View>
@@ -404,12 +440,15 @@ const ReviewsSummary: React.FC<{
 
         <View className="flex-1">
           <Text className="text-sm text-muted-foreground mb-1">
-            {restaurant.review_summary?.recommendation_percentage || 95}% would recommend
+            {restaurant.review_summary?.recommendation_percentage || 95}% would
+            recommend
           </Text>
           <View className="bg-muted rounded-full h-2">
-            <View 
+            <View
               className="bg-green-500 h-2 rounded-full"
-              style={{ width: `${restaurant.review_summary?.recommendation_percentage || 95}%` }}
+              style={{
+                width: `${restaurant.review_summary?.recommendation_percentage || 95}%`,
+              }}
             />
           </View>
         </View>
@@ -450,14 +489,13 @@ export default function RestaurantDetailsScreen() {
   const { profile } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
-  
+
   const [showImageGallery, setShowImageGallery] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const id = params?.id;
 
   // Custom hooks
-  const restaurantHelpers = useRestaurantHelpers();
   const {
     restaurant,
     reviews,
@@ -465,13 +503,9 @@ export default function RestaurantDetailsScreen() {
     loading,
     toggleFavorite,
     handleShare,
-    navigateToCreateReview,
-  } = useRestaurantData(id, () => []);
-
-  const {
-    handleCall = () => {},
-    openDirections = () => {},
-  } = restaurantHelpers || {};
+    handleCall,
+    openDirections,
+  } = useRestaurant(id);
 
   const allImages = React.useMemo(() => {
     if (!restaurant) return [];
@@ -502,7 +536,7 @@ export default function RestaurantDetailsScreen() {
 
   const handleBookTable = useCallback(() => {
     if (!restaurant) return;
-    
+
     router.push({
       pathname: "/booking/availability",
       params: {
@@ -516,8 +550,13 @@ export default function RestaurantDetailsScreen() {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#000"} />
-          <Text className="mt-4 text-muted-foreground">Loading restaurant...</Text>
+          <ActivityIndicator
+            size="large"
+            color={colorScheme === "dark" ? "#fff" : "#000"}
+          />
+          <Text className="mt-4 text-muted-foreground">
+            Loading restaurant...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -531,7 +570,11 @@ export default function RestaurantDetailsScreen() {
           <P className="text-center text-muted-foreground mb-4">
             The restaurant you're looking for doesn't exist or has been removed.
           </P>
-          <Button variant="outline" onPress={() => router.back()} className="mt-4">
+          <Button
+            variant="outline"
+            onPress={() => router.back()}
+            className="mt-4"
+          >
             <Text>Go Back</Text>
           </Button>
         </View>
@@ -543,7 +586,11 @@ export default function RestaurantDetailsScreen() {
     <View className="flex-1 bg-background">
       {/* Header */}
       <View className="absolute top-0 left-0 right-0 z-50">
-        <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+        <StatusBar
+          barStyle="light-content"
+          backgroundColor="transparent"
+          translucent
+        />
         <SafeAreaView edges={["top"]}>
           <View className="flex-row items-center justify-between p-4">
             <Pressable
@@ -620,8 +667,6 @@ export default function RestaurantDetailsScreen() {
           </View>
         </SafeAreaView>
       </View>
-
-    
     </View>
   );
 }

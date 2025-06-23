@@ -37,8 +37,7 @@ import { Image } from "@/components/image";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
-import { useRestaurantData } from "@/hooks/useRestaurantData";
-import { useRestaurantHelpers } from "@/hooks/useRestaurantHelpers";
+import { useRestaurant } from "@/hooks/useRestaurant";
 import { useLoyalty } from "@/hooks/useLoyalty";
 import { useOffers } from "@/hooks/useOffers";
 
@@ -72,7 +71,7 @@ const PartySizeSelector: React.FC<{
             <ChevronUp size={24} color="#666" />
           </Pressable>
         </View>
-        
+
         <View className="flex-row flex-wrap gap-3">
           {partySizes.map((size) => (
             <Pressable
@@ -90,7 +89,9 @@ const PartySizeSelector: React.FC<{
             >
               <Text
                 className={`font-semibold ${
-                  partySize === size ? "text-primary-foreground" : "text-foreground"
+                  partySize === size
+                    ? "text-primary-foreground"
+                    : "text-foreground"
                 }`}
               >
                 {size}
@@ -104,7 +105,8 @@ const PartySizeSelector: React.FC<{
             <View className="flex-row items-start gap-2">
               <Info size={16} color="#f59e0b" />
               <Text className="text-sm text-yellow-800 dark:text-yellow-200 flex-1">
-                Large parties may require special arrangements. The restaurant will confirm availability.
+                Large parties may require special arrangements. The restaurant
+                will confirm availability.
               </Text>
             </View>
           </View>
@@ -141,13 +143,13 @@ const DateSelector: React.FC<{
   const dates = useMemo(() => {
     const today = new Date();
     const datesArray = [];
-    
+
     for (let i = 0; i < maxDaysAhead; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       datesArray.push(date);
     }
-    
+
     return datesArray;
   }, [maxDaysAhead]);
 
@@ -158,7 +160,7 @@ const DateSelector: React.FC<{
 
     if (date.toDateString() === today.toDateString()) return "Today";
     if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow";
-    
+
     return date.toLocaleDateString("en-US", {
       weekday: "short",
       month: "short",
@@ -172,13 +174,14 @@ const DateSelector: React.FC<{
         <Calendar size={20} color="#3b82f6" />
         <Text className="font-semibold text-lg">Select Date</Text>
       </View>
-      
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View className="flex-row gap-3">
           {dates.map((date) => {
-            const isSelected = date.toDateString() === selectedDate.toDateString();
+            const isSelected =
+              date.toDateString() === selectedDate.toDateString();
             const isToday = date.toDateString() === new Date().toDateString();
-            
+
             return (
               <Pressable
                 key={date.toISOString()}
@@ -194,10 +197,14 @@ const DateSelector: React.FC<{
               >
                 <Text
                   className={`text-xs font-medium mb-1 ${
-                    isSelected ? "text-primary-foreground" : "text-muted-foreground"
+                    isSelected
+                      ? "text-primary-foreground"
+                      : "text-muted-foreground"
                   }`}
                 >
-                  {date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
+                  {date
+                    .toLocaleDateString("en-US", { weekday: "short" })
+                    .toUpperCase()}
                 </Text>
                 <Text
                   className={`text-lg font-bold mb-1 ${
@@ -208,10 +215,14 @@ const DateSelector: React.FC<{
                 </Text>
                 <Text
                   className={`text-xs ${
-                    isSelected ? "text-primary-foreground" : "text-muted-foreground"
+                    isSelected
+                      ? "text-primary-foreground"
+                      : "text-muted-foreground"
                   }`}
                 >
-                  {isToday ? "Today" : date.toLocaleDateString("en-US", { month: "short" })}
+                  {isToday
+                    ? "Today"
+                    : date.toLocaleDateString("en-US", { month: "short" })}
                 </Text>
               </Pressable>
             );
@@ -237,14 +248,15 @@ const TimeSlots: React.FC<{
           <Text className="font-semibold text-lg">Available Times</Text>
         </View>
         <View className="items-center py-8">
-          <ActivityIndicator size="large" />
-          <Text className="mt-2 text-muted-foreground">Loading available times...</Text>
+          <Text className="text-muted-foreground text-center">
+            Loading available times...
+          </Text>
         </View>
       </View>
     );
   }
 
-  if (availableSlots.length === 0) {
+  if (!availableSlots || availableSlots.length === 0) {
     return (
       <View className="bg-card border border-border rounded-xl p-4">
         <View className="flex-row items-center gap-3 mb-3">
@@ -264,7 +276,7 @@ const TimeSlots: React.FC<{
   }
 
   // Filter only available slots
-  const availableTimeSlots = availableSlots.filter(slot => slot.available);
+  const availableTimeSlots = availableSlots.filter((slot) => slot.available);
 
   return (
     <View className="bg-card border border-border rounded-xl p-4">
@@ -272,7 +284,7 @@ const TimeSlots: React.FC<{
         <Clock size={20} color="#3b82f6" />
         <Text className="font-semibold text-lg">Available Times</Text>
       </View>
-      
+
       {availableTimeSlots.length === 0 ? (
         <View className="items-center py-8">
           <Text className="text-muted-foreground text-center">
@@ -299,7 +311,9 @@ const TimeSlots: React.FC<{
             >
               <Text
                 className={`font-semibold ${
-                  selectedTime === slot.time ? "text-primary-foreground" : "text-foreground"
+                  selectedTime === slot.time
+                    ? "text-primary-foreground"
+                    : "text-foreground"
                 }`}
               >
                 {slot.time}
@@ -339,7 +353,7 @@ const PreselectedOfferPreview: React.FC<{
           </Text>
         </View>
       </View>
-      
+
       <View className="mb-3">
         <Text className="font-bold text-green-800 dark:text-green-200 mb-1">
           {offerTitle}
@@ -348,7 +362,7 @@ const PreselectedOfferPreview: React.FC<{
           This offer will be automatically applied to your booking
         </Text>
       </View>
-      
+
       <View className="flex-row items-center justify-between">
         <View className="flex-row items-center bg-green-200 dark:bg-green-800 rounded-full px-3 py-1">
           <QrCode size={14} color="#10b981" />
@@ -356,7 +370,7 @@ const PreselectedOfferPreview: React.FC<{
             Code: {redemptionCode.slice(-6).toUpperCase()}
           </Text>
         </View>
-        
+
         <Pressable
           onPress={onRemove}
           className="bg-green-200 dark:bg-green-800 rounded-full px-3 py-1"
@@ -387,17 +401,21 @@ const LoyaltyPreview: React.FC<{
           </Text>
         </View>
       </View>
-      
+
       <View className="flex-row items-center justify-between">
         <View>
-          <Text className="text-sm text-amber-700 dark:text-amber-300">You'll earn</Text>
+          <Text className="text-sm text-amber-700 dark:text-amber-300">
+            You'll earn
+          </Text>
           <Text className="text-2xl font-bold text-amber-800 dark:text-amber-200">
             +{earnablePoints} points
           </Text>
         </View>
-        
+
         <View className="items-end">
-          <Text className="text-sm text-amber-700 dark:text-amber-300">Current balance</Text>
+          <Text className="text-sm text-amber-700 dark:text-amber-300">
+            Current balance
+          </Text>
           <Text className="text-lg font-bold text-amber-800 dark:text-amber-200">
             {userPoints} pts
           </Text>
@@ -407,7 +425,7 @@ const LoyaltyPreview: React.FC<{
   );
 };
 
-// Regular Offers Preview Component  
+// Regular Offers Preview Component
 const OffersPreview: React.FC<{
   availableOffers: any[];
   onViewOffers: () => void;
@@ -424,7 +442,8 @@ const OffersPreview: React.FC<{
           <Gift size={20} color="#10b981" />
           <View>
             <Text className="font-semibold text-lg text-green-800 dark:text-green-200">
-              {availableOffers.length} Special Offer{availableOffers.length > 1 ? 's' : ''} Available
+              {availableOffers.length} Special Offer
+              {availableOffers.length > 1 ? "s" : ""} Available
             </Text>
             <Text className="text-sm text-green-700 dark:text-green-300">
               Apply discounts during booking
@@ -433,7 +452,11 @@ const OffersPreview: React.FC<{
         </View>
         <View className="bg-green-200 dark:bg-green-800 rounded-full px-3 py-1">
           <Text className="text-green-800 dark:text-green-200 font-bold text-sm">
-            Save up to {Math.max(...availableOffers.map(o => o.discount_percentage || 0))}%
+            Save up to{" "}
+            {Math.max(
+              ...availableOffers.map((o) => o.discount_percentage || 0)
+            )}
+            %
           </Text>
         </View>
       </View>
@@ -445,7 +468,7 @@ export default function AvailabilitySelectionScreen() {
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();
   const router = useRouter();
-  
+
   // ENHANCED: Get offer parameters from navigation
   const params = useLocalSearchParams<{
     restaurantId: string;
@@ -460,7 +483,7 @@ export default function AvailabilitySelectionScreen() {
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [selectedTime, setSelectedTime] = useState("");
   const [partySize, setPartySize] = useState(2);
-  
+
   // ENHANCED: Track preselected offer
   const [preselectedOffer, setPreselectedOffer] = useState<{
     id: string;
@@ -470,21 +493,29 @@ export default function AvailabilitySelectionScreen() {
   } | null>(null);
 
   // Custom hooks
-  const restaurantHelpers = useRestaurantHelpers();
   const {
     restaurant,
-    loading: restaurantLoading,
     availableSlots,
     loadingSlots,
     fetchAvailableSlots,
-  } = useRestaurantData(params.restaurantId, restaurantHelpers?.generateTimeSlots || (() => []));
+    generateTimeSlots,
+  } = useRestaurant(params.restaurantId);
 
-  const { userPoints = 0, userTier = "bronze", calculateBookingPoints } = useLoyalty() || {};
+  const {
+    userPoints = 0,
+    userTier = "bronze",
+    calculateBookingPoints,
+  } = useLoyalty() || {};
   const { offers = [] } = useOffers() || {};
 
   // ENHANCED: Initialize preselected offer from params
   useEffect(() => {
-    if (params.preselectedOfferId && params.offerTitle && params.offerDiscount && params.redemptionCode) {
+    if (
+      params.preselectedOfferId &&
+      params.offerTitle &&
+      params.offerDiscount &&
+      params.redemptionCode
+    ) {
       setPreselectedOffer({
         id: params.preselectedOfferId,
         title: params.offerTitle,
@@ -492,7 +523,19 @@ export default function AvailabilitySelectionScreen() {
         redemptionCode: params.redemptionCode,
       });
     }
-  }, [params.preselectedOfferId, params.offerTitle, params.offerDiscount, params.redemptionCode]);
+  }, [
+    params.preselectedOfferId,
+    params.offerTitle,
+    params.offerDiscount,
+    params.redemptionCode,
+  ]);
+
+  // Fetch available slots when date or party size changes
+  useEffect(() => {
+    if (restaurant && fetchAvailableSlots) {
+      fetchAvailableSlots(selectedDate, partySize);
+    }
+  }, [selectedDate, partySize, restaurant, fetchAvailableSlots]);
 
   // Computed values
   const earnablePoints = useMemo(() => {
@@ -502,12 +545,13 @@ export default function AvailabilitySelectionScreen() {
 
   // Get available offers (excluding preselected one)
   const availableOffers = useMemo(() => {
-    return offers.filter(offer => 
-      offer && 
-      offer.restaurant_id === params.restaurantId &&
-      !offer.used_at &&
-      new Date(offer.expires_at) > new Date() &&
-      offer.id !== preselectedOffer?.id // Exclude preselected offer
+    return offers.filter(
+      (offer) =>
+        offer &&
+        offer.restaurant_id === params.restaurantId &&
+        !offer.usedAt &&
+        new Date(offer.expiresAt || offer.valid_until) > new Date() &&
+        offer.id !== preselectedOffer?.id // Exclude preselected offer
     );
   }, [offers, params.restaurantId, preselectedOffer]);
 
@@ -520,7 +564,10 @@ export default function AvailabilitySelectionScreen() {
   // ENHANCED: Continue booking with preselected offer
   const handleContinueBooking = useCallback(() => {
     if (!selectedTime || !restaurant) {
-      Alert.alert("Please select a time", "You need to select an available time slot to continue.");
+      Alert.alert(
+        "Please select a time",
+        "You need to select an available time slot to continue."
+      );
       return;
     }
 
@@ -545,7 +592,16 @@ export default function AvailabilitySelectionScreen() {
       pathname: "/booking/create",
       params: navigationParams,
     });
-  }, [selectedTime, restaurant, router, params.restaurantId, selectedDate, partySize, earnablePoints, preselectedOffer]);
+  }, [
+    selectedTime,
+    restaurant,
+    router,
+    params.restaurantId,
+    selectedDate,
+    partySize,
+    earnablePoints,
+    preselectedOffer,
+  ]);
 
   const handleViewOffers = useCallback(() => {
     router.push({
@@ -576,31 +632,17 @@ export default function AvailabilitySelectionScreen() {
     );
   }, []);
 
-  // Effects
-  useEffect(() => {
-    if (restaurant && fetchAvailableSlots) {
-      fetchAvailableSlots(selectedDate, partySize);
-    }
-  }, [selectedDate, partySize, restaurant, fetchAvailableSlots]);
-
   // Loading state
-  if (restaurantLoading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#000"} />
-          <Text className="mt-4 text-muted-foreground">Loading restaurant details...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   if (!restaurant) {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center px-4">
           <H3 className="text-center mb-2">Restaurant not found</H3>
-          <Button variant="outline" onPress={() => router.back()} className="mt-4">
+          <Button
+            variant="outline"
+            onPress={() => router.back()}
+            className="mt-4"
+          >
             <Text>Go Back</Text>
           </Button>
         </View>
@@ -634,9 +676,13 @@ export default function AvailabilitySelectionScreen() {
             <H3 className="mb-1">{restaurant.name}</H3>
             <View className="flex-row items-center gap-2 mb-1">
               <Star size={14} color="#f59e0b" fill="#f59e0b" />
-              <Text className="text-sm font-medium">{restaurant.average_rating?.toFixed(1) || "4.5"}</Text>
+              <Text className="text-sm font-medium">
+                {restaurant.average_rating?.toFixed(1) || "4.5"}
+              </Text>
               <Text className="text-sm text-muted-foreground">•</Text>
-              <Text className="text-sm text-muted-foreground">{restaurant.cuisine_type}</Text>
+              <Text className="text-sm text-muted-foreground">
+                {restaurant.cuisine_type}
+              </Text>
             </View>
             <View className="flex-row items-center gap-1">
               <MapPin size={12} color="#666" />
@@ -676,10 +722,10 @@ export default function AvailabilitySelectionScreen() {
 
           {/* Time Slots */}
           <TimeSlots
-            availableSlots={availableSlots}
+            availableSlots={availableSlots || []}
             selectedTime={selectedTime}
             onTimeChange={setSelectedTime}
-            loading={loadingSlots}
+            loading={loadingSlots || false}
           />
 
           {/* Loyalty Preview */}
@@ -704,11 +750,15 @@ export default function AvailabilitySelectionScreen() {
             <Text className="font-semibold mb-2">Booking Information</Text>
             <View className="gap-2">
               <Text className="text-sm text-muted-foreground">
-                • {restaurant.booking_policy === "instant" ? "Instant confirmation" : "Confirmation within 2 hours"}
+                •{" "}
+                {restaurant.booking_policy === "instant"
+                  ? "Instant confirmation"
+                  : "Confirmation within 2 hours"}
               </Text>
               {restaurant.cancellation_window_hours && (
                 <Text className="text-sm text-muted-foreground">
-                  • Free cancellation up to {restaurant.cancellation_window_hours} hours before
+                  • Free cancellation up to{" "}
+                  {restaurant.cancellation_window_hours} hours before
                 </Text>
               )}
               <Text className="text-sm text-muted-foreground">
@@ -716,7 +766,8 @@ export default function AvailabilitySelectionScreen() {
               </Text>
               {preselectedOffer && (
                 <Text className="text-sm text-green-600 dark:text-green-400">
-                  • Your {preselectedOffer.discount}% discount will be applied automatically
+                  • Your {preselectedOffer.discount}% discount will be applied
+                  automatically
                 </Text>
               )}
             </View>
