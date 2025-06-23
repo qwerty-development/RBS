@@ -39,6 +39,11 @@ import { Image } from "@/components/image";
 import { LoyaltyTierDisplay } from "@/components/loyalty/LoyaltyTierDisplay";
 import { OfferCard } from "@/components/offers/OfferCard";
 import { OffersSelection } from "@/components/offers/OffersSelection";
+import { BookingSummaryCard } from "@/components/booking/BookingSummaryCard";
+import { SpecialRequirementsForm } from "@/components/booking/SpecialRequirementsForm";
+import { TermsAcceptance } from "@/components/booking/TermsAcceptance";
+import { BookingHeader } from "@/components/booking/BookingHeader";
+import { BookingCTA } from "@/components/booking/BookingCTA";
 import { InviteFriends } from "@/components/booking/invite-friend";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
@@ -614,83 +619,24 @@ export default function BookingCreateScreen() {
         className="flex-1"
       >
         {/* Header */}
-        <View className="px-4 py-3 border-b border-border">
-          <View className="flex-row items-center justify-between">
-            <Pressable onPress={() => router.back()} className="p-2 -ml-2">
-              <ChevronLeft size={24} />
-            </Pressable>
-            <View className="flex-1 mx-4">
-              <Text className="text-center font-semibold">
-                Complete Booking
-              </Text>
-              <Muted className="text-center text-sm">{restaurant.name}</Muted>
-            </View>
-            <View className="w-10" />
-          </View>
-        </View>
+        <BookingHeader
+          title="Complete Booking"
+          subtitle={restaurant.name}
+          onBack={() => router.back()}
+        />
 
         {/* Booking Summary */}
-        <View className="mx-4 mt-4 p-4 bg-card rounded-xl border border-border">
-          <View className="flex-row items-center gap-3 mb-3">
-            <Image
-              source={{ uri: restaurant.main_image_url }}
-              className="w-16 h-16 rounded-lg"
-              contentFit="cover"
-            />
-            <View className="flex-1">
-              <Text className="font-semibold text-lg">{restaurant.name}</Text>
-              <View className="flex-row items-center gap-2 mt-1">
-                <Calendar size={14} color="#666" />
-                <Text className="text-sm text-muted-foreground">
-                  {bookingDate.toLocaleDateString("en-US", {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </Text>
-                <Clock size={14} color="#666" />
-                <Text className="text-sm text-muted-foreground">
-                  {bookingTime}
-                </Text>
-                <Users size={14} color="#666" />
-                <Text className="text-sm text-muted-foreground">
-                  {totalPartySize} {totalPartySize === 1 ? "Guest" : "Guests"}
-                  {invitedFriends.length > 0 &&
-                    ` (${invitedFriends.length} friends invited)`}
-                </Text>
-              </View>
-            </View>
-          </View>
-
-          {/* User info display */}
-          <View className="border-t border-border pt-3">
-            <Text className="text-sm text-muted-foreground">Booking for:</Text>
-            <Text className="font-medium">{profile?.full_name}</Text>
-            {profile?.phone_number && (
-              <Text className="text-sm text-muted-foreground">
-                {profile.phone_number}
-              </Text>
-            )}
-          </View>
-
-          {/* Applied offer summary */}
-          {selectedOffer && (
-            <View className="border-t border-border pt-3 mt-3">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-2">
-                  <Tag size={16} color="#10b981" />
-                  <Text className="text-sm font-medium">
-                    {selectedOffer.special_offer.title} (
-                    {selectedOffer.special_offer.discount_percentage}% OFF)
-                  </Text>
-                </View>
-                <Pressable onPress={() => setSelectedOfferUserId(null)}>
-                  <X size={16} color="#666" />
-                </Pressable>
-              </View>
-            </View>
-          )}
-        </View>
+        <BookingSummaryCard
+          restaurant={restaurant}
+          date={bookingDate}
+          time={bookingTime}
+          partySize={partySize}
+          invitedFriendsCount={invitedFriends.length}
+          userProfile={profile || {}}
+          appliedOffer={selectedOffer}
+          onRemoveOffer={() => setSelectedOfferUserId(null)}
+          className="mx-4 mt-4"
+        />
 
         <ScrollView
           className="flex-1 px-4"
@@ -724,202 +670,37 @@ export default function BookingCreateScreen() {
             />
 
             {/* Special Requirements */}
-            <View className="bg-card border border-border rounded-xl p-4">
-              <View className="flex-row items-center gap-3 mb-4">
-                <Utensils size={20} color="#3b82f6" />
-                <Text className="font-bold text-lg">Special Requirements</Text>
-              </View>
-
-              {/* Occasion Selection */}
-              <View className="mb-4">
-                <Text className="font-medium mb-2">Special Occasion</Text>
-                <View className="flex-row flex-wrap gap-2">
-                  {OCCASIONS.slice(0, 4).map((occasion) => (
-                    <Pressable
-                      key={occasion.id}
-                      onPress={() => setValue("occasion", occasion.id)}
-                      className={`px-3 py-2 rounded-lg border flex-row items-center gap-2 ${
-                        watchedValues.occasion === occasion.id
-                          ? "bg-primary border-primary"
-                          : "bg-background border-border"
-                      }`}
-                    >
-                      {occasion.icon && <Text>{occasion.icon}</Text>}
-                      <Text
-                        className={
-                          watchedValues.occasion === occasion.id
-                            ? "text-primary-foreground text-sm"
-                            : "text-sm"
-                        }
-                      >
-                        {occasion.label}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-              </View>
-
-              {/* Dietary Restrictions */}
-              <View className="mb-4">
-                <Text className="font-medium mb-2">Dietary Restrictions</Text>
-                <View className="flex-row flex-wrap gap-2">
-                  {DIETARY_RESTRICTIONS.slice(0, 8).map((restriction) => {
-                    const isSelected =
-                      watchedValues.dietaryRestrictions.includes(restriction);
-
-                    return (
-                      <Pressable
-                        key={restriction}
-                        onPress={() => toggleDietaryRestriction(restriction)}
-                        className={`px-3 py-2 rounded-lg border ${
-                          isSelected
-                            ? "bg-green-100 dark:bg-green-900/20 border-green-500"
-                            : "bg-background border-border"
-                        }`}
-                      >
-                        <Text
-                          className={
-                            isSelected
-                              ? "text-green-800 dark:text-green-200 text-sm"
-                              : "text-sm"
-                          }
-                        >
-                          {restriction}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-
-              {/* Table Preferences */}
-              <View className="mb-4">
-                <Text className="font-medium mb-2">Table Preferences</Text>
-                <View className="flex-row flex-wrap gap-2">
-                  {TABLE_PREFERENCES.slice(0, 6).map((preference) => {
-                    const isSelected =
-                      watchedValues.tablePreferences.includes(preference);
-
-                    return (
-                      <Pressable
-                        key={preference}
-                        onPress={() => toggleTablePreference(preference)}
-                        className={`px-3 py-2 rounded-lg border ${
-                          isSelected
-                            ? "bg-blue-100 dark:bg-blue-900/20 border-blue-500"
-                            : "bg-background border-border"
-                        }`}
-                      >
-                        <Text
-                          className={
-                            isSelected
-                              ? "text-blue-800 dark:text-blue-200 text-sm"
-                              : "text-sm"
-                          }
-                        >
-                          {preference}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
-              </View>
-
-              {/* Special Requests */}
-              <Controller
-                control={control}
-                name="specialRequests"
-                render={({ field: { onChange, value } }) => (
-                  <Textarea
-                    label="Special Requests"
-                    value={value || ""}
-                    onChangeText={onChange}
-                    placeholder="Any other special requests or notes..."
-                    description="Optional - Let us know if you have any specific needs"
-                    numberOfLines={3}
-                    maxLength={500}
-                    error={errors.specialRequests?.message}
-                  />
-                )}
-              />
-            </View>
+            <SpecialRequirementsForm
+              control={control}
+              errors={errors}
+              watchedValues={watchedValues}
+              onToggleDietaryRestriction={toggleDietaryRestriction}
+              onToggleTablePreference={toggleTablePreference}
+              onSetOccasion={(occasionId) => setValue("occasion", occasionId)}
+            />
 
             {/* Terms Acceptance */}
-            <View className="bg-card border border-border rounded-xl p-4">
-              <Controller
-                control={control}
-                name="acceptTerms"
-                render={({ field: { onChange, value } }) => (
-                  <Pressable
-                    onPress={() => onChange(!value)}
-                    className="flex-row items-start gap-3"
-                  >
-                    <View
-                      className={`w-5 h-5 rounded border-2 items-center justify-center mt-0.5 ${
-                        value ? "bg-primary border-primary" : "border-border"
-                      }`}
-                    >
-                      {value && <CheckCircle size={14} color="white" />}
-                    </View>
-                    <Text className="flex-1 text-sm">
-                      I agree to the{" "}
-                      <Text className="text-primary underline">
-                        booking terms
-                      </Text>{" "}
-                      and understand the cancellation policy. I also consent to
-                      earning loyalty points
-                      {invitedFriends.length > 0 &&
-                        " and sending invitations to selected friends"}
-                      .
-                    </Text>
-                  </Pressable>
-                )}
-              />
-              {errors.acceptTerms && (
-                <Text className="text-sm text-red-500 mt-2">
-                  {errors.acceptTerms.message}
-                </Text>
-              )}
-            </View>
+            <TermsAcceptance
+              control={control}
+              errors={errors}
+              invitedFriendsCount={invitedFriends.length}
+            />
           </View>
         </ScrollView>
 
         {/* Bottom CTA */}
-        <View className="p-4 border-t border-border bg-background">
-          <Button
-            onPress={handleSubmit(submitBooking)}
-            disabled={submitting || !watchedValues.acceptTerms}
-            size="lg"
-            className="w-full"
-          >
-            {submitting ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <>
-                <CheckCircle size={20} className="mr-2" />
-                <Text className="text-white font-bold text-lg">
-                  {restaurant.booking_policy === "instant"
-                    ? "Confirm Booking"
-                    : "Request Booking"}
-                  {invitedFriends.length > 0 &&
-                    ` (${invitedFriends.length} friends)`}
-                </Text>
-              </>
-            )}
-          </Button>
-
-          <View className="mt-3 flex-row justify-center items-center gap-2">
-            <Text className="text-xs text-muted-foreground text-center">
-              {selectedOffer
-                ? `${selectedOffer.special_offer.discount_percentage}% discount + `
-                : ""}
-              {earnablePoints} loyalty points •{" "}
-              {TIER_CONFIG[userTier].name.toUpperCase()} tier
-              {invitedFriends.length > 0 &&
-                ` • ${invitedFriends.length} friends invited`}
-            </Text>
-          </View>
-        </View>
+        <BookingCTA
+          onSubmit={handleSubmit(submitBooking)}
+          isSubmitting={submitting}
+          isDisabled={submitting || !watchedValues.acceptTerms}
+          bookingPolicy={restaurant.booking_policy}
+          invitedFriendsCount={invitedFriends.length}
+          selectedOfferDiscount={
+            selectedOffer?.special_offer.discount_percentage
+          }
+          earnablePoints={earnablePoints}
+          userTier={TIER_CONFIG[userTier].name}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
