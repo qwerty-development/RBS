@@ -8,7 +8,6 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  TextInput,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -22,14 +21,9 @@ import {
   CheckCircle,
   Utensils,
   Star,
-  Trophy,
-  Tag,
-  Sparkles,
-  Crown,
-  Award,
   X,
-  AlertCircle,
   UserPlus,
+  Tag,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -39,17 +33,31 @@ import * as z from "zod";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { Textarea } from "@/components/ui/textarea";
 import { H3, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
+import { LoyaltyTierDisplay } from "@/components/loyalty/LoyaltyTierDisplay";
+import { OfferCard } from "@/components/offers/OfferCard";
+import { OffersSelection } from "@/components/offers/OffersSelection";
+import { InviteFriends } from "@/components/booking/invite-friend";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
-import { InviteFriends } from "@/components/booking/invite-friend";
-
-
-
-
+import {
+  OCCASIONS,
+  DIETARY_RESTRICTIONS,
+  TABLE_PREFERENCES,
+  TierType,
+  TIER_CONFIG,
+  isValidDate,
+  parseDate,
+  isValidTime,
+  formatBookingDate,
+  formatBookingTime,
+  calculateEarnablePoints,
+  validateBookingForm,
+} from "@/lib/bookingUtils";
 
 // Enhanced Type Definitions
 interface BookingFormData {
@@ -81,36 +89,6 @@ interface UserOfferWithDetails {
   };
 }
 
-// Tier Configuration
-const TIER_CONFIG = {
-  bronze: {
-    name: "Bronze",
-    color: "#CD7F32",
-    icon: Award,
-    pointsMultiplier: 1,
-  },
-  silver: {
-    name: "Silver", 
-    color: "#C0C0C0",
-    icon: Star,
-    pointsMultiplier: 1.1,
-  },
-  gold: {
-    name: "Gold",
-    color: "#FFD700", 
-    icon: Crown,
-    pointsMultiplier: 1.2,
-  },
-  platinum: {
-    name: "Platinum",
-    color: "#E5E4E2",
-    icon: Sparkles,
-    pointsMultiplier: 1.5,
-  },
-} as const;
-
-type TierType = keyof typeof TIER_CONFIG;
-
 // Form Validation Schema
 const bookingFormSchema = z.object({
   specialRequests: z.string().max(500, "Maximum 500 characters").optional(),
@@ -122,407 +100,67 @@ const bookingFormSchema = z.object({
     .refine((val) => val === true, "You must accept the booking terms"),
 });
 
-// Configuration Constants
-const OCCASIONS = [
-  { id: "none", label: "No Special Occasion", icon: null },
-  { id: "birthday", label: "Birthday", icon: "🎂" },
-  { id: "anniversary", label: "Anniversary", icon: "💑" },
-  { id: "business", label: "Business Meeting", icon: "💼" },
-  { id: "date", label: "Date Night", icon: "❤️" },
-  { id: "engagement", label: "Engagement", icon: "💍" },
-  { id: "graduation", label: "Graduation", icon: "🎓" },
-  { id: "family", label: "Family Gathering", icon: "👨‍👩‍👧‍👦" },
-  { id: "other", label: "Other Celebration", icon: "🎉" },
-];
-
-const DIETARY_RESTRICTIONS = [
-  "Vegetarian",
-  "Vegan", 
-  "Halal Only",
-  "Gluten-Free",
-  "Nut Allergy",
-  "Dairy-Free",
-  "Shellfish Allergy",
-  "Kosher",
-];
-
-const TABLE_PREFERENCES = [
-  "Window Seat",
-  "Outdoor Seating",
-  "Quiet Area",
-  "Near Bar",
-  "Private Room",
-  "High Chair Needed",
-  "Wheelchair Accessible",
-];
-
-// Date Validation Utilities
-const isValidDate = (dateString: string | undefined): boolean => {
-  if (!dateString) return false;
-  const date = new Date(dateString);
-  return !isNaN(date.getTime()) && date.getTime() > 0;
-};
-
-const parseDate = (dateString: string | undefined, fallback: Date = new Date()): Date => {
-  if (!dateString) return fallback;
-  
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      console.warn("Invalid date string:", dateString);
-      return fallback;
-    }
-    return date;
-  } catch (error) {
-    console.warn("Error parsing date:", dateString, error);
-    return fallback;
-  }
-};
-
-const isValidTime = (timeString: string | undefined): boolean => {
-  if (!timeString) return false;
-  const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-  return timeRegex.test(timeString);
-};
-
-// Custom Textarea Component
-const CustomTextarea: React.FC<{
-  label: string;
-  value: string;
-  onChangeText: (text: string) => void;
-  placeholder?: string;
-  description?: string;
-  error?: string;
-  numberOfLines?: number;
-  maxLength?: number;
-}> = ({ 
-  label, 
-  value, 
-  onChangeText, 
-  placeholder, 
-  description, 
-  error,
-  numberOfLines = 4,
-  maxLength
-}) => {
-  return (
-    <View className="mb-4">
-      <Text className="font-medium text-base mb-2">{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        multiline
-        numberOfLines={numberOfLines}
-        maxLength={maxLength}
-        className={`border-2 rounded-lg px-4 py-3 text-base ${
-          error ? "border-red-500" : "border-border"
-        } bg-background text-foreground`}
-        placeholderTextColor="#9ca3af"
-        style={{ height: numberOfLines * 24 + 24, textAlignVertical: 'top' }}
-      />
-      {description && (
-        <Text className="text-sm text-muted-foreground mt-1">{description}</Text>
-      )}
-      {maxLength && (
-        <Text className="text-xs text-muted-foreground mt-1">
-          {value.length}/{maxLength} characters
-        </Text>
-      )}
-      {error && (
-        <Text className="text-sm text-red-500 mt-1">{error}</Text>
-      )}
-    </View>
-  );
-};
-
-// Loyalty Tier Display Component
-const LoyaltyTierDisplay: React.FC<{
-  userTier: TierType;
-  userPoints: number;
-  earnablePoints: number;
-}> = ({ userTier, userPoints, earnablePoints }) => {
-  const tierConfig = TIER_CONFIG[userTier] || TIER_CONFIG.bronze;
-  const IconComponent = tierConfig.icon;
-
-  return (
-    <View className="bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-      <View className="flex-row items-center justify-between mb-3">
-        <View className="flex-row items-center gap-2">
-          <Trophy size={20} color="#f59e0b" />
-          <Text className="font-bold text-lg text-amber-800 dark:text-amber-200">
-            Loyalty Rewards
-          </Text>
-        </View>
-        <View className="flex-row items-center bg-amber-200 dark:bg-amber-800 px-3 py-1 rounded-full">
-          <IconComponent size={14} color={tierConfig.color} />
-          <Text className="font-bold text-sm ml-1 text-amber-800 dark:text-amber-200">
-            {tierConfig.name.toUpperCase()}
-          </Text>
-        </View>
-      </View>
-      
-      <View className="flex-row items-center justify-between">
-        <View>
-          <Text className="text-sm text-amber-700 dark:text-amber-300">You'll earn</Text>
-          <View className="flex-row items-center">
-            <Text className="text-2xl font-bold text-amber-800 dark:text-amber-200">
-              +{earnablePoints}
-            </Text>
-            <Text className="text-sm text-amber-700 dark:text-amber-300 ml-1">points</Text>
-          </View>
-        </View>
-        
-        <View className="items-end">
-          <Text className="text-sm text-amber-700 dark:text-amber-300">Current balance</Text>
-          <Text className="text-lg font-bold text-amber-800 dark:text-amber-200">
-            {userPoints} pts
-          </Text>
-        </View>
-      </View>
-      
-      <Text className="text-xs text-amber-700 dark:text-amber-300 mt-2">
-        Points are automatically awarded after your successful dining experience
-      </Text>
-    </View>
-  );
-};
-
-// Enhanced Offer Card Component
-const OfferCard: React.FC<{
-  offer: UserOfferWithDetails;
-  isSelected: boolean;
-  onSelect: () => void;
-  onDeselect: () => void;
-  partySize: number;
-}> = ({ offer, isSelected, onSelect, onDeselect, partySize }) => {
-  const formatDate = useCallback((dateString: string) => {
-    try {
-      if (!isValidDate(dateString)) return "Soon";
-      return new Date(dateString).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      });
-    } catch (error) {
-      console.warn("Error formatting date:", dateString, error);
-      return "Soon";
-    }
-  }, []);
-
-  // Check if offer is valid for current party size
-  const isValidForPartySize = !offer.special_offer.minimum_party_size || 
-    partySize >= offer.special_offer.minimum_party_size;
-
-  // Check if offer is expired
-  const isExpired = isValidDate(offer.expires_at) && new Date(offer.expires_at) < new Date();
-
-  const canUse = isValidForPartySize && !isExpired && !offer.used_at;
-
-  return (
-    <Pressable
-      onPress={canUse ? (isSelected ? onDeselect : onSelect) : undefined}
-      className={`border-2 rounded-xl p-4 ${
-        !canUse 
-          ? "border-gray-300 bg-gray-50 dark:bg-gray-900/50 opacity-60"
-          : isSelected 
-            ? "border-green-500 bg-green-50 dark:bg-green-900/20" 
-            : "border-border bg-card"
-      }`}
-    >
-      {/* Header with discount badge */}
-      <View className="flex-row items-start justify-between mb-3">
-        <View className="flex-1 mr-3">
-          <Text className="font-bold text-lg mb-1" numberOfLines={1}>
-            {offer.special_offer.title}
-          </Text>
-          <Text className="text-sm text-muted-foreground" numberOfLines={2}>
-            {offer.special_offer.description}
-          </Text>
-        </View>
-        
-        <View className="relative">
-          <View className={`rounded-full h-12 w-12 items-center justify-center ${
-            canUse ? "bg-green-500" : "bg-gray-400"
-          }`}>
-            <Text className="text-white font-bold text-lg">
-              {offer.special_offer.discount_percentage}
-            </Text>
-            <Text className="text-white text-xs -mt-1">%</Text>
-          </View>
-          
-          {isSelected && canUse && (
-            <View className="absolute -top-1 -right-1 bg-green-600 rounded-full p-1">
-              <CheckCircle size={16} color="white" />
-            </View>
-          )}
-        </View>
-      </View>
-
-      {/* Validation messages */}
-      {!canUse && (
-        <View className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
-          <View className="flex-row items-center gap-2">
-            <AlertCircle size={16} color="#dc2626" />
-            <Text className="text-sm text-red-700 dark:text-red-300">
-              {isExpired 
-                ? "This offer has expired"
-                : !isValidForPartySize 
-                  ? `Minimum ${offer.special_offer.minimum_party_size} guests required`
-                  : offer.used_at 
-                    ? "This offer has already been used" 
-                    : "Cannot use this offer"
-              }
-            </Text>
-          </View>
-        </View>
-      )}
-
-      {/* Offer details */}
-      <View className="flex-row items-center justify-between">
-        <Text className="text-xs text-muted-foreground">
-          Expires {formatDate(offer.expires_at)}
-        </Text>
-        
-        <View className="bg-muted/50 rounded px-2 py-1">
-          <Text className="text-xs font-mono">
-            Code: {offer.id.slice(-6).toUpperCase()}
-          </Text>
-        </View>
-      </View>
-
-      {/* Minimum party size info */}
-      {offer.special_offer.minimum_party_size && offer.special_offer.minimum_party_size > 1 && (
-        <View className="mt-2 flex-row items-center gap-2">
-          <Users size={14} color="#666" />
-          <Text className="text-xs text-muted-foreground">
-            Minimum {offer.special_offer.minimum_party_size} guests
-          </Text>
-        </View>
-      )}
-
-      {isSelected && canUse && (
-        <View className="mt-3 p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
-          <Text className="text-green-800 dark:text-green-200 text-sm font-medium">
-            ✓ This offer will be applied to your booking
-          </Text>
-        </View>
-      )}
-    </Pressable>
-  );
-};
-
-// Offers Selection Section
-const OffersSelection: React.FC<{
-  availableOffers: UserOfferWithDetails[];
-  selectedOfferUserId: string | null;
-  onSelectOffer: (userOfferId: string | null) => void;
-  partySize: number;
-}> = ({ availableOffers, selectedOfferUserId, onSelectOffer, partySize }) => {
-  if (availableOffers.length === 0) {
-    return null; // Don't show anything if no offers
-  }
-
-  // Filter valid offers for this party size
-  const validOffers = availableOffers.filter(offer => 
-    !offer.used_at && 
-    isValidDate(offer.expires_at) &&
-    new Date(offer.expires_at) > new Date() &&
-    (!offer.special_offer.minimum_party_size || partySize >= offer.special_offer.minimum_party_size)
-  );
-
-  return (
-    <View className="bg-card border border-border rounded-xl p-4">
-      <View className="flex-row items-center justify-between mb-4">
-        <View className="flex-row items-center gap-3">
-          <Gift size={20} color="#10b981" />
-          <Text className="font-bold text-lg">Apply Special Offer</Text>
-        </View>
-        <View className="bg-green-100 dark:bg-green-900/30 px-3 py-1 rounded-full">
-          <Text className="text-green-800 dark:text-green-200 font-bold text-sm">
-            {validOffers.length} available
-          </Text>
-        </View>
-      </View>
-
-      {/* No offer option */}
-      <Pressable
-        onPress={() => onSelectOffer(null)}
-        className={`mb-4 p-4 border-2 rounded-lg ${
-          selectedOfferUserId === null 
-            ? "border-primary bg-primary/10" 
-            : "border-border bg-background"
-        }`}
-      >
-        <View className="flex-row items-center justify-between">
-          <View>
-            <Text className="font-medium">No Special Offer</Text>
-            <Text className="text-sm text-muted-foreground">Pay regular price</Text>
-          </View>
-          {selectedOfferUserId === null && (
-            <CheckCircle size={20} color="#3b82f6" />
-          )}
-        </View>
-      </Pressable>
-
-      {/* Available offers */}
-      <View className="gap-4">
-        {availableOffers.map((offer) => (
-          <OfferCard
-            key={offer.id}
-            offer={offer}
-            isSelected={selectedOfferUserId === offer.id}
-            onSelect={() => onSelectOffer(offer.id)}
-            onDeselect={() => onSelectOffer(null)}
-            partySize={partySize}
-          />
-        ))}
-      </View>
-    </View>
-  );
-};
-
-// Friends Invitation Display Component
+// Friends Invitation Section Component
 const FriendsInvitationSection: React.FC<{
   invitedFriends: string[];
   restaurantName: string;
   bookingTime: string;
   partySize: number;
   onInvitesSent: (friendIds: string[]) => void;
-}> = ({ invitedFriends, restaurantName, bookingTime, partySize, onInvitesSent }) => {
+}> = ({
+  invitedFriends,
+  restaurantName,
+  bookingTime,
+  partySize,
+  onInvitesSent,
+}) => {
+  const [showInviteModal, setShowInviteModal] = useState(false);
+
   return (
-    <View className="bg-card border border-border rounded-xl p-4">
+    <View>
       <View className="flex-row items-center gap-3 mb-4">
         <UserPlus size={20} color="#3b82f6" />
-        <Text className="font-bold text-lg">Invite Friends</Text>
-      </View>
-
-      {invitedFriends.length > 0 ? (
-        <View className="mb-4">
-          <View className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg mb-3">
-            <View className="flex-row items-center">
-              <CheckCircle size={20} color="#10b981" />
-              <Text className="ml-2 text-green-700 dark:text-green-400 font-medium">
-                {invitedFriends.length} friend{invitedFriends.length > 1 ? 's' : ''} will be invited
-              </Text>
-            </View>
-            <Text className="text-green-600 dark:text-green-300 text-sm mt-1">
-              They'll receive an invitation after your booking is confirmed
+        <Text className="font-semibold text-lg">Invite Friends</Text>
+        {invitedFriends.length > 0 && (
+          <View className="bg-blue-100 dark:bg-blue-900/30 px-2 py-1 rounded-full">
+            <Text className="text-blue-800 dark:text-blue-200 font-bold text-xs">
+              {invitedFriends.length} Invited
             </Text>
           </View>
-        </View>
-      ) : (
-        <Text className="text-muted-foreground mb-4">
-          Dining with friends? Invite them to join your booking and make it a group experience.
-        </Text>
-      )}
+        )}
+      </View>
 
-      <InviteFriends
-        restaurantName={restaurantName}
-        bookingTime={bookingTime}
-        partySize={partySize}
-        onInvitesSent={onInvitesSent}
-        existingInvites={invitedFriends}
-      />
+      <Text className="text-sm text-muted-foreground mb-4">
+        Share your dining experience with friends. They'll get a notification
+        about your booking.
+      </Text>
+
+      <Pressable
+        onPress={() => setShowInviteModal(true)}
+        className="border-2 border-dashed border-blue-300 dark:border-blue-700 rounded-xl p-4 items-center"
+      >
+        <UserPlus size={24} color="#3b82f6" />
+        <Text className="font-medium text-blue-600 dark:text-blue-400 mt-2">
+          {invitedFriends.length > 0
+            ? "Manage Invitations"
+            : "Invite Friends to Join"}
+        </Text>
+        <Text className="text-sm text-blue-500 dark:text-blue-400 text-center mt-1">
+          Let your friends know about this booking
+        </Text>
+      </Pressable>
+
+      {showInviteModal && (
+        <InviteFriends
+          visible={showInviteModal}
+          onClose={() => setShowInviteModal(false)}
+          onInvite={onInvitesSent}
+          restaurantName={restaurantName}
+          bookingDateTime={bookingTime}
+          currentInvitedFriends={invitedFriends}
+          maxInvites={partySize - 1}
+        />
+      )}
     </View>
   );
 };
@@ -539,7 +177,7 @@ export default function BookingCreateScreen() {
     offerId?: string;
     preselectedOfferId?: string;
   }>();
-  
+
   const { profile } = useAuth();
   const { colorScheme } = useColorScheme();
   const router = useRouter();
@@ -576,21 +214,31 @@ export default function BookingCreateScreen() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [selectedOfferUserId, setSelectedOfferUserId] = useState<string | null>(null);
-  const [availableOffers, setAvailableOffers] = useState<UserOfferWithDetails[]>([]);
+  const [selectedOfferUserId, setSelectedOfferUserId] = useState<string | null>(
+    null
+  );
+  const [availableOffers, setAvailableOffers] = useState<
+    UserOfferWithDetails[]
+  >([]);
 
   // Friends functionality state
   const [invitedFriends, setInvitedFriends] = useState<string[]>([]);
 
   // User data
   const [userPoints] = useState(profile?.loyalty_points || 0);
-  const [userTier] = useState<TierType>((profile?.membership_tier as TierType) || "bronze");
+  const [userTier] = useState<TierType>(
+    (profile?.membership_tier as TierType) || "bronze"
+  );
 
   // Safely parse booking details from navigation
   const bookingDate = parseDate(rawDate);
   const bookingTime = isValidTime(rawTime) ? rawTime! : "19:00";
-  const partySize = rawPartySize ? Math.max(1, parseInt(rawPartySize, 10)) || 2 : 2;
-  const earnablePoints = rawEarnablePoints ? Math.max(0, parseInt(rawEarnablePoints, 10)) || 0 : 0;
+  const partySize = rawPartySize
+    ? Math.max(1, parseInt(rawPartySize, 10)) || 2
+    : 2;
+  const earnablePoints = rawEarnablePoints
+    ? Math.max(0, parseInt(rawEarnablePoints, 10)) || 0
+    : 0;
 
   // Pre-selected offer handling
   const preselectedOfferId = params.offerId || params.preselectedOfferId;
@@ -629,7 +277,7 @@ export default function BookingCreateScreen() {
         .select("*")
         .eq("id", restaurantId)
         .single();
-      
+
       if (restaurantError) throw restaurantError;
       setRestaurant(restaurantData);
 
@@ -638,7 +286,8 @@ export default function BookingCreateScreen() {
         try {
           const { data: userOffersData, error: offersError } = await supabase
             .from("user_offers")
-            .select(`
+            .select(
+              `
               id,
               user_id,
               offer_id,
@@ -655,7 +304,8 @@ export default function BookingCreateScreen() {
                 minimum_party_size,
                 terms_conditions
               )
-            `)
+            `
+            )
             .eq("user_id", profile.id)
             .is("used_at", null)
             .gte("expires_at", new Date().toISOString());
@@ -663,21 +313,23 @@ export default function BookingCreateScreen() {
           if (!offersError && userOffersData) {
             // Filter for this restaurant and properly type the data
             const restaurantOffers = userOffersData
-              .filter(offer => offer.special_offer?.restaurant_id === restaurantId)
-              .filter(offer => offer.special_offer !== null)
-              .map(offer => ({
+              .filter(
+                (offer) => offer.special_offer?.restaurant_id === restaurantId
+              )
+              .filter((offer) => offer.special_offer !== null)
+              .map((offer) => ({
                 ...offer,
-                special_offer: offer.special_offer!
+                special_offer: offer.special_offer!,
               })) as UserOfferWithDetails[];
 
             setAvailableOffers(restaurantOffers);
-            
+
             // Auto-select offer if one was pre-selected
             if (preselectedOfferId) {
               const matchingUserOffer = restaurantOffers.find(
-                offer => offer.special_offer.id === preselectedOfferId
+                (offer) => offer.special_offer.id === preselectedOfferId
               );
-              
+
               if (matchingUserOffer) {
                 setSelectedOfferUserId(matchingUserOffer.id);
               }
@@ -703,183 +355,214 @@ export default function BookingCreateScreen() {
   }, []);
 
   // Enhanced booking submission with proper date handling
-  const submitBooking = useCallback(async (formData: BookingFormData) => {
-    if (!restaurant || !profile?.id) return;
-    
-    setSubmitting(true);
-    
-    try {
-      // Validate and create booking date time
-      if (!isValidDate(bookingDate.toISOString()) || !isValidTime(bookingTime)) {
-        throw new Error("Invalid booking date or time");
-      }
+  const submitBooking = useCallback(
+    async (formData: BookingFormData) => {
+      if (!restaurant || !profile?.id) return;
 
-      const bookingDateTime = new Date(bookingDate);
-      const [hours, minutes] = bookingTime.split(":").map(Number);
-      
-      if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
-        throw new Error("Invalid booking time format");
-      }
-      
-      bookingDateTime.setHours(hours, minutes, 0, 0);
-      
-      if (bookingDateTime <= new Date()) {
-        throw new Error("Booking time must be in the future");
-      }
+      setSubmitting(true);
 
-      // Get selected offer details
-      const selectedOffer = selectedOfferUserId 
-        ? availableOffers.find(offer => offer.id === selectedOfferUserId)
-        : null;
-      
-      // Prepare booking data
-      const bookingData = {
-        user_id: profile.id,
-        restaurant_id: restaurant.id,
-        booking_time: bookingDateTime.toISOString(),
-        party_size: totalPartySize,
-        status: restaurant.booking_policy === "instant" ? "confirmed" : "pending",
-        special_requests: formData.specialRequests,
-        occasion: formData.occasion !== "none" ? formData.occasion : null,
-        dietary_notes: formData.dietaryRestrictions,
-        table_preferences: formData.tablePreferences,
-        confirmation_code: `BK${Date.now().toString().slice(-8).toUpperCase()}`,
-        is_group_booking: invitedFriends.length > 0,
-        organizer_id: invitedFriends.length > 0 ? profile.id : null,
-        attendees: totalPartySize,
-        applied_offer_id: selectedOffer ? selectedOffer.special_offer.id : null,
-      };
-      
-      // Create booking record
-      const { data: booking, error: bookingError } = await supabase
-        .from("bookings")
-        .insert(bookingData)
-        .select()
-        .single();
-      
-      if (bookingError) {
-        console.error("Booking creation error:", bookingError);
-        throw bookingError;
-      }
+      try {
+        // Validate and create booking date time
+        if (
+          !isValidDate(bookingDate.toISOString()) ||
+          !isValidTime(bookingTime)
+        ) {
+          throw new Error("Invalid booking date or time");
+        }
 
-      // Handle friend invitations if any
-      if (invitedFriends.length > 0) {
-        try {
-          const invites = invitedFriends.map(friendId => ({
-            booking_id: booking.id,
-            from_user_id: profile.id,
-            to_user_id: friendId,
-            message: `Join me at ${restaurant.name} on ${bookingDateTime.toLocaleDateString()} at ${bookingTime}!`,
-          }));
+        const bookingDateTime = new Date(bookingDate);
+        const [hours, minutes] = bookingTime.split(":").map(Number);
 
-          await supabase.from('booking_invites').insert(invites);
-          
-          // Add organizer as confirmed attendee
-          await supabase.from('booking_attendees').insert({
-            booking_id: booking.id,
-            user_id: profile.id,
-            status: 'confirmed',
-            is_organizer: true,
+        if (
+          isNaN(hours) ||
+          isNaN(minutes) ||
+          hours < 0 ||
+          hours > 23 ||
+          minutes < 0 ||
+          minutes > 59
+        ) {
+          throw new Error("Invalid booking time format");
+        }
+
+        bookingDateTime.setHours(hours, minutes, 0, 0);
+
+        if (bookingDateTime <= new Date()) {
+          throw new Error("Booking time must be in the future");
+        }
+
+        // Get selected offer details
+        const selectedOffer = selectedOfferUserId
+          ? availableOffers.find((offer) => offer.id === selectedOfferUserId)
+          : null;
+
+        // Prepare booking data
+        const bookingData = {
+          user_id: profile.id,
+          restaurant_id: restaurant.id,
+          booking_time: bookingDateTime.toISOString(),
+          party_size: totalPartySize,
+          status:
+            restaurant.booking_policy === "instant" ? "confirmed" : "pending",
+          special_requests: formData.specialRequests,
+          occasion: formData.occasion !== "none" ? formData.occasion : null,
+          dietary_notes: formData.dietaryRestrictions,
+          table_preferences: formData.tablePreferences,
+          confirmation_code: `BK${Date.now().toString().slice(-8).toUpperCase()}`,
+          is_group_booking: invitedFriends.length > 0,
+          organizer_id: invitedFriends.length > 0 ? profile.id : null,
+          attendees: totalPartySize,
+          applied_offer_id: selectedOffer
+            ? selectedOffer.special_offer.id
+            : null,
+        };
+
+        // Create booking record
+        const { data: booking, error: bookingError } = await supabase
+          .from("bookings")
+          .insert(bookingData)
+          .select()
+          .single();
+
+        if (bookingError) {
+          console.error("Booking creation error:", bookingError);
+          throw bookingError;
+        }
+
+        // Handle friend invitations if any
+        if (invitedFriends.length > 0) {
+          try {
+            const invites = invitedFriends.map((friendId) => ({
+              booking_id: booking.id,
+              from_user_id: profile.id,
+              to_user_id: friendId,
+              message: `Join me at ${restaurant.name} on ${bookingDateTime.toLocaleDateString()} at ${bookingTime}!`,
+            }));
+
+            await supabase.from("booking_invites").insert(invites);
+
+            // Add organizer as confirmed attendee
+            await supabase.from("booking_attendees").insert({
+              booking_id: booking.id,
+              user_id: profile.id,
+              status: "confirmed",
+              is_organizer: true,
+            });
+          } catch (friendError) {
+            console.error("Failed to handle friend invitations:", friendError);
+          }
+        }
+
+        // Mark the user_offer as used if an offer was selected
+        if (selectedOfferUserId && selectedOffer) {
+          try {
+            await supabase
+              .from("user_offers")
+              .update({
+                used_at: new Date().toISOString(),
+              })
+              .eq("id", selectedOfferUserId)
+              .eq("user_id", profile.id);
+          } catch (offerError) {
+            console.error("Failed to mark offer as used:", offerError);
+          }
+        }
+
+        // Award loyalty points
+        if (earnablePoints > 0) {
+          try {
+            await supabase.rpc("award_loyalty_points", {
+              p_user_id: profile.id,
+              p_points: earnablePoints,
+            });
+          } catch (pointsError) {
+            console.error("Failed to award loyalty points:", pointsError);
+          }
+        }
+
+        // Haptic feedback
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success
+        );
+
+        // Navigate to success screen
+        const successParams = {
+          bookingId: booking.id,
+          restaurantName: restaurant.name,
+          confirmationCode: booking.confirmation_code,
+          earnedPoints: earnablePoints.toString(),
+          appliedOffer: selectedOffer ? "true" : "false",
+          invitedFriends: invitedFriends.length.toString(),
+          isGroupBooking: invitedFriends.length > 0 ? "true" : "false",
+          userTier,
+        };
+
+        if (selectedOffer) {
+          Object.assign(successParams, {
+            offerTitle: selectedOffer.special_offer.title,
+            offerDiscount:
+              selectedOffer.special_offer.discount_percentage.toString(),
           });
-        } catch (friendError) {
-          console.error("Failed to handle friend invitations:", friendError);
         }
-      }
-      
-      // Mark the user_offer as used if an offer was selected
-      if (selectedOfferUserId && selectedOffer) {
-        try {
-          await supabase
-            .from("user_offers")
-            .update({ 
-              used_at: new Date().toISOString(),
-            })
-            .eq("id", selectedOfferUserId)
-            .eq("user_id", profile.id);
-        } catch (offerError) {
-          console.error("Failed to mark offer as used:", offerError);
-        }
-      }
-      
-      // Award loyalty points
-      if (earnablePoints > 0) {
-        try {
-          await supabase.rpc("award_loyalty_points", {
-            p_user_id: profile.id,
-            p_points: earnablePoints,
-          });
-        } catch (pointsError) {
-          console.error("Failed to award loyalty points:", pointsError);
-        }
-      }
-      
-      // Haptic feedback
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
-      // Navigate to success screen
-      const successParams = {
-        bookingId: booking.id,
-        restaurantName: restaurant.name,
-        confirmationCode: booking.confirmation_code,
-        earnedPoints: earnablePoints.toString(),
-        appliedOffer: selectedOffer ? "true" : "false",
-        invitedFriends: invitedFriends.length.toString(),
-        isGroupBooking: invitedFriends.length > 0 ? "true" : "false",
-        userTier,
-      };
 
-      if (selectedOffer) {
-        Object.assign(successParams, {
-          offerTitle: selectedOffer.special_offer.title,
-          offerDiscount: selectedOffer.special_offer.discount_percentage.toString(),
+        router.replace({
+          pathname: "/booking/success",
+          params: successParams,
         });
+      } catch (error: any) {
+        console.error("Error creating booking:", error);
+        Alert.alert(
+          "Booking Failed",
+          error.message || "Failed to create booking. Please try again."
+        );
+      } finally {
+        setSubmitting(false);
       }
-      
-      router.replace({
-        pathname: "/booking/success",
-        params: successParams,
-      });
-    } catch (error: any) {
-      console.error("Error creating booking:", error);
-      Alert.alert(
-        "Booking Failed",
-        error.message || "Failed to create booking. Please try again."
-      );
-    } finally {
-      setSubmitting(false);
-    }
-  }, [
-    restaurant,
-    profile,
-    bookingDate,
-    bookingTime,
-    totalPartySize,
-    router,
-    selectedOfferUserId,
-    availableOffers,
-    earnablePoints,
-    userTier,
-    invitedFriends,
-  ]);
+    },
+    [
+      restaurant,
+      profile,
+      bookingDate,
+      bookingTime,
+      totalPartySize,
+      router,
+      selectedOfferUserId,
+      availableOffers,
+      earnablePoints,
+      userTier,
+      invitedFriends,
+    ]
+  );
 
   // Helper functions for form arrays
-  const toggleDietaryRestriction = useCallback((restriction: string) => {
-    const current = getValues("dietaryRestrictions");
-    if (current.includes(restriction)) {
-      setValue("dietaryRestrictions", current.filter((r) => r !== restriction));
-    } else {
-      setValue("dietaryRestrictions", [...current, restriction]);
-    }
-  }, [getValues, setValue]);
+  const toggleDietaryRestriction = useCallback(
+    (restriction: string) => {
+      const current = getValues("dietaryRestrictions");
+      if (current.includes(restriction)) {
+        setValue(
+          "dietaryRestrictions",
+          current.filter((r) => r !== restriction)
+        );
+      } else {
+        setValue("dietaryRestrictions", [...current, restriction]);
+      }
+    },
+    [getValues, setValue]
+  );
 
-  const toggleTablePreference = useCallback((preference: string) => {
-    const current = getValues("tablePreferences");
-    if (current.includes(preference)) {
-      setValue("tablePreferences", current.filter((p) => p !== preference));
-    } else {
-      setValue("tablePreferences", [...current, preference]);
-    }
-  }, [getValues, setValue]);
+  const toggleTablePreference = useCallback(
+    (preference: string) => {
+      const current = getValues("tablePreferences");
+      if (current.includes(preference)) {
+        setValue(
+          "tablePreferences",
+          current.filter((p) => p !== preference)
+        );
+      } else {
+        setValue("tablePreferences", [...current, preference]);
+      }
+    },
+    [getValues, setValue]
+  );
 
   // Lifecycle management
   useEffect(() => {
@@ -891,8 +574,13 @@ export default function BookingCreateScreen() {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#000"} />
-          <Text className="mt-4 text-muted-foreground">Loading booking details...</Text>
+          <ActivityIndicator
+            size="large"
+            color={colorScheme === "dark" ? "#fff" : "#000"}
+          />
+          <Text className="mt-4 text-muted-foreground">
+            Loading booking details...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -903,7 +591,11 @@ export default function BookingCreateScreen() {
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center px-4">
           <H3 className="text-center mb-2">Restaurant not found</H3>
-          <Button variant="outline" onPress={() => router.back()} className="mt-4">
+          <Button
+            variant="outline"
+            onPress={() => router.back()}
+            className="mt-4"
+          >
             <Text>Go Back</Text>
           </Button>
         </View>
@@ -911,8 +603,9 @@ export default function BookingCreateScreen() {
     );
   }
 
-  const selectedOffer = selectedOfferUserId ? 
-    availableOffers.find(offer => offer.id === selectedOfferUserId) : null;
+  const selectedOffer = selectedOfferUserId
+    ? availableOffers.find((offer) => offer.id === selectedOfferUserId)
+    : null;
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
@@ -927,7 +620,9 @@ export default function BookingCreateScreen() {
               <ChevronLeft size={24} />
             </Pressable>
             <View className="flex-1 mx-4">
-              <Text className="text-center font-semibold">Complete Booking</Text>
+              <Text className="text-center font-semibold">
+                Complete Booking
+              </Text>
               <Muted className="text-center text-sm">{restaurant.name}</Muted>
             </View>
             <View className="w-10" />
@@ -954,11 +649,14 @@ export default function BookingCreateScreen() {
                   })}
                 </Text>
                 <Clock size={14} color="#666" />
-                <Text className="text-sm text-muted-foreground">{bookingTime}</Text>
+                <Text className="text-sm text-muted-foreground">
+                  {bookingTime}
+                </Text>
                 <Users size={14} color="#666" />
                 <Text className="text-sm text-muted-foreground">
                   {totalPartySize} {totalPartySize === 1 ? "Guest" : "Guests"}
-                  {invitedFriends.length > 0 && ` (${invitedFriends.length} friends invited)`}
+                  {invitedFriends.length > 0 &&
+                    ` (${invitedFriends.length} friends invited)`}
                 </Text>
               </View>
             </View>
@@ -969,7 +667,9 @@ export default function BookingCreateScreen() {
             <Text className="text-sm text-muted-foreground">Booking for:</Text>
             <Text className="font-medium">{profile?.full_name}</Text>
             {profile?.phone_number && (
-              <Text className="text-sm text-muted-foreground">{profile.phone_number}</Text>
+              <Text className="text-sm text-muted-foreground">
+                {profile.phone_number}
+              </Text>
             )}
           </View>
 
@@ -980,7 +680,8 @@ export default function BookingCreateScreen() {
                 <View className="flex-row items-center gap-2">
                   <Tag size={16} color="#10b981" />
                   <Text className="text-sm font-medium">
-                    {selectedOffer.special_offer.title} ({selectedOffer.special_offer.discount_percentage}% OFF)
+                    {selectedOffer.special_offer.title} (
+                    {selectedOffer.special_offer.discount_percentage}% OFF)
                   </Text>
                 </View>
                 <Pressable onPress={() => setSelectedOfferUserId(null)}>
@@ -991,7 +692,10 @@ export default function BookingCreateScreen() {
           )}
         </View>
 
-        <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
+        <ScrollView
+          className="flex-1 px-4"
+          showsVerticalScrollIndicator={false}
+        >
           <View className="gap-4 py-4">
             {/* Loyalty Rewards */}
             {profile && earnablePoints > 0 && (
@@ -1060,8 +764,9 @@ export default function BookingCreateScreen() {
                 <Text className="font-medium mb-2">Dietary Restrictions</Text>
                 <View className="flex-row flex-wrap gap-2">
                   {DIETARY_RESTRICTIONS.slice(0, 8).map((restriction) => {
-                    const isSelected = watchedValues.dietaryRestrictions.includes(restriction);
-                    
+                    const isSelected =
+                      watchedValues.dietaryRestrictions.includes(restriction);
+
                     return (
                       <Pressable
                         key={restriction}
@@ -1092,8 +797,9 @@ export default function BookingCreateScreen() {
                 <Text className="font-medium mb-2">Table Preferences</Text>
                 <View className="flex-row flex-wrap gap-2">
                   {TABLE_PREFERENCES.slice(0, 6).map((preference) => {
-                    const isSelected = watchedValues.tablePreferences.includes(preference);
-                    
+                    const isSelected =
+                      watchedValues.tablePreferences.includes(preference);
+
                     return (
                       <Pressable
                         key={preference}
@@ -1124,7 +830,7 @@ export default function BookingCreateScreen() {
                 control={control}
                 name="specialRequests"
                 render={({ field: { onChange, value } }) => (
-                  <CustomTextarea
+                  <Textarea
                     label="Special Requests"
                     value={value || ""}
                     onChangeText={onChange}
@@ -1150,24 +856,29 @@ export default function BookingCreateScreen() {
                   >
                     <View
                       className={`w-5 h-5 rounded border-2 items-center justify-center mt-0.5 ${
-                        value
-                          ? "bg-primary border-primary"
-                          : "border-border"
+                        value ? "bg-primary border-primary" : "border-border"
                       }`}
                     >
                       {value && <CheckCircle size={14} color="white" />}
                     </View>
                     <Text className="flex-1 text-sm">
                       I agree to the{" "}
-                      <Text className="text-primary underline">booking terms</Text> and
-                      understand the cancellation policy. I also consent to earning loyalty points
-                      {invitedFriends.length > 0 && " and sending invitations to selected friends"}.
+                      <Text className="text-primary underline">
+                        booking terms
+                      </Text>{" "}
+                      and understand the cancellation policy. I also consent to
+                      earning loyalty points
+                      {invitedFriends.length > 0 &&
+                        " and sending invitations to selected friends"}
+                      .
                     </Text>
                   </Pressable>
                 )}
               />
               {errors.acceptTerms && (
-                <Text className="text-sm text-red-500 mt-2">{errors.acceptTerms.message}</Text>
+                <Text className="text-sm text-red-500 mt-2">
+                  {errors.acceptTerms.message}
+                </Text>
               )}
             </View>
           </View>
@@ -1187,18 +898,25 @@ export default function BookingCreateScreen() {
               <>
                 <CheckCircle size={20} className="mr-2" />
                 <Text className="text-white font-bold text-lg">
-                  {restaurant.booking_policy === "instant" ? "Confirm Booking" : "Request Booking"}
-                  {invitedFriends.length > 0 && ` (${invitedFriends.length} friends)`}
+                  {restaurant.booking_policy === "instant"
+                    ? "Confirm Booking"
+                    : "Request Booking"}
+                  {invitedFriends.length > 0 &&
+                    ` (${invitedFriends.length} friends)`}
                 </Text>
               </>
             )}
           </Button>
-          
+
           <View className="mt-3 flex-row justify-center items-center gap-2">
             <Text className="text-xs text-muted-foreground text-center">
-              {selectedOffer ? `${selectedOffer.special_offer.discount_percentage}% discount + ` : ""}
-              {earnablePoints} loyalty points • {TIER_CONFIG[userTier].name.toUpperCase()} tier
-              {invitedFriends.length > 0 && ` • ${invitedFriends.length} friends invited`}
+              {selectedOffer
+                ? `${selectedOffer.special_offer.discount_percentage}% discount + `
+                : ""}
+              {earnablePoints} loyalty points •{" "}
+              {TIER_CONFIG[userTier].name.toUpperCase()} tier
+              {invitedFriends.length > 0 &&
+                ` • ${invitedFriends.length} friends invited`}
             </Text>
           </View>
         </View>
