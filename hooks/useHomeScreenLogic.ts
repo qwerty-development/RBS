@@ -6,6 +6,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/context/supabase-provider";
 import { supabase } from "@/config/supabase";
 
+// Create a global ref to store the refresh function
+export const homeRefreshRef = { current: null as (() => Promise<void>) | null };
+
 // Type definitions
 interface Restaurant {
   id: string;
@@ -68,30 +71,32 @@ export function useHomeScreenLogic() {
   // Helper function to get cuisine display name
   const getCuisineName = useCallback((cuisineId: string): string => {
     const cuisineNames: Record<string, string> = {
-      'lebanese': 'Lebanese',
-      'italian': 'Italian',
-      'japanese': 'Japanese',
-      'sushi': 'Sushi',
-      'indian': 'Indian',
-      'mexican': 'Mexican',
-      'chinese': 'Chinese',
-      'french': 'French',
-      'american': 'American',
-      'mediterranean': 'Mediterranean',
-      'thai': 'Thai',
-      'greek': 'Greek',
-      'turkish': 'Turkish',
-      'korean': 'Korean',
-      'vietnamese': 'Vietnamese',
-      'spanish': 'Spanish',
-      'brazilian': 'Brazilian',
-      'moroccan': 'Moroccan',
-      'persian': 'Persian',
-      'armenian': 'Armenian',
+      lebanese: "Lebanese",
+      italian: "Italian",
+      japanese: "Japanese",
+      sushi: "Sushi",
+      indian: "Indian",
+      mexican: "Mexican",
+      chinese: "Chinese",
+      french: "French",
+      american: "American",
+      mediterranean: "Mediterranean",
+      thai: "Thai",
+      greek: "Greek",
+      turkish: "Turkish",
+      korean: "Korean",
+      vietnamese: "Vietnamese",
+      spanish: "Spanish",
+      brazilian: "Brazilian",
+      moroccan: "Moroccan",
+      persian: "Persian",
+      armenian: "Armenian",
     };
-    
-    return cuisineNames[cuisineId.toLowerCase()] || 
-           cuisineId.charAt(0).toUpperCase() + cuisineId.slice(1);
+
+    return (
+      cuisineNames[cuisineId.toLowerCase()] ||
+      cuisineId.charAt(0).toUpperCase() + cuisineId.slice(1)
+    );
   }, []);
 
   // Location Management
@@ -253,8 +258,6 @@ export function useHomeScreenLogic() {
     }
   }, [location]);
 
-
-
   // Unified Data Loading
   const loadAllData = useCallback(async () => {
     setLoading(true);
@@ -283,6 +286,11 @@ export function useHomeScreenLogic() {
     await loadAllData();
     setRefreshing(false);
   }, [loadAllData, checkForLocationUpdates]);
+
+  // Store the refresh function in the global ref
+  useEffect(() => {
+    homeRefreshRef.current = handleRefresh;
+  }, [handleRefresh]);
 
   const handleLocationPress = useCallback(() => {
     router.push("/(protected)/location-selector");
@@ -330,35 +338,39 @@ export function useHomeScreenLogic() {
   );
 
   // FIXED: handleCuisinePress now correctly handles cuisineId string parameter
-  const handleCuisinePress = useCallback((cuisineId: string) => {
-    console.log("Navigating to cuisine:", cuisineId);
-    
-    if (!cuisineId || typeof cuisineId !== "string" || cuisineId.trim() === "") {
-      console.error("Invalid cuisine ID provided:", cuisineId);
-      Alert.alert(
-        "Error",
-        "Cuisine information is not available. Please try again."
-      );
-      return;
-    }
+  const handleCuisinePress = useCallback(
+    (cuisineId: string) => {
+      console.log("Navigating to cuisine:", cuisineId);
 
-    try {
-      // Navigate to cuisine-specific screen
-      router.push({
-        pathname: "/(protected)/cuisine/[cuisineId]",
-        params: {
-          cuisineId: cuisineId.trim(),
-          cuisineName: getCuisineName(cuisineId),
-        },
-      });
-    } catch (error) {
-      console.error("Cuisine navigation error:", error);
-      Alert.alert(
-        "Error",
-        "Unable to open cuisine page. Please try again."
-      );
-    }
-  }, [router, getCuisineName]);
+      if (
+        !cuisineId ||
+        typeof cuisineId !== "string" ||
+        cuisineId.trim() === ""
+      ) {
+        console.error("Invalid cuisine ID provided:", cuisineId);
+        Alert.alert(
+          "Error",
+          "Cuisine information is not available. Please try again."
+        );
+        return;
+      }
+
+      try {
+        // Navigate to cuisine-specific screen
+        router.push({
+          pathname: "/(protected)/cuisine/[cuisineId]",
+          params: {
+            cuisineId: cuisineId.trim(),
+            cuisineName: getCuisineName(cuisineId),
+          },
+        });
+      } catch (error) {
+        console.error("Cuisine navigation error:", error);
+        Alert.alert("Error", "Unable to open cuisine page. Please try again.");
+      }
+    },
+    [router, getCuisineName]
+  );
 
   const getGreeting = useCallback(() => {
     const hour = new Date().getHours();
@@ -396,9 +408,9 @@ export function useHomeScreenLogic() {
 
   const handleSearchWithParams = useCallback(
     (params: Record<string, string>) => {
-      router.push({ 
-        pathname: "/(protected)/(tabs)/search", 
-        params 
+      router.push({
+        pathname: "/(protected)/(tabs)/search",
+        params,
       });
     },
     [router]
