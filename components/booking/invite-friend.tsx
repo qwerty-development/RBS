@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   Modal,
+  TouchableOpacity,
 } from "react-native";
 import {
   Users,
@@ -19,6 +20,8 @@ import {
   Send,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
+import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
@@ -43,6 +46,14 @@ interface InviteFriendsProps {
   existingInvites?: string[];
 }
 
+interface FriendsInvitationSectionProps {
+  invitedFriends: string[];
+  restaurantName: string;
+  bookingTime: string;
+  partySize: number;
+  onInvitesSent: (friendIds: string[]) => void;
+}
+
 export function InviteFriends({
   bookingId,
   restaurantName,
@@ -53,11 +64,13 @@ export function InviteFriends({
 }: InviteFriendsProps) {
   const { profile } = useAuth();
   const { colorScheme } = useColorScheme();
-  
+
   const [modalVisible, setModalVisible] = useState(false);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [filteredFriends, setFilteredFriends] = useState<Friend[]>([]);
-  const [selectedFriends, setSelectedFriends] = useState<Set<string>>(new Set());
+  const [selectedFriends, setSelectedFriends] = useState<Set<string>>(
+    new Set()
+  );
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [inviteMessage, setInviteMessage] = useState("");
@@ -71,7 +84,7 @@ export function InviteFriends({
 
   useEffect(() => {
     if (searchQuery) {
-      const filtered = friends.filter(friend =>
+      const filtered = friends.filter((friend) =>
         friend.full_name.toLowerCase().includes(searchQuery.toLowerCase())
       );
       setFilteredFriends(filtered);
@@ -84,29 +97,31 @@ export function InviteFriends({
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('friends')
-        .select(`
+        .from("friends")
+        .select(
+          `
           *,
           friend:friend_id(id, full_name, avatar_url)
-        `)
-        .eq('user_id', profile?.id);
+        `
+        )
+        .eq("user_id", profile?.id);
 
       if (!error && data) {
         const friendsList = data
-          .map(item => item.friend)
-          .filter(friend => !existingInvites.includes(friend.id));
+          .map((item) => item.friend)
+          .filter((friend) => !existingInvites.includes(friend.id));
         setFriends(friendsList);
         setFilteredFriends(friendsList);
       }
     } catch (error) {
-      console.error('Error loading friends:', error);
+      console.error("Error loading friends:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const toggleFriendSelection = (friendId: string) => {
-    setSelectedFriends(prev => {
+    setSelectedFriends((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(friendId)) {
         newSet.delete(friendId);
@@ -128,7 +143,10 @@ export function InviteFriends({
 
   const sendInvites = async () => {
     if (selectedFriends.size === 0) {
-      Alert.alert("No Friends Selected", "Please select at least one friend to invite.");
+      Alert.alert(
+        "No Friends Selected",
+        "Please select at least one friend to invite."
+      );
       return;
     }
 
@@ -136,7 +154,7 @@ export function InviteFriends({
     try {
       if (bookingId) {
         // Send invites for existing booking
-        const invites = Array.from(selectedFriends).map(friendId => ({
+        const invites = Array.from(selectedFriends).map((friendId) => ({
           booking_id: bookingId,
           from_user_id: profile?.id,
           to_user_id: friendId,
@@ -144,20 +162,19 @@ export function InviteFriends({
         }));
 
         const { error } = await supabase
-          .from('booking_invites')
+          .from("booking_invites")
           .insert(invites);
 
         if (error) throw error;
 
         // Update booking as group booking
         await supabase
-          .from('bookings')
+          .from("bookings")
           .update({
             is_group_booking: true,
             organizer_id: profile?.id,
           })
-          .eq('id', bookingId);
-
+          .eq("id", bookingId);
       } else {
         // For new bookings, just return selected friends
         onInvitesSent?.(Array.from(selectedFriends));
@@ -166,9 +183,9 @@ export function InviteFriends({
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
         "Invites Sent!",
-        `Successfully invited ${selectedFriends.size} friend${selectedFriends.size > 1 ? 's' : ''}.`
+        `Successfully invited ${selectedFriends.size} friend${selectedFriends.size > 1 ? "s" : ""}.`
       );
-      
+
       setModalVisible(false);
       setSelectedFriends(new Set());
       setInviteMessage("");
@@ -181,36 +198,54 @@ export function InviteFriends({
 
   const renderFriend = (friend: Friend) => {
     const isSelected = selectedFriends.has(friend.id);
-    
+
     return (
       <Pressable
         key={friend.id}
         onPress={() => toggleFriendSelection(friend.id)}
         className={`flex-row items-center p-3 mb-2 rounded-xl ${
-          isSelected 
-            ? 'bg-red-50 dark:bg-red-900/20 border-2 border-red-500' 
-            : 'bg-gray-50 dark:bg-gray-800 border-2 border-transparent'
+          isSelected
+            ? "bg-red-50 dark:bg-red-900/20 border-2 border-red-500"
+            : "bg-gray-50 dark:bg-gray-800 border-2 border-transparent"
         }`}
       >
         <Image
-          source={{ 
-            uri: friend.avatar_url || `https://ui-avatars.com/api/?name=${friend.full_name}` 
+          source={{
+            uri:
+              friend.avatar_url ||
+              `https://ui-avatars.com/api/?name=${friend.full_name}`,
           }}
           className="w-12 h-12 rounded-full bg-gray-200"
         />
-        
-        <Text className="flex-1 ml-3 font-medium">
-          {friend.full_name}
-        </Text>
-        
-        <View className={`w-6 h-6 rounded-full items-center justify-center ${
-          isSelected ? 'bg-red-600' : 'bg-gray-200 dark:bg-gray-700'
-        }`}>
+
+        <Text className="flex-1 ml-3 font-medium">{friend.full_name}</Text>
+
+        <View
+          className={`w-6 h-6 rounded-full items-center justify-center ${
+            isSelected ? "bg-red-600" : "bg-gray-200 dark:bg-gray-700"
+          }`}
+        >
           {isSelected && <Check size={16} color="white" />}
         </View>
       </Pressable>
     );
   };
+
+  const handleInviteFriends = () => {
+    // Navigate to friends selection screen
+    router.push({
+      pathname: "/friends",
+      params: {
+        mode: "invite",
+        restaurantName,
+        bookingTime,
+        partySize: partySize.toString(),
+        currentInvites: JSON.stringify(Array.from(selectedFriends)),
+      },
+    });
+  };
+
+  const totalGuests = partySize + selectedFriends.size + existingInvites.length;
 
   return (
     <>
@@ -220,9 +255,7 @@ export function InviteFriends({
         className="flex-row items-center justify-center py-3 px-4 bg-red-600 rounded-xl"
       >
         <UserPlus size={20} color="white" />
-        <Text className="ml-2 text-white font-semibold">
-          Invite Friends
-        </Text>
+        <Text className="ml-2 text-white font-semibold">Invite Friends</Text>
         {existingInvites.length > 0 && (
           <View className="ml-2 bg-white/20 rounded-full px-2 py-0.5">
             <Text className="text-white text-xs font-semibold">
@@ -251,11 +284,14 @@ export function InviteFriends({
                 }}
                 className="p-2"
               >
-                <X size={24} color={colorScheme === 'dark' ? 'white' : 'black'} />
+                <X
+                  size={24}
+                  color={colorScheme === "dark" ? "white" : "black"}
+                />
               </Pressable>
-              
+
               <H3>Invite Friends</H3>
-              
+
               <View className="w-10" />
             </View>
 
@@ -263,15 +299,16 @@ export function InviteFriends({
             <View className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
               <Text className="font-semibold text-base">{restaurantName}</Text>
               <Muted className="text-sm mt-1">
-                {new Date(bookingTime).toLocaleString('en-US', {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
+                {new Date(bookingTime).toLocaleString("en-US", {
+                  dateStyle: "medium",
+                  timeStyle: "short",
                 })}
               </Muted>
               <View className="flex-row items-center mt-2">
                 <Users size={16} color="#6b7280" />
                 <Muted className="ml-1 text-sm">
-                  {selectedFriends.size + existingInvites.length + 1} / {partySize} guests
+                  {selectedFriends.size + existingInvites.length + 1} /{" "}
+                  {partySize} guests
                 </Muted>
               </View>
             </View>
@@ -301,10 +338,9 @@ export function InviteFriends({
               <View className="items-center justify-center py-8">
                 <Users size={48} color="#9ca3af" />
                 <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
-                  {friends.length === 0 
+                  {friends.length === 0
                     ? "No friends to invite yet"
-                    : "No friends found matching your search"
-                  }
+                    : "No friends found matching your search"}
                 </Text>
               </View>
             ) : (
@@ -338,15 +374,152 @@ export function InviteFriends({
                   <>
                     <Send size={20} color="white" />
                     <Text className="text-white font-semibold ml-2">
-                      Send {selectedFriends.size} Invite{selectedFriends.size > 1 ? 's' : ''}
+                      Send {selectedFriends.size} Invite
+                      {selectedFriends.size > 1 ? "s" : ""}
                     </Text>
                   </>
                 )}
               </Button>
             </View>
           )}
+
+          {/* Friends Invitation Section */}
+          <View className="mb-6">
+            <View className="mb-3">
+              <Text
+                className={`text-lg font-semibold ${colorScheme === "dark" ? "text-white" : "text-gray-900"}`}
+              >
+                Invite Friends
+              </Text>
+              <Text
+                className={`text-sm ${colorScheme === "dark" ? "text-gray-400" : "text-gray-600"}`}
+              >
+                Make it a group experience! (Optional)
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              onPress={handleInviteFriends}
+              className={`p-4 rounded-xl border-2 border-dashed flex-row items-center justify-center ${
+                colorScheme === "dark"
+                  ? "border-gray-600 bg-gray-800/50"
+                  : "border-gray-300 bg-gray-50"
+              }`}
+            >
+              <Ionicons
+                name="person-add-outline"
+                size={24}
+                color={colorScheme === "dark" ? "#9CA3AF" : "#6B7280"}
+              />
+              <Text
+                className={`ml-2 font-medium ${colorScheme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+              >
+                {selectedFriends.size > 0
+                  ? "Manage Invitations"
+                  : "Invite Friends"}
+              </Text>
+            </TouchableOpacity>
+
+            {selectedFriends.size > 0 && (
+              <View className="mt-3">
+                <Text
+                  className={`text-sm font-medium ${colorScheme === "dark" ? "text-gray-300" : "text-gray-700"}`}
+                >
+                  {selectedFriends.size} friend
+                  {selectedFriends.size > 1 ? "s" : ""} invited
+                </Text>
+                <Text
+                  className={`text-sm ${colorScheme === "dark" ? "text-gray-400" : "text-gray-600"}`}
+                >
+                  Total party size: {totalGuests} people
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
       </Modal>
     </>
   );
 }
+
+export const FriendsInvitationSection: React.FC<
+  FriendsInvitationSectionProps
+> = ({
+  invitedFriends,
+  restaurantName,
+  bookingTime,
+  partySize,
+  onInvitesSent,
+}) => {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const handleInviteFriends = () => {
+    // Navigate to friends selection screen
+    router.push({
+      pathname: "/friends",
+      params: {
+        mode: "invite",
+        restaurantName,
+        bookingTime,
+        partySize: partySize.toString(),
+        currentInvites: JSON.stringify(invitedFriends),
+      },
+    });
+  };
+
+  const totalGuests = partySize + invitedFriends.length;
+
+  return (
+    <View className="mb-6">
+      <View className="mb-3">
+        <Text
+          className={`text-lg font-semibold ${isDark ? "text-white" : "text-gray-900"}`}
+        >
+          Invite Friends
+        </Text>
+        <Text
+          className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}
+        >
+          Make it a group experience! (Optional)
+        </Text>
+      </View>
+
+      <TouchableOpacity
+        onPress={handleInviteFriends}
+        className={`p-4 rounded-xl border-2 border-dashed flex-row items-center justify-center ${
+          isDark
+            ? "border-gray-600 bg-gray-800/50"
+            : "border-gray-300 bg-gray-50"
+        }`}
+      >
+        <Ionicons
+          name="person-add-outline"
+          size={24}
+          color={isDark ? "#9CA3AF" : "#6B7280"}
+        />
+        <Text
+          className={`ml-2 font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}
+        >
+          {invitedFriends.length > 0 ? "Manage Invitations" : "Invite Friends"}
+        </Text>
+      </TouchableOpacity>
+
+      {invitedFriends.length > 0 && (
+        <View className="mt-3">
+          <Text
+            className={`text-sm font-medium ${isDark ? "text-gray-300" : "text-gray-700"}`}
+          >
+            {invitedFriends.length} friend{invitedFriends.length > 1 ? "s" : ""}{" "}
+            invited
+          </Text>
+          <Text
+            className={`text-sm ${isDark ? "text-gray-400" : "text-gray-600"}`}
+          >
+            Total party size: {totalGuests} people
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+};
