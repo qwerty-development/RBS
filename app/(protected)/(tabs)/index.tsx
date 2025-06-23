@@ -15,10 +15,10 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
-import { RestaurantCard } from "@/components/home/RestaurantCard";
+import { RestaurantCard } from "@/components/restaurant/RestaurantCard";
 import { SpecialOfferCard } from "@/components/home/SpecialOfferCard";
 import { CuisineCategory } from "@/components/home/CuisineCategory";
-import { SectionHeader } from "@/components/home/SectionHeader";
+import { SectionHeader } from "@/components/ui/section-header";
 import { LoyaltyWidget } from "@/components/home/LoyaltyWidget";
 import { LocationHeader } from "@/components/home/LocationHeader";
 import { useHomeScreenLogic } from "@/hooks/useHomeScreenLogic";
@@ -106,12 +106,12 @@ export default function HomeScreen() {
           // Allow touch events to pass through to child elements
           pointerEvents="box-none"
         >
-          <View 
+          <View
             className="flex-row items-center justify-between px-4 pt-2"
             // Allow touch events for child elements
             pointerEvents="box-none"
           >
-            <View 
+            <View
               className="flex-1"
               // Prevent this container from capturing touch events meant for the profile picture
               pointerEvents="none"
@@ -124,23 +124,22 @@ export default function HomeScreen() {
 
             <Pressable
               onPress={() => {
-        
-                router.push('/(protected)/profile')
+                router.push("/(protected)/profile");
               }}
-              style={({ pressed }) => ({ 
+              style={({ pressed }) => ({
                 marginLeft: 12,
                 padding: 4,
-                zIndex: 999, 
+                zIndex: 999,
                 elevation: 999,
                 opacity: pressed ? 0.7 : 1,
-                transform: [{ scale: pressed ? 0.95 : 1 }]
+                transform: [{ scale: pressed ? 0.95 : 1 }],
               })}
               hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
               pointerEvents="box-only"
             >
-              <View 
+              <View
                 style={{
-                  position: 'relative',
+                  position: "relative",
                   zIndex: 999,
                   elevation: 999,
                 }}
@@ -156,22 +155,25 @@ export default function HomeScreen() {
                     height: 40,
                     borderRadius: 20,
                     borderWidth: 2,
-                    borderColor: colorScheme === 'dark' ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)',
+                    borderColor:
+                      colorScheme === "dark"
+                        ? "rgba(255,255,255,0.2)"
+                        : "rgba(0,0,0,0.2)",
                   }}
                   contentFit="cover"
                 />
                 {/* Online status indicator */}
-                <View 
+                <View
                   style={{
-                    position: 'absolute',
+                    position: "absolute",
                     bottom: 0,
                     right: 0,
                     width: 12,
                     height: 12,
-                    backgroundColor: '#22c55e',
+                    backgroundColor: "#22c55e",
                     borderRadius: 6,
                     borderWidth: 2,
-                    borderColor: colorScheme === 'dark' ? '#000' : '#fff',
+                    borderColor: colorScheme === "dark" ? "#000" : "#fff",
                     zIndex: 1000,
                     elevation: 1000,
                   }}
@@ -242,7 +244,10 @@ export default function HomeScreen() {
               onPress={(offer) => {
                 router.push({
                   pathname: "/restaurant/[id]",
-                  params: { id: offer.restaurant.id, highlightOfferId: offer.id },
+                  params: {
+                    id: offer.restaurant.id,
+                    highlightOfferId: offer.id,
+                  },
                 });
               }}
             />
