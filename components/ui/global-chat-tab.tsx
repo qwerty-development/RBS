@@ -19,6 +19,7 @@ export function GlobalChatTab() {
   const [showChatModal, setShowChatModal] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
   const insets = useSafeAreaInsets();
 
   // Panel dimensions - only vertical since it's only on sides
@@ -103,12 +104,22 @@ export function GlobalChatTab() {
     },
   });
 
-  // Get panel styling - always vertical since only on sides
+  // Get panel styling - dynamic based on drag state and position
   const getPanelStyle = () => {
-    if (isOnLeftSide) {
-      return "bg-gray-400 shadow-lg elevation-4 items-center justify-center rounded-r-xl";
+    const baseStyle =
+      "bg-gray-400 shadow-lg elevation-4 items-center justify-center";
+
+    if (isDragging) {
+      // When dragging, show fully rounded corners initially
+      // We'll enhance this with position tracking in a future update
+      return `${baseStyle} rounded-xl`;
     } else {
-      return "bg-gray-400 shadow-lg elevation-4 items-center justify-center rounded-l-xl";
+      // Not dragging - use normal styling based on current side
+      if (isOnLeftSide) {
+        return `${baseStyle} rounded-r-xl`;
+      } else {
+        return `${baseStyle} rounded-l-xl`;
+      }
     }
   };
 
