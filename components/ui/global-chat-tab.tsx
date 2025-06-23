@@ -22,8 +22,8 @@ export function GlobalChatTab() {
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
   const insets = useSafeAreaInsets();
 
-  // Panel dimensions - only vertical since it's only on sides
-  const panelWidth = 24;
+  // Panel dimensions - sized for rotated "DineMate" text
+  const panelWidth = 20;
   const panelHeight = 80;
 
   // Tab bar height estimate (standard tab bar is around 80-90px)
@@ -191,11 +191,20 @@ export function GlobalChatTab() {
         <Pressable
           onPress={() => setShowChatModal(true)}
           className={getPanelStyle()}
-          style={{ width: panelWidth, height: panelHeight }}
         >
-          <View className="items-center justify-center flex-1">
-            <Text className="text-black  text-base font-bold tracking-wider transform ">
-              🤖
+          <View
+            className="items-center justify-center"
+            style={{ width: panelWidth, height: panelHeight }}
+          >
+            <Text
+              className="text-black text-xs font-bold tracking-wide"
+              style={{
+                transform: [{ rotate: isOnLeftSide ? "90deg" : "270deg" }],
+                width: panelHeight, // Give it the full height as width for the rotated text
+                textAlign: "center",
+              }}
+            >
+              DineMate
             </Text>
           </View>
         </Pressable>
