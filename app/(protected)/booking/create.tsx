@@ -47,6 +47,10 @@ import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
 import { InviteFriends } from "@/components/booking/invite-friend";
 
+
+
+
+
 // Enhanced Type Definitions
 interface BookingFormData {
   specialRequests?: string;
