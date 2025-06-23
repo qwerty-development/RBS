@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Pressable,
@@ -20,6 +20,7 @@ export function GlobalChatTab() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [dragPosition, setDragPosition] = useState({ x: 0, y: 0 });
+  const [textRotation, setTextRotation] = useState("90deg"); // Default rotation state
   const insets = useSafeAreaInsets();
 
   // Panel dimensions - sized for rotated "DineMate" text
@@ -45,6 +46,23 @@ export function GlobalChatTab() {
   const [isOnLeftSide, setIsOnLeftSide] = useState(false);
 
   const pan = useRef(new Animated.ValueXY(currentPosition)).current;
+
+  // Function to update text rotation based on side
+  const updateTextRotation = () => {
+    setTextRotation(isOnLeftSide ? "90deg" : "270deg");
+  };
+
+  // Update rotation when side changes
+  useEffect(() => {
+    updateTextRotation();
+  }, [isOnLeftSide]);
+
+  // Ensure initial state is correct - handle starts on right side
+  useEffect(() => {
+    // Force initial state to be consistent
+    setIsOnLeftSide(false);
+    setTextRotation("270deg"); // Explicitly set rotation for right side on init
+  }, []);
 
   // Snap to left or right edge after dragging
   const snapToEdge = (gestureState: PanResponderGestureState) => {
@@ -199,7 +217,7 @@ export function GlobalChatTab() {
             <Text
               className="text-black text-xs font-bold tracking-wide"
               style={{
-                transform: [{ rotate: isOnLeftSide ? "90deg" : "270deg" }],
+                transform: [{ rotate: textRotation }],
                 width: panelHeight, // Give it the full height as width for the rotated text
                 textAlign: "center",
               }}
