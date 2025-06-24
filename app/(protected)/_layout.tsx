@@ -1,5 +1,5 @@
 import React from "react";
-import { Redirect, Stack } from "expo-router";
+import { Stack } from "expo-router";
 import { useAuth } from "@/context/supabase-provider";
 import { GlobalChatTab } from "@/components/ui/global-chat-tab";
 import { View, ActivityIndicator, Text } from "react-native";
@@ -9,9 +9,9 @@ export const unstable_settings = {
 };
 
 export default function ProtectedLayout() {
-  const { initialized, session, profile } = useAuth();
+  const { initialized, session } = useAuth();
 
-  // Show loading while initializing
+  // Show loading while auth is initializing
   if (!initialized) {
     return (
       <View
@@ -28,13 +28,9 @@ export default function ProtectedLayout() {
     );
   }
 
-  // Redirect to welcome if no session - let AuthProvider handle this
+  // If no session, show loading while AuthProvider handles navigation
+  // DON'T redirect here - trust the AuthProvider to handle navigation
   if (!session) {
-    return <Redirect href="/welcome" />;
-  }
-
-  // Show loading while profile is being fetched
-  if (!profile) {
     return (
       <View
         style={{
@@ -46,13 +42,14 @@ export default function ProtectedLayout() {
       >
         <ActivityIndicator size="large" color="#fff" />
         <Text style={{ color: "#fff", marginTop: 16 }}>
-          Setting up your account...
+          Redirecting...
         </Text>
       </View>
     );
   }
 
-  // User is fully authenticated with profile
+  // User has session - show protected area
+  // Profile is optional and will load asynchronously
   return (
     <View style={{ flex: 1 }}>
       <Stack

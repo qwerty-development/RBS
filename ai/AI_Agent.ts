@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabase } from "@/config/supabase";
 
-// System prompt with instructions
+// System prompt with instructions for structured responses
 const SYSTEM_PROMPT = `You are a specialized restaurant assistant for TableReserve, a restaurant reservation app. Your ONLY role is to:
 1. Help users find restaurants based on their preferences
 2. Provide information about restaurants including cuisine type, price range, and features
@@ -14,20 +14,25 @@ You have access to restaurant data including:
 - Features like outdoor seating, parking, and shisha availability
 - Opening hours and booking policies
 - Ratings and reviews
--I need you also whenever you need to show a restaurant (1 or more) , just show them in the json format that was sent to you in the context , please return all the info you have in the json
--Send the json in the end and only whenever it is needed ,  the text for the response should be in the beginning while the json listing in the end
--Always before sending the json send a line containing "JSON:"
+
+RESPONSE FORMAT INSTRUCTIONS:
+When your response involves showing specific restaurants to the user, you MUST format your response as follows:
+
+1. Start with your conversational text response
+2. Then add "RESTAURANTS_TO_SHOW:" on a new line
+3. Then list the restaurant IDs that should be displayed as cards, separated by commas
+4. Example:
+   "I found some great Italian restaurants for you!
+   RESTAURANTS_TO_SHOW: restaurant-1,restaurant-2,restaurant-3"
 
 IMPORTANT CONSTRAINTS:
 - ONLY answer questions related to restaurants, dining, and reservations
 - DO NOT provide code, programming solutions, or technical implementations
 - DO NOT answer questions outside the scope of restaurant assistance
 - If asked about non-restaurant topics, politely redirect to restaurant-related subjects
-- If asked for code or technical solutions, explain that you're a restaurant assistant and can't help with programming
 - Always base your responses on the available restaurant data
-- Keep responses focused on helping users find and book restaurants
-
-Remember to maintain context of the conversation and refer back to previous messages when relevant.`;
+- When recommending restaurants, always use the "RESTAURANTS_TO_SHOW:" format
+- Keep responses focused on helping users find and book restaurants`;
 
 // Initialize the Google AI model
 const genAI = new GoogleGenerativeAI("AIzaSyASVqSrq2zXKrl-dsMfuU9RxY49J0_JQk8");
@@ -50,6 +55,7 @@ async function getRestaurants() {
 export interface ChatMessage {
   role: 'user' | 'assistant';
   content: string;
+  restaurants?: any[]; // Restaurant objects to display as cards
 }
 
 export async function ourAgent(
@@ -58,6 +64,12 @@ export async function ourAgent(
   try {
     // Get restaurant data
     const restaurants = await getRestaurants();
+    
+    // Create a map for quick restaurant lookup by ID
+    const restaurantMap = new Map();
+    restaurants.forEach(restaurant => {
+      restaurantMap.set(restaurant.id, restaurant);
+    });
     
     // Format restaurant data for context
     const restaurantContext = restaurants
@@ -80,13 +92,8 @@ export async function ourAgent(
           return time;
         };
 
-        // Helper function to safely format coordinates
-        const safeCoordinates = (location: { coordinates: [number, number] } | null | undefined) => {
-          if (!location?.coordinates) return 'Not available';
-          return `[${location.coordinates[1]}, ${location.coordinates[0]}] (latitude, longitude)`;
-        };
-
         return `
+Restaurant ID: ${restaurant.id}
 Restaurant: ${safeValue(restaurant.name)}
 Description: ${safeValue(restaurant.description)}
 Address: ${safeValue(restaurant.address)}
@@ -95,31 +102,18 @@ Price Range: ${safeValue(restaurant.price_range)} (1-4 scale)
 Opening Hours: ${safeTime(restaurant.opening_time)} - ${safeTime(restaurant.closing_time)}
 Booking Policy: ${safeValue(restaurant.booking_policy)}
 Contact: ${safeValue(restaurant.phone_number)}
-WhatsApp: ${safeValue(restaurant.whatsapp_number)}
-Instagram: ${safeValue(restaurant.instagram_handle)}
-Website: ${safeValue(restaurant.website_url)}
-Menu URL: ${safeValue(restaurant.menu_url)}
 Rating: ${safeValue(restaurant.average_rating, '0')} (${safeValue(restaurant.total_reviews, '0')} reviews)
 Features:
 - Dietary Options: ${safeJoin(restaurant.dietary_options)}
 - Ambiance Tags: ${safeJoin(restaurant.ambiance_tags)}
 - Tags: ${safeJoin(restaurant.tags)}
-- Parking: ${restaurant.parking_available ? 'Available' : 'Not available'}${restaurant.valet_parking ? ' (Valet available)' : ''}
+- Parking: ${restaurant.parking_available ? 'Available' : 'Not available'}
 - Outdoor Seating: ${restaurant.outdoor_seating ? 'Available' : 'Not available'}
 - Shisha: ${restaurant.shisha_available ? 'Available' : 'Not available'}
-- Live Music: ${restaurant.live_music_schedule ? 'Available' : 'Not available'}
-- Happy Hour: ${restaurant.happy_hour_times ? `${safeTime(restaurant.happy_hour_times.start)} - ${safeTime(restaurant.happy_hour_times.end)}` : 'Not available'}
-Booking Details:
-- Booking Window: ${safeValue(restaurant.booking_window_days, '0')} days
-- Cancellation Window: ${safeValue(restaurant.cancellation_window_hours, '0')} hours
-- Table Turnover: ${safeValue(restaurant.table_turnover_minutes, '0')} minutes
-Location: ${safeCoordinates(restaurant.location)}
 Featured: ${restaurant.featured ? 'Yes' : 'No'}
-Last Updated: ${safeValue(restaurant.updated_at)}
 `;
       })
       .join("\n");
-    console.log("CONTEXT: " +restaurantContext);
 
     // Convert new messages to the format expected by the API
     const newMessages = messages.map(msg => ({
@@ -152,6 +146,22 @@ Last Updated: ${safeValue(restaurant.updated_at)}
     const response = await result.response;
     const text = response.text();
 
+    // Parse the response to extract restaurant IDs
+    let responseText = text;
+    let restaurantCards: any[] = [];
+
+    if (text.includes('RESTAURANTS_TO_SHOW:')) {
+      const parts = text.split('RESTAURANTS_TO_SHOW:');
+      responseText = parts[0].trim();
+      
+      if (parts[1]) {
+        const restaurantIds = parts[1].trim().split(',').map(id => id.trim());
+        restaurantCards = restaurantIds
+          .map(id => restaurantMap.get(id))
+          .filter(restaurant => restaurant !== undefined);
+      }
+    }
+
     // Add the response to chat history
     chatHistory.push({
       role: 'model',
@@ -160,7 +170,8 @@ Last Updated: ${safeValue(restaurant.updated_at)}
     
     return {
       role: 'assistant',
-      content: text
+      content: responseText,
+      restaurants: restaurantCards.length > 0 ? restaurantCards : undefined
     };
   } catch (error) {
     console.error("Error in AI agent:", error);
@@ -172,4 +183,3 @@ Last Updated: ${safeValue(restaurant.updated_at)}
 export function clearChatHistory() {
   chatHistory = [];
 }
-  

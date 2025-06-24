@@ -3,67 +3,106 @@ import { Stack } from "expo-router";
 import { AuthProvider } from "@/context/supabase-provider";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
-import { LogBox, View, Text } from "react-native";
-
-
-// Filter out known development warnings
-LogBox.ignoreLogs([
-	"Setting a timer",
-	"Non-serializable values were found in the navigation state",
-	"Warning: Failed prop type: Invalid prop `children` of type `object` supplied to `TabBarLabel`, expected `node`.",
-	"Require cycle:", // Common in React Native development
-]);
-
+import { LogBox, Alert} from "react-native";
+import { useEffect, useState } from "react";
+import * as Updates from "expo-updates";
+LogBox.ignoreAllLogs();
 
 export default function AppLayout() {
 	const { colorScheme } = useColorScheme();
+	const [showUpdateAlert, setShowUpdateAlert] = useState(false);
+
+	useEffect(() => {
+		const checkForUpdates = async () => {
+			try {
+				const update = await Updates.checkForUpdateAsync();
+				if (update.isAvailable) {
+					console.log("[RootLayout] Update available, downloading...");
+					const result = await Updates.fetchUpdateAsync();
+
+					if (result.isNew) {
+						setShowUpdateAlert(true);
+					}
+				} else {
+					console.log("[RootLayout] No updates available");
+				}
+			} catch (error) {
+				console.error("[RootLayout] Update check error:", error);
+			}
+		};
+
+		checkForUpdates();
+	}, []);
+
+	// Show update alert when new update is downloaded
+	useEffect(() => {
+		if (showUpdateAlert) {
+			Alert.alert(
+				"Update Available",
+				"A new version has been downloaded. Restart the app to apply the update.",
+				[
+					{
+						text: "Later",
+						style: "cancel",
+						onPress: () => setShowUpdateAlert(false),
+					},
+					{
+						text: "Restart Now",
+						onPress: async () => {
+							setShowUpdateAlert(false);
+							await Updates.reloadAsync();
+						},
+					},
+				]
+			);
+		}
+	}, [showUpdateAlert]);
 
 	return (
-
-			<AuthProvider>
-				<Stack screenOptions={{ headerShown: false, gestureEnabled: false }}>
-					<Stack.Screen name="(protected)" />
-					<Stack.Screen name="welcome" />
-					<Stack.Screen
-						name="sign-up"
-						options={{
-							presentation: "modal",
-							headerShown: true,
-							headerTitle: "Sign Up",
-							headerStyle: {
-								backgroundColor:
-									colorScheme === "dark"
-										? colors.dark.background
-										: colors.light.background,
-							},
-							headerTintColor:
+		<AuthProvider>
+			<Stack screenOptions={{ headerShown: false, gestureEnabled: false }}>
+				<Stack.Screen name="(protected)" />
+				<Stack.Screen name="welcome" />
+				<Stack.Screen
+					name="sign-up"
+					options={{
+						presentation: "modal",
+						headerShown: true,
+						headerTitle: "Sign Up",
+						headerStyle: {
+							backgroundColor:
 								colorScheme === "dark"
-									? colors.dark.foreground
-									: colors.light.foreground,
-							gestureEnabled: true,
-						}}
-					/>
-					<Stack.Screen
-						name="sign-in"
-						options={{
-							presentation: "modal",
-							headerShown: true,
-							headerTitle: "Sign In",
-							headerStyle: {
-								backgroundColor:
-									colorScheme === "dark"
-										? colors.dark.background
-										: colors.light.background,
-							},
-							headerTintColor:
+									? colors.dark.background
+									: colors.light.background,
+						},
+						headerTintColor:
+							colorScheme === "dark"
+								? colors.dark.foreground
+								: colors.light.foreground,
+						gestureEnabled: true,
+					}}
+				/>
+				<Stack.Screen
+					name="sign-in"
+					options={{
+						presentation: "modal",
+						headerShown: true,
+						headerTitle: "Sign In",
+						headerStyle: {
+							backgroundColor:
 								colorScheme === "dark"
-									? colors.dark.foreground
-									: colors.light.foreground,
-							gestureEnabled: true,
-						}}
-					/>
-				</Stack>
-			</AuthProvider>
-
+									? colors.dark.background
+									: colors.light.background,
+						},
+						headerTintColor:
+							colorScheme === "dark"
+								? colors.dark.foreground
+								: colors.light.foreground,
+						gestureEnabled: true,
+					}}
+				/>
+			</Stack>
+			
+		</AuthProvider>
 	);
-}
+} 

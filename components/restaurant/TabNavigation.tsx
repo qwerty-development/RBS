@@ -1,39 +1,59 @@
+// components/restaurant/TabNavigation.tsx
 import React from "react";
-import { View, Pressable } from "react-native";
+import { View, Pressable, ScrollView } from "react-native";
 import { Text } from "@/components/ui/text";
 
-type TabType = "overview" | "menu" | "reviews";
-
-interface TabNavigationProps {
-  activeTab: TabType;
-  onTabChange: (tab: TabType) => void;
+interface Tab {
+  id: string;
+  label: string;
+  count?: number;
 }
 
-export const TabNavigation = ({
+interface TabNavigationProps {
+  activeTab: string;
+  onTabChange: (tabId: string) => void;
+  tabs?: Tab[];
+}
+
+export const TabNavigation: React.FC<TabNavigationProps> = ({
   activeTab,
   onTabChange,
-}: TabNavigationProps) => {
-  const tabs: TabType[] = ["overview", "menu", "reviews"];
-
+  tabs = [
+    { id: "overview", label: "Overview" },
+    { id: "menu", label: "Menu" },
+    { id: "reviews", label: "Reviews" },
+  ],
+}) => {
   return (
-    <View className="flex-row px-4 mb-4 gap-2">
-      {tabs.map((tab) => (
-        <Pressable
-          key={tab}
-          onPress={() => onTabChange(tab)}
-          className={`flex-1 py-2 rounded-lg ${
-            activeTab === tab ? "bg-primary" : "bg-muted"
-          }`}
-        >
-          <Text
-            className={`text-center font-medium ${
-              activeTab === tab ? "text-primary-foreground" : ""
-            }`}
-          >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </Text>
-        </Pressable>
-      ))}
+    <View className="bg-background border-b border-border">
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16 }}
+      >
+        <View className="flex-row">
+          {tabs.map((tab) => (
+            <Pressable
+              key={tab.id}
+              onPress={() => onTabChange(tab.id)}
+              className={`py-3 px-4 border-b-2 ${
+                activeTab === tab.id ? "border-primary" : "border-transparent"
+              }`}
+            >
+              <Text
+                className={`font-semibold ${
+                  activeTab === tab.id ? "text-primary" : "text-muted-foreground"
+                }`}
+              >
+                {tab.label}
+                {tab.count !== undefined && tab.count > 0 && (
+                  <Text className="text-xs"> ({tab.count})</Text>
+                )}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </ScrollView>
     </View>
   );
 };

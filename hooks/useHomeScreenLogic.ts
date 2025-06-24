@@ -6,6 +6,9 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/context/supabase-provider";
 import { supabase } from "@/config/supabase";
 
+// Create a global ref to store the refresh function
+export const homeRefreshRef = { current: null as (() => Promise<void>) | null };
+
 // Type definitions
 interface Restaurant {
   id: string;
@@ -20,15 +23,6 @@ interface Restaurant {
   booking_policy: "instant" | "request";
   created_at?: string;
   featured?: boolean;
-}
-
-interface SpecialOffer {
-  id: string;
-  title: string;
-  description: string;
-  discount_percentage: number;
-  restaurant: Restaurant;
-  valid_until: string;
 }
 
 interface LocationData {
@@ -61,7 +55,7 @@ export function useHomeScreenLogic() {
   const [trendingRestaurants, setTrendingRestaurants] = useState<Restaurant[]>(
     []
   );
-  const [specialOffers, setSpecialOffers] = useState<SpecialOffer[]>([]);
+
   const [nearbyRestaurants, setNearbyRestaurants] = useState<Restaurant[]>([]);
   const [location, setLocation] = useState<LocationData | null>(null);
 
@@ -77,30 +71,32 @@ export function useHomeScreenLogic() {
   // Helper function to get cuisine display name
   const getCuisineName = useCallback((cuisineId: string): string => {
     const cuisineNames: Record<string, string> = {
-      'lebanese': 'Lebanese',
-      'italian': 'Italian',
-      'japanese': 'Japanese',
-      'sushi': 'Sushi',
-      'indian': 'Indian',
-      'mexican': 'Mexican',
-      'chinese': 'Chinese',
-      'french': 'French',
-      'american': 'American',
-      'mediterranean': 'Mediterranean',
-      'thai': 'Thai',
-      'greek': 'Greek',
-      'turkish': 'Turkish',
-      'korean': 'Korean',
-      'vietnamese': 'Vietnamese',
-      'spanish': 'Spanish',
-      'brazilian': 'Brazilian',
-      'moroccan': 'Moroccan',
-      'persian': 'Persian',
-      'armenian': 'Armenian',
+      lebanese: "Lebanese",
+      italian: "Italian",
+      japanese: "Japanese",
+      sushi: "Sushi",
+      indian: "Indian",
+      mexican: "Mexican",
+      chinese: "Chinese",
+      french: "French",
+      american: "American",
+      mediterranean: "Mediterranean",
+      thai: "Thai",
+      greek: "Greek",
+      turkish: "Turkish",
+      korean: "Korean",
+      vietnamese: "Vietnamese",
+      spanish: "Spanish",
+      brazilian: "Brazilian",
+      moroccan: "Moroccan",
+      persian: "Persian",
+      armenian: "Armenian",
     };
-    
-    return cuisineNames[cuisineId.toLowerCase()] || 
-           cuisineId.charAt(0).toUpperCase() + cuisineId.slice(1);
+
+    return (
+      cuisineNames[cuisineId.toLowerCase()] ||
+      cuisineId.charAt(0).toUpperCase() + cuisineId.slice(1)
+    );
   }, []);
 
   // Location Management
@@ -262,34 +258,6 @@ export function useHomeScreenLogic() {
     }
   }, [location]);
 
-  const fetchSpecialOffers = useCallback(async () => {
-    try {
-      const now = new Date().toISOString();
-      const { data, error } = await supabase
-        .from("special_offers")
-        .select(
-          `
-					*,
-					restaurant:restaurants (*)
-				`
-        )
-        .lte("valid_from", now)
-        .gte("valid_until", now)
-        .order("discount_percentage", { ascending: false })
-        .limit(5);
-
-      if (error) throw error;
-
-      const validOffers = (data || []).filter((offer) => {
-        return offer.restaurant && offer.restaurant.id;
-      });
-
-      setSpecialOffers(validOffers);
-    } catch (error) {
-      console.error("Error fetching special offers:", error);
-    }
-  }, []);
-
   // Unified Data Loading
   const loadAllData = useCallback(async () => {
     setLoading(true);
@@ -300,7 +268,6 @@ export function useHomeScreenLogic() {
       fetchTopRatedRestaurants(),
       fetchTrendingRestaurants(),
       fetchNearbyRestaurants(),
-      fetchSpecialOffers(),
     ]);
 
     setLoading(false);
@@ -310,7 +277,6 @@ export function useHomeScreenLogic() {
     fetchTopRatedRestaurants,
     fetchTrendingRestaurants,
     fetchNearbyRestaurants,
-    fetchSpecialOffers,
   ]);
 
   // Event Handlers
@@ -320,6 +286,11 @@ export function useHomeScreenLogic() {
     await loadAllData();
     setRefreshing(false);
   }, [loadAllData, checkForLocationUpdates]);
+
+  // Store the refresh function in the global ref
+  useEffect(() => {
+    homeRefreshRef.current = handleRefresh;
+  }, [handleRefresh]);
 
   const handleLocationPress = useCallback(() => {
     router.push("/(protected)/location-selector");
@@ -367,64 +338,38 @@ export function useHomeScreenLogic() {
   );
 
   // FIXED: handleCuisinePress now correctly handles cuisineId string parameter
-  const handleCuisinePress = useCallback((cuisineId: string) => {
-    console.log("Navigating to cuisine:", cuisineId);
-    
-    if (!cuisineId || typeof cuisineId !== "string" || cuisineId.trim() === "") {
-      console.error("Invalid cuisine ID provided:", cuisineId);
-      Alert.alert(
-        "Error",
-        "Cuisine information is not available. Please try again."
-      );
-      return;
-    }
+  const handleCuisinePress = useCallback(
+    (cuisineId: string) => {
+      console.log("Navigating to cuisine:", cuisineId);
 
-    try {
-      // Navigate to cuisine-specific screen
-      router.push({
-        pathname: "/(protected)/cuisine/[cuisineId]",
-        params: {
-          cuisineId: cuisineId.trim(),
-          cuisineName: getCuisineName(cuisineId),
-        },
-      });
-    } catch (error) {
-      console.error("Cuisine navigation error:", error);
-      Alert.alert(
-        "Error",
-        "Unable to open cuisine page. Please try again."
-      );
-    }
-  }, [router, getCuisineName]);
-
-  const handleOfferPress = useCallback(
-    (offer: SpecialOffer) => {
-      if (!offer?.restaurant?.id) {
-        console.error("Invalid offer or restaurant data:", offer);
+      if (
+        !cuisineId ||
+        typeof cuisineId !== "string" ||
+        cuisineId.trim() === ""
+      ) {
+        console.error("Invalid cuisine ID provided:", cuisineId);
         Alert.alert(
           "Error",
-          "Offer information is not available. Please try again."
+          "Cuisine information is not available. Please try again."
         );
         return;
       }
 
       try {
+        // Navigate to cuisine-specific screen
         router.push({
-          pathname: "/(protected)/restaurant/[id]",
+          pathname: "/(protected)/cuisine/[cuisineId]",
           params: {
-            id: offer.restaurant.id,
-            highlightOfferId: offer.id,
+            cuisineId: cuisineId.trim(),
+            cuisineName: getCuisineName(cuisineId),
           },
         });
       } catch (error) {
-        console.error("Offer navigation error:", error);
-        Alert.alert(
-          "Error",
-          "Unable to open restaurant details. Please try again."
-        );
+        console.error("Cuisine navigation error:", error);
+        Alert.alert("Error", "Unable to open cuisine page. Please try again.");
       }
     },
-    [router]
+    [router, getCuisineName]
   );
 
   const getGreeting = useCallback(() => {
@@ -457,19 +402,15 @@ export function useHomeScreenLogic() {
   }, [checkForLocationUpdates]);
 
   // Navigation handlers
-  const handleOffersPress = useCallback(() => {
-    router.push("/(protected)/offers");
-  }, [router]);
-
   const handleSearchPress = useCallback(() => {
     router.push("/(protected)/(tabs)/search");
   }, [router]);
 
   const handleSearchWithParams = useCallback(
     (params: Record<string, string>) => {
-      router.push({ 
-        pathname: "/(protected)/(tabs)/search", 
-        params 
+      router.push({
+        pathname: "/(protected)/(tabs)/search",
+        params,
       });
     },
     [router]
@@ -485,7 +426,7 @@ export function useHomeScreenLogic() {
     newRestaurants,
     topRatedRestaurants,
     trendingRestaurants,
-    specialOffers,
+
     nearbyRestaurants,
     location,
     refreshing,
@@ -499,8 +440,6 @@ export function useHomeScreenLogic() {
     handleRestaurantPress,
     handleQuickFilter,
     handleCuisinePress,
-    handleOfferPress,
-    handleOffersPress,
     handleSearchPress,
     handleSearchWithParams,
     handleProfilePress,

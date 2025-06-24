@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View, Alert } from "react-native";
 import * as z from "zod";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -14,7 +14,7 @@ const formSchema = z.object({
 	email: z.string().email("Please enter a valid email address."),
 	password: z
 		.string()
-
+		.min(1, "Password is required.")
 		.max(64, "Please enter fewer than 64 characters."),
 });
 
@@ -31,18 +31,38 @@ export default function SignIn() {
 
 	async function onSubmit(data: z.infer<typeof formSchema>) {
 		try {
+			console.log('🔄 Starting sign-in process...');
 			await signIn(data.email, data.password);
-
+			console.log('✅ Sign-in successful');
 			form.reset();
-		} catch (error: Error | any) {
-			console.error(error.message);
+		} catch (error: any) {
+			console.error('❌ Sign-in error:', error);
+			
+			// Show user-friendly error messages
+			let errorMessage = "An error occurred during sign in.";
+			
+			if (error.message?.includes("Invalid login credentials")) {
+				errorMessage = "Invalid email or password. Please check your credentials and try again.";
+			} else if (error.message?.includes("Email not confirmed")) {
+				errorMessage = "Please check your email and confirm your account before signing in.";
+			} else if (error.message?.includes("Too many requests")) {
+				errorMessage = "Too many sign-in attempts. Please wait a moment and try again.";
+			} else if (error.message?.includes("Network")) {
+				errorMessage = "Network error. Please check your internet connection and try again.";
+			} else if (error.message) {
+				errorMessage = error.message;
+			}
+			
+			Alert.alert("Sign In Error", errorMessage, [
+				{ text: "OK", style: "default" }
+			]);
 		}
 	}
 
 	return (
 		<SafeAreaView className="flex-1 bg-background p-4" edges={["bottom"]}>
 			<View className="flex-1 gap-4 web:m-4">
-				<H1 className="self-start ">Sign In</H1>
+				<H1 className="self-start">Sign In</H1>
 				<Form {...form}>
 					<View className="gap-4">
 						<FormField
@@ -51,7 +71,7 @@ export default function SignIn() {
 							render={({ field }) => (
 								<FormInput
 									label="Email"
-									placeholder="Email"
+									placeholder="Enter your email"
 									autoCapitalize="none"
 									autoComplete="email"
 									autoCorrect={false}
@@ -66,7 +86,7 @@ export default function SignIn() {
 							render={({ field }) => (
 								<FormInput
 									label="Password"
-									placeholder="Password"
+									placeholder="Enter your password"
 									autoCapitalize="none"
 									autoCorrect={false}
 									secureTextEntry
@@ -85,7 +105,7 @@ export default function SignIn() {
 				className="web:m-4"
 			>
 				{form.formState.isSubmitting ? (
-					<ActivityIndicator size="small" />
+					<ActivityIndicator size="small" color="white" />
 				) : (
 					<Text>Sign In</Text>
 				)}

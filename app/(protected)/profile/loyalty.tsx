@@ -31,6 +31,7 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { supabase } from "@/config/supabase";
 import { Database } from "@/types/supabase";
+import { useOffers } from "@/hooks/useOffers";
 
 // Enhanced types for the loyalty system
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
@@ -307,6 +308,13 @@ export default function LoyaltyScreen() {
   const { profile, refreshProfile } = useAuth();
   const { colorScheme } = useColorScheme();
   const router = useRouter();
+  // Use useOffers for offer state
+  const {
+    getClaimedOffers,
+    claimOffer,
+    loading: offersLoading,
+    fetchOffers,
+  } = useOffers();
 
   // State management
   const [rewards, setRewards] = useState<LoyaltyReward[]>([]);
@@ -404,20 +412,16 @@ export default function LoyaltyScreen() {
   // Handle reward redemption
   const handleRedeemReward = useCallback(async (reward: LoyaltyReward) => {
     if (!profile?.id) return;
-
     const canAfford = userPoints >= reward.pointsCost;
     const tierAllowed = TIER_CONFIG[userTier].minPoints >= TIER_CONFIG[reward.tierRequired].minPoints;
-
     if (!canAfford) {
       Alert.alert("Insufficient Points", `You need ${reward.pointsCost - userPoints} more points to redeem this reward.`);
       return;
     }
-
     if (!tierAllowed) {
       Alert.alert("Tier Required", `This reward requires ${TIER_CONFIG[reward.tierRequired].name} tier or higher.`);
       return;
     }
-
     Alert.alert(
       "Redeem Reward",
       `Redeem "${reward.title}" for ${reward.pointsCost} points?\n\nThis will deduct ${reward.pointsCost} points from your account.`,
@@ -428,42 +432,17 @@ export default function LoyaltyScreen() {
           onPress: async () => {
             setRedeemingId(reward.id);
             try {
-              // Start transaction - deduct points and claim offer
+              // Deduct points
               const { error: deductError } = await supabase.rpc("award_loyalty_points", {
                 p_user_id: profile.id,
                 p_points: -reward.pointsCost,
               });
-
               if (deductError) throw deductError;
-
-              // Claim the offer
-              const { error: claimError } = await supabase
-                .from("user_offers")
-                .insert({
-                  user_id: profile.id,
-                  offer_id: reward.id,
-                });
-
-              if (claimError) {
-                // Rollback points if claim fails
-                await supabase.rpc("award_loyalty_points", {
-                  p_user_id: profile.id,
-                  p_points: reward.pointsCost,
-                });
-                throw claimError;
-              }
-
-              // Update local state
-              setRewards((prev) =>
-                prev.map((r) => (r.id === reward.id ? { ...r, claimed: true } : r))
-              );
-
+              // Claim the offer using the hook
+              await claimOffer(reward.id);
               // Refresh profile to get updated points
               await refreshProfile();
-
-              // Haptic feedback
               await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
               Alert.alert(
                 "Reward Redeemed!",
                 `"${reward.title}" has been added to your account. Show this at ${reward.restaurant.name} to use your reward.`,
@@ -475,7 +454,7 @@ export default function LoyaltyScreen() {
                   { text: "OK" },
                 ]
               );
-            } catch (error: any) {
+            } catch (error) {
               console.error("Error redeeming reward:", error);
               Alert.alert("Error", error.message || "Failed to redeem reward. Please try again.");
             } finally {
@@ -485,7 +464,7 @@ export default function LoyaltyScreen() {
         },
       ]
     );
-  }, [profile?.id, userPoints, userTier, refreshProfile, router]);
+  }, [profile?.id, userPoints, userTier, refreshProfile, router, claimOffer]);
 
   // Refresh handler
   const handleRefresh = useCallback(() => {

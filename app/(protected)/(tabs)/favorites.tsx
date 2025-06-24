@@ -14,13 +14,13 @@ import { Filter } from "lucide-react-native";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { H2, Muted } from "@/components/ui/typography";
+import { SectionHeader } from "@/components/ui/section-header";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useFavoritesFilters } from "@/hooks/useFavoritesFilters";
 import {
   FavoritesGridRow,
   FavoritesEmptyState,
-  FavoritesSectionHeader,
   FavoritesInsightsBanner,
   FavoritesFilterModal,
 } from "@/components/favorites";
@@ -104,7 +104,7 @@ export default function FavoritesScreen() {
 
   // Render section header
   const renderSectionHeader = useCallback(
-    ({ section }: any) => <FavoritesSectionHeader title={section.title} />,
+    ({ section }: any) => <SectionHeader title={section.title} />,
     []
   );
 

@@ -31,6 +31,7 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { supabase } from "@/config/supabase";
 import { Database } from "@/types/supabase";
+import { useOffers } from "@/hooks/useOffers";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 type UserOffer = Database["public"]["Tables"]["user_offers"]["Row"] & {
@@ -196,116 +197,60 @@ const ClaimedRewardCard: React.FC<{
 };
 
 export default function MyRewardsScreen() {
-  const { profile } = useAuth();
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-
-  // State management
-  const [rewards, setRewards] = useState<ClaimedReward[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  // Use useOffers for all reward logic
+  const {
+    getClaimedOffers,
+    getActiveOffers,
+    getUsedOffers,
+    getExpiredOffers,
+    useOffer,
+    loading,
+    error,
+    fetchOffers,
+  } = useOffers();
   const [filter, setFilter] = useState<"all" | "active" | "used" | "expired">("all");
-
-  // Fetch user's claimed rewards
-  const fetchRewards = useCallback(async () => {
-    if (!profile?.id) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("user_offers")
-        .select(`
-          *,
-          special_offer:special_offers (
-            *,
-            restaurant:restaurants (*)
-          )
-        `)
-        .eq("user_id", profile.id)
-        .order("claimed_at", { ascending: false });
-
-      if (error) throw error;
-
-      const now = new Date();
-      const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-      const enrichedRewards: ClaimedReward[] = (data || []).map((reward) => {
-        const claimedDate = new Date(reward.claimed_at);
-        const validUntil = new Date(reward.special_offer.valid_until);
-        const expiryDate = new Date(Math.min(
-          claimedDate.getTime() + 30 * 24 * 60 * 60 * 1000, // 30 days from claim
-          validUntil.getTime() // or offer expiry, whichever is sooner
-        ));
-
-        const isExpired = now > expiryDate;
-        const daysUntilExpiry = Math.max(
-          0,
-          Math.ceil((expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000))
-        );
-        const canUse = !isExpired && !reward.used_at;
-
-        return {
-          ...reward,
-          isExpired,
-          daysUntilExpiry,
-          canUse,
-        };
-      });
-
-      setRewards(enrichedRewards);
-    } catch (error) {
-      console.error("Error fetching rewards:", error);
-      Alert.alert("Error", "Failed to load your rewards");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [profile?.id]);
-
-  // Handle using a reward
-  const handleUseReward = useCallback(async (reward: ClaimedReward) => {
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  // Filtering
+  const all = getClaimedOffers();
+  const active = getActiveOffers();
+  const used = getUsedOffers();
+  const expired = getExpiredOffers();
+  let filteredRewards = all;
+  if (filter === "active") filteredRewards = active;
+  else if (filter === "used") filteredRewards = used;
+  else if (filter === "expired") filteredRewards = expired;
+  // Handler for marking as used
+  const handleUseReward = async (reward: any) => {
     Alert.alert(
       "Use Reward",
-      `Show this screen to the restaurant staff to use your ${reward.special_offer.discount_percentage}% discount at ${reward.special_offer.restaurant.name}.`,
+      `Show this screen to the restaurant staff to use your ${reward.discount_percentage}% discount at ${reward.restaurant.name}.`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Mark as Used",
           onPress: async () => {
+            setProcessingId(reward.id);
             try {
-              const { error } = await supabase
-                .from("user_offers")
-                .update({ used_at: new Date().toISOString() })
-                .eq("id", reward.id);
-
-              if (error) throw error;
-
-              setRewards((prev) =>
-                prev.map((r) =>
-                  r.id === reward.id
-                    ? { ...r, used_at: new Date().toISOString(), canUse: false }
-                    : r
-                )
-              );
-
+              await useOffer(reward.id);
               await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               Alert.alert("Success", "Reward marked as used!");
             } catch (error: any) {
               console.error("Error using reward:", error);
               Alert.alert("Error", "Failed to mark reward as used");
             }
+            setProcessingId(null);
           },
         },
       ]
     );
-  }, []);
-
-  // Handle sharing a reward
-  const handleShareReward = useCallback(async (reward: ClaimedReward) => {
-    const offer = reward.special_offer;
+  };
+  // Handler for sharing
+  const handleShareReward = async (reward: any) => {
+    const offer = reward;
     const restaurant = offer.restaurant;
-
     const message = `Check out this ${offer.discount_percentage}% discount I got at ${restaurant.name}! "${offer.title}" - ${offer.description || "Great deal!"}`;
-
     try {
       await Share.share({
         message,
@@ -314,41 +259,16 @@ export default function MyRewardsScreen() {
     } catch (error) {
       console.error("Error sharing reward:", error);
     }
-  }, []);
-
-  // Navigate to restaurant
-  const handleViewRestaurant = useCallback((restaurantId: string) => {
+  };
+  // Handler for viewing restaurant
+  const handleViewRestaurant = (restaurantId: string) => {
     router.push(`/restaurant/${restaurantId}`);
-  }, [router]);
-
+  };
   // Refresh handler
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchRewards();
-  }, [fetchRewards]);
-
-  // Filter rewards
-  const filteredRewards = rewards.filter((reward) => {
-    switch (filter) {
-      case "active":
-        return reward.canUse;
-      case "used":
-        return reward.used_at;
-      case "expired":
-        return reward.isExpired;
-      default:
-        return true;
-    }
-  });
-
-  // Initial load
-  useEffect(() => {
-    if (profile) {
-      fetchRewards();
-    }
-  }, [profile, fetchRewards]);
-
-  if (loading && !refreshing) {
+  const handleRefresh = () => {
+    fetchOffers();
+  };
+  if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-background justify-center items-center">
         <ActivityIndicator size="large" color="#3b82f6" />
@@ -356,7 +276,6 @@ export default function MyRewardsScreen() {
       </SafeAreaView>
     );
   }
-
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* Header */}
@@ -370,15 +289,14 @@ export default function MyRewardsScreen() {
           </Pressable>
           <H2>My Rewards</H2>
         </View>
-
         {/* Filter tabs */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2">
           <View className="flex-row gap-2">
             {[
-              { key: "all", label: "All", count: rewards.length },
-              { key: "active", label: "Active", count: rewards.filter(r => r.canUse).length },
-              { key: "used", label: "Used", count: rewards.filter(r => r.used_at).length },
-              { key: "expired", label: "Expired", count: rewards.filter(r => r.isExpired).length },
+              { key: "all", label: "All", count: all.length },
+              { key: "active", label: "Active", count: active.length },
+              { key: "used", label: "Used", count: used.length },
+              { key: "expired", label: "Expired", count: expired.length },
             ].map(({ key, label, count }) => (
               <Pressable
                 key={key}
@@ -399,12 +317,11 @@ export default function MyRewardsScreen() {
           </View>
         </ScrollView>
       </View>
-
       {/* Content */}
       <ScrollView
         className="flex-1"
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl refreshing={loading} onRefresh={handleRefresh} />
         }
       >
         <View className="p-4">

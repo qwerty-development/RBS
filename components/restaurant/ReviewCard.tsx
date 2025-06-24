@@ -1,7 +1,8 @@
 import React from "react";
 import { View, Pressable } from "react-native";
-import { Star, ThumbsUp, MoreVertical } from "lucide-react-native";
+import { Star, ThumbsUp, MoreVertical, Calendar } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
+import { P, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 import { Database } from "@/types/supabase";
 
@@ -28,6 +29,7 @@ interface ReviewCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   showActions?: boolean;
+  variant?: "default" | "compact";
 }
 
 export const ReviewCard = ({
@@ -36,6 +38,7 @@ export const ReviewCard = ({
   onEdit,
   onDelete,
   showActions = true,
+  variant = "default",
 }: ReviewCardProps) => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("en-US", {
@@ -111,9 +114,7 @@ export const ReviewCard = ({
             </Text>
             <View className="flex-row items-center gap-2 mt-1">
               {renderStars(review.rating)}
-              <Text className="text-xs text-muted-foreground">
-                {formatDate(review.created_at)}
-              </Text>
+              <Muted className="text-xs">{formatDate(review.created_at)}</Muted>
             </View>
           </View>
         </View>
@@ -127,7 +128,7 @@ export const ReviewCard = ({
 
       {/* Review Content */}
       {review.comment && (
-        <Text className="text-sm leading-5 mb-3">{review.comment}</Text>
+        <P className="text-sm leading-5 mb-3">{review.comment}</P>
       )}
 
       {/* Detailed Ratings */}
@@ -148,18 +149,30 @@ export const ReviewCard = ({
       {review.photos && review.photos.length > 0 && (
         <View className="mt-3">
           <View className="flex-row gap-2">
-            {review.photos.slice(0, 3).map((photo, index) => (
-              <Image
-                key={index}
-                source={{ uri: photo }}
-                className="w-20 h-20 rounded-lg"
-                contentFit="cover"
-              />
-            ))}
-            {review.photos.length > 3 && (
-              <View className="w-20 h-20 rounded-lg bg-muted items-center justify-center">
+            {review.photos
+              .slice(0, variant === "compact" ? 3 : 4)
+              .map((photo, index) => (
+                <Image
+                  key={index}
+                  source={{ uri: photo }}
+                  className={
+                    variant === "compact"
+                      ? "w-20 h-20 rounded-lg"
+                      : "w-16 h-16 rounded-lg flex-1"
+                  }
+                  contentFit="cover"
+                />
+              ))}
+            {review.photos.length > (variant === "compact" ? 3 : 4) && (
+              <View
+                className={
+                  variant === "compact"
+                    ? "w-20 h-20 rounded-lg bg-muted items-center justify-center"
+                    : "w-16 h-16 rounded-lg bg-muted items-center justify-center"
+                }
+              >
                 <Text className="text-xs text-muted-foreground">
-                  +{review.photos.length - 3}
+                  +{review.photos.length - (variant === "compact" ? 3 : 4)}
                 </Text>
               </View>
             )}
@@ -173,13 +186,20 @@ export const ReviewCard = ({
           {review.recommend_to_friend && (
             <View className="flex-row items-center gap-1">
               <ThumbsUp size={14} color="#10b981" />
-              <Text className="text-xs text-green-600">Recommends</Text>
+              <Text className="text-xs text-green-600">
+                {variant === "compact" ? "Recommends" : "Recommends to friends"}
+              </Text>
             </View>
           )}
           {review.visit_again && (
-            <Text className="text-xs text-muted-foreground">
-              Would visit again
-            </Text>
+            <View className="flex-row items-center gap-1">
+              <Calendar size={12} color="#3b82f6" />
+              <Text className="text-xs text-blue-600">
+                {variant === "compact"
+                  ? "Would visit again"
+                  : "Will visit again"}
+              </Text>
+            </View>
           )}
         </View>
 

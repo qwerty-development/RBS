@@ -11,32 +11,30 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-// FIX: Import the hook to get safe area dimensions
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
-import { RestaurantCard } from "@/components/home/RestaurantCard";
+import { RestaurantCard } from "@/components/restaurant/RestaurantCard";
 import { SpecialOfferCard } from "@/components/home/SpecialOfferCard";
 import { CuisineCategory } from "@/components/home/CuisineCategory";
-import { SectionHeader } from "@/components/home/SectionHeader";
+import { SectionHeader } from "@/components/ui/section-header";
 import { LoyaltyWidget } from "@/components/home/LoyaltyWidget";
 import { LocationHeader } from "@/components/home/LocationHeader";
 import { useHomeScreenLogic } from "@/hooks/useHomeScreenLogic";
+import { useOffers } from "@/hooks/useOffers";
 import { CUISINE_CATEGORIES } from "@/constants/homeScreenData";
 import { SpecialOffersCarousel } from "@/components/home/SpecialOffersCarousel";
 
 export default function HomeScreen() {
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-  // FIX: Get the safe area insets, especially the top one for the status bar
   const insets = useSafeAreaInsets();
 
   const {
     featuredRestaurants,
     newRestaurants,
     topRatedRestaurants,
-    specialOffers,
     location,
     refreshing,
     loading,
@@ -45,20 +43,16 @@ export default function HomeScreen() {
     handleLocationPress,
     handleRestaurantPress,
     handleCuisinePress,
-    handleOfferPress,
-    handleOffersPress,
     handleSearchPress,
     handleSearchWithParams,
     handleProfilePress,
   } = useHomeScreenLogic();
 
+  const { offers: specialOffers, loading: offersLoading } = useOffers();
+
   const scrollY = useRef(new Animated.Value(0)).current;
   const [totalHeaderHeight, setTotalHeaderHeight] = useState(0);
   const [collapsibleHeaderHeight, setCollapsibleHeaderHeight] = useState(0);
-
-  const handleProfilePicturePress = () => {
-    router.push("/profile");
-  };
 
   const headerTranslateY = scrollY.interpolate({
     inputRange: [0, collapsibleHeaderHeight],
@@ -72,7 +66,7 @@ export default function HomeScreen() {
     extrapolate: "clamp",
   });
 
-  if (loading) {
+  if (loading || offersLoading) {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center">
@@ -89,29 +83,39 @@ export default function HomeScreen() {
   }
 
   return (
-    // FIX: We use a normal View here because the SafeAreaView from expo-router's layout already handles the main area.
-    // The main reason for the bug was our absolute header ignoring the safe area.
     <View className="flex-1 bg-background">
       <Animated.View
-        className="absolute top-0 left-0 right-0 z-10 bg-background border-b border-border/20"
+        className="absolute top-0 left-0 right-0 bg-background border-b border-border/20"
         onLayout={(event) => {
           setTotalHeaderHeight(event.nativeEvent.layout.height);
         }}
         style={{
-          // FIX: Apply the top inset as padding to push the content below the status bar.
           paddingTop: insets.top,
           transform: [{ translateY: headerTranslateY }],
+          zIndex: 100, // Lower z-index than profile picture
+          elevation: 100, // Android elevation
         }}
+        // Ensure child elements can receive touch events
+        pointerEvents="box-none"
       >
         <Animated.View
           onLayout={(event) => {
             setCollapsibleHeaderHeight(event.nativeEvent.layout.height);
           }}
           style={{ opacity: greetingOpacity }}
+          // Allow touch events to pass through to child elements
+          pointerEvents="box-none"
         >
-          {/* FIX: Removed pb-1 (padding-bottom) to reduce the gap between greeting and location. */}
-          <View className="flex-row items-center justify-between px-4 pt-2">
-            <View className="flex-1">
+          <View
+            className="flex-row items-center justify-between px-4 pt-2"
+            // Allow touch events for child elements
+            pointerEvents="box-none"
+          >
+            <View
+              className="flex-1"
+              // Prevent this container from capturing touch events meant for the profile picture
+              pointerEvents="none"
+            >
               <Text className="text-2xl font-bold text-foreground">
                 Hello {profile?.full_name?.split(" ")[0] || "there"}{" "}
                 <Text className="text-2xl">👋</Text>
@@ -119,21 +123,61 @@ export default function HomeScreen() {
             </View>
 
             <Pressable
-              onPress={handleProfilePicturePress}
-              className="ml-3"
-              style={({ pressed }) => ({ opacity: pressed ? 0.8 : 1 })}
+              onPress={() => {
+                router.push("/(protected)/profile");
+              }}
+              style={({ pressed }) => ({
+                marginLeft: 12,
+                padding: 4,
+                zIndex: 999,
+                elevation: 999,
+                opacity: pressed ? 0.7 : 1,
+                transform: [{ scale: pressed ? 0.95 : 1 }],
+              })}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+              pointerEvents="box-only"
             >
-              <View className="relative">
+              <View
+                style={{
+                  position: "relative",
+                  zIndex: 999,
+                  elevation: 999,
+                }}
+              >
                 <Image
                   source={
                     profile?.avatar_url
                       ? { uri: profile.avatar_url }
                       : require("@/assets/default-avatar.jpeg")
                   }
-                  className="w-10 h-10 rounded-full border-2 border-primary/20"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: 20,
+                    borderWidth: 2,
+                    borderColor:
+                      colorScheme === "dark"
+                        ? "rgba(255,255,255,0.2)"
+                        : "rgba(0,0,0,0.2)",
+                  }}
                   contentFit="cover"
                 />
-                <View className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full" />
+                {/* Online status indicator */}
+                <View
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    right: 0,
+                    width: 12,
+                    height: 12,
+                    backgroundColor: "#22c55e",
+                    borderRadius: 6,
+                    borderWidth: 2,
+                    borderColor: colorScheme === "dark" ? "#000" : "#fff",
+                    zIndex: 1000,
+                    elevation: 1000,
+                  }}
+                />
               </View>
             </Pressable>
           </View>
@@ -192,12 +236,20 @@ export default function HomeScreen() {
               title="Special Offers"
               subtitle="Limited time deals"
               actionLabel="View All"
-              onAction={handleOffersPress}
+              onAction={() => router.push("/offers")}
             />
 
             <SpecialOffersCarousel
               offers={specialOffers}
-              onPress={handleOfferPress}
+              onPress={(offer) => {
+                router.push({
+                  pathname: "/restaurant/[id]",
+                  params: {
+                    id: offer.restaurant.id,
+                    highlightOfferId: offer.id,
+                  },
+                });
+              }}
             />
           </View>
         )}
