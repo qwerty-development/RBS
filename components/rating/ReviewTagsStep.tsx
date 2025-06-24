@@ -72,7 +72,7 @@ export const ReviewTagsStep: React.FC<ReviewTagsStepProps> = ({
         <H3 className="mb-4">What was great?</H3>
         <View className="flex-row flex-wrap gap-2 mb-6">
           {positiveTagOptions.map((tag) => (
-            <TagButton key={tag} tag={tag} isPositive />
+            <TagButton key={tag} tag={tag} isPositive={true} />
           ))}
         </View>
 

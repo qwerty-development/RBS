@@ -150,7 +150,7 @@ export default function ReviewCreateScreen() {
       subtitle: "Tell others about your visit",
       component: (
         <ReviewWriteStep
-          control={form.control}
+          form={form}
           comment={form.watch("comment")}
           photos={photos}
           onPhotosChange={setPhotos}

@@ -1,8 +1,43 @@
 import React from "react";
-import { ScrollView, View } from "react-native";
+import { ScrollView, View, Pressable } from "react-native";
+import { Star } from "lucide-react-native";
+import * as Haptics from "expo-haptics";
 
+import { Text } from "@/components/ui/text";
 import { Muted } from "@/components/ui/typography";
-import { UserRating } from "./UserRating";
+
+// Interactive rating component for detailed ratings
+const CategoryRating: React.FC<{
+  rating: number;
+  onRatingChange: (rating: number) => void;
+  label: string;
+}> = ({ rating, onRatingChange, label }) => {
+  return (
+    <View>
+      <View className="flex-row items-center justify-between mb-2">
+        <Text className="font-medium">{label}</Text>
+        <View className="flex-row items-center gap-1">
+          {[1, 2, 3, 4, 5].map((star) => (
+            <Pressable
+              key={star}
+              onPress={() => {
+                onRatingChange(star);
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              }}
+              className="p-1"
+            >
+              <Star
+                size={24}
+                color="#FFD700"
+                fill={star <= rating ? "#FFD700" : "transparent"}
+              />
+            </Pressable>
+          ))}
+        </View>
+      </View>
+    </View>
+  );
+};
 
 interface DetailedRatings {
   food: number;
@@ -62,11 +97,10 @@ export const DetailedRatingsStep: React.FC<DetailedRatingsStepProps> = ({
       <View className="gap-6">
         {ratingCategories.map(({ key, label, description }) => (
           <View key={key}>
-            <UserRating
+            <CategoryRating
               rating={ratings[key]}
               onRatingChange={(rating) => handleRatingChange(key, rating)}
               label={label}
-              showLabel={false}
             />
             <Muted className="text-sm mt-1">{description}</Muted>
           </View>

@@ -1,13 +1,13 @@
 import React from "react";
 import { ScrollView, View, KeyboardAvoidingView, Platform } from "react-native";
-import { Control } from "react-hook-form";
+import { Control, UseFormReturn } from "react-hook-form";
 
 import { Text } from "@/components/ui/text";
 import { Form, FormField, FormTextarea } from "@/components/ui/form";
 import { ReviewPhotoUploader } from "./ReviewPhotoUploader";
 
 interface ReviewWriteStepProps {
-  control: Control<any>;
+  form: UseFormReturn<any>;
   comment: string;
   photos: string[];
   onPhotosChange: (photos: string[]) => void;
@@ -17,7 +17,7 @@ interface ReviewWriteStepProps {
 }
 
 export const ReviewWriteStep: React.FC<ReviewWriteStepProps> = ({
-  control,
+  form,
   comment,
   photos,
   onPhotosChange,
@@ -31,9 +31,9 @@ export const ReviewWriteStep: React.FC<ReviewWriteStepProps> = ({
       className="flex-1"
     >
       <ScrollView showsVerticalScrollIndicator={false} className="py-4">
-        <Form>
+        <Form {...form}>
           <FormField
-            control={control}
+            control={form.control}
             name="comment"
             render={({ field }) => (
               <FormTextarea
