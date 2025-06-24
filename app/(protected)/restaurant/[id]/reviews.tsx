@@ -86,20 +86,24 @@ const RATING_FILTER_OPTIONS = [
 ];
 
 // Review Summary Component
-const ReviewSummaryCard: React.FC<{ restaurant: Restaurant }> = ({ restaurant }) => {
+const ReviewSummaryCard: React.FC<{ restaurant: Restaurant }> = ({
+  restaurant,
+}) => {
   const summary = restaurant.review_summary;
-  
+
   if (!summary) return null;
 
   const ratingDistribution = summary.rating_distribution || {};
   const totalReviews = summary.total_reviews || 0;
-  
+
   return (
     <View className="bg-card border border-border rounded-xl p-6 mb-4">
       {/* Overall Rating */}
       <View className="flex-row items-center justify-between mb-6">
         <View className="items-center">
-          <Text className="text-4xl font-bold mb-2">{summary.average_rating.toFixed(1)}</Text>
+          <Text className="text-4xl font-bold mb-2">
+            {summary.average_rating.toFixed(1)}
+          </Text>
           <View className="flex-row mb-1">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
@@ -119,14 +123,15 @@ const ReviewSummaryCard: React.FC<{ restaurant: Restaurant }> = ({ restaurant })
           <Text className="font-semibold mb-3">Rating Breakdown</Text>
           {[5, 4, 3, 2, 1].map((rating) => {
             const count = ratingDistribution[rating.toString()] || 0;
-            const percentage = totalReviews > 0 ? (count / totalReviews) * 100 : 0;
-            
+            const percentage =
+              totalReviews > 0 ? (count / totalReviews) * 100 : 0;
+
             return (
               <View key={rating} className="flex-row items-center gap-2 mb-1">
                 <Text className="text-sm w-2">{rating}</Text>
                 <Star size={12} color="#f59e0b" fill="#f59e0b" />
                 <View className="flex-1 bg-muted rounded-full h-2">
-                  <View 
+                  <View
                     className="bg-amber-500 h-2 rounded-full"
                     style={{ width: `${percentage}%` }}
                   />
@@ -145,7 +150,9 @@ const ReviewSummaryCard: React.FC<{ restaurant: Restaurant }> = ({ restaurant })
         <Text className="font-semibold mb-3">Detailed Ratings</Text>
         <View className="grid grid-cols-2 gap-4">
           {Object.entries(summary.detailed_ratings).map(([key, value]) => {
-            const label = key.replace('_avg', '').replace(/^./, str => str.toUpperCase());
+            const label = key
+              .replace("_avg", "")
+              .replace(/^./, (str) => str.toUpperCase());
             return (
               <View key={key} className="flex-row items-center justify-between">
                 <Text className="text-sm text-muted-foreground">{label}</Text>
@@ -164,8 +171,13 @@ const ReviewSummaryCard: React.FC<{ restaurant: Restaurant }> = ({ restaurant })
         <View className="flex-row items-center gap-2">
           <ThumbsUp size={16} color="#10b981" />
           <Text className="text-sm">
-            <Text className="font-semibold">{summary.recommendation_percentage}%</Text>
-            <Text className="text-muted-foreground"> of diners recommend this restaurant</Text>
+            <Text className="font-semibold">
+              {summary.recommendation_percentage}%
+            </Text>
+            <Text className="text-muted-foreground">
+              {" "}
+              of diners recommend this restaurant
+            </Text>
           </Text>
         </View>
       </View>
@@ -271,34 +283,45 @@ const ReviewCard: React.FC<{
       )}
 
       {/* Detailed Ratings */}
-      {(review.food_rating || review.service_rating || review.ambiance_rating || review.value_rating) && (
+      {(review.food_rating ||
+        review.service_rating ||
+        review.ambiance_rating ||
+        review.value_rating) && (
         <View className="border-t border-border pt-3 mb-3">
           <View className="flex-row flex-wrap gap-4">
             {review.food_rating && (
               <View className="flex-row items-center gap-1">
                 <Text className="text-xs text-muted-foreground">Food:</Text>
-                <Text className="text-xs font-medium">{review.food_rating}</Text>
+                <Text className="text-xs font-medium">
+                  {review.food_rating}
+                </Text>
                 <Star size={10} color="#f59e0b" fill="#f59e0b" />
               </View>
             )}
             {review.service_rating && (
               <View className="flex-row items-center gap-1">
                 <Text className="text-xs text-muted-foreground">Service:</Text>
-                <Text className="text-xs font-medium">{review.service_rating}</Text>
+                <Text className="text-xs font-medium">
+                  {review.service_rating}
+                </Text>
                 <Star size={10} color="#f59e0b" fill="#f59e0b" />
               </View>
             )}
             {review.ambiance_rating && (
               <View className="flex-row items-center gap-1">
                 <Text className="text-xs text-muted-foreground">Ambiance:</Text>
-                <Text className="text-xs font-medium">{review.ambiance_rating}</Text>
+                <Text className="text-xs font-medium">
+                  {review.ambiance_rating}
+                </Text>
                 <Star size={10} color="#f59e0b" fill="#f59e0b" />
               </View>
             )}
             {review.value_rating && (
               <View className="flex-row items-center gap-1">
                 <Text className="text-xs text-muted-foreground">Value:</Text>
-                <Text className="text-xs font-medium">{review.value_rating}</Text>
+                <Text className="text-xs font-medium">
+                  {review.value_rating}
+                </Text>
                 <Star size={10} color="#f59e0b" fill="#f59e0b" />
               </View>
             )}
@@ -340,7 +363,14 @@ const FilterSheet: React.FC<{
   onSortChange: (sort: string) => void;
   selectedRating: string;
   onRatingChange: (rating: string) => void;
-}> = ({ visible, onClose, selectedSort, onSortChange, selectedRating, onRatingChange }) => {
+}> = ({
+  visible,
+  onClose,
+  selectedSort,
+  onSortChange,
+  selectedRating,
+  onRatingChange,
+}) => {
   if (!visible) return null;
 
   return (
@@ -396,7 +426,9 @@ const FilterSheet: React.FC<{
               >
                 <Text
                   className={
-                    selectedRating === option.id ? "text-primary font-medium" : ""
+                    selectedRating === option.id
+                      ? "text-primary font-medium"
+                      : ""
                   }
                 >
                   {option.label}
@@ -414,7 +446,7 @@ export default function RestaurantReviewsScreen() {
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();
   const router = useRouter();
-  
+
   const params = useLocalSearchParams<{ id: string }>();
   const restaurantId = params?.id;
 
@@ -428,76 +460,94 @@ export default function RestaurantReviewsScreen() {
   const [selectedRating, setSelectedRating] = useState("all");
 
   // Fetch data
-  const fetchData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) {
-      setRefreshing(true);
-    } else {
-      setLoading(true);
-    }
+  const fetchData = useCallback(
+    async (isRefresh = false) => {
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
 
-    try {
-      // Fetch restaurant
-      const { data: restaurantData, error: restaurantError } = await supabase
-        .from("restaurants")
-        .select("*")
-        .eq("id", restaurantId)
-        .single();
+      try {
+        // Fetch restaurant
+        const { data: restaurantData, error: restaurantError } = await supabase
+          .from("restaurants")
+          .select("*")
+          .eq("id", restaurantId)
+          .single();
 
-      if (restaurantError) throw restaurantError;
-      setRestaurant(restaurantData);
+        if (restaurantError) throw restaurantError;
+        setRestaurant(restaurantData);
 
-      // Build reviews query
-      let reviewsQuery = supabase
-        .from("reviews")
-        .select(`
+        // Build reviews query
+        let reviewsQuery = supabase
+          .from("reviews")
+          .select(
+            `
           *,
           user:profiles!inner (
             full_name,
             avatar_url
           )
-        `)
-        .eq("restaurant_id", restaurantId);
+        `
+          )
+          .eq("restaurant_id", restaurantId);
 
-      // Apply rating filter
-      if (selectedRating !== "all") {
-        reviewsQuery = reviewsQuery.eq("overall_rating", parseInt(selectedRating));
+        // Apply rating filter
+        if (selectedRating !== "all") {
+          reviewsQuery = reviewsQuery.eq(
+            "overall_rating",
+            parseInt(selectedRating)
+          );
+        }
+
+        // Apply sorting
+        switch (selectedSort) {
+          case "recent":
+            reviewsQuery = reviewsQuery.order("created_at", {
+              ascending: false,
+            });
+            break;
+          case "highest":
+            reviewsQuery = reviewsQuery.order("overall_rating", {
+              ascending: false,
+            });
+            break;
+          case "lowest":
+            reviewsQuery = reviewsQuery.order("overall_rating", {
+              ascending: true,
+            });
+            break;
+          case "photos":
+            reviewsQuery = reviewsQuery.not("photos", "is", null);
+            break;
+          case "verified":
+            // This would need additional logic to verify diners
+            reviewsQuery = reviewsQuery.order("created_at", {
+              ascending: false,
+            });
+            break;
+          default:
+            reviewsQuery = reviewsQuery.order("created_at", {
+              ascending: false,
+            });
+        }
+
+        const { data: reviewsData, error: reviewsError } =
+          await reviewsQuery.limit(50);
+
+        if (reviewsError) throw reviewsError;
+        setReviews(reviewsData || []);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        Alert.alert("Error", "Failed to load reviews");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
       }
-
-      // Apply sorting
-      switch (selectedSort) {
-        case "recent":
-          reviewsQuery = reviewsQuery.order("created_at", { ascending: false });
-          break;
-        case "highest":
-          reviewsQuery = reviewsQuery.order("overall_rating", { ascending: false });
-          break;
-        case "lowest":
-          reviewsQuery = reviewsQuery.order("overall_rating", { ascending: true });
-          break;
-        case "photos":
-          reviewsQuery = reviewsQuery.not("photos", "is", null);
-          break;
-        case "verified":
-          // This would need additional logic to verify diners
-          reviewsQuery = reviewsQuery.order("created_at", { ascending: false });
-          break;
-        default:
-          reviewsQuery = reviewsQuery.order("created_at", { ascending: false });
-      }
-
-      const { data: reviewsData, error: reviewsError } = await reviewsQuery.limit(50);
-
-      if (reviewsError) throw reviewsError;
-      setReviews(reviewsData || []);
-
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      Alert.alert("Error", "Failed to load reviews");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [restaurantId, selectedSort, selectedRating]);
+    },
+    [restaurantId, selectedSort, selectedRating]
+  );
 
   // Event handlers
   const handleLikeReview = useCallback(async (reviewId: string) => {
@@ -510,31 +560,128 @@ export default function RestaurantReviewsScreen() {
   }, []);
 
   const handleReportReview = useCallback((reviewId: string) => {
-    Alert.alert(
-      "Report Review",
-      "Why are you reporting this review?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Inappropriate content", onPress: () => {} },
-        { text: "Spam", onPress: () => {} },
-        { text: "Fake review", onPress: () => {} },
-      ]
-    );
+    Alert.alert("Report Review", "Why are you reporting this review?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Inappropriate content", onPress: () => {} },
+      { text: "Spam", onPress: () => {} },
+      { text: "Fake review", onPress: () => {} },
+    ]);
   }, []);
 
-  const handleWriteReview = useCallback(() => {
+  const handleWriteReview = useCallback(async () => {
     if (!profile?.id) {
       Alert.alert("Sign In Required", "Please sign in to write a review");
       return;
     }
 
-    router.push({
-      pathname: "/review/create",
-      params: {
-        restaurantId: restaurantId!,
-        restaurantName: restaurant?.name || "",
-      },
-    });
+    try {
+      // Find user's completed bookings for this restaurant
+      const { data: bookings, error } = await supabase
+        .from("bookings")
+        .select("id, booking_time, party_size, status")
+        .eq("user_id", profile.id)
+        .eq("restaurant_id", restaurantId!)
+        .eq("status", "completed")
+        .order("booking_time", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching bookings:", error);
+        Alert.alert("Error", "Failed to check your booking history");
+        return;
+      }
+
+      if (!bookings || bookings.length === 0) {
+        Alert.alert(
+          "No Completed Visits",
+          "You can only review restaurants you have visited. Please complete a booking first.",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Book Table",
+              onPress: () => {
+                router.push({
+                  pathname: "/booking/availability",
+                  params: {
+                    restaurantId: restaurantId!,
+                    restaurantName: restaurant?.name || "",
+                  },
+                });
+              },
+            },
+          ]
+        );
+        return;
+      }
+
+      // Check if any of these bookings already have reviews
+      const { data: existingReviews, error: reviewError } = await supabase
+        .from("reviews")
+        .select("booking_id")
+        .eq("user_id", profile.id)
+        .in(
+          "booking_id",
+          bookings.map((b) => b.id)
+        );
+
+      if (reviewError) {
+        console.error("Error checking existing reviews:", error);
+        Alert.alert("Error", "Failed to check existing reviews");
+        return;
+      }
+
+      const reviewedBookingIds = new Set(
+        existingReviews?.map((r) => r.booking_id) || []
+      );
+      const unreviewed = bookings.filter((b) => !reviewedBookingIds.has(b.id));
+
+      if (unreviewed.length === 0) {
+        Alert.alert(
+          "Already Reviewed",
+          "You have already reviewed all your visits to this restaurant.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
+
+      if (unreviewed.length === 1) {
+        // Single booking - go straight to review
+        router.push({
+          pathname: "/review/create",
+          params: {
+            bookingId: unreviewed[0].id,
+            restaurantId: restaurantId!,
+            restaurantName: restaurant?.name || "",
+          },
+        });
+      } else {
+        // Multiple bookings - let user choose
+        const options = unreviewed.map((booking) => ({
+          text: `${new Date(booking.booking_time).toLocaleDateString()} - Party of ${booking.party_size}`,
+          onPress: () => {
+            router.push({
+              pathname: "/review/create",
+              params: {
+                bookingId: booking.id,
+                restaurantId: restaurantId!,
+                restaurantName: restaurant?.name || "",
+              },
+            });
+          },
+        }));
+
+        Alert.alert(
+          "Choose Visit to Review",
+          "Which visit would you like to review?",
+          [
+            { text: "Cancel", style: "cancel" },
+            ...options.slice(0, 3), // Limit to 3 most recent
+          ]
+        );
+      }
+    } catch (error) {
+      console.error("Error in handleWriteReview:", error);
+      Alert.alert("Error", "Something went wrong. Please try again.");
+    }
   }, [profile, router, restaurantId, restaurant]);
 
   // Effects
@@ -554,7 +701,9 @@ export default function RestaurantReviewsScreen() {
 
     // Apply additional filters based on selection
     if (selectedSort === "photos") {
-      filtered = filtered.filter(review => review.photos && review.photos.length > 0);
+      filtered = filtered.filter(
+        (review) => review.photos && review.photos.length > 0
+      );
     }
 
     return filtered;
@@ -564,7 +713,10 @@ export default function RestaurantReviewsScreen() {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#000"} />
+          <ActivityIndicator
+            size="large"
+            color={colorScheme === "dark" ? "#fff" : "#000"}
+          />
           <Text className="mt-4 text-muted-foreground">Loading reviews...</Text>
         </View>
       </SafeAreaView>
@@ -576,7 +728,11 @@ export default function RestaurantReviewsScreen() {
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center px-4">
           <H3 className="text-center mb-2">Restaurant not found</H3>
-          <Button variant="outline" onPress={() => router.back()} className="mt-4">
+          <Button
+            variant="outline"
+            onPress={() => router.back()}
+            className="mt-4"
+          >
             <Text>Go Back</Text>
           </Button>
         </View>
@@ -603,7 +759,10 @@ export default function RestaurantReviewsScreen() {
       <ScrollView
         className="flex-1"
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => fetchData(true)} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => fetchData(true)}
+          />
         }
         showsVerticalScrollIndicator={false}
       >
@@ -618,14 +777,17 @@ export default function RestaurantReviewsScreen() {
               {selectedSort !== "recent" && (
                 <View className="bg-primary/10 px-2 py-1 rounded-full">
                   <Text className="text-primary text-xs font-medium">
-                    {FILTER_OPTIONS.find(o => o.id === selectedSort)?.label}
+                    {FILTER_OPTIONS.find((o) => o.id === selectedSort)?.label}
                   </Text>
                 </View>
               )}
               {selectedRating !== "all" && (
                 <View className="bg-primary/10 px-2 py-1 rounded-full">
                   <Text className="text-primary text-xs font-medium">
-                    {RATING_FILTER_OPTIONS.find(o => o.id === selectedRating)?.label}
+                    {
+                      RATING_FILTER_OPTIONS.find((o) => o.id === selectedRating)
+                        ?.label
+                    }
                   </Text>
                 </View>
               )}
@@ -650,8 +812,7 @@ export default function RestaurantReviewsScreen() {
               <Text className="text-center text-muted-foreground mt-2 px-8">
                 {selectedSort !== "recent" || selectedRating !== "all"
                   ? "Try adjusting your filters to see more reviews."
-                  : "Be the first to review this restaurant!"
-                }
+                  : "Be the first to review this restaurant!"}
               </Text>
             </View>
           )}

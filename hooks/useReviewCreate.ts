@@ -111,7 +111,10 @@ export function useReviewCreate({
   // Fetch data
   const fetchData = useCallback(async () => {
     if (!bookingId || !restaurantId) {
-      Alert.alert("Error", "Missing booking or restaurant information");
+      Alert.alert(
+        "Error",
+        `Missing required information:\n${!bookingId ? "• Booking ID\n" : ""}${!restaurantId ? "• Restaurant ID" : ""}\n\nPlease ensure you have a completed booking to review.`
+      );
       router.back();
       return;
     }
