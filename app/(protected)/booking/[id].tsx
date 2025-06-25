@@ -59,18 +59,10 @@ import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
-import { TABLE_TYPE_CONFIG, TABLE_FEATURES } from "@/constants/tableConfig";
 
 // Enhanced types with comprehensive offer data
 type Booking = Database["public"]["Tables"]["bookings"]["Row"] & {
   restaurant: Database["public"]["Tables"]["restaurants"]["Row"];
-  selected_table?: {
-    id: string;
-    table_number: string;
-    table_type: string;
-    capacity: number;
-    features?: string[];
-  };
 };
 
 type AppliedOfferDetails = {
@@ -419,19 +411,12 @@ export default function BookingDetailsScreen() {
     if (!params.id) return;
     
     try {
-      // Fetch booking with enhanced data including table information
+      // Fetch booking with enhanced data
       const { data: bookingData, error: bookingError } = await supabase
         .from("bookings")
         .select(`
           *,
-          restaurant:restaurants (*),
-          selected_table:restaurant_tables (
-            id,
-            table_number,
-            table_type,
-            capacity,
-            features
-          )
+          restaurant:restaurants (*)
         `)
         .eq("id", params.id)
         .single();
@@ -586,23 +571,6 @@ export default function BookingDetailsScreen() {
                   console.error("Error restoring offer:", restoreError);
                 }
               }
-
-              // Update table availability if table was selected
-              if (booking.selected_table_id) {
-                try {
-                  await supabase
-                    .from("table_availability")
-                    .update({ 
-                      is_available: true,
-                      booking_id: null,
-                    })
-                    .eq("booking_id", booking.id);
-                  
-                  console.log("Table availability restored");
-                } catch (tableError) {
-                  console.error("Error updating table availability:", tableError);
-                }
-              }
               
               await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
               
@@ -650,9 +618,6 @@ export default function BookingDetailsScreen() {
     const loyaltyText = loyaltyActivity 
       ? ` I'm a loyalty member with ${loyaltyActivity.points_earned} points earned from this booking.` 
       : '';
-    const tableText = booking.selected_table 
-      ? ` I've selected Table ${booking.selected_table.table_number}.`
-      : '';
     
     const message = encodeURIComponent(
       `Hi! I have a booking at ${booking.restaurant.name} on ${new Date(
@@ -661,7 +626,7 @@ export default function BookingDetailsScreen() {
         booking.booking_time
       ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} for ${
         booking.party_size
-      } people. Confirmation code: ${booking.confirmation_code}${tableText}${offerText}${loyaltyText}`
+      } people. Confirmation code: ${booking.confirmation_code}${offerText}${loyaltyText}`
     );
     
     const url = `whatsapp://send?phone=${booking.restaurant.whatsapp_number}&text=${message}`;
@@ -709,11 +674,10 @@ export default function BookingDetailsScreen() {
   const shareBooking = useCallback(async () => {
     if (!booking) return;
     
-    const tableText = booking.selected_table ? ` at Table ${booking.selected_table.table_number}` : '';
     const offerText = appliedOfferDetails ? ` Plus I saved ${appliedOfferDetails.discount_percentage}% with a special offer!` : '';
     const pointsText = loyaltyActivity ? ` I also earned ${loyaltyActivity.points_earned} loyalty points!` : '';
     
-    const shareMessage = `I have a reservation at ${booking.restaurant.name}${tableText} on ${new Date(
+    const shareMessage = `I have a reservation at ${booking.restaurant.name} on ${new Date(
       booking.booking_time
     ).toLocaleDateString()} at ${new Date(
       booking.booking_time
@@ -1020,49 +984,6 @@ export default function BookingDetailsScreen() {
             </View>
           </View>
 
-          {/* Selected Table Information */}
-          {booking.selected_table && (
-            <View className="bg-card border border-border rounded-lg p-4 mb-4">
-              <View className="flex-row items-center gap-2 mb-2">
-                <MapPin size={20} color="#3b82f6" />
-                <Text className="font-medium">Reserved Table</Text>
-              </View>
-              
-              <View className="bg-primary/10 rounded-lg p-3">
-                <View className="flex-row items-center justify-between mb-2">
-                  <Text className="font-bold text-lg">
-                    Table {booking.selected_table.table_number}
-                  </Text>
-                  <View className="flex-row items-center gap-2">
-                    <Users size={16} />
-                    <Text>Seats {booking.selected_table.capacity}</Text>
-                  </View>
-                </View>
-                
-                <Text className="text-sm text-muted-foreground">
-                  {TABLE_TYPE_CONFIG[booking.selected_table.table_type as keyof typeof TABLE_TYPE_CONFIG]?.icon} {" "}
-                  {TABLE_TYPE_CONFIG[booking.selected_table.table_type as keyof typeof TABLE_TYPE_CONFIG]?.label || booking.selected_table.table_type}
-                </Text>
-                
-                {booking.selected_table.features && booking.selected_table.features.length > 0 && (
-                  <View className="flex-row flex-wrap gap-2 mt-2">
-                    {booking.selected_table.features.map((feature: string) => (
-                      <View key={feature} className="px-2 py-1 bg-background rounded-full">
-                        <Text className="text-xs">
-                          {TABLE_FEATURES[feature as keyof typeof TABLE_FEATURES]?.label || feature}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-                )}
-              </View>
-              
-              <Text className="text-xs text-muted-foreground mt-2">
-                Table selection is subject to availability and may change
-              </Text>
-            </View>
-          )}
-
           {/* Enhanced Confirmation Code */}
           <View className="bg-card border border-border rounded-lg p-4">
             <Text className="font-medium mb-2">Confirmation Code</Text>
@@ -1082,7 +1003,7 @@ export default function BookingDetailsScreen() {
         </View>
 
         {/* Enhanced Special Requests */}
-        {(booking.special_requests || booking.occasion || booking.dietary_notes || (booking.table_preferences && booking.table_preferences.length > 0 && !booking.selected_table)) && (
+        {(booking.special_requests || booking.occasion || booking.dietary_notes || booking.table_preferences) && (
           <View className="p-4 border-b border-border">
             <H3 className="mb-3">Special Requests</H3>
             <View className="bg-muted/30 rounded-lg p-4 space-y-3">
@@ -1106,7 +1027,7 @@ export default function BookingDetailsScreen() {
                 </View>
               )}
               
-              {booking.table_preferences && booking.table_preferences.length > 0 && !booking.selected_table && (
+              {booking.table_preferences && booking.table_preferences.length > 0 && (
                 <View>
                   <Text className="font-medium flex-row items-center">
                     <Star size={16} color="#666" className="mr-2" />
@@ -1160,12 +1081,12 @@ export default function BookingDetailsScreen() {
             )}
           </View>
           
-          {(appliedOfferDetails || loyaltyActivity || booking.selected_table) && (
+          {(appliedOfferDetails || loyaltyActivity) && (
             <View className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <View className="flex-row items-center gap-2">
                 <Info size={16} color="#3b82f6" />
                 <Text className="text-sm text-blue-800 dark:text-blue-200 flex-1">
-                  Your {booking.selected_table ? 'table selection, ' : ''}{appliedOfferDetails ? 'discount offer' : ''}{appliedOfferDetails && loyaltyActivity ? ' and ' : ''}{loyaltyActivity ? 'loyalty status' : ''} will be mentioned when contacting the restaurant.
+                  Your {appliedOfferDetails ? 'discount offer and ' : ''}loyalty status will be mentioned when contacting the restaurant.
                 </Text>
               </View>
             </View>
@@ -1296,17 +1217,13 @@ export default function BookingDetailsScreen() {
         </View>
         
         {/* Enhanced bottom message */}
-        {(appliedOfferDetails || loyaltyActivity || booking.selected_table) && (
+        {(appliedOfferDetails || loyaltyActivity) && (
           <Text className="text-center text-xs text-muted-foreground mt-3">
-            {booking.selected_table && `Table ${booking.selected_table.table_number} reserved`}
-            {booking.selected_table && (appliedOfferDetails || loyaltyActivity) && ' • '}
             {appliedOfferDetails && loyaltyActivity
-              ? `You saved ${appliedOfferDetails.discount_percentage}% and earned ${loyaltyActivity.points_earned} points!`
+              ? `🎉 You saved ${appliedOfferDetails.discount_percentage}% and earned ${loyaltyActivity.points_earned} points!`
               : appliedOfferDetails
-                ? `You saved ${appliedOfferDetails.discount_percentage}% with your special offer`
-                : loyaltyActivity
-                  ? `You earned ${loyaltyActivity?.points_earned} loyalty points`
-                  : ''
+                ? `💰 You saved ${appliedOfferDetails.discount_percentage}% with your special offer`
+                : `⭐ You earned ${loyaltyActivity?.points_earned} loyalty points`
             }
           </Text>
         )}

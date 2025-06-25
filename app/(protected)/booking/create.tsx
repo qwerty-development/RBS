@@ -18,7 +18,6 @@ import {
   MessageSquare,
   Gift,
   ChevronLeft,
-  ChevronRight,
   Info,
   CheckCircle,
   Utensils,
@@ -31,7 +30,6 @@ import {
   X,
   AlertCircle,
   UserPlus,
-  MapPin,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -48,8 +46,6 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
 import { InviteFriends } from "@/components/booking/invite-friend";
-import { TableSelectionModal } from "@/components/booking/TableSelectionModal";
-import { TABLE_TYPE_CONFIG } from "@/constants/tableConfig";
 
 // Enhanced Type Definitions
 interface BookingFormData {
@@ -579,10 +575,6 @@ export default function BookingCreateScreen() {
   const [selectedOfferUserId, setSelectedOfferUserId] = useState<string | null>(null);
   const [availableOffers, setAvailableOffers] = useState<UserOfferWithDetails[]>([]);
 
-  // Table selection state
-  const [showTableSelection, setShowTableSelection] = useState(false);
-  const [selectedTable, setSelectedTable] = useState<any>(null);
-
   // Friends functionality state
   const [invitedFriends, setInvitedFriends] = useState<string[]>([]);
 
@@ -623,17 +615,6 @@ export default function BookingCreateScreen() {
 
   // Calculate total party size including invited friends
   const totalPartySize = partySize + invitedFriends.length;
-
-  // Handle table selection
-  const handleTableSelection = useCallback((table: any) => {
-    setSelectedTable(table);
-    if (table) {
-      // Update form with selected table info
-      setValue("tablePreferences", [`Table ${table.table_number} - ${table.table_type}`]);
-    } else {
-      setValue("tablePreferences", []);
-    }
-  }, [setValue]);
 
   // Fetch restaurant and offers data
   const fetchData = useCallback(async () => {
@@ -758,7 +739,6 @@ export default function BookingCreateScreen() {
         occasion: formData.occasion !== "none" ? formData.occasion : null,
         dietary_notes: formData.dietaryRestrictions,
         table_preferences: formData.tablePreferences,
-        selected_table_id: selectedTable?.id || null, // Add selected table
         confirmation_code: `BK${Date.now().toString().slice(-8).toUpperCase()}`,
         is_group_booking: invitedFriends.length > 0,
         organizer_id: invitedFriends.length > 0 ? profile.id : null,
@@ -776,23 +756,6 @@ export default function BookingCreateScreen() {
       if (bookingError) {
         console.error("Booking creation error:", bookingError);
         throw bookingError;
-      }
-
-      // Update table availability if table was selected
-      if (selectedTable?.id) {
-        try {
-          await supabase
-            .from("table_availability")
-            .insert({
-              table_id: selectedTable.id,
-              date: bookingDate.toISOString().split("T")[0],
-              time_slot: bookingTime,
-              is_available: false,
-              booking_id: booking.id,
-            });
-        } catch (tableError) {
-          console.error("Failed to update table availability:", tableError);
-        }
       }
 
       // Handle friend invitations if any
@@ -893,7 +856,6 @@ export default function BookingCreateScreen() {
     earnablePoints,
     userTier,
     invitedFriends,
-    selectedTable,
   ]);
 
   // Helper functions for form arrays
@@ -1023,26 +985,6 @@ export default function BookingCreateScreen() {
               </View>
             </View>
           )}
-
-          {/* Selected table summary */}
-          {selectedTable && (
-            <View className="border-t border-border pt-3 mt-3">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center gap-2">
-                  <MapPin size={16} color="#3b82f6" />
-                  <Text className="text-sm font-medium">
-                    Table {selectedTable.table_number} - {TABLE_TYPE_CONFIG[selectedTable.table_type as keyof typeof TABLE_TYPE_CONFIG]?.label || selectedTable.table_type}
-                  </Text>
-                  <Text className="text-xs text-muted-foreground">
-                    (Seats {selectedTable.capacity})
-                  </Text>
-                </View>
-                <Pressable onPress={() => setSelectedTable(null)}>
-                  <X size={16} color="#666" />
-                </Pressable>
-              </View>
-            </View>
-          )}
         </View>
 
         <ScrollView className="flex-1 px-4" showsVerticalScrollIndicator={false}>
@@ -1141,68 +1083,36 @@ export default function BookingCreateScreen() {
                 </View>
               </View>
 
-              {/* Enhanced Table Preferences with Visual Selection */}
+              {/* Table Preferences */}
               <View className="mb-4">
-                <Text className="font-medium mb-2">Table Selection</Text>
-                
-                {/* Visual Table Selection Button */}
-                <Pressable
-                  onPress={() => setShowTableSelection(true)}
-                  className="p-4 bg-primary/10 rounded-lg border border-primary/20 mb-3"
-                >
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center gap-3">
-                      <MapPin size={20} color="#3b82f6" />
-                      <View>
-                        <Text className="font-medium text-primary">
-                          {selectedTable ? `Table ${selectedTable.table_number} Selected` : "Choose Table on Floor Plan"}
+                <Text className="font-medium mb-2">Table Preferences</Text>
+                <View className="flex-row flex-wrap gap-2">
+                  {TABLE_PREFERENCES.slice(0, 6).map((preference) => {
+                    const isSelected = watchedValues.tablePreferences.includes(preference);
+                    
+                    return (
+                      <Pressable
+                        key={preference}
+                        onPress={() => toggleTablePreference(preference)}
+                        className={`px-3 py-2 rounded-lg border ${
+                          isSelected
+                            ? "bg-blue-100 dark:bg-blue-900/20 border-blue-500"
+                            : "bg-background border-border"
+                        }`}
+                      >
+                        <Text
+                          className={
+                            isSelected
+                              ? "text-blue-800 dark:text-blue-200 text-sm"
+                              : "text-sm"
+                          }
+                        >
+                          {preference}
                         </Text>
-                        {selectedTable && (
-                          <Text className="text-sm text-muted-foreground">
-                            {TABLE_TYPE_CONFIG[selectedTable.table_type as keyof typeof TABLE_TYPE_CONFIG]?.label || selectedTable.table_type} • Seats {selectedTable.capacity}
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                    <ChevronRight size={20} color="#3b82f6" />
-                  </View>
-                </Pressable>
-
-                {/* Quick Preference Chips (fallback for no specific table selection) */}
-                {!selectedTable && (
-                  <>
-                    <Text className="text-sm text-muted-foreground mb-2">
-                      Or select general preferences:
-                    </Text>
-                    <View className="flex-row flex-wrap gap-2">
-                      {TABLE_PREFERENCES.slice(0, 6).map((preference) => {
-                        const isSelected = watchedValues.tablePreferences.includes(preference);
-                        
-                        return (
-                          <Pressable
-                            key={preference}
-                            onPress={() => toggleTablePreference(preference)}
-                            className={`px-3 py-2 rounded-lg border ${
-                              isSelected
-                                ? "bg-blue-100 dark:bg-blue-900/20 border-blue-500"
-                                : "bg-background border-border"
-                            }`}
-                          >
-                            <Text
-                              className={
-                                isSelected
-                                  ? "text-blue-800 dark:text-blue-200 text-sm"
-                                  : "text-sm"
-                              }
-                            >
-                              {preference}
-                            </Text>
-                          </Pressable>
-                        );
-                      })}
-                    </View>
-                  </>
-                )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </View>
 
               {/* Special Requests */}
@@ -1288,18 +1198,6 @@ export default function BookingCreateScreen() {
             </Text>
           </View>
         </View>
-
-        {/* Add the Table Selection Modal */}
-        <TableSelectionModal
-          visible={showTableSelection}
-          onClose={() => setShowTableSelection(false)}
-          onSelectTable={handleTableSelection}
-          restaurantId={restaurantId}
-          bookingDate={bookingDate}
-          bookingTime={bookingTime}
-          partySize={totalPartySize}
-          selectedTableId={selectedTable?.id}
-        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
