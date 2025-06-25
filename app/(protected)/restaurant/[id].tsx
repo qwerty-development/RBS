@@ -1,5 +1,6 @@
 // app/(protected)/restaurant/[id].tsx
 import React, { useState, useCallback, useEffect, useRef } from "react";
+import { BookOpen } from 'lucide-react-native';
 import {
   ScrollView,
   View,
@@ -307,6 +308,31 @@ const FeaturesSection: React.FC<{ restaurant: Restaurant }> = ({
   );
 };
 
+const MenuSection: React.FC<{ 
+  restaurantId: string;
+  onViewMenu: () => void;
+}> = ({ restaurantId, onViewMenu }) => {
+  return (
+    <View className="p-4 border-b border-border">
+      <H3 className="mb-3">Menu</H3>
+      <Pressable 
+        onPress={onViewMenu}
+        className="bg-primary/10 p-4 rounded-lg flex-row items-center justify-between"
+      >
+        <View className="flex-row items-center gap-3">
+          <BookOpen size={24} className="text-primary" />
+          <View>
+            <Text className="font-semibold text-foreground">Browse Menu</Text>
+            <Text className="text-sm text-muted-foreground">
+              View dishes, prices, and dietary options
+            </Text>
+          </View>
+        </View>
+        <ChevronRight size={20} className="text-muted-foreground" />
+      </Pressable>
+    </View>
+  );
+};
 // Contact Info Component
 const ContactInfo: React.FC<{
   restaurant: Restaurant;
@@ -534,6 +560,13 @@ export default function RestaurantDetailsScreen() {
     });
   }, [router, id]);
 
+
+  const handleViewMenu = useCallback(() => {
+    if (!restaurant) return;
+    
+    router.push(`/restaurant/menu/${restaurant.id}`);
+  }, [router, restaurant?.id]);
+
   const handleBookTable = useCallback(() => {
     if (!restaurant) return;
 
@@ -638,6 +671,11 @@ export default function RestaurantDetailsScreen() {
           onCall={() => handleCall(restaurant)}
           onWebsite={handleWebsite}
         />
+
+<MenuSection 
+  restaurantId={restaurant.id}
+  onViewMenu={handleViewMenu}
+/>
 
         {/* Location */}
         <LocationMap
