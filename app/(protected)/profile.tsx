@@ -29,6 +29,12 @@ import {
   Shield,
   LogOut,
   ChevronRight,
+  MapPin,
+  Clock,
+  CreditCard,
+  UserPlus,
+  MessageCircle,
+  Award,
 } from "lucide-react-native";
 
 // Add index signature for iconMap
@@ -45,35 +51,15 @@ const iconMap: { [key: string]: any } = {
   HelpCircle,
   Shield,
   LogOut,
-};
-
-// Add type for menu item
-  Utensils,
   MapPin,
   Clock,
   CreditCard,
-  Users,
   UserPlus,
   MessageCircle,
-  Gift,
-  BarChart3,
   Award,
-} from "lucide-react-native";
-import * as ImagePicker from "expo-image-picker";
-import * as Haptics from "expo-haptics";
+};
 
-import { SafeAreaView } from "@/components/safe-area-view";
-import { Button } from "@/components/ui/button";
-import { Text } from "@/components/ui/text";
-import { H2, H3, P, Muted } from "@/components/ui/typography";
-import { Image } from "@/components/image";
-import { supabase } from "@/config/supabase";
-import { useColorScheme } from "@/lib/useColorScheme";
-import { useAuth } from "@/context/supabase-provider";
-
-import { UserRating } from "@/components/rating/UserRating";
-import { UserRatingBadge } from "@/components/rating/UserRatingBadge";
-import { useUserRating } from "@/hooks/useUserRating";
+// Add type for menu item
 
 // 1. Enhanced Type Definitions for Profile Analytics
 interface ProfileStats {
