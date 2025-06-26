@@ -4,7 +4,7 @@ import { View, ScrollView, RefreshControl, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { ActivityIndicator } from "react-native";
 import * as Haptics from "expo-haptics";
-
+import { ProfileSocialStats } from "@/components/profile/ProfileSocialStats";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
@@ -172,6 +172,8 @@ export default function ProfileScreen() {
           mostVisitedCuisine={stats.mostVisitedCuisine}
           mostVisitedRestaurant={stats.mostVisitedRestaurant}
         />
+
+    <ProfileSocialStats />
         {ratingStats && (
           <ProfileRatingInsights
             ratingStats={ratingStats}

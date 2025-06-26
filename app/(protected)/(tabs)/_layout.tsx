@@ -1,6 +1,6 @@
 import React from "react";
 import { Tabs } from "expo-router";
-import { Home, Search, Calendar, Heart } from "lucide-react-native";
+import { Home, Search, Users, Calendar, Heart } from "lucide-react-native";
 
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
@@ -65,6 +65,15 @@ export default function TabsLayout() {
           title: "Search",
           tabBarIcon: ({ color, size }) => (
             <Search size={size} color={color} strokeWidth={2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="social"
+        options={{
+          title: "Social",
+          tabBarIcon: ({ color, size }) => (
+            <Users size={size} color={color} strokeWidth={2} />
           ),
         }}
       />

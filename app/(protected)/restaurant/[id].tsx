@@ -29,6 +29,9 @@ import {
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import MapView, { Marker } from "react-native-maps";
+ import { RestaurantPosts } from "@/components/restaurant/RestaurantPosts";
+
+
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
@@ -689,6 +692,11 @@ export default function RestaurantDetailsScreen() {
           reviews={reviews}
           onViewAllReviews={handleViewAllReviews}
         />
+
+       <RestaurantPosts 
+   restaurantId={restaurant.id} 
+   restaurantName={restaurant.name} 
+ />
 
         {/* Bottom Padding */}
         <View className="h-24" />

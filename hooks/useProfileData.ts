@@ -97,15 +97,16 @@ export const useProfileData = () => {
           .select("*", { count: "exact", head: true })
           .eq("user_id", profile.id),
         supabase
-          .from("social_connections")
+          .from("friends")
           .select("*", { count: "exact", head: true })
-          .eq("user_id", profile.id)
-          .eq("status", "accepted"),
+       .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`)
+        .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`),
+       
         supabase
           .from("social_connections")
           .select("*", { count: "exact", head: true })
           .eq("friend_id", profile.id)
-          .eq("status", "pending"),
+     ,
         supabase
           .from("social_connections")
           .select("*", { count: "exact", head: true })
