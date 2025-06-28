@@ -6,6 +6,7 @@ import { colors } from "@/constants/colors";
 import { LogBox, Alert} from "react-native";
 import { useEffect, useState } from "react";
 import * as Updates from "expo-updates";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 LogBox.ignoreAllLogs();
 
 export default function AppLayout() {
@@ -59,6 +60,7 @@ export default function AppLayout() {
 	}, [showUpdateAlert]);
 
 	return (
+		<GestureHandlerRootView>
 		<AuthProvider>
 			<Stack screenOptions={{ headerShown: false, gestureEnabled: false }}>
 				<Stack.Screen name="(protected)" />
@@ -104,5 +106,6 @@ export default function AppLayout() {
 			</Stack>
 			
 		</AuthProvider>
+		</GestureHandlerRootView>
 	);
 } 
