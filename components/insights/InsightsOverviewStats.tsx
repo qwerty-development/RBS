@@ -63,25 +63,6 @@ export const InsightsOverviewStats: React.FC<InsightsOverviewStatsProps> = ({
           <Muted className="text-sm">Avg Rating Given</Muted>
         </View>
 
-        <View className="flex-1 min-w-[47%] bg-card p-4 rounded-xl border border-border">
-          <View className="flex-row items-center gap-3 mb-2">
-            <DollarSign size={20} color="#10b981" />
-            <Text className="font-bold text-2xl text-foreground">
-              ${spendingAnalytics.averagePerVisit.toFixed(0)}
-            </Text>
-          </View>
-          <Muted className="text-sm">Avg Per Visit</Muted>
-        </View>
-
-        <View className="flex-1 min-w-[47%] bg-card p-4 rounded-xl border border-border">
-          <View className="flex-row items-center gap-3 mb-2">
-            <Award size={20} color="#8b5cf6" />
-            <Text className="font-bold text-xl capitalize text-foreground">
-              {loyaltyInsights?.currentTier || "Bronze"}
-            </Text>
-          </View>
-          <Muted className="text-sm">Loyalty Tier</Muted>
-        </View>
       </View>
     </View>
   );

@@ -44,14 +44,7 @@ export const InsightsSpendingAnalytics: React.FC<
         </View>
 
         <View className="flex-row gap-4 mb-5">
-          <View className="flex-1 bg-green-50 dark:bg-green-950/20 p-3 rounded-lg">
-            <Text className="text-sm text-muted-foreground mb-1">
-              Total Spent
-            </Text>
-            <Text className="font-bold text-xl text-foreground">
-              ${spendingAnalytics.totalSpent.toFixed(0)}
-            </Text>
-          </View>
+  
           <View className="flex-1 bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
             <Text className="text-sm text-muted-foreground mb-1">
               Preferred Range
@@ -69,30 +62,7 @@ export const InsightsSpendingAnalytics: React.FC<
           </View>
         </View>
 
-        {spendingAnalytics.spendingByCategory.length > 0 && (
-          <View>
-            <Text className="text-sm font-medium mb-3 text-foreground">
-              Spending by Cuisine
-            </Text>
-            <View className="space-y-2">
-              {spendingAnalytics.spendingByCategory
-                .slice(0, 3)
-                .map((category, index) => (
-                  <View
-                    key={`${category.category}-${index}`}
-                    className="flex-row justify-between items-center"
-                  >
-                    <Text className="text-sm text-foreground" numberOfLines={1}>
-                      {category.category}
-                    </Text>
-                    <Text className="text-sm font-medium text-muted-foreground">
-                      ${category.amount.toFixed(0)} ({category.percentage}%)
-                    </Text>
-                  </View>
-                ))}
-            </View>
-          </View>
-        )}
+        
       </View>
     </View>
   );
