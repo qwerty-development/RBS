@@ -14,7 +14,7 @@ export type Playlist = {
   emoji: string;
   is_public: boolean;
   share_code: string | null;
-  view_count: number;
+  view_count: number;  
   created_at: string;
   updated_at: string;
   item_count?: number;
