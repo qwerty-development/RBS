@@ -10,7 +10,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Filter, Plus, FolderPlus, Heart } from "lucide-react-native";
+import { Filter, Plus, FolderPlus, Heart, UserPlus, Mail } from "lucide-react-native";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
@@ -21,6 +21,7 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { useFavorites } from "@/hooks/useFavorites";
 import { usePlaylists } from "@/hooks/usePlaylists";
 import { useFavoritesFilters } from "@/hooks/useFavoritesFilters";
+import { usePlaylistInvitations } from "@/hooks/usePlaylistInvitations";
 import {
   FavoritesGridRow,
   FavoritesEmptyState,
@@ -57,6 +58,9 @@ export default function FavoritesScreen() {
     createPlaylist,
     handleRefresh: handlePlaylistsRefresh,
   } = usePlaylists();
+
+  // Invitations hook
+  const { pendingCount } = usePlaylistInvitations();
 
   // Filters hook
   const {
@@ -101,6 +105,14 @@ export default function FavoritesScreen() {
 
   const navigateToSearch = useCallback(() => {
     router.push("/search");
+  }, [router]);
+
+  const navigateToJoinPlaylist = useCallback(() => {
+    router.push("/playlist/join");
+  }, [router]);
+
+  const navigateToInvitations = useCallback(() => {
+    router.push("/playlist/invitations");
   }, [router]);
 
   // Enhanced refresh handler
@@ -166,6 +178,42 @@ export default function FavoritesScreen() {
     [navigateToPlaylist]
   );
 
+  // Playlist header actions component
+  const PlaylistHeaderActions = useCallback(() => (
+    <View className="flex-row items-center gap-2">
+      {/* Invitations Button */}
+      <Pressable
+        onPress={navigateToInvitations}
+        className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg relative"
+      >
+        <Mail size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+        {pendingCount > 0 && (
+          <View className="absolute -top-1 -right-1 bg-primary rounded-full min-w-5 h-5 items-center justify-center px-1">
+            <Text className="text-white text-xs font-bold">
+              {pendingCount > 9 ? '9+' : pendingCount}
+            </Text>
+          </View>
+        )}
+      </Pressable>
+      
+      {/* Join Button */}
+      <Pressable
+        onPress={navigateToJoinPlaylist}
+        className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg"
+      >
+        <UserPlus size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+      </Pressable>
+      
+      {/* Create Button */}
+      <Pressable
+        onPress={() => setShowCreatePlaylist(true)}
+        className="p-2 bg-primary rounded-lg"
+      >
+        <Plus size={20} color="#fff" />
+      </Pressable>
+    </View>
+  ), [navigateToInvitations, navigateToJoinPlaylist, setShowCreatePlaylist, colorScheme, pendingCount]);
+
   const loading = activeTab === "favorites" ? favoritesLoading : playlistsLoading;
   const refreshing = activeTab === "favorites" ? favoritesRefreshing : playlistsRefreshing;
 
@@ -208,12 +256,7 @@ export default function FavoritesScreen() {
               )}
             </Pressable>
           ) : (
-            <Pressable
-              onPress={() => setShowCreatePlaylist(true)}
-              className="p-2"
-            >
-              <Plus size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
-            </Pressable>
+            <PlaylistHeaderActions />
           )}
         </View>
 
@@ -241,7 +284,7 @@ export default function FavoritesScreen() {
           
           <Pressable
             onPress={() => setActiveTab("playlists")}
-            className={`flex-1 flex-row items-center justify-center py-2.5 rounded-lg ${
+            className={`flex-1 flex-row items-center justify-center py-2.5 rounded-lg relative ${
               activeTab === "playlists" ? "bg-white dark:bg-gray-700" : ""
             }`}
           >
@@ -256,6 +299,14 @@ export default function FavoritesScreen() {
             >
               Playlists
             </Text>
+            {/* Pending invitations badge */}
+            {pendingCount > 0 && (
+              <View className="absolute -top-1 -right-1 bg-primary rounded-full min-w-5 h-5 items-center justify-center px-1">
+                <Text className="text-white text-xs font-bold">
+                  {pendingCount > 9 ? '9+' : pendingCount}
+                </Text>
+              </View>
+            )}
           </Pressable>
         </View>
       </View>
@@ -310,9 +361,23 @@ export default function FavoritesScreen() {
             <Muted className="text-center mb-6">
               Create playlists to organize your favorite restaurants by theme, occasion, or any way you like!
             </Muted>
-            <Button onPress={() => setShowCreatePlaylist(true)}>
-              <Text className="text-white">Create Your First Playlist</Text>
-            </Button>
+            
+
+            
+            <View className="flex-row gap-3">
+              <Button 
+                variant="outline" 
+                onPress={navigateToJoinPlaylist}
+                className="flex-1"
+              >
+                <UserPlus size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                <Text className="ml-2">Join Playlist</Text>
+              </Button>
+              <Button onPress={() => setShowCreatePlaylist(true)} className="flex-1">
+                <Plus size={16} color="#fff" />
+                <Text className="ml-2 text-white">Create Playlist</Text>
+              </Button>
+            </View>
           </View>
         ) : (
           <FlatList
@@ -362,4 +427,4 @@ export default function FavoritesScreen() {
       />
     </SafeAreaView>
   );
-};
+}

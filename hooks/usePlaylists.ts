@@ -82,41 +82,66 @@ export const usePlaylists = () => {
 
       if (ownError) throw ownError;
 
-      // Fetch playlists user collaborates on
+      // Fetch playlists user collaborates on (get playlist IDs first)
       const { data: collaborations, error: collabError } = await supabase
         .from('playlist_collaborators')
-        .select(`
-          playlist_id,
-          permission,
-          accepted_at,
-          playlist:restaurant_playlists (
-            *,
-            owner:profiles!restaurant_playlists_user_id_fkey (
-              id,
-              full_name,
-              avatar_url
-            )
-          )
-        `)
+        .select('playlist_id, permission, accepted_at')
         .eq('user_id', profile.id)
         .not('accepted_at', 'is', null);
 
       if (collabError) throw collabError;
 
+      let collaborativePlaylists: any[] = [];
+      
+      if (collaborations && collaborations.length > 0) {
+        // Get the playlist IDs
+        const collaborativePlaylistIds = collaborations.map(c => c.playlist_id);
+        
+        // Fetch full playlist data with stats for collaborative playlists
+        const { data: collabPlaylistsData, error: collabPlaylistsError } = await supabase
+          .from('playlist_stats')
+          .select('*')
+          .in('id', collaborativePlaylistIds)
+          .order('created_at', { ascending: false });
+
+        if (collabPlaylistsError) throw collabPlaylistsError;
+
+        // Fetch owner data for collaborative playlists
+        const ownerIds = [...new Set(collabPlaylistsData?.map(p => p.user_id) || [])];
+        let ownersData: any[] = [];
+        
+        if (ownerIds.length > 0) {
+          const { data: owners, error: ownersError } = await supabase
+            .from('profiles')
+            .select('id, full_name, avatar_url')
+            .in('id', ownerIds);
+          
+          if (ownersError) throw ownersError;
+          ownersData = owners || [];
+        }
+
+        if (collabPlaylistsError) throw collabPlaylistsError;
+
+        // Add collaborative metadata to each playlist
+        collaborativePlaylists = (collabPlaylistsData || []).map(playlist => {
+          const collaboration = collaborations.find(c => c.playlist_id === playlist.id);
+          const owner = ownersData.find(o => o.id === playlist.user_id);
+          return {
+            ...playlist,
+            is_collaborative: true,
+            user_permission: collaboration?.permission,
+            owner: owner || null
+          };
+        });
+      }
+
       // Combine and deduplicate playlists
       const allPlaylists = [
         ...(ownPlaylists || []),
-        ...((collaborations || [])
-          .map(c => c.playlist)
-          .filter(Boolean)
-          .map((p:any) => ({
-            ...p,
-            is_collaborative: true,
-            user_permission: collaborations.find(c => c.playlist_id === p.id)?.permission
-          })))
+        ...collaborativePlaylists
       ];
 
-      // Remove duplicates
+      // Remove duplicates (in case user owns and collaborates on same playlist)
       const uniquePlaylists = Array.from(
         new Map(allPlaylists.map(p => [p.id, p])).values()
       );

@@ -56,6 +56,7 @@ export default function PlaylistDetailScreen() {
   const { id } = useLocalSearchParams<PlaylistParams>();
   
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
+  const [userPermission, setUserPermission] = useState<'view' | 'edit' | null>(null);
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
@@ -77,10 +78,11 @@ export default function PlaylistDetailScreen() {
     copyShareLink,
   } = usePlaylistSharing(id);
 
-  // Fetch playlist details
+  // Fetch playlist details and user permission
   const fetchPlaylistDetails = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch playlist details
+      const { data: playlistData, error: playlistError } = await supabase
         .from('restaurant_playlists')
         .select(`
           *,
@@ -93,8 +95,26 @@ export default function PlaylistDetailScreen() {
         .eq('id', id)
         .single();
 
-      if (error) throw error;
-      setPlaylist(data);
+      if (playlistError) throw playlistError;
+      setPlaylist(playlistData);
+
+      // Check user's collaboration status if not owner
+      if (playlistData.user_id !== profile?.id) {
+        const { data: collaborationData, error: collaborationError } = await supabase
+          .from('playlist_collaborators')
+          .select('permission, accepted_at')
+          .eq('playlist_id', id)
+          .eq('user_id', profile?.id)
+          .single();
+
+        if (!collaborationError && collaborationData?.accepted_at) {
+          setUserPermission(collaborationData.permission);
+        } else {
+          setUserPermission(null);
+        }
+      } else {
+        setUserPermission('edit'); // Owner has edit permission
+      }
     } catch (error) {
       console.error('Error fetching playlist:', error);
       Alert.alert('Error', 'Failed to load playlist');
@@ -102,7 +122,7 @@ export default function PlaylistDetailScreen() {
     } finally {
       setLoading(false);
     }
-  }, [id, router]);
+  }, [id, router, profile?.id]);
 
   useEffect(() => {
     fetchPlaylistDetails();
@@ -208,11 +228,13 @@ export default function PlaylistDetailScreen() {
 
   // Render draggable item
   const renderItem = useCallback(({ item, drag, isActive }: RenderItemParams<PlaylistItem>) => {
+    const canEdit = userPermission === 'edit';
+    
     return (
       <ScaleDecorator>
         <Pressable
-          onLongPress={drag}
-          disabled={isActive}
+          onLongPress={canEdit ? drag : undefined}
+          disabled={isActive || !canEdit}
           className={`mb-3 ${isActive ? "opacity-50" : ""}`}
         >
           <RestaurantSearchCard
@@ -229,7 +251,7 @@ export default function PlaylistDetailScreen() {
         </Pressable>
       </ScaleDecorator>
     );
-  }, [handleRestaurantPress]);
+  }, [handleRestaurantPress, userPermission]);
 
   if (loading) {
     return (
@@ -244,9 +266,23 @@ export default function PlaylistDetailScreen() {
   if (!playlist) return null;
 
   const isOwner = playlist.user_id === profile?.id;
-  const canEdit = isOwner || collaborators.some(
-    c => c.user_id === profile?.id && c.permission === 'edit'
-  );
+  const canEdit = userPermission === 'edit';
+  const canView = userPermission === 'view' || userPermission === 'edit' || isOwner;
+
+  // If user doesn't have permission to view this playlist
+  if (!canView && !playlist.is_public) {
+    return (
+      <SafeAreaView className="flex-1 bg-background">
+        <View className="flex-1 items-center justify-center px-8">
+          <Lock size={64} color="#6b7280" className="mb-4" />
+          <H3 className="text-center mb-2">Private Playlist</H3>
+          <Muted className="text-center">
+            You don't have permission to view this playlist.
+          </Muted>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -275,7 +311,7 @@ export default function PlaylistDetailScreen() {
           )}
         </View>
 
-        {/* Stats */}
+        {/* Stats and Permission Indicator */}
         <View className="flex-row items-center mt-3 gap-4">
           <View className="flex-row items-center">
             {playlist.is_public ? (
@@ -287,6 +323,20 @@ export default function PlaylistDetailScreen() {
               {playlist.is_public ? "Public" : "Private"}
             </Muted>
           </View>
+          
+          {/* User Permission Indicator */}
+          {!isOwner && userPermission && (
+            <View className="flex-row items-center">
+              {userPermission === 'edit' ? (
+                <Edit3 size={14} color="#10b981" className="mr-1" />
+              ) : (
+                <Lock size={14} color="#6b7280" className="mr-1" />
+              )}
+              <Muted className="text-sm">
+                {userPermission === 'edit' ? 'Can edit' : 'View only'}
+              </Muted>
+            </View>
+          )}
           
           {playlist.share_code && (
             <Pressable
@@ -348,7 +398,10 @@ export default function PlaylistDetailScreen() {
         <View className="flex-1 items-center justify-center px-8">
           <H3 className="text-center mb-2">No restaurants yet</H3>
           <Muted className="text-center mb-6">
-            Start adding your favorite restaurants to this playlist
+            {canEdit 
+              ? "Start adding your favorite restaurants to this playlist"
+              : "This playlist doesn't have any restaurants yet"
+            }
           </Muted>
           {canEdit && (
             <Button onPress={handleAddRestaurants}>
