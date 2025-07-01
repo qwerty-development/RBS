@@ -41,7 +41,7 @@ import {
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
-
+ import { ShareBookingButton } from "@/components/social/ShareBookingButton";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
@@ -478,6 +478,8 @@ const QuickActionsSection: React.FC<{
             Set a reminder
           </Text>
         </Pressable>
+
+
       </View>
     </View>
   );
@@ -775,6 +777,11 @@ export default function BookingSuccessScreen() {
             <Text className="text-white">Done</Text>
           </Button>
         </View>
+
+        <ShareBookingButton
+ bookingId={booking.id}
+ restaurantId={booking.restaurant.id}
+  restaurantName={booking.restaurant.name} />
         
         {/* Enhanced bottom message */}
         {appliedOfferDetails && (

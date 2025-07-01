@@ -1,10 +1,10 @@
 import React from "react";
 import { Tabs } from "expo-router";
-import { Home, Search, Calendar, Heart } from "lucide-react-native";
+import { Home, Search, Users, Calendar, Heart } from "lucide-react-native";
 
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
-import { homeRefreshRef } from "@/hooks/useHomeScreenLogic";
+import { homeScrollRef } from "@/app/(protected)/(tabs)/index";
 
 export default function TabsLayout() {
   const { colorScheme } = useColorScheme();
@@ -51,10 +51,10 @@ export default function TabsLayout() {
             const state = navigation.getState();
             const isHomeTabActive = state.routes[state.index]?.name === "index";
 
-            if (isHomeTabActive && homeRefreshRef.current) {
-              // Prevent default navigation and trigger refresh
+            if (isHomeTabActive && homeScrollRef.current) {
+              // Prevent default navigation and scroll to top
               e.preventDefault();
-              homeRefreshRef.current();
+              homeScrollRef.current.scrollTo({ y: 0, animated: true });
             }
           },
         })}
@@ -65,6 +65,15 @@ export default function TabsLayout() {
           title: "Search",
           tabBarIcon: ({ color, size }) => (
             <Search size={size} color={color} strokeWidth={2} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="social"
+        options={{
+          title: "Social",
+          tabBarIcon: ({ color, size }) => (
+            <Users size={size} color={color} strokeWidth={2} />
           ),
         }}
       />

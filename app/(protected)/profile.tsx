@@ -1,37 +1,61 @@
 // app/(protected)/profile.tsx - Integrated with Rating System
-import React, { useState, useCallback, useEffect } from "react";
-import {
-  View,
-  ScrollView,
-  Pressable,
-  Alert,
-  ActivityIndicator,
-  RefreshControl,
-} from "react-native";
+import React from "react";
+import { View, ScrollView, RefreshControl, Pressable } from "react-native";
 import { useRouter } from "expo-router";
+import { ActivityIndicator } from "react-native";
+import * as Haptics from "expo-haptics";
+import { ProfileSocialStats } from "@/components/profile/ProfileSocialStats";
+import { SafeAreaView } from "@/components/safe-area-view";
+import { useColorScheme } from "@/lib/useColorScheme";
+import { ProfileHeader } from "@/components/profile/ProfileHeader";
+import { ProfileStatusCards } from "@/components/profile/ProfileStatusCards";
+import { ProfileStatsGrid } from "@/components/profile/ProfileStatsGrid";
+import { ProfileFavoritesInsights } from "@/components/profile/ProfileFavoritesInsights";
+import { ProfileRatingInsights } from "@/components/profile/ProfileRatingInsights";
+import { useProfileData } from "@/hooks/useProfileData";
+import { Text } from "@/components/ui/text";
+// Import all icons used in menuSections
 import {
-  User,
-  Settings,
-  Heart,
-  Calendar,
-  Trophy,
-  Bell,
-  LogOut,
-  ChevronRight,
   Edit3,
-  Shield,
-  HelpCircle,
+  BarChart3,
+  Users,
+  Utensils,
+  Bell,
+  Trophy,
+  Gift,
   Star,
   TrendingUp,
-  Utensils,
+  HelpCircle,
+  Shield,
+  LogOut,
+  ChevronRight,
   MapPin,
   Clock,
   CreditCard,
-  Users,
   UserPlus,
   MessageCircle,
-  Gift,
+  Award,
+} from "lucide-react-native";
+
+// Add index signature for iconMap
+const iconMap: { [key: string]: any } = {
+  Edit3,
   BarChart3,
+  Users,
+  Utensils,
+  Bell,
+  Trophy,
+  Gift,
+  Star,
+  TrendingUp,
+  HelpCircle,
+  Shield,
+  LogOut,
+  MapPin,
+  Clock,
+  CreditCard,
+  UserPlus,
+  MessageCircle,
   Award,
   Bot,
 } from "lucide-react-native";
@@ -79,86 +103,26 @@ interface MenuItem {
   id: string;
   title: string;
   subtitle?: string;
-  icon: any;
-  onPress: () => void;
+  icon: string;
+  onPress: () => any;
   showBadge?: boolean;
   badgeText?: string;
   badgeColor?: string;
   destructive?: boolean;
 }
 
-// 2. Loyalty Tier Configuration
-const LOYALTY_TIERS = {
-  bronze: {
-    name: "Bronze",
-    color: "#CD7F32",
-    minPoints: 0,
-    perks: ["Birthday rewards", "Early access to events"],
-  },
-  silver: {
-    name: "Silver",
-    color: "#C0C0C0",
-    minPoints: 500,
-    perks: ["All Bronze perks", "5% bonus points", "Priority support"],
-  },
-  gold: {
-    name: "Gold",
-    color: "#FFD700",
-    minPoints: 1500,
-    perks: [
-      "All Silver perks",
-      "10% bonus points",
-      "Exclusive offers",
-      "VIP events",
-    ],
-  },
-  platinum: {
-    name: "Platinum",
-    color: "#E5E4E2",
-    minPoints: 3000,
-    perks: [
-      "All Gold perks",
-      "20% bonus points",
-      "Personal concierge",
-      "Premium experiences",
-    ],
-  },
-};
-
 export default function ProfileScreen() {
-  // 3. State Management Architecture
-  const { profile, user, signOut, updateProfile } = useAuth();
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-
-  // 3.1 Enhanced Profile Statistics State
-  const [stats, setStats] = useState<ProfileStats>({
-    totalBookings: 0,
-    completedBookings: 0,
-    cancelledBookings: 0,
-    upcomingBookings: 0,
-    favoriteRestaurants: 0,
-    totalReviews: 0,
-    averageSpending: 0,
-    mostVisitedCuisine: "Not available",
-    mostVisitedRestaurant: null,
-    diningStreak: 0,
-    memberSince: new Date().toISOString(),
-    // Friends data
-    totalFriends: 0,
-    pendingFriendRequests: 0,
-    recentFriendActivity: 0,
-  });
-
-  // 3.2 UI State Management
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
-
-  // 3.3 User Rating Hook
-  const { 
-    stats: ratingStats, 
-    loading: ratingLoading, 
+  const {
+    profile,
+    user,
+    stats,
+    loading,
+    refreshing,
+    uploadingAvatar,
+    ratingStats,
+    ratingLoading,
     currentRating,
     refresh: refreshRating 
   } = useUserRating();
@@ -574,6 +538,13 @@ export default function ProfileScreen() {
   };
 
   // 11. Main Render
+    handleAvatarUpload,
+    handleRefresh,
+    calculateTierProgress,
+    LOYALTY_TIERS,
+    menuSections,
+  } = useProfileData();
+
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-background">
@@ -601,245 +572,46 @@ export default function ProfileScreen() {
           />
         }
       >
-        {/* 11.1 Enhanced Profile Header with Rating */}
-        <View className="items-center pt-6 pb-4">
-          <Pressable onPress={handleAvatarUpload} disabled={uploadingAvatar}>
-            <View className="relative">
-              <Image
-                source={
-                  profile?.avatar_url
-                    ? { uri: profile.avatar_url }
-                    : { 
-                        uri: `https://ui-avatars.com/api/?name=${profile?.full_name || 'User'}&background=dc2626&color=fff`
-                      }
-                }
-                className="w-24 h-24 rounded-full"
-                contentFit="cover"
-              />
-              {uploadingAvatar && (
-                <View className="absolute inset-0 bg-black/50 rounded-full items-center justify-center">
-                  <ActivityIndicator size="small" color="white" />
-                </View>
-              )}
-              <View className="absolute bottom-0 right-0 bg-primary rounded-full p-2">
-                <Edit3 size={16} color="white" />
-              </View>
-            </View>
-          </Pressable>
+        <ProfileHeader
+          profile={profile}
+          user={user}
+          stats={stats}
+          ratingStats={ratingStats ?? undefined}
+          currentRating={currentRating}
+          ratingLoading={ratingLoading}
+          uploadingAvatar={uploadingAvatar}
+          onAvatarUpload={handleAvatarUpload}
+        />
+        <ProfileStatusCards
+          profile={profile}
+          loyaltyTiers={LOYALTY_TIERS}
+          tierProgress={tierProgress}
+          ratingStats={ratingStats ?? undefined}
+          currentRating={currentRating}
+          ratingLoading={ratingLoading}
+        />
+        <ProfileStatsGrid
+          stats={stats}
+          loyaltyPoints={profile?.loyalty_points || 0}
+          loyaltyTierColor={
+            LOYALTY_TIERS[profile?.membership_tier || "bronze"].color
+          }
+        />
+        <ProfileFavoritesInsights
+          mostVisitedCuisine={stats.mostVisitedCuisine}
+          mostVisitedRestaurant={stats.mostVisitedRestaurant}
+        />
 
-          <H2 className="mt-3">{profile?.full_name}</H2>
-          <Muted>{user?.email}</Muted>
-
-          {/* 11.2 Enhanced Member Since Badge with Rating */}
-          <View className="flex-row items-center gap-3 mt-3">
-            <View className="flex-row items-center gap-2 bg-muted px-3 py-1 rounded-full">
-              <Calendar size={14} color="#666" />
-              <Text className="text-sm text-muted-foreground">
-                Member since{" "}
-                {new Date(stats.memberSince).toLocaleDateString("en-US", {
-                  month: "long",
-                  year: "numeric",
-                })}
-              </Text>
-            </View>
-            
-            {/* User Rating Badge */}
-            {!ratingLoading && ratingStats && (
-              <UserRatingBadge 
-                rating={currentRating}
-                trend={ratingStats.rating_trend.toLowerCase() as any}
-                compact={true}
-              />
-            )}
-          </View>
-        </View>
-
-        {/* 11.3 Enhanced Loyalty & Rating Status Cards */}
-        <View className="flex-row mx-4 mb-6 gap-3">
-          {/* Loyalty Status Card */}
-          <View className="flex-1 p-4 bg-card rounded-xl shadow-sm">
-            <View className="flex-row items-center gap-2 mb-2">
-              <Trophy
-                size={20}
-                color={LOYALTY_TIERS[profile?.membership_tier || "bronze"].color}
-              />
-              <Text className="font-bold text-sm">
-                {LOYALTY_TIERS[profile?.membership_tier || "bronze"].name}
-              </Text>
-            </View>
-            <Text className="text-lg font-bold text-primary">
-              {profile?.loyalty_points || 0}
-            </Text>
-            <Text className="text-xs text-muted-foreground">
-              Loyalty Points
-            </Text>
-            
-            {/* Progress Bar for Loyalty */}
-            {tierProgress.nextTier && (
-              <>
-                <View className="h-1.5 bg-muted rounded-full overflow-hidden mt-2">
-                  <View
-                    className="h-full bg-primary"
-                    style={{ width: `${Math.max(0, Math.min(100, tierProgress.progress * 100))}%` }}
-                  />
-                </View>
-                <Text className="text-xs text-muted-foreground mt-1">
-                  {tierProgress.pointsToNext} to {LOYALTY_TIERS[tierProgress.nextTier].name}
-                </Text>
-              </>
-            )}
-          </View>
-
-          {/* Reliability Score Card */}
-          <View className="flex-1 p-4 bg-card rounded-xl shadow-sm">
-            <View className="flex-row items-center gap-2 mb-2">
-              <Award size={20} color="#FFD700" />
-              <Text className="font-bold text-sm">Reliability</Text>
-            </View>
-            {!ratingLoading && ratingStats ? (
-              <>
-                <UserRating 
-                  rating={currentRating} 
-                  size="sm" 
-                  showNumber={false}
-                />
-                <Text className="text-lg font-bold text-primary mt-1">
-                  {currentRating.toFixed(1)}
-                </Text>
-                <Text className="text-xs text-muted-foreground">
-                  {ratingStats.completion_rate.toFixed(0)}% completion rate
-                </Text>
-              </>
-            ) : (
-              <View className="py-2">
-                <ActivityIndicator size="small" />
-                <Text className="text-xs text-muted-foreground mt-1">Loading...</Text>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* 11.4 Enhanced Quick Stats Grid with Rating Stats */}
-        <View className="mx-4 mb-6">
-          <H3 className="mb-3">Your Dining Journey</H3>
-          <View className="flex-row flex-wrap gap-3">
-            <View className="flex-1 min-w-[45%] bg-card p-4 rounded-lg">
-              <View className="flex-row items-center gap-2 mb-1">
-                <Calendar size={20} color="#3b82f6" />
-                <Text className="font-bold text-2xl">{stats.totalBookings}</Text>
-              </View>
-              <Muted className="text-sm">Total Bookings</Muted>
-              {stats.upcomingBookings > 0 && (
-                <Text className="text-xs text-primary mt-1">
-                  {stats.upcomingBookings} upcoming
-                </Text>
-              )}
-            </View>
-
-            <View className="flex-1 min-w-[45%] bg-card p-4 rounded-lg">
-              <View className="flex-row items-center gap-2 mb-1">
-                <Users size={20} color="#10b981" />
-                <Text className="font-bold text-2xl">{stats.totalFriends}</Text>
-              </View>
-              <Muted className="text-sm">Friends</Muted>
-              {stats.pendingFriendRequests > 0 && (
-                <Text className="text-xs text-red-600 mt-1">
-                  {stats.pendingFriendRequests} pending
-                </Text>
-              )}
-            </View>
-
-            <View className="flex-1 min-w-[45%] bg-card p-4 rounded-lg">
-              <View className="flex-row items-center gap-2 mb-1">
-                <Heart size={20} color="#ef4444" />
-                <Text className="font-bold text-2xl">{stats.favoriteRestaurants}</Text>
-              </View>
-              <Muted className="text-sm">Favorites</Muted>
-            </View>
-
-            <View className="flex-1 min-w-[45%] bg-card p-4 rounded-lg">
-              <View className="flex-row items-center gap-2 mb-1">
-                <Star size={20} color="#f59e0b" />
-                <Text className="font-bold text-2xl">{stats.totalReviews}</Text>
-              </View>
-              <Muted className="text-sm">Reviews</Muted>
-            </View>
-
-            {/* Enhanced with Rating-specific Stats */}
-            <View className="flex-1 min-w-[45%] bg-card p-4 rounded-lg">
-              <View className="flex-row items-center gap-2 mb-1">
-                <TrendingUp size={20} color="#8b5cf6" />
-                <Text className="font-bold text-2xl">{stats.diningStreak}w</Text>
-              </View>
-              <Muted className="text-sm">Dining Streak</Muted>
-            </View>
-
-            <View className="flex-1 min-w-[45%] bg-card p-4 rounded-lg">
-              <View className="flex-row items-center gap-2 mb-1">
-                <Trophy size={20} color={LOYALTY_TIERS[profile?.membership_tier || "bronze"].color} />
-                <Text className="font-bold text-2xl">{profile?.loyalty_points || 0}</Text>
-              </View>
-              <Muted className="text-sm">Loyalty Points</Muted>
-            </View>
-          </View>
-        </View>
-
-        {/* 11.5 Enhanced Favorite Insights */}
-        {(stats.mostVisitedCuisine !== "Not available" || stats.mostVisitedRestaurant) && (
-          <View className="mx-4 mb-6 p-4 bg-primary/5 rounded-lg border border-primary/20">
-            <Text className="font-semibold mb-2">Your Favorites</Text>
-            {stats.mostVisitedCuisine !== "Not available" && (
-              <View className="flex-row items-center gap-2 mb-1">
-                <Utensils size={16} color="#666" />
-                <Text className="text-sm">
-                  Favorite cuisine:{" "}
-                  <Text className="font-medium">{stats.mostVisitedCuisine}</Text>
-                </Text>
-              </View>
-            )}
-            {stats.mostVisitedRestaurant && (
-              <View className="flex-row items-center gap-2">
-                <MapPin size={16} color="#666" />
-                <Text className="text-sm">
-                  Most visited:{" "}
-                  <Text className="font-medium">{stats.mostVisitedRestaurant.name}</Text>{" "}
-                  ({stats.mostVisitedRestaurant.visits} visits)
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-
-        {/* 11.6 Rating Insights Card */}
-        {ratingStats && ratingStats.total_bookings > 0 && (
-          <Pressable 
+    <ProfileSocialStats />
+        {ratingStats && (
+          <ProfileRatingInsights
+            ratingStats={ratingStats}
+            currentRating={currentRating}
             onPress={() => router.push("/profile/rating-details")}
-            className="mx-4 mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200"
-          >
-            <View className="flex-row items-center justify-between mb-2">
-              <Text className="font-semibold text-blue-800">Reliability Insights</Text>
-              <ChevronRight size={16} color="#2563eb" />
-            </View>
-            <View className="flex-row items-center gap-4">
-              <View className="flex-1">
-                <Text className="text-blue-700 text-sm">
-                  Completion Rate: <Text className="font-medium">{ratingStats.completion_rate.toFixed(0)}%</Text>
-                </Text>
-                <Text className="text-blue-700 text-sm">
-                  Rating Trend: <Text className="font-medium">{ratingStats.rating_trend}</Text>
-                </Text>
-              </View>
-              <UserRating 
-                rating={currentRating}
-                size="md"
-                showNumber={true}
-              />
-            </View>
-          </Pressable>
+          />
         )}
-
-        {/* 11.7 Enhanced Menu Sections */}
-        {menuSections.map((section, sectionIndex) => (
+        {/* Menu Sections */}
+        {menuSections(router).map((section, sectionIndex) => (
           <View key={sectionIndex} className="mb-6">
             {section.title && (
               <Text className="text-sm font-semibold text-muted-foreground uppercase px-4 mb-2">
@@ -847,59 +619,67 @@ export default function ProfileScreen() {
               </Text>
             )}
             <View className="bg-card mx-4 rounded-xl overflow-hidden">
-              {section.items.map((item, itemIndex) => (
-                <Pressable
-                  key={item.id}
-                  onPress={async () => {
-                    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                    item.onPress();
-                  }}
-                  className={`flex-row items-center px-4 py-4 ${
-                    itemIndex < section.items.length - 1 ? "border-b border-border" : ""
-                  }`}
-                  style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                >
-                  <View
-                    className={`w-10 h-10 rounded-full items-center justify-center ${
-                      item.destructive ? "bg-destructive/10" : "bg-muted"
-                    }`}
+              {section.items.map((item: MenuItem, itemIndex: number) => {
+                const Icon = iconMap[item.icon] || Edit3;
+                return (
+                  <Pressable
+                    key={item.id}
+                    onPress={async () => {
+                      await Haptics.impactAsync(
+                        Haptics.ImpactFeedbackStyle.Light
+                      );
+                      item.onPress();
+                    }}
+                    className={`flex-row items-center px-4 py-4 ${itemIndex < section.items.length - 1 ? "border-b border-border" : ""}`}
+                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
                   >
-                    <item.icon
-                      size={20}
-                      color={item.destructive ? "#ef4444" : "#666"}
-                    />
-                  </View>
-                  <View className="flex-1 ml-3">
-                    <Text
-                      className={`font-medium ${item.destructive ? "text-destructive" : ""}`}
+                    <View
+                      className={`w-10 h-10 rounded-full items-center justify-center ${item.destructive ? "bg-destructive/10" : "bg-muted"}`}
                     >
-                      {item.title}
-                    </Text>
-                    {item.subtitle && <Muted className="text-sm">{item.subtitle}</Muted>}
-                  </View>
-                  <View className="flex-row items-center gap-2">
-                    {item.showBadge && item.badgeText && (
-                      <View 
-                        className="px-2 py-1 rounded-full"
-                        style={{ backgroundColor: item.badgeColor || "#3b82f6" }}
+                      <Icon
+                        size={20}
+                        color={item.destructive ? "#ef4444" : "#666"}
+                      />
+                    </View>
+                    <View className="flex-1 ml-3">
+                      <Text
+                        className={`font-medium ${item.destructive ? "text-destructive" : ""}`}
                       >
-                        <Text className="text-xs text-white font-medium">
-                          {item.badgeText}
+                        {item.title}
+                      </Text>
+                      {item.subtitle && (
+                        <Text className="text-sm text-muted-foreground">
+                          {item.subtitle}
                         </Text>
-                      </View>
-                    )}
-                    <ChevronRight size={20} color="#666" />
-                  </View>
-                </Pressable>
-              ))}
+                      )}
+                    </View>
+                    <View className="flex-row items-center gap-2">
+                      {item.showBadge && item.badgeText && (
+                        <View
+                          className="px-2 py-1 rounded-full"
+                          style={{
+                            backgroundColor: item.badgeColor || "#3b82f6",
+                          }}
+                        >
+                          <Text className="text-xs text-white font-medium">
+                            {item.badgeText}
+                          </Text>
+                        </View>
+                      )}
+                      <ChevronRight size={20} color="#666" />
+                    </View>
+                  </Pressable>
+                );
+              })}
             </View>
           </View>
         ))}
-
-        {/* 11.8 App Version Footer */}
+        {/* Footer */}
         <View className="items-center pb-8">
-          <Muted className="text-xs">Version 1.0.0</Muted>
-          <Muted className="text-xs">© 2024 TableReserve</Muted>
+          <Text className="text-xs text-muted-foreground">Version 1.0.0</Text>
+          <Text className="text-xs text-muted-foreground">
+            © 2024 TableReserve
+          </Text>
         </View>
       </ScrollView>
     </SafeAreaView>

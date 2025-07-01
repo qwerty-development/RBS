@@ -28,6 +28,8 @@ interface ReviewCardProps {
   isOwner?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  onLike?: () => void;
+  onReport?: () => void;
   showActions?: boolean;
   variant?: "default" | "compact";
 }
@@ -37,6 +39,8 @@ export const ReviewCard = ({
   isOwner = false,
   onEdit,
   onDelete,
+  onLike,
+  onReport,
   showActions = true,
   variant = "default",
 }: ReviewCardProps) => {

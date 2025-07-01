@@ -6,9 +6,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/context/supabase-provider";
 import { supabase } from "@/config/supabase";
 
-// Create a global ref to store the refresh function
-export const homeRefreshRef = { current: null as (() => Promise<void>) | null };
-
 // Type definitions
 interface Restaurant {
   id: string;
@@ -286,11 +283,6 @@ export function useHomeScreenLogic() {
     await loadAllData();
     setRefreshing(false);
   }, [loadAllData, checkForLocationUpdates]);
-
-  // Store the refresh function in the global ref
-  useEffect(() => {
-    homeRefreshRef.current = handleRefresh;
-  }, [handleRefresh]);
 
   const handleLocationPress = useCallback(() => {
     router.push("/location-selector");
