@@ -124,7 +124,7 @@ export default function HomeScreen() {
 
             <Pressable
               onPress={() => {
-                router.push("/(protected)/profile");
+                router.push("/profile");
               }}
               style={({ pressed }) => ({
                 marginLeft: 12,

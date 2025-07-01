@@ -58,7 +58,7 @@ export function SpecialOffersCarousel({ offers, onPress }: SpecialOffersCarousel
         "Please sign in to use special offers.",
         [
           { text: "Cancel", style: "cancel" },
-          { text: "Sign In", onPress: () => router.push("/auth/login") },
+          { text: "Sign In", onPress: () => router.push("/sign-in") },
         ]
       );
       return;
@@ -150,7 +150,7 @@ export function SpecialOffersCarousel({ offers, onPress }: SpecialOffersCarousel
   const renderOfferCard = useCallback(({ item }: { item: EnrichedOffer }) => (
     <View style={{ width: SCREEN_WIDTH }}>
       <Pressable
-        onPress={() => handleOfferPress(item)}
+        onPress={() => onPress ? onPress(item) : handleOfferPress(item)}
         disabled={processingOfferId === item.id}
         style={{ opacity: processingOfferId === item.id ? 0.7 : 1 }}
       >
@@ -167,7 +167,7 @@ export function SpecialOffersCarousel({ offers, onPress }: SpecialOffersCarousel
         )}
       </Pressable>
     </View>
-  ), [handleOfferPress, processingOfferId]);
+  ), [onPress, handleOfferPress, processingOfferId]);
 
   if (offers.length === 0) {
     return null;

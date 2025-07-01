@@ -33,6 +33,7 @@ import {
   Gift,
   BarChart3,
   Award,
+  Bot,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
@@ -511,6 +512,16 @@ export default function ProfileScreen() {
     {
       title: "Support",
       items: [
+        {
+          id: "chat-test-py",
+          title: "🐍 Test Flask Chat",
+          subtitle: "Test the Python-powered AI assistant",
+          icon: Bot,
+          onPress: () => router.push("./chat_test_py" as any),
+          showBadge: true,
+          badgeText: "NEW",
+          badgeColor: "#22c55e",
+        },
         {
           id: "help",
           title: "Help & Support",

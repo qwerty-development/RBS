@@ -293,7 +293,7 @@ export function useHomeScreenLogic() {
   }, [handleRefresh]);
 
   const handleLocationPress = useCallback(() => {
-    router.push("/(protected)/location-selector");
+    router.push("/location-selector");
   }, [router]);
 
   const handleRestaurantPress = useCallback(
@@ -313,7 +313,7 @@ export function useHomeScreenLogic() {
 
       try {
         router.push({
-          pathname: "/(protected)/restaurant/[id]",
+          pathname: "/restaurant/[id]",
           params: { id: restaurantId.trim() },
         });
       } catch (error) {
@@ -330,7 +330,7 @@ export function useHomeScreenLogic() {
   const handleQuickFilter = useCallback(
     (filter: QuickFilter) => {
       router.push({
-        pathname: "/(protected)/(tabs)/search",
+        pathname: "/search",
         params: filter.params,
       });
     },
@@ -358,7 +358,7 @@ export function useHomeScreenLogic() {
       try {
         // Navigate to cuisine-specific screen
         router.push({
-          pathname: "/(protected)/cuisine/[cuisineId]",
+          pathname: "/cuisine/[cuisineId]",
           params: {
             cuisineId: cuisineId.trim(),
             cuisineName: getCuisineName(cuisineId),
@@ -403,13 +403,13 @@ export function useHomeScreenLogic() {
 
   // Navigation handlers
   const handleSearchPress = useCallback(() => {
-    router.push("/(protected)/(tabs)/search");
+    router.push("/search");
   }, [router]);
 
   const handleSearchWithParams = useCallback(
     (params: Record<string, string>) => {
       router.push({
-        pathname: "/(protected)/(tabs)/search",
+        pathname: "/search",
         params,
       });
     },
@@ -417,7 +417,7 @@ export function useHomeScreenLogic() {
   );
 
   const handleProfilePress = useCallback(() => {
-    router.push("/(protected)/profile/loyalty");
+    router.push("/profile");
   }, [router]);
 
   return {
