@@ -26,8 +26,8 @@ import { useOffers } from "@/hooks/useOffers";
 import { CUISINE_CATEGORIES } from "@/constants/homeScreenData";
 import { SpecialOffersCarousel } from "@/components/home/SpecialOffersCarousel";
 
-// Global ref for scroll to top functionality
-export const homeScrollRef = { current: null as Animated.ScrollView | null };
+// Global ref for scroll to top functionality  
+export const homeScrollRef = { current: null as any };
 
 export default function HomeScreen() {
   const { colorScheme } = useColorScheme();
@@ -198,7 +198,9 @@ export default function HomeScreen() {
       </Animated.View>
 
       <Animated.ScrollView
-        ref={(ref) => (homeScrollRef.current = ref)}
+        ref={(ref) => {
+          homeScrollRef.current = ref;
+        }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
           { useNativeDriver: true }
