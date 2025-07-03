@@ -192,7 +192,7 @@ export default function FriendsScreen() {
       if (!error && data) {
         // Check for pending requests
         const enrichedResults = await Promise.all(
-          data.map(async (user) => {
+          data.map(async (user: any) => {
             const { data: requestData } = await supabase
               .from('friend_requests')
               .select('id')
@@ -324,7 +324,7 @@ export default function FriendsScreen() {
   // Render functions
   const renderFriend = ({ item }: { item: Friend }) => (
     <Pressable
-      onPress={() => router.push(`/friends/${item.id}`)}
+      onPress={() => router.push(`/(protected)/friends/${item.id}` as any)}
       className="flex-row items-center justify-between p-4 mb-2 bg-white dark:bg-gray-800 rounded-2xl"
       style={{
         shadowColor: "#000",
@@ -547,12 +547,9 @@ export default function FriendsScreen() {
           
           <H2>Friends</H2>
           
-          <Pressable
-            onPress={() => router.push('/friends/settings')}
-            className="p-2"
-          >
-            <Settings size={24} color={colorScheme === 'dark' ? 'white' : 'black'} />
-          </Pressable>
+          <View className="p-2">
+            {/* Settings placeholder */}
+          </View>
         </View>
       </View>
 
@@ -618,21 +615,21 @@ export default function FriendsScreen() {
         <FlatList
           data={
             searchQuery && (activeTab === 'friends' || activeTab === 'discover')
-              ? searchResults
+              ? searchResults as any[]
               : activeTab === 'friends'
-              ? friends
+              ? friends as any[]
               : activeTab === 'requests'
-              ? friendRequests
-              : suggestions
+              ? friendRequests as any[]
+              : suggestions as any[]
           }
           renderItem={
             searchQuery && (activeTab === 'friends' || activeTab === 'discover')
-              ? renderSearchResult
+              ? renderSearchResult as any
               : activeTab === 'friends'
-              ? renderFriend
+              ? renderFriend as any
               : activeTab === 'requests'
-              ? renderFriendRequest
-              : renderSuggestion
+              ? renderFriendRequest as any
+              : renderSuggestion as any
           }
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16 }}

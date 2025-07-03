@@ -41,6 +41,7 @@ import { supabase } from "@/config/supabase";
 import { usePlaylists, Playlist } from "@/hooks/usePlaylists";
 import { usePlaylistItems } from "@/hooks/usePlaylistItems";
 import { PlaylistItem } from "@/hooks/usePlaylists"
+import { useDeletePlaylist } from "@/hooks/useDeletePlaylist";
 
 import { usePlaylistSharing } from "@/hooks/usePlaylistSharing";
 import { CreatePlaylistModal } from "@/components/playlists/CreatePlaylistModal";
@@ -61,7 +62,12 @@ export default function PlaylistDetailScreen() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
   
-  const { updatePlaylist, deletePlaylist } = usePlaylists();
+  const { updatePlaylist } = usePlaylists();
+  const { deletePlaylist } = useDeletePlaylist({
+    onSuccess: () => {
+      router.back();
+    },
+  });
   const {
     items,
     loading: itemsLoading,
@@ -174,10 +180,7 @@ export default function PlaylistDetailScreen() {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            const success = await deletePlaylist(playlist.id);
-            if (success) {
-              router.back();
-            }
+            await deletePlaylist(playlist.id, playlist.name);
           },
         },
       ]

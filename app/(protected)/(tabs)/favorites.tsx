@@ -305,6 +305,7 @@ export default function FavoritesScreen() {
             <PlaylistCard
               playlist={item}
               onPress={() => navigateToPlaylist(item.id)}
+              onDelete={() => handleRefresh()}
               variant="list"
             />
           </PlaylistErrorBoundary>
