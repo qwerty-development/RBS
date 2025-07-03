@@ -1,3 +1,4 @@
+// components/search/GeneralFiltersModal.tsx
 import React, { useState, useEffect, useCallback } from "react";
 import { View, Modal, Pressable, ScrollView } from "react-native";
 import { X, Star } from "lucide-react-native";
@@ -5,6 +6,7 @@ import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { H3 } from "@/components/ui/typography";
 import { SafeAreaView } from "@/components/safe-area-view";
+import { DistanceFilter } from "./DistanceFilter";
 
 const CUISINE_TYPES = [
   "Lebanese",
@@ -36,6 +38,7 @@ interface GeneralFilters {
   priceRange: number[];
   bookingPolicy: "all" | "instant" | "request";
   minRating: number;
+  maxDistance: number | null;
 }
 
 interface GeneralFiltersModalProps {
@@ -67,13 +70,14 @@ export const GeneralFiltersModal = React.memo(
     }, [tempFilters, onApplyFilters, onClose]);
 
     const clearAllFilters = useCallback(() => {
-      const defaultFilters = {
-        sortBy: "recommended" as const,
+      const defaultFilters: GeneralFilters = {
+        sortBy: "recommended",
         cuisines: [],
         features: [],
         priceRange: [1, 2, 3, 4],
-        bookingPolicy: "all" as const,
+        bookingPolicy: "all",
         minRating: 0,
+        maxDistance: null,
       };
       setTempFilters(defaultFilters);
     }, []);
@@ -170,6 +174,14 @@ export const GeneralFiltersModal = React.memo(
                 ))}
               </View>
             </View>
+
+            {/* Distance Filter */}
+            <DistanceFilter
+              selectedDistance={tempFilters.maxDistance}
+              onDistanceChange={(distance) =>
+                setTempFilters((prev) => ({ ...prev, maxDistance: distance }))
+              }
+            />
 
             {/* Cuisines */}
             <View className="p-4 border-b border-border">

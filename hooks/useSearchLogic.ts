@@ -1,20 +1,19 @@
-// hooks/useSearchLogic.ts
+// hooks/useSearchLogic.ts - Updated to use new location system
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 import { Alert, Platform, Linking } from "react-native";
 import { useRouter } from "expo-router";
-import * as Location from "expo-location";
 import { Region } from "react-native-maps";
 
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
+import { useLocationWithDistance } from "@/hooks/useLocationWithDistance";
+import { LocationService } from "@/lib/locationService";
 import {
   DEFAULT_BOOKING_FILTERS,
   DEFAULT_GENERAL_FILTERS,
   DEFAULT_MAP_REGION,
 } from "@/constants/searchConstants";
 import {
-  generateStaticCoordinates,
-  calculateDistance,
   checkRestaurantAvailability,
   sortRestaurants,
   applyFeatureFilters,
@@ -23,16 +22,25 @@ import {
 } from "@/lib/searchUtils";
 import type {
   Restaurant,
-  UserLocation,
   ViewMode,
   BookingFilters,
   GeneralFilters,
   UseSearchReturn,
+  LocationData,
 } from "@/types/search";
 
 export const useSearchLogic = (): UseSearchReturn => {
   const router = useRouter();
   const { profile } = useAuth();
+  
+  // Use your new location hook instead of the old one
+  const { 
+    location: userLocation, 
+    loading: locationLoading,
+    calculateDistance,
+    formatDistance,
+    getDisplayName
+  } = useLocationWithDistance();
 
   // Core state
   const [viewMode, setViewMode] = useState<ViewMode>("list");
@@ -41,7 +49,6 @@ export const useSearchLogic = (): UseSearchReturn => {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [mapRegion, setMapRegion] = useState<Region>(DEFAULT_MAP_REGION);
 
   // Filter state
@@ -55,6 +62,18 @@ export const useSearchLogic = (): UseSearchReturn => {
   // Refs for optimization
   const fetchTimeoutRef = useRef<any>(null);
   const isInitialLoad = useRef(true);
+
+  // Update map region when user location changes
+  useEffect(() => {
+    if (userLocation && isInitialLoad.current) {
+      setMapRegion({
+        latitude: userLocation.latitude,
+        longitude: userLocation.longitude,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      });
+    }
+  }, [userLocation]);
 
   // Fetch favorites from database
   const fetchFavorites = useCallback(async () => {
@@ -112,146 +131,203 @@ export const useSearchLogic = (): UseSearchReturn => {
     [profile?.id, favorites]
   );
 
-  // Get user location
-  const getUserLocation = useCallback(async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") return;
-
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      const newLocation = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      };
-
-      setUserLocation(newLocation);
-
-      // Only update map region if we don't have restaurants yet (initial load)
-      if (isInitialLoad.current) {
-        setMapRegion({
-          latitude: newLocation.latitude,
-          longitude: newLocation.longitude,
-          latitudeDelta: 0.05,
-          longitudeDelta: 0.05,
-        });
-      }
-    } catch (error) {
-      console.error("Error getting location:", error);
-    }
-  }, []);
-
-  // Main restaurant fetching logic
+  // Main restaurant fetching logic - Updated to use LocationService
   const fetchRestaurants = useCallback(
     async (
       query: string,
       gFilters: GeneralFilters,
       bFilters: BookingFilters,
-      location: UserLocation | null,
       favoriteCuisines: string[] | undefined,
       favoriteSet: Set<string>
     ) => {
       setLoading(true);
 
       try {
-        let supabaseQuery = supabase.from("restaurants").select("*");
-
-        // Apply search query
-        if (query.trim()) {
-          supabaseQuery = supabaseQuery.or(
-            `name.ilike.%${query}%,cuisine_type.ilike.%${query}%,tags.cs.{${query}}`
+        if (userLocation) {
+          // Use your new LocationService method
+          const restaurantsWithDistance = await LocationService.getRestaurantsWithDistance(
+            userLocation,
+            gFilters.maxDistance
           );
-        }
 
-        // Apply cuisine filters
-        if (gFilters.cuisines.length > 0) {
-          supabaseQuery = supabaseQuery.in("cuisine_type", gFilters.cuisines);
-        }
-
-        // Apply price range filter
-        if (gFilters.priceRange.length < 4) {
-          supabaseQuery = supabaseQuery.in("price_range", gFilters.priceRange);
-        }
-
-        // Apply booking policy filter
-        if (gFilters.bookingPolicy !== "all") {
-          supabaseQuery = supabaseQuery.eq(
-            "booking_policy",
-            gFilters.bookingPolicy
-          );
-        }
-
-        // Apply minimum rating filter
-        if (gFilters.minRating > 0) {
-          supabaseQuery = supabaseQuery.gte(
-            "average_rating",
-            gFilters.minRating
-          );
-        }
-
-        const { data, error } = await supabaseQuery;
-
-        if (error) throw error;
-
-        let processedRestaurants = (data || []).map((restaurant) => {
-          const staticCoords = generateStaticCoordinates(restaurant.id);
-          const distance = location
-            ? calculateDistance(
-                location.latitude,
-                location.longitude,
-                staticCoords.lat,
-                staticCoords.lng
-              )
-            : undefined;
-
-          return {
+          let processedRestaurants = restaurantsWithDistance.map((restaurant) => ({
             ...restaurant,
-            distance,
-            staticCoordinates: staticCoords,
-          };
-        });
+            staticCoordinates: restaurant.coordinates ? {
+              lat: restaurant.coordinates.latitude,
+              lng: restaurant.coordinates.longitude
+            } : undefined
+          }));
 
-        // Apply feature filters (client-side)
-        processedRestaurants = applyFeatureFilters(
-          processedRestaurants,
-          gFilters.features
-        );
-
-        // Check availability for all restaurants
-        const availabilityChecks = await Promise.all(
-          processedRestaurants.map(async (restaurant) => {
-            const isAvailable = await checkRestaurantAvailability(
-              restaurant.id,
-              bFilters.date,
-              bFilters.time,
-              bFilters.partySize
+          // Apply search query filter
+          if (query.trim()) {
+            processedRestaurants = processedRestaurants.filter(
+              (restaurant) =>
+                restaurant.name.toLowerCase().includes(query.toLowerCase()) ||
+                restaurant.cuisine_type.toLowerCase().includes(query.toLowerCase()) ||
+                (restaurant.tags && restaurant.tags.some((tag: string) => 
+                  tag.toLowerCase().includes(query.toLowerCase())
+                ))
             );
-            return { ...restaurant, isAvailable };
-          })
-        );
+          }
 
-        processedRestaurants = availabilityChecks;
+          // Apply cuisine filters
+          if (gFilters.cuisines.length > 0) {
+            processedRestaurants = processedRestaurants.filter((restaurant) =>
+              gFilters.cuisines.includes(restaurant.cuisine_type)
+            );
+          }
 
-        // Filter by availability if enabled
-        if (bFilters.availableOnly) {
-          processedRestaurants = processedRestaurants.filter(
-            (r) => r.isAvailable
+          // Apply price range filter
+          if (gFilters.priceRange.length < 4) {
+            processedRestaurants = processedRestaurants.filter((restaurant) =>
+              gFilters.priceRange.includes(restaurant.price_range)
+            );
+          }
+
+          // Apply booking policy filter
+          if (gFilters.bookingPolicy !== "all") {
+            processedRestaurants = processedRestaurants.filter((restaurant) =>
+              restaurant.booking_policy === gFilters.bookingPolicy
+            );
+          }
+
+          // Apply minimum rating filter
+          if (gFilters.minRating > 0) {
+            processedRestaurants = processedRestaurants.filter((restaurant) =>
+              (restaurant.average_rating || 0) >= gFilters.minRating
+            );
+          }
+
+          // Apply feature filters (client-side)
+          processedRestaurants = applyFeatureFilters(
+            processedRestaurants,
+            gFilters.features
           );
+
+          // Check availability for all restaurants
+          const availabilityChecks = await Promise.all(
+            processedRestaurants.map(async (restaurant) => {
+              const isAvailable = await checkRestaurantAvailability(
+                restaurant.id,
+                bFilters.date,
+                bFilters.time,
+                bFilters.partySize
+              );
+              return { ...restaurant, isAvailable };
+            })
+          );
+
+          processedRestaurants = availabilityChecks;
+
+          // Filter by availability if enabled
+          if (bFilters.availableOnly) {
+            processedRestaurants = processedRestaurants.filter(
+              (r) => r.isAvailable
+            );
+          }
+
+          // Sort restaurants using the existing sort function
+          // The LocationService already provides distance, so this will work well
+          processedRestaurants = sortRestaurants(
+            processedRestaurants,
+            gFilters.sortBy,
+            userLocation,
+            favoriteCuisines,
+            favoriteSet,
+            bFilters.availableOnly
+          );
+
+          setRestaurants(processedRestaurants);
+        } else {
+          // If no location, still fetch restaurants but without distance
+          console.log("No user location available, fetching restaurants without distance");
+          
+          let supabaseQuery = supabase.from("restaurants").select("*");
+
+          // Apply search query
+          if (query.trim()) {
+            supabaseQuery = supabaseQuery.or(
+              `name.ilike.%${query}%,cuisine_type.ilike.%${query}%,tags.cs.{${query}}`
+            );
+          }
+
+          // Apply cuisine filters
+          if (gFilters.cuisines.length > 0) {
+            supabaseQuery = supabaseQuery.in("cuisine_type", gFilters.cuisines);
+          }
+
+          // Apply price range filter
+          if (gFilters.priceRange.length < 4) {
+            supabaseQuery = supabaseQuery.in("price_range", gFilters.priceRange);
+          }
+
+          // Apply booking policy filter
+          if (gFilters.bookingPolicy !== "all") {
+            supabaseQuery = supabaseQuery.eq("booking_policy", gFilters.bookingPolicy);
+          }
+
+          // Apply minimum rating filter
+          if (gFilters.minRating > 0) {
+            supabaseQuery = supabaseQuery.gte("average_rating", gFilters.minRating);
+          }
+
+          const { data, error } = await supabaseQuery;
+
+          if (error) throw error;
+
+          let processedRestaurants = (data || []).map((restaurant) => {
+            const coords = LocationService.extractCoordinates(restaurant.location);
+            return {
+              ...restaurant,
+              distance: null,
+              coordinates: coords,
+              staticCoordinates: coords ? {
+                lat: coords.latitude,
+                lng: coords.longitude
+              } : undefined
+            };
+          });
+
+          // Apply feature filters
+          processedRestaurants = applyFeatureFilters(
+            processedRestaurants,
+            gFilters.features
+          );
+
+          // Check availability
+          const availabilityChecks = await Promise.all(
+            processedRestaurants.map(async (restaurant) => {
+              const isAvailable = await checkRestaurantAvailability(
+                restaurant.id,
+                bFilters.date,
+                bFilters.time,
+                bFilters.partySize
+              );
+              return { ...restaurant, isAvailable };
+            })
+          );
+
+          processedRestaurants = availabilityChecks;
+
+          // Filter by availability if enabled
+          if (bFilters.availableOnly) {
+            processedRestaurants = processedRestaurants.filter(
+              (r) => r.isAvailable
+            );
+          }
+
+          // Sort restaurants
+          processedRestaurants = sortRestaurants(
+            processedRestaurants,
+            gFilters.sortBy,
+            null, // No user location
+            favoriteCuisines,
+            favoriteSet,
+            bFilters.availableOnly
+          );
+
+          setRestaurants(processedRestaurants);
         }
-
-        // Sort restaurants
-        processedRestaurants = sortRestaurants(
-          processedRestaurants,
-          gFilters.sortBy,
-          location,
-          favoriteCuisines,
-          favoriteSet,
-          bFilters.availableOnly
-        );
-
-        setRestaurants(processedRestaurants);
       } catch (error) {
         console.error("Error fetching restaurants:", error);
         Alert.alert("Error", "Failed to load restaurants");
@@ -261,37 +337,7 @@ export const useSearchLogic = (): UseSearchReturn => {
         isInitialLoad.current = false;
       }
     },
-    []
-  );
-
-  // Debounced restaurant fetching
-  const debouncedFetchRestaurants = useCallback(
-    (
-      query: string,
-      gFilters: GeneralFilters,
-      bFilters: BookingFilters,
-      location: UserLocation | null,
-      favCuisines: string[] | undefined,
-      favoriteSet: Set<string>
-    ) => {
-      // Clear existing timeout
-      if (fetchTimeoutRef.current) {
-        clearTimeout(fetchTimeoutRef.current);
-      }
-
-      // Set new timeout
-      fetchTimeoutRef.current = setTimeout(() => {
-        fetchRestaurants(
-          query,
-          gFilters,
-          bFilters,
-          location,
-          favCuisines,
-          favoriteSet
-        );
-      }, 300);
-    },
-    [fetchRestaurants]
+    [userLocation]
   );
 
   // Navigation handlers
@@ -363,55 +409,44 @@ export const useSearchLogic = (): UseSearchReturn => {
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    debouncedFetchRestaurants(
-      searchQuery,
-      generalFilters,
-      bookingFilters,
-      userLocation,
-      profile?.favorite_cuisines,
-      favorites
-    );
-  }, [
-    debouncedFetchRestaurants,
-    searchQuery,
-    generalFilters,
-    bookingFilters,
-    userLocation,
-    profile?.favorite_cuisines,
-    favorites,
-  ]);
+    // The effect below will trigger the search
+  }, []);
+
+  // Debounced restaurant fetching
+  const debouncedFetchRestaurants = useCallback(
+    (
+      query: string,
+      gFilters: GeneralFilters,
+      bFilters: BookingFilters,
+      favCuisines: string[] | undefined,
+      favoriteSet: Set<string>
+    ) => {
+      // Clear existing timeout
+      if (fetchTimeoutRef.current) {
+        clearTimeout(fetchTimeoutRef.current);
+      }
+
+      // Set new timeout
+      fetchTimeoutRef.current = setTimeout(() => {
+        fetchRestaurants(query, gFilters, bFilters, favCuisines, favoriteSet);
+      }, 300);
+    },
+    [fetchRestaurants]
+  );
 
   // Initialize on mount
   useEffect(() => {
-    getUserLocation();
     fetchFavorites();
-
-    // Initial fetch after a short delay
-    const initialFetchTimeout = setTimeout(() => {
-      fetchRestaurants(
-        searchQuery,
-        generalFilters,
-        bookingFilters,
-        userLocation,
-        profile?.favorite_cuisines,
-        favorites
-      );
-      isInitialLoad.current = false;
-    }, 100);
-
-    return () => {
-      clearTimeout(initialFetchTimeout);
-    };
-  }, []);
+  }, [fetchFavorites]);
 
   // Trigger fetching when dependencies change
   useEffect(() => {
-    if (!isInitialLoad.current) {
+    // Wait for location to be loaded or confirmed as not available
+    if (!locationLoading) {
       debouncedFetchRestaurants(
         searchQuery,
         generalFilters,
         bookingFilters,
-        userLocation,
         profile?.favorite_cuisines,
         favorites
       );
@@ -427,8 +462,11 @@ export const useSearchLogic = (): UseSearchReturn => {
     generalFilters,
     bookingFilters,
     userLocation,
+    locationLoading,
     profile?.favorite_cuisines,
     favorites,
+    debouncedFetchRestaurants,
+    refreshing
   ]);
 
   // Computed values
@@ -443,7 +481,7 @@ export const useSearchLogic = (): UseSearchReturn => {
     searchState: {
       restaurants,
       favorites,
-      loading,
+      loading: loading || locationLoading,
       refreshing,
       userLocation,
       viewMode,
@@ -469,5 +507,11 @@ export const useSearchLogic = (): UseSearchReturn => {
       activeFilterCount,
       dateOptions,
     },
+    // Expose location utilities
+    location: {
+      formatDistance,
+      calculateDistance,
+      displayName: getDisplayName(),
+    }
   };
 };

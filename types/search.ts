@@ -1,23 +1,21 @@
-import { Database } from "@/types/supabase";
+// types/search.ts - Updated with location types
+import { Region } from "react-native-maps";
 
-// Core restaurant type with search-specific extensions
-export type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
-  distance?: number;
-  availableSlots?: string[];
-  isAvailable?: boolean;
-  staticCoordinates?: { lat: number; lng: number };
-};
-
-// View mode for search results
-export type ViewMode = "list" | "map";
-
-// User location interface
-export interface UserLocation {
+export interface LocationCoordinates {
   latitude: number;
   longitude: number;
 }
 
-// Booking filters interface
+export interface LocationData extends LocationCoordinates {
+  city: string;
+  district: string;
+  country: string;
+}
+
+export interface UserLocation extends LocationCoordinates {}
+
+export type ViewMode = "list" | "map";
+
 export interface BookingFilters {
   date: Date;
   time: string;
@@ -25,7 +23,6 @@ export interface BookingFilters {
   availableOnly: boolean;
 }
 
-// General filters interface
 export interface GeneralFilters {
   sortBy: "recommended" | "rating" | "distance" | "name" | "availability";
   cuisines: string[];
@@ -33,40 +30,73 @@ export interface GeneralFilters {
   priceRange: number[];
   bookingPolicy: "all" | "instant" | "request";
   minRating: number;
+  maxDistance: number
 }
 
-// Combined search state interface
+export interface Restaurant {
+  id: string;
+  name: string;
+  cuisine_type: string;
+  main_image_url: string;
+  address: string;
+  location: any; // PostGIS geography type
+  opening_time: string;
+  closing_time: string;
+  booking_policy: "instant" | "request";
+  price_range: number;
+  average_rating?: number | null;
+  total_reviews?: number | null;
+  tags?: string[] | null;
+  distance?: number | null;
+  coordinates?: LocationCoordinates | null;
+  staticCoordinates?: { lat: number; lng: number };
+  isAvailable?: boolean;
+  featured?: boolean;
+}
+
 export interface SearchState {
   restaurants: Restaurant[];
   favorites: Set<string>;
   loading: boolean;
   refreshing: boolean;
-  userLocation: UserLocation | null;
+  userLocation: LocationData | null;
   viewMode: ViewMode;
   searchQuery: string;
   bookingFilters: BookingFilters;
   generalFilters: GeneralFilters;
 }
 
-// Search hook return type
+export interface SearchActions {
+  setViewMode: (mode: ViewMode) => void;
+  setSearchQuery: (query: string) => void;
+  updateBookingFilters: (updates: Partial<BookingFilters>) => void;
+  updateGeneralFilters: (filters: GeneralFilters) => void;
+  toggleFavorite: (restaurantId: string) => Promise<void>;
+  clearAllFilters: () => void;
+  handleRefresh: () => void;
+}
+
+export interface SearchHandlers {
+  handleRestaurantPress: (restaurantId: string) => void;
+  openDirections: (restaurant: Restaurant) => Promise<void>;
+  toggleAvailableOnly: () => void;
+}
+
+export interface SearchComputed {
+  activeFilterCount: number;
+  dateOptions: Date[];
+}
+
+export interface LocationUtilities {
+  formatDistance: (distance: number | null) => string;
+  calculateDistance: (lat1: number, lon1: number, lat2: number, lon2: number) => number;
+  displayName: string;
+}
+
 export interface UseSearchReturn {
   searchState: SearchState;
-  actions: {
-    setViewMode: (mode: ViewMode) => void;
-    setSearchQuery: (query: string) => void;
-    updateBookingFilters: (updates: Partial<BookingFilters>) => void;
-    updateGeneralFilters: (filters: GeneralFilters) => void;
-    toggleFavorite: (restaurantId: string) => Promise<void>;
-    clearAllFilters: () => void;
-    handleRefresh: () => void;
-  };
-  handlers: {
-    handleRestaurantPress: (restaurantId: string) => void;
-    openDirections: (restaurant: Restaurant) => Promise<void>;
-    toggleAvailableOnly: () => void;
-  };
-  computed: {
-    activeFilterCount: number;
-    dateOptions: Date[];
-  };
+  actions: SearchActions;
+  handlers: SearchHandlers;
+  computed: SearchComputed;
+  location: LocationUtilities;
 }

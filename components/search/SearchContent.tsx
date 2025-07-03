@@ -1,3 +1,4 @@
+// components/search/SearchContent.tsx - Updated to use RestaurantMap
 import React, { useRef } from "react";
 import {
   View,
@@ -5,13 +6,14 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from "react-native";
-import MapView, { Region } from "react-native-maps";
+import { Region } from "react-native-maps";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { Muted } from "@/components/ui/typography";
 import { RestaurantSearchCard } from "./RestaurantSearchCard";
-import { RestaurantMapView } from "./RestaurantMapView";
+import { RestaurantMap } from "../maps/RestaurantMap";
+import { useLocationWithDistance } from "@/hooks/useLocationWithDistance";
 import type { Restaurant, ViewMode, BookingFilters } from "@/types/search";
 
 interface SearchContentProps {
@@ -49,7 +51,7 @@ export const SearchContent = React.memo(
     onMapRegionChange,
   }: SearchContentProps) => {
     const listRef = useRef<FlatList>(null);
-    const mapRef = useRef<MapView>(null);
+    const { location: userLocation } = useLocationWithDistance();
 
     if (loading) {
       return (
@@ -116,13 +118,22 @@ export const SearchContent = React.memo(
       );
     }
 
+    // Map view using your RestaurantMap component
     return (
-      <RestaurantMapView
-        restaurants={restaurants}
-        mapRegion={mapRegion}
-        mapRef={mapRef}
-        onRegionChangeComplete={onMapRegionChange}
+      <RestaurantMap
+        restaurants={restaurants.map(restaurant => ({
+          ...restaurant,
+          // Ensure coordinates are in the right format for RestaurantMap
+          coordinates: restaurant.staticCoordinates ? {
+            latitude: restaurant.staticCoordinates.lat,
+            longitude: restaurant.staticCoordinates.lng
+          } : restaurant.coordinates || undefined
+        }))}
+        userLocation={userLocation}
         onRestaurantPress={onRestaurantPress}
+        showUserLocation={true}
+        initialRegion={mapRegion}
+        style={{ flex: 1 }}
       />
     );
   }

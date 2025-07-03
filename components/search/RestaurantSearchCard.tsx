@@ -13,6 +13,7 @@ import {
 import { Text } from "@/components/ui/text";
 import { Image } from "@/components/image";
 import { cn } from "@/lib/utils";
+import { LocationService } from "@/lib/locationService";
 
 interface BookingFilters {
   date: Date;
@@ -33,7 +34,7 @@ type Restaurant = {
   price_range: number;
   average_rating?: number;
   total_reviews?: number;
-  distance?: number;
+  distance?: number | null;
   isAvailable?: boolean;
   tags?: string[] | null;
 };
@@ -205,13 +206,12 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
                 <Text className="text-sm">{"$".repeat(restaurant.price_range)}</Text>
               </View>
 
-              {restaurant.distance && (
+              {/* Updated distance display using LocationService */}
+              {restaurant.distance !== undefined && restaurant.distance !== null && (
                 <View className="flex-row items-center gap-1">
                   <MapPin size={14} color="#666" />
                   <Text className="text-sm text-muted-foreground">
-                    {restaurant.distance < 1
-                      ? `${(restaurant.distance * 1000).toFixed(0)}m`
-                      : `${restaurant.distance.toFixed(1)}km`}
+                    {LocationService.formatDistance(restaurant.distance)}
                   </Text>
                 </View>
               )}

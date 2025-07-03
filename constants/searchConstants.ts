@@ -1,4 +1,5 @@
-// constants/searchConstants.ts
+// constants/searchConstants.ts - Updated with distance filtering
+import { GeneralFilters, BookingFilters } from "@/types/search";
 
 // Search Configuration Constants
 export const CUISINE_TYPES = [
@@ -43,6 +44,16 @@ export const TIME_SLOTS = [
 
 export const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8];
 
+// Distance filter options
+export const DISTANCE_FILTERS = [
+  { label: "Within 1km", value: 1 },
+  { label: "Within 3km", value: 3 },
+  { label: "Within 5km", value: 5 },
+  { label: "Within 10km", value: 10 },
+  { label: "Within 20km", value: 20 },
+  { label: "Any distance", value: null },
+];
+
 // Lebanon geographic bounds for realistic coordinates
 export const LEBANON_BOUNDS = {
   north: 34.691,
@@ -61,20 +72,21 @@ export const LEBANON_BOUNDS = {
 };
 
 // Default filter values
-export const DEFAULT_BOOKING_FILTERS = {
+export const DEFAULT_BOOKING_FILTERS: BookingFilters = {
   date: new Date(),
   time: "19:00",
   partySize: 2,
   availableOnly: false,
 };
 
-export const DEFAULT_GENERAL_FILTERS = {
-  sortBy: "recommended" as const,
+export const DEFAULT_GENERAL_FILTERS: GeneralFilters = {
+  sortBy: "recommended",
   cuisines: [],
   features: [],
   priceRange: [1, 2, 3, 4],
-  bookingPolicy: "all" as const,
+  bookingPolicy: "all",
   minRating: 0,
+  maxDistance: 1000, // No distance limit by default
 };
 
 // Map Configuration

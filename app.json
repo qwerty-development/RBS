@@ -21,7 +21,10 @@
 
     "ios": {
       "supportsTablet": true,
-      "config": { "usesNonExemptEncryption": false },
+      "config": { 
+        "googleMapsApiKey": "AIzaSyDvW1iMajBuW0mqJHIyNFtDm8A7VkgkAdg",
+        "usesNonExemptEncryption": false 
+      },
       "bundleIdentifier": "com.notqwerty.booklet",
 
       "infoPlist": {
@@ -59,6 +62,12 @@
 
     "android": {
       "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png" },
+      
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCDuRjdx7YfYc0Y46fcEisE6YbY0zVY7jk"
+        }
+      },
 
       "permissions": [
         "ACCESS_COARSE_LOCATION",
@@ -81,7 +90,8 @@
       },
 
       "usesCleartextTraffic": false,
-      "networkSecurityConfig": "./network_security_config.xml"
+      "networkSecurityConfig": "./network_security_config.xml",
+      "package": "com.notqwerty.booklet"
     },
 
     "newArchEnabled": false,
@@ -94,7 +104,9 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Booklet uses your location to find nearby restaurants and provide personalized recommendations."
+          "locationAlwaysAndWhenInUsePermission": "Booklet uses your location to find nearby restaurants and provide personalized recommendations.",
+          "isIosBackgroundLocationEnabled": false,
+          "isAndroidBackgroundLocationEnabled": false
         }
       ],
       [

@@ -1,3 +1,4 @@
+// components/search/SearchHeader.tsx
 import React from "react";
 import { View, Pressable, TextInput } from "react-native";
 import {
@@ -10,6 +11,8 @@ import {
   Users,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
+import { LocationDisplay } from "./LocationDisplay";
+import { LocationTestButton } from "../debug/LocationTestButton";
 
 interface BookingFilters {
   date: Date;
@@ -51,6 +54,14 @@ export const SearchHeader = ({
 }: SearchHeaderProps) => {
   return (
     <View className="p-4 border-b border-border">
+      {/* Location Header */}
+      <View className="flex-row items-center justify-between mb-4">
+        <LocationDisplay />
+        <Text className="text-xs text-muted-foreground">
+          Tap to change location
+        </Text>
+      </View>
+
       {/* Search Input */}
       <View className="flex-row items-center gap-3 bg-muted rounded-lg px-3 py-2 mb-4">
         <SearchIcon size={20} color="#666" />
@@ -167,7 +178,8 @@ export const SearchHeader = ({
             </View>
           )}
         </Pressable>
+
       </View>
     </View>
   );
-}; 
+};
