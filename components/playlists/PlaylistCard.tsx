@@ -1,18 +1,21 @@
 // components/playlists/PlaylistCard.tsx
 import React from "react";
-import { View, Pressable, ImageBackground } from "react-native";
+import { View, Pressable, ImageBackground, ActivityIndicator } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   Users,
   Lock,
   Globe,
   ChevronRight,
+  Trash2,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { H4, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { Playlist } from "@/hooks/usePlaylists";
+import { useDeletePlaylist } from "@/hooks/useDeletePlaylist";
+import { useAuth } from "@/context/supabase-provider";
 import { cn } from "@/lib/utils";
 
 interface PlaylistCardProps {
@@ -22,6 +25,7 @@ interface PlaylistCardProps {
     user_permission?: 'view' | 'edit';
   };
   onPress: () => void;
+  onDelete?: (playlistId: string) => void;
   variant?: "grid" | "list";
   className?: string;
 }
@@ -29,11 +33,28 @@ interface PlaylistCardProps {
 export const PlaylistCard: React.FC<PlaylistCardProps> = ({
   playlist,
   onPress,
+  onDelete,
   variant = "grid",
   className,
 }) => {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
+  const { profile } = useAuth();
+  
+  const { deletePlaylist, isDeleting } = useDeletePlaylist({
+    onSuccess: (playlistId) => {
+      if (onDelete) {
+        onDelete(playlistId);
+      }
+    },
+  });
+
+  const isOwner = playlist.user_id === profile?.id;
+
+  const handleDeletePress = async (e: any) => {
+    e.stopPropagation();
+    await deletePlaylist(playlist.id, playlist.name);
+  };
 
   if (variant === "list") {
     return (
@@ -92,7 +113,23 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
           </View>
         </View>
 
-        <ChevronRight size={20} color="#6b7280" />
+        <View className="flex-row items-center gap-2">
+          {isOwner && (
+            <Pressable
+              onPress={handleDeletePress}
+              disabled={isDeleting}
+              className="p-2"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              {isDeleting ? (
+                <ActivityIndicator size="small" color="#ef4444" />
+              ) : (
+                <Trash2 size={18} color="#ef4444" />
+              )}
+            </Pressable>
+          )}
+          <ChevronRight size={20} color="#6b7280" />
+        </View>
       </Pressable>
     );
   }
@@ -144,6 +181,23 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
             </View>
           )}
         </View>
+
+        {/* Delete Button */}
+        {isOwner && (
+          <View className="absolute top-2 left-2">
+            <Pressable
+              onPress={handleDeletePress}
+              disabled={isDeleting}
+              className="bg-red-500/90 rounded-full p-1.5"
+            >
+              {isDeleting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Trash2 size={14} color="#fff" />
+              )}
+            </Pressable>
+          </View>
+        )}
       </View>
 
       {/* Content */}

@@ -24,9 +24,9 @@ import { H3, Muted } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { usePlaylists, Playlist } from "@/hooks/usePlaylists";
-import { usePlaylistItems } from "@/hooks/usePlaylistItems";
 import { CreatePlaylistModal } from "./CreatePlaylistModal";
 import { supabase } from "@/config/supabase";
+import { useAuth } from "@/context/supabase-provider";
 
 interface AddToPlaylistModalProps {
   visible: boolean;
@@ -44,6 +44,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
   onSuccess,
 }) => {
   const { colorScheme } = useColorScheme();
+  const { profile } = useAuth();
   const { playlists, createPlaylist, handleRefresh } = usePlaylists();
   const [selectedPlaylists, setSelectedPlaylists] = useState<Set<string>>(new Set());
   const [addingToPlaylists, setAddingToPlaylists] = useState(false);
@@ -100,6 +101,47 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [playlistStates]);
 
+  // Helper function to add restaurant to a single playlist
+  const addRestaurantToPlaylist = async (playlistId: string, restaurantId: string): Promise<boolean> => {
+    if (!profile?.id) return false;
+
+    try {
+      // Get current max position
+      const { data: maxPosData } = await supabase
+        .from('playlist_items')
+        .select('position')
+        .eq('playlist_id', playlistId)
+        .order('position', { ascending: false })
+        .limit(1)
+        .single();
+
+      const nextPosition = (maxPosData?.position ?? -1) + 1;
+
+      const { error } = await supabase
+        .from('playlist_items')
+        .insert({
+          playlist_id: playlistId,
+          restaurant_id: restaurantId,
+          added_by: profile.id,
+          position: nextPosition,
+          note: null
+        });
+
+      if (error) {
+        if (error.code === '23505') { // Unique constraint violation
+          console.log('Restaurant already in playlist');
+          return false;
+        }
+        throw error;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Error adding restaurant to playlist:', error);
+      return false;
+    }
+  };
+
   // Add to selected playlists
   const handleAddToPlaylists = useCallback(async () => {
     if (selectedPlaylists.size === 0) return;
@@ -110,8 +152,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
 
     try {
       for (const playlistId of selectedPlaylists) {
-        const { addRestaurant } = usePlaylistItems(playlistId);
-        const success = await addRestaurant(restaurantId);
+        const success = await addRestaurantToPlaylist(playlistId, restaurantId);
         if (success) {
           successCount++;
           const playlist = playlists.find(p => p.id === playlistId);
@@ -133,7 +174,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
     } finally {
       setAddingToPlaylists(false);
     }
-  }, [selectedPlaylists, restaurantId, playlists, onSuccess, onClose]);
+  }, [selectedPlaylists, restaurantId, playlists, onSuccess, onClose, profile?.id]);
 
   // Handle create new playlist
   const handleCreateNewPlaylist = useCallback(async (data: {

@@ -1,0 +1,140 @@
+2025-06-23 15:57:21,479 - INFO - Supabase client initialized successfully
+2025-06-23 15:57:21,502 - INFO - DEBUG: LLM initialized successfully
+2025-06-23 15:57:21,509 - INFO - DEBUG: Graph compiled successfully
+2025-06-23 15:57:21,541 - INFO - DEBUG: Testing with input: Hello, I'm looking for Italian restaurants in the area.
+2025-06-23 15:57:21,544 - INFO - DEBUG: Initial state created
+2025-06-23 15:57:21,577 - INFO - DEBUG: Current state has 1 messages
+2025-06-23 15:57:21,577 - INFO - DEBUG: Last message type: HumanMessage
+2025-06-23 15:57:21,577 - INFO - DEBUG: Last message content preview: Hello, I'm looking for Italian restaurants in the area....
+2025-06-23 15:57:21,578 - INFO - DEBUG: Full messages prepared: 2 total
+2025-06-23 15:57:23,009 - INFO - DEBUG: Response content preview: I can help with that! Let me check what Italian restaurants are available....
+2025-06-23 15:57:23,009 - INFO - DEBUG: Tool calls in response: 1
+2025-06-23 15:57:23,009 - INFO - DEBUG: Tool call 1: getRestaurantsByCuisineType
+2025-06-23 15:57:23,023 - INFO - DEBUG: Last message type: AIMessage
+2025-06-23 15:57:23,024 - INFO - DEBUG: AI message content check: I can help with that! Let me check what Italian re...
+2025-06-23 15:57:23,024 - INFO - DEBUG: Found 1 tool calls, continuing to tools
+2025-06-23 15:57:23,068 - INFO - DEBUG: Searching for restaurants with cuisine type: 'Italian'
+2025-06-23 15:57:23,646 - INFO - HTTP Request: GET https://xsovqvbigdettnpeisjs.supabase.co/rest/v1/restaurants?select=%2A&cuisine_type=eq.Italian "HTTP/2 200 OK"
+2025-06-23 15:57:23,676 - INFO - DEBUG: Supabase query executed for cuisine_type='Italian'
+2025-06-23 15:57:23,676 - INFO - DEBUG: Restaurants found: 1
+2025-06-23 15:57:23,676 - INFO - DEBUG: Restaurant 1: Luciano - ID: 660e8400-e29b-41d4-a716-446655440004
+2025-06-23 15:57:23,676 - INFO - DEBUG: Final result for getRestaurantsByCuisineType: 1625 characters
+2025-06-23 15:57:23,679 - INFO - DEBUG: Current state has 3 messages
+2025-06-23 15:57:23,679 - INFO - DEBUG: Last message type: ToolMessage
+2025-06-23 15:57:23,680 - INFO - DEBUG: Last message content preview: [{"id": "660e8400-e29b-41d4-a716-446655440004", "name": "Luciano", "description": "Elegant Italian r...
+2025-06-23 15:57:23,680 - INFO - DEBUG: Full messages prepared: 4 total
+2025-06-23 15:57:24,751 - INFO - DEBUG: Response content preview: I found one Italian restaurant for you: Luciano. It is an elegant restaurant that offers authentic N...
+2025-06-23 15:57:24,753 - INFO - DEBUG: Last message type: AIMessage
+2025-06-23 15:57:24,753 - INFO - DEBUG: AI message content check: I found one Italian restaurant for you: Luciano. I...
+2025-06-23 15:57:24,753 - INFO - DEBUG: AI message without tool calls or completion signal, ending
+2025-06-23 15:57:24,754 - INFO - DEBUG: Agent execution completed, result has 4 messages
+2025-06-23 15:57:24,754 - INFO - DEBUG: Last message type: AIMessage
+2025-06-23 15:57:24,757 - INFO - DEBUG: Initial state created
+2025-06-23 15:57:24,761 - INFO - DEBUG: Current state has 1 messages
+2025-06-23 15:57:24,761 - INFO - DEBUG: Last message type: HumanMessage
+2025-06-23 15:57:24,761 - INFO - DEBUG: Last message content preview: What cuisine types do you have available?...
+2025-06-23 15:57:24,761 - INFO - DEBUG: Full messages prepared: 2 total
+2025-06-23 15:57:25,387 - INFO - DEBUG: Response content preview: ...
+2025-06-23 15:57:25,387 - INFO - DEBUG: Tool calls in response: 1
+2025-06-23 15:57:25,387 - INFO - DEBUG: Tool call 1: getAllCuisineTypes
+2025-06-23 15:57:25,389 - INFO - DEBUG: Last message type: AIMessage
+2025-06-23 15:57:25,389 - INFO - DEBUG: AI message content check: ...
+2025-06-23 15:57:25,390 - INFO - DEBUG: Found 1 tool calls, continuing to tools
+2025-06-23 15:57:25,504 - INFO - HTTP Request: GET https://xsovqvbigdettnpeisjs.supabase.co/rest/v1/restaurants?select=cuisine_type "HTTP/2 200 OK"
+2025-06-23 15:57:25,505 - INFO - DEBUG: Supabase response status: 8
+2025-06-23 15:57:25,609 - INFO - HTTP Request: GET https://xsovqvbigdettnpeisjs.supabase.co/rest/v1/restaurants?select=cuisine_type "HTTP/2 200 OK"
+2025-06-23 15:57:25,610 - INFO - DEBUG: Raw cuisine types data retrieved
+2025-06-23 15:57:25,611 - INFO - Data: [{'cuisine_type': 'Japanese'}, {'cuisine_type': 'Lebanese'}, {'cuisine_type': 'Lebanese'}, {'cuisine_type': 'Seafood'}, {'cuisine_type': 'Lebanese'}, {'cuisine_type': 'Italian'}, {'cuisine_type': 'French'}, {'cuisine_type': 'American'}]
+2025-06-23 15:57:25,611 - INFO - DEBUG: Unique cuisine types processed: ['Lebanese', 'Italian', 'Japanese', 'Seafood', 'American', 'French']
+2025-06-23 15:57:25,611 - INFO - DEBUG: Final result for getAllCuisineTypes: ["Lebanese", "Italian", "Japanese", "Seafood", "American", "French"]
+2025-06-23 15:57:25,615 - INFO - DEBUG: Current state has 3 messages
+2025-06-23 15:57:25,615 - INFO - DEBUG: Last message type: ToolMessage
+2025-06-23 15:57:25,615 - INFO - DEBUG: Last message content preview: ["Lebanese", "Italian", "Japanese", "Seafood", "American", "French"]...
+2025-06-23 15:57:25,615 - INFO - DEBUG: Full messages prepared: 4 total
+2025-06-23 15:57:26,318 - INFO - DEBUG: Response content preview: We have Lebanese, Italian, Japanese, Seafood, American, and French cuisine types available....
+2025-06-23 15:57:26,320 - INFO - DEBUG: Last message type: AIMessage
+2025-06-23 15:57:26,320 - INFO - DEBUG: AI message content check: We have Lebanese, Italian, Japanese, Seafood, Amer...
+2025-06-23 15:57:26,320 - INFO - DEBUG: AI message without tool calls or completion signal, ending
+2025-06-23 15:57:26,321 - INFO - DEBUG: Agent execution completed, result has 4 messages
+2025-06-23 15:57:26,321 - INFO - DEBUG: Last message type: AIMessage
+2025-06-23 15:57:26,324 - INFO - DEBUG: Initial state created
+2025-06-23 15:57:26,327 - INFO - DEBUG: Current state has 1 messages
+2025-06-23 15:57:26,327 - INFO - DEBUG: Last message type: HumanMessage
+2025-06-23 15:57:26,327 - INFO - DEBUG: Last message content preview: Show me Italian restaurants...
+2025-06-23 15:57:26,327 - INFO - DEBUG: Full messages prepared: 2 total
+2025-06-23 15:57:27,208 - INFO - DEBUG: Response content preview: I can help you with that! I will retrieve the Italian restaurants for you.
+RESTAURANTS_TO_SHOW: rest...
+2025-06-23 15:57:27,210 - INFO - DEBUG: Last message type: AIMessage
+2025-06-23 15:57:27,210 - INFO - DEBUG: AI message content check: I can help you with that! I will retrieve the Ital...
+2025-06-23 15:57:27,210 - INFO - DEBUG: AI message without tool calls or completion signal, ending
+2025-06-23 15:57:27,210 - INFO - DEBUG: Agent execution completed, result has 2 messages
+2025-06-23 15:57:27,211 - INFO - DEBUG: Last message type: AIMessage
+2025-06-23 15:57:27,214 - INFO - DEBUG: Initial state created
+2025-06-23 15:57:27,218 - INFO - DEBUG: Current state has 1 messages
+2025-06-23 15:57:27,218 - INFO - DEBUG: Last message type: HumanMessage
+2025-06-23 15:57:27,218 - INFO - DEBUG: Last message content preview: What restaurants do you recommend for a romantic dinner?...
+2025-06-23 15:57:27,218 - INFO - DEBUG: Full messages prepared: 2 total
+2025-06-23 15:57:28,085 - INFO - DEBUG: Response content preview: I need a bit more information to provide a tailored recommendation. What kind of cuisine are you int...
+2025-06-23 15:57:28,087 - INFO - DEBUG: Last message type: AIMessage
+2025-06-23 15:57:28,087 - INFO - DEBUG: AI message content check: I need a bit more information to provide a tailore...
+2025-06-23 15:57:28,087 - INFO - DEBUG: AI message without tool calls or completion signal, ending
+2025-06-23 15:57:28,087 - INFO - DEBUG: Agent execution completed, result has 2 messages
+2025-06-23 15:57:28,088 - INFO - DEBUG: Last message type: AIMessage
+2025-06-23 15:57:28,091 - INFO - DEBUG: Initial state created
+2025-06-23 15:57:28,093 - INFO - DEBUG: Current state has 1 messages
+2025-06-23 15:57:28,093 - INFO - DEBUG: Last message type: HumanMessage
+2025-06-23 15:57:28,094 - INFO - DEBUG: Last message content preview: Do you have any restaurants with outdoor seating?...
+2025-06-23 15:57:28,094 - INFO - DEBUG: Full messages prepared: 2 total
+2025-06-23 15:57:28,888 - INFO - DEBUG: Response content preview: I do not have the ability to filter restaurants based on features such as outdoor seating. However, ...
+2025-06-23 15:57:28,890 - INFO - DEBUG: Last message type: AIMessage
+2025-06-23 15:57:28,890 - INFO - DEBUG: AI message content check: I do not have the ability to filter restaurants ba...
+2025-06-23 15:57:28,890 - INFO - DEBUG: AI message without tool calls or completion signal, ending
+2025-06-23 15:57:28,890 - INFO - DEBUG: Agent execution completed, result has 2 messages
+2025-06-23 15:57:28,890 - INFO - DEBUG: Last message type: AIMessage
+2025-06-23 15:57:28,893 - INFO - DEBUG: Initial state created
+2025-06-23 15:57:28,896 - INFO - DEBUG: Current state has 1 messages
+2025-06-23 15:57:28,896 - INFO - DEBUG: Last message type: HumanMessage
+2025-06-23 15:57:28,897 - INFO - DEBUG: Last message content preview: Can you help me write Python code?...
+2025-06-23 15:57:28,897 - INFO - DEBUG: Full messages prepared: 2 total
+2025-06-23 15:57:29,744 - INFO - DEBUG: Response content preview: I am sorry, I cannot help with that, but I can help you find a restaurant. What type of cuisine are ...
+2025-06-23 15:57:29,745 - INFO - DEBUG: Last message type: AIMessage
+2025-06-23 15:57:29,745 - INFO - DEBUG: AI message content check: I am sorry, I cannot help with that, but I can hel...
+2025-06-23 15:57:29,746 - INFO - DEBUG: AI message without tool calls or completion signal, ending
+2025-06-23 15:57:29,746 - INFO - DEBUG: Agent execution completed, result has 2 messages
+2025-06-23 15:57:29,746 - INFO - DEBUG: Last message type: AIMessage
+2025-06-26 13:57:15,768 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.11.115:5000
+2025-06-26 13:57:15,769 - INFO - [33mPress CTRL+C to quit[0m
+2025-06-26 13:58:07,116 - INFO - 192.168.11.115 - - [26/Jun/2025 13:58:07] "[33mGET / HTTP/1.1[0m" 404 -
+2025-06-26 13:58:08,148 - INFO - 192.168.11.115 - - [26/Jun/2025 13:58:08] "[33mGET /favicon.ico HTTP/1.1[0m" 404 -
+2025-06-26 14:02:04,798 - ERROR - Error in chat endpoint: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-06-26 14:02:04,799 - INFO - 192.168.11.115 - - [26/Jun/2025 14:02:04] "[35m[1mPOST /api/chat?message=Hi%20,%20how%20are%20you%20 HTTP/1.1[0m" 500 -
+2025-06-26 14:03:13,715 - INFO - 192.168.11.115 - - [26/Jun/2025 14:03:13] "[31m[1mPOST /api/chat?message=Hi%20,%20how%20are%20you%20 HTTP/1.1[0m" 400 -
+2025-06-26 14:03:41,307 - INFO - 192.168.11.115 - - [26/Jun/2025 14:03:41] "[33mPOST /api/chat%20 HTTP/1.1[0m" 404 -
+2025-06-26 14:08:53,307 - ERROR - Error in chat endpoint: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-06-26 14:08:53,308 - INFO - 127.0.0.1 - - [26/Jun/2025 14:08:53] "[35m[1mPOST /api/chat HTTP/1.1[0m" 500 -
+2025-06-26 14:09:41,251 - ERROR - Error in chat endpoint: 415 Unsupported Media Type: Did not attempt to load JSON data because the request Content-Type was not 'application/json'.
+2025-06-26 14:09:41,251 - INFO - 127.0.0.1 - - [26/Jun/2025 14:09:41] "[35m[1mPOST /api/chat HTTP/1.1[0m" 500 -
+2025-06-26 14:12:24,662 - ERROR - Error in chat endpoint: 400 Bad Request: The browser (or proxy) sent a request that this server could not understand.
+2025-06-26 14:12:24,663 - INFO - 127.0.0.1 - - [26/Jun/2025 14:12:24] "[35m[1mPOST /api/chat HTTP/1.1[0m" 500 -
+2025-06-26 14:13:03,339 - INFO - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://192.168.11.115:5000
+2025-06-26 14:13:03,340 - INFO - [33mPress CTRL+C to quit[0m
+2025-06-26 14:13:12,292 - ERROR - Error in chat endpoint: 400 Bad Request: The browser (or proxy) sent a request that this server could not understand.
+2025-06-26 14:13:12,294 - INFO - 127.0.0.1 - - [26/Jun/2025 14:13:12] "[35m[1mPOST /api/chat HTTP/1.1[0m" 500 -
+2025-06-26 14:15:02,745 - INFO - Received message from session optional_session_id: user message here
+2025-06-26 14:15:07,388 - INFO - AI response for session optional_session_id: Hello! How can I help you with your restaurant search today? 
+2025-06-26 14:15:07,389 - INFO - 127.0.0.1 - - [26/Jun/2025 14:15:07] "POST /api/chat HTTP/1.1" 200 -
+2025-06-26 15:20:37,844 - INFO - Received message from session optional_session_id: user message here
+2025-06-26 15:20:38,434 - INFO - AI response for session optional_session_id: Hello! How can I help you with your restaurant search today? 
+2025-06-26 15:20:38,436 - INFO - 127.0.0.1 - - [26/Jun/2025 15:20:38] "POST /api/chat HTTP/1.1" 200 -
+2025-06-26 15:21:51,271 - INFO - Received message from session optional_session_id: What are the restaurants available
+2025-06-26 15:21:52,048 - INFO - HTTP Request: GET https://xsovqvbigdettnpeisjs.supabase.co/rest/v1/restaurants?select=id%2Cname%2Cdescription%2Caddress%2Ctags%2Copening_time%2Cclosing_time%2Ccuisine_type%2Cprice_range%2Caverage_rating%2Cdietary_options%2Cambiance_tags%2Coutdoor_seating%2Cai_featured "HTTP/2 200 OK"
+2025-06-26 15:21:52,970 - INFO - AI response for session optional_session_id: I found the following restaurants for you:
+
+RESTAURANTS_TO_SHOW: 660e8400-e29b-41d4-a716-446655440003,660e8400-e29b-41d4-a716-446655440005,660e8400-e29b-41d4-a716-446655440001,660e8400-e29b-41d4-a716-446655440008,660e8400-e29b-41d4-a716-446655440002,660e8400-e29b-41d4-a716-446655440004,660e8400-e29b-41d4-a716-446655440006,660e8400-e29b-41d4-a716-446655440007
+2025-06-26 15:21:52,972 - INFO - 127.0.0.1 - - [26/Jun/2025 15:21:52] "POST /api/chat HTTP/1.1" 200 -

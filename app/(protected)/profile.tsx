@@ -1,20 +1,9 @@
-// app/(protected)/profile.tsx - Integrated with Rating System
-import React from "react";
-import { View, ScrollView, RefreshControl, Pressable } from "react-native";
+// app/(protected)/profile.tsx
+import React, { useState, useCallback } from "react";
+import { View, ScrollView, RefreshControl, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
-import { ActivityIndicator } from "react-native";
+import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
-import { ProfileSocialStats } from "@/components/profile/ProfileSocialStats";
-import { SafeAreaView } from "@/components/safe-area-view";
-import { useColorScheme } from "@/lib/useColorScheme";
-import { ProfileHeader } from "@/components/profile/ProfileHeader";
-import { ProfileStatusCards } from "@/components/profile/ProfileStatusCards";
-import { ProfileStatsGrid } from "@/components/profile/ProfileStatsGrid";
-import { ProfileFavoritesInsights } from "@/components/profile/ProfileFavoritesInsights";
-import { ProfileRatingInsights } from "@/components/profile/ProfileRatingInsights";
-import { useProfileData } from "@/hooks/useProfileData";
-import { Text } from "@/components/ui/text";
-// Import all icons used in menuSections
 import {
   Edit3,
   BarChart3,
@@ -35,7 +24,18 @@ import {
   UserPlus,
   MessageCircle,
   Award,
+  Bot,
 } from "lucide-react-native";
+
+import { SafeAreaView } from "@/components/safe-area-view";
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
+import { H2, H3, P, Muted } from "@/components/ui/typography";
+import { Image } from "@/components/image";
+import { supabase } from "@/config/supabase";
+import { useColorScheme } from "@/lib/useColorScheme";
+import { useAuth } from "@/context/supabase-provider";
+import { useUserRating } from "@/hooks/useUserRating";
 
 // Add index signature for iconMap
 const iconMap: { [key: string]: any } = {
@@ -57,39 +57,15 @@ const iconMap: { [key: string]: any } = {
   UserPlus,
   MessageCircle,
   Award,
+  Bot,
 };
-
-// Add type for menu item
-
-// 1. Enhanced Type Definitions for Profile Analytics
-interface ProfileStats {
-  totalBookings: number;
-  completedBookings: number;
-  cancelledBookings: number;
-  upcomingBookings: number;
-  favoriteRestaurants: number;
-  totalReviews: number;
-  averageSpending: number;
-  mostVisitedCuisine: string;
-  mostVisitedRestaurant: {
-    id: string;
-    name: string;
-    visits: number;
-  } | null;
-  diningStreak: number;
-  memberSince: string;
-  // Enhanced: Friends functionality
-  totalFriends: number;
-  pendingFriendRequests: number;
-  recentFriendActivity: number;
-}
 
 interface MenuItem {
   id: string;
   title: string;
   subtitle?: string;
   icon: string;
-  onPress: () => any;
+  onPress: () => void;
   showBadge?: boolean;
   badgeText?: string;
   badgeColor?: string;
@@ -99,40 +75,247 @@ interface MenuItem {
 export default function ProfileScreen() {
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-  const {
-    profile,
-    user,
-    stats,
-    loading,
-    refreshing,
-    uploadingAvatar,
-    ratingStats,
-    ratingLoading,
-    currentRating,
-    handleAvatarUpload,
-    handleRefresh,
-    calculateTierProgress,
-    LOYALTY_TIERS,
-    menuSections,
-  } = useProfileData();
+  const { profile, signOut } = useAuth();
+  const userRating = useUserRating();
+  
+  const [refreshing, setRefreshing] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator
-            size="large"
-            color={colorScheme === "dark" ? "#fff" : "#000"}
-          />
-        </View>
-      </SafeAreaView>
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await userRating.refresh();
+    setRefreshing(false);
+  }, [userRating]);
+
+  const handleSignOut = useCallback(async () => {
+    Alert.alert(
+      "Sign Out",
+      "Are you sure you want to sign out?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Sign Out",
+          style: "destructive",
+          onPress: async () => {
+            await signOut();
+            router.replace("/sign-in");
+          },
+        },
+      ]
     );
-  }
+  }, [signOut, router]);
 
-  const tierProgress = calculateTierProgress();
+  const pickImage = useCallback(async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      setUploadingAvatar(true);
+      try {
+        const image = result.assets[0];
+        const fileExt = image.uri.split('.').pop();
+        const fileName = `${Math.random()}.${fileExt}`;
+        const filePath = `avatars/${fileName}`;
+
+        const formData = new FormData();
+        formData.append('file', {
+          uri: image.uri,
+          type: `image/${fileExt}`,
+          name: fileName,
+        } as any);
+
+        const { error: uploadError } = await supabase.storage
+          .from('avatars')
+          .upload(filePath, formData);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('avatars')
+          .getPublicUrl(filePath);
+
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ avatar_url: publicUrl })
+          .eq('id', profile?.id);
+
+        if (updateError) throw updateError;
+
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } catch (error) {
+        console.error('Error uploading avatar:', error);
+        Alert.alert('Error', 'Failed to upload avatar');
+      } finally {
+        setUploadingAvatar(false);
+      }
+    }
+  }, [profile?.id]);
+
+  const menuSections: { title: string; items: MenuItem[] }[] = [
+    {
+      title: "Account",
+      items: [
+        {
+          id: "edit-profile",
+          title: "Edit Profile",
+          subtitle: "Update your personal information",
+          icon: "Edit3",
+          onPress: () => router.push("/profile/edit"),
+        },
+        {
+          id: "notifications",
+          title: "Notifications",
+          subtitle: "Manage your notification preferences",
+          icon: "Bell",
+          onPress: () => router.push("/profile/notifications"),
+        },
+        {
+          id: "preferences",
+          title: "Preferences",
+          subtitle: "Customize your experience",
+          icon: "Star",
+          onPress: () => router.push("/profile/preferences"),
+        },
+      ],
+    },
+    {
+      title: "Activity",
+      items: [
+        {
+          id: "insights",
+          title: "My Insights",
+          subtitle: "View your dining analytics",
+          icon: "BarChart3",
+          onPress: () => router.push("/profile/insights"),
+        },
+        {
+          id: "reviews",
+          title: "My Reviews",
+          subtitle: "Reviews you've written",
+          icon: "MessageCircle",
+          onPress: () => router.push("/profile/reviews"),
+        },
+        {
+          id: "loyalty",
+          title: "Loyalty & Rewards",
+          subtitle: `${profile?.loyalty_points || 0} points available`,
+          icon: "Trophy",
+          onPress: () => router.push("/profile/loyalty"),
+        },
+      ],
+    },
+    {
+      title: "Social",
+      items: [
+        {
+          id: "friends",
+          title: "Friends",
+          subtitle: "Manage your connections",
+          icon: "Users",
+          onPress: () => router.push("/friends"),
+        },
+      ],
+    },
+    {
+      title: "Support",
+      items: [
+        {
+          id: "help",
+          title: "Help & Support",
+          subtitle: "Get help when you need it",
+          icon: "HelpCircle",
+          onPress: () => router.push("/profile/help"),
+        },
+        {
+          id: "privacy",
+          title: "Privacy Policy",
+          subtitle: "Learn how we protect your data",
+          icon: "Shield",
+          onPress: () => router.push("/profile/privacy"),
+        },
+      ],
+    },
+    {
+      title: "Account Actions",
+      items: [
+        {
+          id: "sign-out",
+          title: "Sign Out",
+          icon: "LogOut",
+          onPress: handleSignOut,
+          destructive: true,
+        },
+      ],
+    },
+  ];
+
+  const renderMenuItem = (item: MenuItem) => {
+    const IconComponent = iconMap[item.icon];
+
+    return (
+      <Pressable
+        key={item.id}
+        onPress={item.onPress}
+        className={`flex-row items-center justify-between p-4 bg-card border-b border-border/50 ${
+          item.destructive ? "bg-red-50 dark:bg-red-950/20" : ""
+        }`}
+        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
+      >
+        <View className="flex-row items-center flex-1">
+          <View
+            className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${
+              item.destructive
+                ? "bg-red-100 dark:bg-red-900/30"
+                : "bg-muted"
+            }`}
+          >
+            <IconComponent
+              size={20}
+              color={
+                item.destructive
+                  ? "#ef4444"
+                  : colorScheme === "dark"
+                  ? "#fff"
+                  : "#000"
+              }
+            />
+          </View>
+          <View className="flex-1">
+            <Text
+              className={`font-medium ${
+                item.destructive ? "text-red-600 dark:text-red-400" : ""
+              }`}
+            >
+              {item.title}
+            </Text>
+            {item.subtitle && (
+              <Muted className="text-sm mt-0.5">{item.subtitle}</Muted>
+            )}
+          </View>
+          {item.showBadge && item.badgeText && (
+            <View
+              className="px-2 py-1 rounded-full mr-2"
+              style={{ backgroundColor: item.badgeColor || "#ef4444" }}
+            >
+              <Text className="text-white text-xs font-medium">
+                {item.badgeText}
+              </Text>
+            </View>
+          )}
+        </View>
+        {!item.destructive && (
+          <ChevronRight size={20} color="#666" />
+        )}
+      </Pressable>
+    );
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+    <SafeAreaView className="flex-1 bg-background">
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -143,115 +326,66 @@ export default function ProfileScreen() {
           />
         }
       >
-        <ProfileHeader
-          profile={profile}
-          user={user}
-          stats={stats}
-          ratingStats={ratingStats ?? undefined}
-          currentRating={currentRating}
-          ratingLoading={ratingLoading}
-          uploadingAvatar={uploadingAvatar}
-          onAvatarUpload={handleAvatarUpload}
-        />
-        <ProfileStatusCards
-          profile={profile}
-          loyaltyTiers={LOYALTY_TIERS}
-          tierProgress={tierProgress}
-          ratingStats={ratingStats ?? undefined}
-          currentRating={currentRating}
-          ratingLoading={ratingLoading}
-        />
-        <ProfileStatsGrid
-          stats={stats}
-          loyaltyPoints={profile?.loyalty_points || 0}
-          loyaltyTierColor={
-            LOYALTY_TIERS[profile?.membership_tier || "bronze"].color
-          }
-        />
-        <ProfileFavoritesInsights
-          mostVisitedCuisine={stats.mostVisitedCuisine}
-          mostVisitedRestaurant={stats.mostVisitedRestaurant}
-        />
+        {/* Header */}
+        <View className="items-center py-8 px-4 bg-card border-b border-border">
+          <Pressable onPress={pickImage} disabled={uploadingAvatar}>
+            <View className="relative">
+              <Image
+                source={
+                  profile?.avatar_url
+                    ? { uri: profile.avatar_url }
+                    : require("@/assets/default-avatar.jpeg")
+                }
+                style={{
+                  width: 100,
+                  height: 100,
+                  borderRadius: 50,
+                  borderWidth: 3,
+                  borderColor: colorScheme === "dark" ? "#333" : "#e5e5e5",
+                }}
+                contentFit="cover"
+              />
+              {uploadingAvatar && (
+                <View className="absolute inset-0 bg-black/50 rounded-full items-center justify-center">
+                  <Text className="text-white text-xs">Uploading...</Text>
+                </View>
+              )}
+              <View className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full items-center justify-center border-2 border-background">
+                <Edit3 size={16} color="white" />
+              </View>
+            </View>
+          </Pressable>
 
-    <ProfileSocialStats />
-        {ratingStats && (
-          <ProfileRatingInsights
-            ratingStats={ratingStats}
-            currentRating={currentRating}
-            onPress={() => router.push("/profile/rating-details")}
-          />
-        )}
+          <H2 className="mt-4 text-center">
+            {profile?.full_name || "Loading..."}
+          </H2>
+          
+          {/* Rating Display */}
+          <View className="flex-row items-center mt-3 px-3 py-1.5 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
+            <Star size={16} color="#f59e0b" fill="#f59e0b" />
+            <Text className="ml-1 font-medium text-yellow-700 dark:text-yellow-300">
+              {userRating.currentRating.toFixed(1)} Rating
+            </Text>
+          </View>
+
+          <Text className="text-center mt-2 text-sm text-muted-foreground">
+            {profile?.loyalty_points || 0} loyalty points
+          </Text>
+        </View>
+
         {/* Menu Sections */}
-        {menuSections(router).map((section, sectionIndex) => (
-          <View key={sectionIndex} className="mb-6">
-            {section.title && (
-              <Text className="text-sm font-semibold text-muted-foreground uppercase px-4 mb-2">
-                {section.title}
-              </Text>
-            )}
-            <View className="bg-card mx-4 rounded-xl overflow-hidden">
-              {section.items.map((item: MenuItem, itemIndex: number) => {
-                const Icon = iconMap[item.icon] || Edit3;
-                return (
-                  <Pressable
-                    key={item.id}
-                    onPress={async () => {
-                      await Haptics.impactAsync(
-                        Haptics.ImpactFeedbackStyle.Light
-                      );
-                      item.onPress();
-                    }}
-                    className={`flex-row items-center px-4 py-4 ${itemIndex < section.items.length - 1 ? "border-b border-border" : ""}`}
-                    style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-                  >
-                    <View
-                      className={`w-10 h-10 rounded-full items-center justify-center ${item.destructive ? "bg-destructive/10" : "bg-muted"}`}
-                    >
-                      <Icon
-                        size={20}
-                        color={item.destructive ? "#ef4444" : "#666"}
-                      />
-                    </View>
-                    <View className="flex-1 ml-3">
-                      <Text
-                        className={`font-medium ${item.destructive ? "text-destructive" : ""}`}
-                      >
-                        {item.title}
-                      </Text>
-                      {item.subtitle && (
-                        <Text className="text-sm text-muted-foreground">
-                          {item.subtitle}
-                        </Text>
-                      )}
-                    </View>
-                    <View className="flex-row items-center gap-2">
-                      {item.showBadge && item.badgeText && (
-                        <View
-                          className="px-2 py-1 rounded-full"
-                          style={{
-                            backgroundColor: item.badgeColor || "#3b82f6",
-                          }}
-                        >
-                          <Text className="text-xs text-white font-medium">
-                            {item.badgeText}
-                          </Text>
-                        </View>
-                      )}
-                      <ChevronRight size={20} color="#666" />
-                    </View>
-                  </Pressable>
-                );
-              })}
+        {menuSections.map((section) => (
+          <View key={section.title} className="mt-6">
+            <H3 className="px-4 mb-3 text-lg font-semibold">
+              {section.title}
+            </H3>
+            <View className="bg-card border-t border-b border-border">
+              {section.items.map(renderMenuItem)}
             </View>
           </View>
         ))}
-        {/* Footer */}
-        <View className="items-center pb-8">
-          <Text className="text-xs text-muted-foreground">Version 1.0.0</Text>
-          <Text className="text-xs text-muted-foreground">
-            © 2024 TableReserve
-          </Text>
-        </View>
+
+        <View className="h-8" />
       </ScrollView>
     </SafeAreaView>
   );

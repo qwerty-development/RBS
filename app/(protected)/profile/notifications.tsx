@@ -139,7 +139,7 @@ export default function NotificationsScreen() {
       case "booking":
         if (notification.data?.bookingId) {
           router.push({
-            pathname: "/(protected)/(tabs)/bookings",
+            pathname: "/bookings",
             params: { highlightBookingId: notification.data.bookingId }
           });
         }
@@ -148,13 +148,13 @@ export default function NotificationsScreen() {
       case "review":
         if (notification.data?.restaurantId) {
           router.push({
-            pathname: "/(protected)/restaurant/[id]",
+            pathname: "/restaurant/[id]",
             params: { id: notification.data.restaurantId }
           });
         }
         break;
       case "loyalty":
-        router.push("/(protected)/(tabs)/profile");
+        router.push("/profile");
         break;
       default:
         break;

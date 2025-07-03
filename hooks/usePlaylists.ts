@@ -216,26 +216,7 @@ export const usePlaylists = () => {
     }
   }, [fetchPlaylists]);
 
-  // Delete a playlist
-  const deletePlaylist = useCallback(async (playlistId: string): Promise<boolean> => {
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
-      const { error } = await supabase
-        .from('restaurant_playlists')
-        .delete()
-        .eq('id', playlistId);
-
-      if (error) throw error;
-
-      setPlaylists(prev => prev.filter(p => p.id !== playlistId));
-      return true;
-    } catch (error) {
-      console.error('Error deleting playlist:', error);
-      Alert.alert('Error', 'Failed to delete playlist');
-      return false;
-    }
-  }, []);
 
   // Refresh handler
   const handleRefresh = useCallback(async () => {
@@ -254,7 +235,6 @@ export const usePlaylists = () => {
     fetchPlaylists,
     createPlaylist,
     updatePlaylist,
-    deletePlaylist,
     handleRefresh
   };
 };
