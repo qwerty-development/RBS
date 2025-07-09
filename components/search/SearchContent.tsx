@@ -11,7 +11,7 @@ import { Region } from "react-native-maps";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { Muted } from "@/components/ui/typography";
-import { RestaurantSearchCard } from "./RestaurantSearchCard";
+import { MinimalRestaurantSearchCard } from "./MinimalRestaurantSearchCard";
 import { RestaurantMap } from "../maps/RestaurantMap";
 import { useLocationWithDistance } from "@/hooks/useLocationWithDistance";
 import type { Restaurant, ViewMode, BookingFilters } from "@/types/search";
@@ -73,12 +73,11 @@ export const SearchContent = React.memo(
           ref={listRef}
           data={restaurants}
           renderItem={({ item }) => (
-            <RestaurantSearchCard
+            <MinimalRestaurantSearchCard
               item={item}
               bookingFilters={bookingFilters}
               favorites={favorites}
               onToggleFavorite={onToggleFavorite}
-              onDirections={onDirections}
               onPress={() => onRestaurantPress(item.id)}
             />
           )}
@@ -110,8 +109,8 @@ export const SearchContent = React.memo(
           windowSize={10}
           initialNumToRender={5}
           getItemLayout={(data, index) => ({
-            length: 200,
-            offset: 200 * index,
+            length: 270,
+            offset: 270 * index,
             index,
           })}
         />
@@ -121,13 +120,15 @@ export const SearchContent = React.memo(
     // Map view using your RestaurantMap component
     return (
       <RestaurantMap
-        restaurants={restaurants.map(restaurant => ({
+        restaurants={restaurants.map((restaurant) => ({
           ...restaurant,
           // Ensure coordinates are in the right format for RestaurantMap
-          coordinates: restaurant.staticCoordinates ? {
-            latitude: restaurant.staticCoordinates.lat,
-            longitude: restaurant.staticCoordinates.lng
-          } : restaurant.coordinates || undefined
+          coordinates: restaurant.staticCoordinates
+            ? {
+                latitude: restaurant.staticCoordinates.lat,
+                longitude: restaurant.staticCoordinates.lng,
+              }
+            : restaurant.coordinates || undefined,
         }))}
         userLocation={userLocation}
         onRestaurantPress={onRestaurantPress}

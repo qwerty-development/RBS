@@ -30,7 +30,7 @@ export interface GeneralFilters {
   priceRange: number[];
   bookingPolicy: "all" | "instant" | "request";
   minRating: number;
-  maxDistance: number
+  maxDistance: number | null;
 }
 
 export interface Restaurant {
