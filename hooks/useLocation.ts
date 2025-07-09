@@ -39,7 +39,7 @@ export function useLocation() {
   const getCurrentLocation = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       // Check for stored location first
       const storedLocation = await getStoredLocation();
       if (storedLocation) {

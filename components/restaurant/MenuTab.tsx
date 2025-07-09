@@ -2,8 +2,7 @@ import React from "react";
 import { View, Pressable, Linking } from "react-native";
 import { Menu } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
-import { H3 } from "@/components/ui/typography";
-import { Muted } from "@/components/ui/typography";
+import { H3, Muted } from "@/components/ui/typography";
 import { Database } from "@/types/supabase";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];

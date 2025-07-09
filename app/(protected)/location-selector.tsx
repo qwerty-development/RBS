@@ -102,14 +102,21 @@ interface LocationGroup {
 
 export default function LocationSelectorScreen() {
   const router = useRouter();
-  const { location: currentLocation, updateLocation, loading } = useLocationWithDistance();
+  const {
+    location: currentLocation,
+    updateLocation,
+    loading,
+  } = useLocationWithDistance();
   const [updating, setUpdating] = useState(false);
 
-  const handleSelectDistrict = async (city: string, district: LocationOption) => {
+  const handleSelectDistrict = async (
+    city: string,
+    district: LocationOption,
+  ) => {
     if (updating) return;
-    
+
     setUpdating(true);
-    
+
     const newLocation: LocationData = {
       latitude: district.lat,
       longitude: district.lng,
@@ -117,7 +124,7 @@ export default function LocationSelectorScreen() {
       district: district.name,
       country: "Lebanon",
     };
-    
+
     try {
       await updateLocation(newLocation);
       router.back();
@@ -131,9 +138,9 @@ export default function LocationSelectorScreen() {
 
   const handleUseCurrentLocation = async () => {
     if (updating) return;
-    
+
     setUpdating(true);
-    
+
     try {
       const currentLoc = await LocationService.getCurrentLocation();
       await updateLocation(currentLoc);
@@ -147,7 +154,10 @@ export default function LocationSelectorScreen() {
   };
 
   const isCurrentlySelected = (city: string, districtName: string) => {
-    return currentLocation?.city === city && currentLocation?.district === districtName;
+    return (
+      currentLocation?.city === city &&
+      currentLocation?.district === districtName
+    );
   };
 
   const renderLocationGroup = ({ item }: { item: LocationGroup }) => (
@@ -157,23 +167,29 @@ export default function LocationSelectorScreen() {
       </Text>
       {item.districts.map((district) => {
         const isSelected = isCurrentlySelected(item.city, district.name);
-        
+
         return (
           <Pressable
             key={`${item.city}-${district.name}`}
             onPress={() => handleSelectDistrict(item.city, district)}
             disabled={updating}
             className={`flex-row items-center justify-between px-4 py-4 mx-4 mb-2 rounded-lg ${
-              isSelected ? "bg-primary/10 border border-primary" : "bg-card border border-border"
+              isSelected
+                ? "bg-primary/10 border border-primary"
+                : "bg-card border border-border"
             } ${updating ? "opacity-50" : ""}`}
           >
             <View className="flex-row items-center gap-3">
               <MapPin size={20} color={isSelected ? "#3b82f6" : "#666"} />
               <View>
-                <Text className={`font-medium ${isSelected ? "text-primary" : ""}`}>
+                <Text
+                  className={`font-medium ${isSelected ? "text-primary" : ""}`}
+                >
                   {district.name}
                 </Text>
-                <Text className="text-sm text-muted-foreground">{item.city}</Text>
+                <Text className="text-sm text-muted-foreground">
+                  {item.city}
+                </Text>
               </View>
             </View>
             {isSelected && <Check size={20} color="#3b82f6" />}
@@ -208,13 +224,15 @@ export default function LocationSelectorScreen() {
       {/* Current Selection Display */}
       {currentLocation && (
         <View className="px-4 py-3 bg-muted/30">
-          <Text className="text-sm text-muted-foreground">Current location:</Text>
+          <Text className="text-sm text-muted-foreground">
+            Current location:
+          </Text>
           <Text className="font-medium">
             {LocationService.getLocationDisplayName(currentLocation)}
           </Text>
         </View>
       )}
-      
+
       <FlatList
         data={LEBANESE_LOCATIONS}
         renderItem={renderLocationGroup}

@@ -22,12 +22,14 @@ export const LocationDisplay: React.FC<LocationDisplayProps> = ({
     return (
       <View className={`flex-row items-center gap-2 ${className}`}>
         <MapPin size={16} color="#666" />
-        <Text className="text-sm text-muted-foreground">Loading location...</Text>
+        <Text className="text-sm text-muted-foreground">
+          Loading location...
+        </Text>
       </View>
     );
   }
 
-  const displayName = location 
+  const displayName = location
     ? LocationService.getLocationDisplayName(location)
     : "Select location";
 
@@ -35,7 +37,7 @@ export const LocationDisplay: React.FC<LocationDisplayProps> = ({
     return (
       <View className={`flex-row items-center gap-2 ${className}`}>
         <MapPin size={16} color="#666" />
-        <Text 
+        <Text
           className={`text-sm font-medium ${location ? "text-foreground" : "text-muted-foreground"}`}
           numberOfLines={1}
         >
@@ -52,7 +54,7 @@ export const LocationDisplay: React.FC<LocationDisplayProps> = ({
       triggerComponent={
         <View className={`flex-row items-center gap-2 ${className}`}>
           <MapPin size={16} color="#666" />
-          <Text 
+          <Text
             className={`text-sm font-medium ${location ? "text-foreground" : "text-muted-foreground"}`}
             numberOfLines={1}
           >

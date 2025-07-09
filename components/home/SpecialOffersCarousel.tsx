@@ -1,10 +1,10 @@
 // components/home/SpecialOffersCarousel.tsx
 import React, { useState, useRef, useCallback } from "react";
-import { 
-  FlatList, 
-  View, 
-  Dimensions, 
-  Pressable, 
+import {
+  FlatList,
+  View,
+  Dimensions,
+  Pressable,
   Alert,
   ActivityIndicator,
 } from "react-native";
@@ -18,22 +18,24 @@ import { useOffers, EnrichedOffer } from "@/hooks/useOffers";
 import { SpecialOfferCard } from "@/components/home/SpecialOfferCard";
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-
-
-
 interface SpecialOffersCarouselProps {
   offers: EnrichedOffer[];
   onPress: (offer: EnrichedOffer) => void;
 }
 
-export function SpecialOffersCarousel({ offers, onPress }: SpecialOffersCarouselProps) {
+export function SpecialOffersCarousel({
+  offers,
+  onPress,
+}: SpecialOffersCarouselProps) {
   const router = useRouter();
   const { profile } = useAuth();
   const { claimOffer } = useOffers();
-  
+
   // State management
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [processingOfferId, setProcessingOfferId] = useState<string | null>(null);
+  const [processingOfferId, setProcessingOfferId] = useState<string | null>(
+    null,
+  );
   const flatListRef = useRef<FlatList>(null);
 
   // Pagination handlers
@@ -48,126 +50,142 @@ export function SpecialOffersCarousel({ offers, onPress }: SpecialOffersCarousel
   }).current;
 
   // Enhanced offer press handler - goes to availability with offer applied
-  const handleOfferPress = useCallback(async (offer: EnrichedOffer) => {
-    console.log("Offer pressed:", offer);
-    
-    // Check if user is logged in
-    if (!profile?.id) {
-      Alert.alert(
-        "Sign In Required",
-        "Please sign in to use special offers.",
-        [
-          { text: "Cancel", style: "cancel" },
-          { text: "Sign In", onPress: () => router.push("/sign-in") },
-        ]
-      );
-      return;
-    }
+  const handleOfferPress = useCallback(
+    async (offer: EnrichedOffer) => {
+      console.log("Offer pressed:", offer);
 
-    // Check if offer is claimed by user
-    if (!offer.claimed) {
-      // Offer not claimed - show claim dialog
-      Alert.alert(
-        "Claim Offer First",
-        `You need to claim this ${offer.discount_percentage}% off offer before using it. Would you like to claim it now?`,
-        [
-          { text: "Cancel", style: "cancel" },
-          { 
-            text: "Claim & Book", 
-            onPress: async () => {
-              await handleClaimAndBook(offer);
-            }
-          },
-        ]
-      );
-      return;
-    }
+      // Check if user is logged in
+      if (!profile?.id) {
+        Alert.alert(
+          "Sign In Required",
+          "Please sign in to use special offers.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Sign In", onPress: () => router.push("/sign-in") },
+          ],
+        );
+        return;
+      }
 
-    // Check if offer is still valid
-    if (offer.isExpired || offer.used) {
-      Alert.alert(
-        "Offer Not Available", 
-        offer.used 
-          ? "This offer has already been used." 
-          : "This offer has expired.",
-        [{ text: "OK" }]
-      );
-      return;
-    }
+      // Check if offer is claimed by user
+      if (!offer.claimed) {
+        // Offer not claimed - show claim dialog
+        Alert.alert(
+          "Claim Offer First",
+          `You need to claim this ${offer.discount_percentage}% off offer before using it. Would you like to claim it now?`,
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Claim & Book",
+              onPress: async () => {
+                await handleClaimAndBook(offer);
+              },
+            },
+          ],
+        );
+        return;
+      }
 
-    // Navigate to availability with offer pre-selected
-    navigateToAvailabilityWithOffer(offer);
-  }, [profile?.id, router]);
+      // Check if offer is still valid
+      if (offer.isExpired || offer.used) {
+        Alert.alert(
+          "Offer Not Available",
+          offer.used
+            ? "This offer has already been used."
+            : "This offer has expired.",
+          [{ text: "OK" }],
+        );
+        return;
+      }
+
+      // Navigate to availability with offer pre-selected
+      navigateToAvailabilityWithOffer(offer);
+    },
+    [profile?.id, router],
+  );
 
   // Claim offer and then book
-  const handleClaimAndBook = useCallback(async (offer: EnrichedOffer) => {
-    if (processingOfferId) return;
-    
-    setProcessingOfferId(offer.id);
-    
-    try {
-      await claimOffer(offer.id);
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
-      // After claiming, navigate to availability
-      navigateToAvailabilityWithOffer(offer);
-      
-    } catch (err: any) {
-      console.error("Error claiming offer:", err);
-      Alert.alert("Error", err.message || "Failed to claim offer. Please try again.");
-    } finally {
-      setProcessingOfferId(null);
-    }
-  }, [processingOfferId, claimOffer]);
+  const handleClaimAndBook = useCallback(
+    async (offer: EnrichedOffer) => {
+      if (processingOfferId) return;
+
+      setProcessingOfferId(offer.id);
+
+      try {
+        await claimOffer(offer.id);
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        );
+
+        // After claiming, navigate to availability
+        navigateToAvailabilityWithOffer(offer);
+      } catch (err: any) {
+        console.error("Error claiming offer:", err);
+        Alert.alert(
+          "Error",
+          err.message || "Failed to claim offer. Please try again.",
+        );
+      } finally {
+        setProcessingOfferId(null);
+      }
+    },
+    [processingOfferId, claimOffer],
+  );
 
   // Navigate to availability with offer details
-  const navigateToAvailabilityWithOffer = useCallback((offer: EnrichedOffer) => {
-    console.log("Navigating to availability with offer:", offer.id);
-    
-    router.push({
-      pathname: "/booking/availability",
-      params: {
-        restaurantId: offer.restaurant_id,
-        restaurantName: offer.restaurant.name,
-        preselectedOfferId: offer.id, // special_offer ID
-        offerTitle: offer.title,
-        offerDiscount: offer.discount_percentage.toString(),
-        redemptionCode: offer.redemptionCode || offer.id,
-      },
-    });
-  }, [router]);
+  const navigateToAvailabilityWithOffer = useCallback(
+    (offer: EnrichedOffer) => {
+      console.log("Navigating to availability with offer:", offer.id);
+
+      router.push({
+        pathname: "/booking/availability",
+        params: {
+          restaurantId: offer.restaurant_id,
+          restaurantName: offer.restaurant.name,
+          preselectedOfferId: offer.id, // special_offer ID
+          offerTitle: offer.title,
+          offerDiscount: offer.discount_percentage.toString(),
+          redemptionCode: offer.redemptionCode || offer.id,
+        },
+      });
+    },
+    [router],
+  );
 
   // Pagination dot press handler
   const handleDotPress = useCallback((index: number) => {
-    flatListRef.current?.scrollToIndex({ 
-      index, 
-      animated: true 
+    flatListRef.current?.scrollToIndex({
+      index,
+      animated: true,
     });
     setCurrentIndex(index);
   }, []);
 
   // Render offer card with enhanced press handling
-  const renderOfferCard = useCallback(({ item }: { item: EnrichedOffer }) => (
-    <View style={{ width: SCREEN_WIDTH }}>
-      <Pressable
-        onPress={() => onPress ? onPress(item) : handleOfferPress(item)}
-        disabled={processingOfferId === item.id}
-        style={{ opacity: processingOfferId === item.id ? 0.7 : 1 }}
-      >
-        <SpecialOfferCard offer={item} />
-        
-        {/* Processing overlay */}
-        {processingOfferId === item.id && (
-          <View className="absolute inset-0 bg-black/20 rounded-2xl items-center justify-center">
-            <View className="bg-white rounded-lg p-4 items-center">
-              <ActivityIndicator size="small" color="#3b82f6" />
-              <Text className="text-sm mt-2">Claiming offer...</Text>
+  const renderOfferCard = useCallback(
+    ({ item }: { item: EnrichedOffer }) => (
+      <View style={{ width: SCREEN_WIDTH }}>
+        <Pressable
+          onPress={() => (onPress ? onPress(item) : handleOfferPress(item))}
+          disabled={processingOfferId === item.id}
+          style={{ opacity: processingOfferId === item.id ? 0.7 : 1 }}
+        >
+          <SpecialOfferCard offer={item} />
+
+          {/* Processing overlay */}
+          {processingOfferId === item.id && (
+            <View className="absolute inset-0 bg-black/20 rounded-2xl items-center justify-center">
+              <View className="bg-white rounded-lg p-4 items-center">
+                <ActivityIndicator size="small" color="#3b82f6" />
+                <Text className="text-sm mt-2">Claiming offer...</Text>
+              </View>
             </View>
-          </View>
-        )}
-      </Pressable>
-    </View>
-  ), [onPress, handleOfferPress, processingOfferId]);
+          )}
+        </Pressable>
+      </View>
+    ),
+    [onPress, handleOfferPress, processingOfferId],
+  );
 
   if (offers.length === 0) {
     return null;
@@ -190,7 +208,7 @@ export function SpecialOffersCarousel({ offers, onPress }: SpecialOffersCarousel
         snapToAlignment="start"
         contentContainerStyle={{ paddingVertical: 8 }}
       />
-      
+
       {/* Pagination Dots */}
       {offers.length > 1 && (
         <View className="flex-row justify-center items-center mt-4 gap-2">
@@ -199,9 +217,9 @@ export function SpecialOffersCarousel({ offers, onPress }: SpecialOffersCarousel
               key={index}
               onPress={() => handleDotPress(index)}
               className={`h-2 rounded-full transition-all ${
-                index === currentIndex 
-                  ? 'bg-primary w-6' 
-                  : 'bg-muted-foreground/30 w-2'
+                index === currentIndex
+                  ? "bg-primary w-6"
+                  : "bg-muted-foreground/30 w-2"
               }`}
             />
           ))}

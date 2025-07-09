@@ -29,7 +29,7 @@ export const ReviewPhotoUploader: React.FC<ReviewPhotoUploaderProps> = ({
     if (photos.length >= maxPhotos) {
       Alert.alert(
         "Limit Reached",
-        `You can only upload up to ${maxPhotos} photos`
+        `You can only upload up to ${maxPhotos} photos`,
       );
       return;
     }
@@ -41,7 +41,7 @@ export const ReviewPhotoUploader: React.FC<ReviewPhotoUploaderProps> = ({
       if (!permissionResult.granted) {
         Alert.alert(
           "Permission Required",
-          "Please allow access to your photo library to upload photos."
+          "Please allow access to your photo library to upload photos.",
         );
         return;
       }
@@ -123,7 +123,7 @@ export const ReviewPhotoUploader: React.FC<ReviewPhotoUploaderProps> = ({
         Alert.alert(
           "Upload Issues",
           `${failedUploads.length} photo(s) failed to upload. Please try again.\n\nFailed: ${failedUploads.join(", ")}`,
-          [{ text: "OK" }]
+          [{ text: "OK" }],
         );
       }
     } catch (error) {
@@ -131,7 +131,7 @@ export const ReviewPhotoUploader: React.FC<ReviewPhotoUploaderProps> = ({
       Alert.alert(
         "Upload Failed",
         "Failed to upload photos. Please check your connection and try again.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
     } finally {
       setUploading(false);

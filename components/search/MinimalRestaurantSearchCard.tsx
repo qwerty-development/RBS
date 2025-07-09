@@ -4,7 +4,6 @@ import { useRouter } from "expo-router";
 import { Star, DollarSign, MapPin, Heart } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { Image } from "@/components/image";
-import { cn } from "@/lib/utils";
 import { LocationService } from "@/lib/locationService";
 
 interface BookingFilters {
@@ -138,10 +137,7 @@ export const MinimalRestaurantSearchCard = ({
           )}
         </View>
 
-        <Text
-          className="text-sm text-muted-foreground mb-2"
-          numberOfLines={1}
-        >
+        <Text className="text-sm text-muted-foreground mb-2" numberOfLines={1}>
           {restaurant.cuisine_type}
         </Text>
 

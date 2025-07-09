@@ -48,7 +48,7 @@ export function SectionHeader({
       <View
         className={cn(
           "px-4 mb-3 flex-row items-center justify-between",
-          className
+          className,
         )}
       >
         <View>
@@ -67,7 +67,7 @@ export function SectionHeader({
     <View
       className={cn(
         "flex-row items-center justify-between px-4 mb-3",
-        className
+        className,
       )}
     >
       <View className="flex-1">

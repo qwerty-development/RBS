@@ -26,12 +26,9 @@ interface PlaylistInvitationsBadgeProps {
   className?: string;
 }
 
-export const PlaylistInvitationsBadge: React.FC<PlaylistInvitationsBadgeProps> = ({
-  onPress,
-  iconSize = 20,
-  variant = "button",
-  className = "",
-}) => {
+export const PlaylistInvitationsBadge: React.FC<
+  PlaylistInvitationsBadgeProps
+> = ({ onPress, iconSize = 20, variant = "button", className = "" }) => {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const { pendingCount } = usePlaylistInvitations();
@@ -42,19 +39,17 @@ export const PlaylistInvitationsBadge: React.FC<PlaylistInvitationsBadgeProps> =
     return null;
   }
 
-  const baseClasses = variant === "button" 
-    ? "p-2 bg-gray-100 dark:bg-gray-800 rounded-lg relative"
-    : "relative";
+  const baseClasses =
+    variant === "button"
+      ? "p-2 bg-gray-100 dark:bg-gray-800 rounded-lg relative"
+      : "relative";
 
   return (
-    <Pressable
-      onPress={handlePress}
-      className={`${baseClasses} ${className}`}
-    >
+    <Pressable onPress={handlePress} className={`${baseClasses} ${className}`}>
       <Mail size={iconSize} color={colorScheme === "dark" ? "#fff" : "#000"} />
       <View className="absolute -top-1 -right-1 bg-primary rounded-full min-w-5 h-5 items-center justify-center px-1">
         <Text className="text-white text-xs font-bold">
-          {pendingCount > 9 ? '9+' : pendingCount}
+          {pendingCount > 9 ? "9+" : pendingCount}
         </Text>
       </View>
     </Pressable>

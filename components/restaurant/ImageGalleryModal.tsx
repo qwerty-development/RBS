@@ -38,7 +38,7 @@ export const ImageGalleryModal = ({
           showsHorizontalScrollIndicator={false}
           onScroll={(e) => {
             const index = Math.round(
-              e.nativeEvent.contentOffset.x / SCREEN_WIDTH
+              e.nativeEvent.contentOffset.x / SCREEN_WIDTH,
             );
             onImageIndexChange(index);
           }}

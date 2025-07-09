@@ -13,17 +13,25 @@ interface UploadImageOptions {
 }
 
 export const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
-export const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
+export const ALLOWED_IMAGE_TYPES = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+];
 
 // Convert base64 to blob
-export const base64ToBlob = (base64: string, contentType: string = "image/jpeg"): Blob => {
+export const base64ToBlob = (
+  base64: string,
+  contentType: string = "image/jpeg",
+): Blob => {
   const byteCharacters = atob(base64);
   const byteNumbers = new Array(byteCharacters.length);
-  
+
   for (let i = 0; i < byteCharacters.length; i++) {
     byteNumbers[i] = byteCharacters.charCodeAt(i);
   }
-  
+
   const byteArray = new Uint8Array(byteNumbers);
   return new Blob([byteArray], { type: contentType });
 };
@@ -35,16 +43,14 @@ export const processImage = async (
     maxWidth?: number;
     maxHeight?: number;
     quality?: number;
-  } = {}
+  } = {},
 ): Promise<ImageManipulator.ImageResult> => {
   const { maxWidth = 1920, maxHeight = 1920, quality = 0.8 } = options;
 
   // Get image info
-  const imageInfo = await ImageManipulator.manipulateAsync(
-    uri,
-    [],
-    { format: ImageManipulator.SaveFormat.JPEG }
-  );
+  const imageInfo = await ImageManipulator.manipulateAsync(uri, [], {
+    format: ImageManipulator.SaveFormat.JPEG,
+  });
 
   // Calculate resize dimensions
   const { width, height } = imageInfo;
@@ -53,7 +59,7 @@ export const processImage = async (
 
   if (width > maxWidth || height > maxHeight) {
     const aspectRatio = width / height;
-    
+
     if (width > height) {
       resizeWidth = maxWidth;
       resizeHeight = maxWidth / aspectRatio;
@@ -67,11 +73,11 @@ export const processImage = async (
   return await ImageManipulator.manipulateAsync(
     uri,
     [{ resize: { width: resizeWidth, height: resizeHeight } }],
-    { 
+    {
       compress: quality,
       format: ImageManipulator.SaveFormat.JPEG,
       base64: true,
-    }
+    },
   );
 };
 
@@ -82,7 +88,7 @@ export const uploadImage = async (
     base64?: string;
   },
   userId: string,
-  options: UploadImageOptions = {}
+  options: UploadImageOptions = {},
 ): Promise<{ url: string; path: string } | null> => {
   const {
     maxWidth = 1920,
@@ -112,7 +118,7 @@ export const uploadImage = async (
 
     // Convert to blob and upload
     const blob = base64ToBlob(processedImage.base64);
-    
+
     const { data, error } = await supabase.storage
       .from(bucket)
       .upload(filePath, blob, {
@@ -124,9 +130,9 @@ export const uploadImage = async (
     if (error) throw error;
 
     // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(filePath);
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from(bucket).getPublicUrl(filePath);
 
     return {
       url: publicUrl,
@@ -140,27 +146,29 @@ export const uploadImage = async (
 
 // Upload multiple images
 export const uploadImages = async (
-  images: Array<{ uri: string; base64?: string }>,
+  images: { uri: string; base64?: string }[],
   userId: string,
-  options: UploadImageOptions = {}
+  options: UploadImageOptions = {},
 ): Promise<string[]> => {
-  const uploadPromises = images.map(image => uploadImage(image, userId, options));
+  const uploadPromises = images.map((image) =>
+    uploadImage(image, userId, options),
+  );
   const results = await Promise.all(uploadPromises);
-  
+
   return results
-    .filter((result): result is { url: string; path: string } => result !== null)
-    .map(result => result.url);
+    .filter(
+      (result): result is { url: string; path: string } => result !== null,
+    )
+    .map((result) => result.url);
 };
 
 // Delete image from storage
 export const deleteImage = async (
   imagePath: string,
-  bucket: string = "images"
+  bucket: string = "images",
 ): Promise<boolean> => {
   try {
-    const { error } = await supabase.storage
-      .from(bucket)
-      .remove([imagePath]);
+    const { error } = await supabase.storage.from(bucket).remove([imagePath]);
 
     if (error) throw error;
     return true;
@@ -175,17 +183,17 @@ export const pickImagesFromGallery = async (
   options: {
     allowsMultipleSelection?: boolean;
     maxSelection?: number;
-  } = {}
+  } = {},
 ): Promise<ImagePicker.ImagePickerAsset[] | null> => {
   const { allowsMultipleSelection = true, maxSelection = 5 } = options;
 
   // Request permission
   const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  
+
   if (status !== "granted") {
     Alert.alert(
       "Permission Required",
-      "Please allow access to your photo library to upload images."
+      "Please allow access to your photo library to upload images.",
     );
     return null;
   }
@@ -205,7 +213,7 @@ export const pickImagesFromGallery = async (
   if (result.assets.length > maxSelection) {
     Alert.alert(
       "Too Many Images",
-      `You can only select up to ${maxSelection} images at once.`
+      `You can only select up to ${maxSelection} images at once.`,
     );
     return result.assets.slice(0, maxSelection);
   }
@@ -214,33 +222,34 @@ export const pickImagesFromGallery = async (
 };
 
 // Take photo with camera
-export const takePhotoWithCamera = async (): Promise<ImagePicker.ImagePickerAsset | null> => {
-  // Request permission
-  const { status } = await ImagePicker.requestCameraPermissionsAsync();
-  
-  if (status !== "granted") {
-    Alert.alert(
-      "Permission Required",
-      "Please allow access to your camera to take photos."
-    );
-    return null;
-  }
+export const takePhotoWithCamera =
+  async (): Promise<ImagePicker.ImagePickerAsset | null> => {
+    // Request permission
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
 
-  const result = await ImagePicker.launchCameraAsync({
-    quality: 1,
-    base64: true,
-  });
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Required",
+        "Please allow access to your camera to take photos.",
+      );
+      return null;
+    }
 
-  if (result.canceled) {
-    return null;
-  }
+    const result = await ImagePicker.launchCameraAsync({
+      quality: 1,
+      base64: true,
+    });
 
-  return result.assets[0];
-};
+    if (result.canceled) {
+      return null;
+    }
+
+    return result.assets[0];
+  };
 
 // Validate image
 export const validateImage = (
-  image: ImagePicker.ImagePickerAsset
+  image: ImagePicker.ImagePickerAsset,
 ): { valid: boolean; error?: string } => {
   // Check file type
   if (image.type && !ALLOWED_IMAGE_TYPES.includes(image.type)) {
@@ -263,13 +272,13 @@ export const validateImage = (
 
 // Get image dimensions
 export const getImageDimensions = async (
-  uri: string
+  uri: string,
 ): Promise<{ width: number; height: number } | null> => {
   try {
     const info = await ImageManipulator.manipulateAsync(uri, [], {
       format: ImageManipulator.SaveFormat.JPEG,
     });
-    
+
     return {
       width: info.width,
       height: info.height,

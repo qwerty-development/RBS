@@ -38,12 +38,7 @@ export function UserRating({
       if (i <= roundedRating) {
         // Full star
         stars.push(
-          <Star
-            key={i}
-            size={config.star}
-            fill="#FFD700"
-            color="#FFD700"
-          />
+          <Star key={i} size={config.star} fill="#FFD700" color="#FFD700" />,
         );
       } else if (i - 0.5 <= roundedRating) {
         // Half star
@@ -53,7 +48,7 @@ export function UserRating({
             size={config.star}
             fill="#FFD700"
             color="#FFD700"
-          />
+          />,
         );
       } else {
         // Empty star
@@ -63,7 +58,7 @@ export function UserRating({
             size={config.star}
             fill="transparent"
             color="#E5E7EB"
-          />
+          />,
         );
       }
     }
@@ -93,22 +88,20 @@ export function UserRating({
       onPress={interactive ? onPress : undefined}
       className={cn("flex-row items-center gap-1", className)}
     >
-      <View className="flex-row items-center">
-        {renderStars()}
-      </View>
-      
+      <View className="flex-row items-center">{renderStars()}</View>
+
       {showNumber && (
         <Text className={cn("font-medium ml-1", config.text)}>
           {rating.toFixed(1)}
         </Text>
       )}
-      
+
       {showLabel && (
-        <Text 
+        <Text
           className={cn(
-            "font-medium ml-1", 
+            "font-medium ml-1",
             config.text,
-            getReliabilityColor(rating)
+            getReliabilityColor(rating),
           )}
         >
           {getReliabilityLabel(rating)}

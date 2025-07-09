@@ -62,7 +62,6 @@ export const InsightsOverviewStats: React.FC<InsightsOverviewStatsProps> = ({
           </View>
           <Muted className="text-sm">Avg Rating Given</Muted>
         </View>
-
       </View>
     </View>
   );

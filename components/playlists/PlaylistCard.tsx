@@ -1,14 +1,13 @@
 // components/playlists/PlaylistCard.tsx
 import React from "react";
-import { View, Pressable, ImageBackground, ActivityIndicator } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import {
-  Users,
-  Lock,
-  Globe,
-  ChevronRight,
-  Trash2,
-} from "lucide-react-native";
+  View,
+  Pressable,
+  ImageBackground,
+  ActivityIndicator,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Users, Lock, Globe, ChevronRight, Trash2 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { H4, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
@@ -22,7 +21,7 @@ interface PlaylistCardProps {
   playlist: Playlist & {
     preview_images?: string[];
     is_collaborative?: boolean;
-    user_permission?: 'view' | 'edit';
+    user_permission?: "view" | "edit";
   };
   onPress: () => void;
   onDelete?: (playlistId: string) => void;
@@ -40,7 +39,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
   const { profile } = useAuth();
-  
+
   const { deletePlaylist, isDeleting } = useDeletePlaylist({
     onSuccess: (playlistId) => {
       if (onDelete) {
@@ -64,7 +63,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
           "flex-row items-center p-4 bg-white dark:bg-gray-800",
           "border-b border-gray-200 dark:border-gray-700",
           "active:bg-gray-50 dark:active:bg-gray-700",
-          className
+          className,
         )}
       >
         {/* Emoji Icon */}
@@ -84,29 +83,30 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
               <Lock size={14} color="#6b7280" />
             )}
           </View>
-          
+
           {playlist.description && (
             <Muted className="text-sm mb-1" numberOfLines={1}>
               {playlist.description}
             </Muted>
           )}
-          
+
           <View className="flex-row items-center gap-3">
             <Muted className="text-xs">
               {playlist.item_count || 0} restaurants
             </Muted>
-            {playlist?.collaborator_count && playlist.collaborator_count > 0 && (
-              <View className="flex-row items-center">
-                <Users size={12} color="#6b7280" className="mr-1" />
-                <Muted className="text-xs">
-                  {playlist.collaborator_count}
-                </Muted>
-              </View>
-            )}
+            {playlist?.collaborator_count &&
+              playlist.collaborator_count > 0 && (
+                <View className="flex-row items-center">
+                  <Users size={12} color="#6b7280" className="mr-1" />
+                  <Muted className="text-xs">
+                    {playlist.collaborator_count}
+                  </Muted>
+                </View>
+              )}
             {playlist.is_collaborative && (
               <View className="bg-blue-100 dark:bg-blue-900 px-2 py-0.5 rounded-full">
                 <Text className="text-xs text-blue-700 dark:text-blue-300">
-                  {playlist.user_permission === 'edit' ? 'Can Edit' : 'Viewer'}
+                  {playlist.user_permission === "edit" ? "Can Edit" : "Viewer"}
                 </Text>
               </View>
             )}
@@ -142,7 +142,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
         "bg-white dark:bg-gray-800 rounded-2xl overflow-hidden",
         "shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700",
         "active:scale-95 transition-transform",
-        className
+        className,
       )}
     >
       {/* Cover Image */}
@@ -205,7 +205,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
         <H4 numberOfLines={1} className="mb-1">
           {playlist.name}
         </H4>
-        
+
         {playlist.description && (
           <Muted className="text-sm mb-2" numberOfLines={2}>
             {playlist.description}
@@ -216,22 +216,18 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
           <Muted className="text-xs">
             {playlist.item_count || 0} restaurants
           </Muted>
-          
+
           {playlist?.collaborator_count && playlist.collaborator_count > 0 && (
             <View className="flex-row items-center">
               <Users size={12} color="#6b7280" className="mr-1" />
-              <Muted className="text-xs">
-                +{playlist.collaborator_count}
-              </Muted>
+              <Muted className="text-xs">+{playlist.collaborator_count}</Muted>
             </View>
           )}
         </View>
 
         {playlist.owner && !playlist.is_collaborative && (
           <View className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-            <Muted className="text-xs">
-              by {playlist.owner.full_name}
-            </Muted>
+            <Muted className="text-xs">by {playlist.owner.full_name}</Muted>
           </View>
         )}
       </View>

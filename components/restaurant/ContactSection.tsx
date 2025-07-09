@@ -70,7 +70,7 @@ export const ContactSection = ({
           <Pressable
             onPress={() =>
               Linking.openURL(
-                `https://instagram.com/${restaurant.instagram_handle}`
+                `https://instagram.com/${restaurant.instagram_handle}`,
               )
             }
             className="p-4 flex-row items-center justify-between"

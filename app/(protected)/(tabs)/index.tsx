@@ -26,7 +26,7 @@ import { useOffers } from "@/hooks/useOffers";
 import { CUISINE_CATEGORIES } from "@/constants/homeScreenData";
 import { SpecialOffersCarousel } from "@/components/home/SpecialOffersCarousel";
 
-// Global ref for scroll to top functionality  
+// Global ref for scroll to top functionality
 export const homeScrollRef = { current: null as any };
 
 export default function HomeScreen() {
@@ -203,7 +203,7 @@ export default function HomeScreen() {
         }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
+          { useNativeDriver: true },
         )}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}

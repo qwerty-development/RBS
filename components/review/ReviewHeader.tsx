@@ -39,7 +39,7 @@ export const ReviewHeader: React.FC<ReviewHeaderProps> = ({
             style: "destructive",
             onPress: () => router.back(),
           },
-        ]
+        ],
       );
     }
   };

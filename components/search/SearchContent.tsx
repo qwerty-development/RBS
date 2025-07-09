@@ -137,5 +137,5 @@ export const SearchContent = React.memo(
         style={{ flex: 1 }}
       />
     );
-  }
+  },
 );

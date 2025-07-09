@@ -5,8 +5,8 @@ import { Text } from "@/components/ui/text";
 interface ReviewsActiveFiltersProps {
   selectedSort: string;
   selectedRating: string;
-  filterOptions: Array<{ id: string; label: string }>;
-  ratingFilterOptions: Array<{ id: string; label: string }>;
+  filterOptions: { id: string; label: string }[];
+  ratingFilterOptions: { id: string; label: string }[];
 }
 
 export const ReviewsActiveFilters: React.FC<ReviewsActiveFiltersProps> = ({

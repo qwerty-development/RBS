@@ -17,8 +17,12 @@ export const SearchResultsHeader = React.memo(
 
     const getLocationText = () => {
       if (!location) return "";
-      
-      if (location.district && location.city && location.district !== location.city) {
+
+      if (
+        location.district &&
+        location.city &&
+        location.district !== location.city
+      ) {
         return ` in ${location.district}, ${location.city}`;
       }
       return ` in ${location.city}`;
@@ -31,7 +35,8 @@ export const SearchResultsHeader = React.memo(
             "Searching restaurants..."
           ) : (
             <>
-              {restaurantCount} restaurant{restaurantCount !== 1 ? 's' : ''} found{getLocationText()}
+              {restaurantCount} restaurant{restaurantCount !== 1 ? "s" : ""}{" "}
+              found{getLocationText()}
               {bookingFilters.availableOnly
                 ? ` • Showing only available for ${bookingFilters.time}`
                 : ` • Showing availability for ${
@@ -48,5 +53,5 @@ export const SearchResultsHeader = React.memo(
         </Text>
       </View>
     );
-  }
+  },
 );

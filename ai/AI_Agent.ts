@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { supabase } from "@/config/supabase";
 
 // System prompt with instructions for structured responses
@@ -39,7 +39,7 @@ const genAI = new GoogleGenerativeAI("AIzaSyASVqSrq2zXKrl-dsMfuU9RxY49J0_JQk8");
 const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" });
 
 // Store chat history
-let chatHistory: { role: 'user' | 'model'; parts: { text: string }[] }[] = [];
+let chatHistory: { role: "user" | "model"; parts: { text: string }[] }[] = [];
 
 // Fetch restaurant data from Supabase
 async function getRestaurants() {
@@ -53,42 +53,44 @@ async function getRestaurants() {
 }
 
 export interface ChatMessage {
-  role: 'user' | 'assistant';
+  role: "user" | "assistant";
   content: string;
   restaurants?: any[]; // Restaurant objects to display as cards
 }
 
-export async function ourAgent(
-  messages: ChatMessage[]
-): Promise<ChatMessage> {
+export async function ourAgent(messages: ChatMessage[]): Promise<ChatMessage> {
   try {
     // Get restaurant data
     const restaurants = await getRestaurants();
-    
+
     // Create a map for quick restaurant lookup by ID
     const restaurantMap = new Map();
-    restaurants.forEach(restaurant => {
+    restaurants.forEach((restaurant) => {
       restaurantMap.set(restaurant.id, restaurant);
     });
-    
+
     // Format restaurant data for context
     const restaurantContext = restaurants
       .map((restaurant) => {
         // Helper function to safely handle undefined/null values
-        const safeValue = (value: any, defaultValue = 'Not available') => {
+        const safeValue = (value: any, defaultValue = "Not available") => {
           if (value === undefined || value === null) return defaultValue;
           return value;
         };
 
         // Helper function to safely join arrays
-        const safeJoin = (arr: any[] | null | undefined, defaultValue = 'None') => {
-          if (!arr || !Array.isArray(arr) || arr.length === 0) return defaultValue;
-          return arr.join(', ');
+        const safeJoin = (
+          arr: any[] | null | undefined,
+          defaultValue = "None",
+        ) => {
+          if (!arr || !Array.isArray(arr) || arr.length === 0)
+            return defaultValue;
+          return arr.join(", ");
         };
 
         // Helper function to safely format time
         const safeTime = (time: string | null | undefined) => {
-          if (!time) return 'Not available';
+          if (!time) return "Not available";
           return time;
         };
 
@@ -102,23 +104,23 @@ Price Range: ${safeValue(restaurant.price_range)} (1-4 scale)
 Opening Hours: ${safeTime(restaurant.opening_time)} - ${safeTime(restaurant.closing_time)}
 Booking Policy: ${safeValue(restaurant.booking_policy)}
 Contact: ${safeValue(restaurant.phone_number)}
-Rating: ${safeValue(restaurant.average_rating, '0')} (${safeValue(restaurant.total_reviews, '0')} reviews)
+Rating: ${safeValue(restaurant.average_rating, "0")} (${safeValue(restaurant.total_reviews, "0")} reviews)
 Features:
 - Dietary Options: ${safeJoin(restaurant.dietary_options)}
 - Ambiance Tags: ${safeJoin(restaurant.ambiance_tags)}
 - Tags: ${safeJoin(restaurant.tags)}
-- Parking: ${restaurant.parking_available ? 'Available' : 'Not available'}
-- Outdoor Seating: ${restaurant.outdoor_seating ? 'Available' : 'Not available'}
-- Shisha: ${restaurant.shisha_available ? 'Available' : 'Not available'}
-Featured: ${restaurant.featured ? 'Yes' : 'No'}
+- Parking: ${restaurant.parking_available ? "Available" : "Not available"}
+- Outdoor Seating: ${restaurant.outdoor_seating ? "Available" : "Not available"}
+- Shisha: ${restaurant.shisha_available ? "Available" : "Not available"}
+Featured: ${restaurant.featured ? "Yes" : "No"}
 `;
       })
       .join("\n");
 
     // Convert new messages to the format expected by the API
-    const newMessages = messages.map(msg => ({
-      role: msg.role === 'user' ? 'user' as const : 'model' as const,
-      parts: [{ text: msg.content }]
+    const newMessages = messages.map((msg) => ({
+      role: msg.role === "user" ? ("user" as const) : ("model" as const),
+      parts: [{ text: msg.content }],
     }));
 
     // If this is the first message, add the system context as part of the user's message
@@ -140,7 +142,7 @@ Featured: ${restaurant.featured ? 'Yes' : 'No'}
 
     // Get the last user message
     const lastUserMessage = messages[messages.length - 1];
-    
+
     // Send message and get response
     const result = await chat.sendMessage(lastUserMessage.content);
     const response = await result.response;
@@ -150,28 +152,31 @@ Featured: ${restaurant.featured ? 'Yes' : 'No'}
     let responseText = text;
     let restaurantCards: any[] = [];
 
-    if (text.includes('RESTAURANTS_TO_SHOW:')) {
-      const parts = text.split('RESTAURANTS_TO_SHOW:');
+    if (text.includes("RESTAURANTS_TO_SHOW:")) {
+      const parts = text.split("RESTAURANTS_TO_SHOW:");
       responseText = parts[0].trim();
-      
+
       if (parts[1]) {
-        const restaurantIds = parts[1].trim().split(',').map(id => id.trim());
+        const restaurantIds = parts[1]
+          .trim()
+          .split(",")
+          .map((id) => id.trim());
         restaurantCards = restaurantIds
-          .map(id => restaurantMap.get(id))
-          .filter(restaurant => restaurant !== undefined);
+          .map((id) => restaurantMap.get(id))
+          .filter((restaurant) => restaurant !== undefined);
       }
     }
 
     // Add the response to chat history
     chatHistory.push({
-      role: 'model',
-      parts: [{ text }]
+      role: "model",
+      parts: [{ text }],
     });
-    
+
     return {
-      role: 'assistant',
+      role: "assistant",
       content: responseText,
-      restaurants: restaurantCards.length > 0 ? restaurantCards : undefined
+      restaurants: restaurantCards.length > 0 ? restaurantCards : undefined,
     };
   } catch (error) {
     console.error("Error in AI agent:", error);

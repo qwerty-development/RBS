@@ -30,9 +30,30 @@ interface CreatePlaylistModalProps {
 }
 
 const EMOJI_OPTIONS = [
-  "📍", "🍽️", "❤️", "⭐", "🎉", "🌟", "🔥", "💎",
-  "🍕", "🍔", "🍣", "🥘", "🍰", "☕", "🍷", "🥂",
-  "🌮", "🥗", "🍜", "🍱", "🌍", "🏆", "💫", "✨"
+  "📍",
+  "🍽️",
+  "❤️",
+  "⭐",
+  "🎉",
+  "🌟",
+  "🔥",
+  "💎",
+  "🍕",
+  "🍔",
+  "🍣",
+  "🥘",
+  "🍰",
+  "☕",
+  "🍷",
+  "🥂",
+  "🌮",
+  "🥗",
+  "🍜",
+  "🍱",
+  "🌍",
+  "🏆",
+  "💫",
+  "✨",
 ];
 
 export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
@@ -64,7 +85,7 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    
+
     if (!name.trim()) {
       newErrors.name = "Playlist name is required";
     } else if (name.trim().length < 2) {
@@ -107,11 +128,7 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
           <View className="bg-white dark:bg-gray-800 px-4 py-4 border-b border-gray-200 dark:border-gray-700">
             <View className="flex-row items-center justify-between">
               <H3>{editingPlaylist ? "Edit Playlist" : "Create Playlist"}</H3>
-              <Pressable
-                onPress={onClose}
-                className="p-2"
-                disabled={loading}
-              >
+              <Pressable onPress={onClose} className="p-2" disabled={loading}>
                 <X size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
               </Pressable>
             </View>
@@ -121,7 +138,9 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
             <View className="p-4">
               {/* Emoji Selection */}
               <View className="mb-6">
-                <Text className="text-base font-medium mb-2">Choose an Icon</Text>
+                <Text className="text-base font-medium mb-2">
+                  Choose an Icon
+                </Text>
                 <View className="flex-row flex-wrap gap-2">
                   {EMOJI_OPTIONS.map((emoji) => (
                     <Pressable
@@ -142,7 +161,9 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
 
               {/* Name Input */}
               <View className="mb-4">
-                <Text className="text-base font-medium mb-2">Playlist Name *</Text>
+                <Text className="text-base font-medium mb-2">
+                  Playlist Name *
+                </Text>
                 <TextInput
                   value={name}
                   onChangeText={(text) => {
@@ -162,7 +183,9 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
                   editable={!loading}
                 />
                 {errors.name && (
-                  <Text className="text-red-500 text-sm mt-1">{errors.name}</Text>
+                  <Text className="text-red-500 text-sm mt-1">
+                    {errors.name}
+                  </Text>
                 )}
               </View>
 

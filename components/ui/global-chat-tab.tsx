@@ -72,7 +72,7 @@ export function GlobalChatTab() {
     // Constrain Y position within safe bounds
     newY = Math.max(
       safeAreaBounds.top,
-      Math.min(safeAreaBounds.bottom - panelHeight, newY)
+      Math.min(safeAreaBounds.bottom - panelHeight, newY),
     );
 
     // Determine which side to snap to based on screen center

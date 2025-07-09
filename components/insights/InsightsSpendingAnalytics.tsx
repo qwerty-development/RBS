@@ -14,7 +14,7 @@ interface CategorySpendingData {
 interface SpendingData {
   averagePerVisit: number;
   totalSpent: number;
-  monthlySpending: Array<{ month: string; amount: number }>;
+  monthlySpending: { month: string; amount: number }[];
   spendingByCategory: CategorySpendingData[];
   favoritesPriceRange: number;
 }
@@ -44,7 +44,6 @@ export const InsightsSpendingAnalytics: React.FC<
         </View>
 
         <View className="flex-row gap-4 mb-5">
-  
           <View className="flex-1 bg-blue-50 dark:bg-blue-950/20 p-3 rounded-lg">
             <Text className="text-sm text-muted-foreground mb-1">
               Preferred Range
@@ -61,8 +60,6 @@ export const InsightsSpendingAnalytics: React.FC<
             </Text>
           </View>
         </View>
-
-        
       </View>
     </View>
   );

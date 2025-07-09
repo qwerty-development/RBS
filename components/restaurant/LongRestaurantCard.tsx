@@ -2,14 +2,14 @@
 import React from "react";
 import { View, Pressable, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
-import { 
-  Star, 
-  MapPin, 
-  Clock, 
-  Heart, 
+import {
+  Star,
+  MapPin,
+  Clock,
+  Heart,
   ChevronRight,
   Tag,
-  Calendar
+  Calendar,
 } from "lucide-react-native";
 import { Image } from "@/components/image";
 import { Text } from "@/components/ui/text";
@@ -78,7 +78,10 @@ export function EnhancedRestaurantCard({
     return (
       <Pressable
         onPress={handlePress}
-        className={cn("bg-card rounded-xl overflow-hidden shadow-sm border border-border mb-2", className)}
+        className={cn(
+          "bg-card rounded-xl overflow-hidden shadow-sm border border-border mb-2",
+          className,
+        )}
       >
         <View className="flex-row p-3">
           <Image
@@ -86,14 +89,20 @@ export function EnhancedRestaurantCard({
             className="w-20 h-20 rounded-lg"
             contentFit="cover"
           />
-          
+
           <View className="flex-1 ml-3">
             <View className="flex-row items-start justify-between">
               <View className="flex-1">
-                <Text className="font-semibold text-base mb-1" numberOfLines={1}>
+                <Text
+                  className="font-semibold text-base mb-1"
+                  numberOfLines={1}
+                >
                   {restaurant.name}
                 </Text>
-                <Text className="text-sm text-muted-foreground" numberOfLines={1}>
+                <Text
+                  className="text-sm text-muted-foreground"
+                  numberOfLines={1}
+                >
                   {restaurant.cuisine_type}
                 </Text>
               </View>
@@ -113,7 +122,7 @@ export function EnhancedRestaurantCard({
                 </Pressable>
               )}
             </View>
-            
+
             <View className="flex-row items-center gap-3 mt-2">
               <View className="flex-row items-center gap-1">
                 <Star size={12} color="#f59e0b" fill="#f59e0b" />
@@ -124,11 +133,17 @@ export function EnhancedRestaurantCard({
               <Text className="text-xs text-muted-foreground">
                 {"$".repeat(restaurant.price_range)}
               </Text>
-              <Text className={cn(
-                "text-xs font-medium",
-                restaurant.booking_policy === "instant" ? "text-green-600" : "text-orange-600"
-              )}>
-                {restaurant.booking_policy === "instant" ? "Instant" : "Request"}
+              <Text
+                className={cn(
+                  "text-xs font-medium",
+                  restaurant.booking_policy === "instant"
+                    ? "text-green-600"
+                    : "text-orange-600",
+                )}
+              >
+                {restaurant.booking_policy === "instant"
+                  ? "Instant"
+                  : "Request"}
               </Text>
             </View>
           </View>
@@ -142,7 +157,10 @@ export function EnhancedRestaurantCard({
     return (
       <Pressable
         onPress={handlePress}
-        className={cn("bg-card rounded-xl overflow-hidden shadow-sm border border-border", className)}
+        className={cn(
+          "bg-card rounded-xl overflow-hidden shadow-sm border border-border",
+          className,
+        )}
       >
         {/* Full Width Image */}
         <View className="relative">
@@ -151,7 +169,7 @@ export function EnhancedRestaurantCard({
             className="w-full h-48"
             contentFit="cover"
           />
-          
+
           {/* Favorite Button Overlay */}
           {onFavoritePress && (
             <Pressable
@@ -169,7 +187,7 @@ export function EnhancedRestaurantCard({
               />
             </Pressable>
           )}
-          
+
           {/* Featured Badge */}
           {restaurant.featured && (
             <View className="absolute top-3 left-3 bg-primary px-2 py-1 rounded">
@@ -178,20 +196,26 @@ export function EnhancedRestaurantCard({
               </Text>
             </View>
           )}
-          
+
           {/* Booking Policy Badge */}
           <View className="absolute bottom-3 right-3">
-            <View className={cn(
-              "px-2 py-1 rounded-full",
-              restaurant.booking_policy === "instant" ? "bg-green-600" : "bg-orange-600"
-            )}>
+            <View
+              className={cn(
+                "px-2 py-1 rounded-full",
+                restaurant.booking_policy === "instant"
+                  ? "bg-green-600"
+                  : "bg-orange-600",
+              )}
+            >
               <Text className="text-xs text-white font-medium">
-                {restaurant.booking_policy === "instant" ? "Instant Book" : "Request"}
+                {restaurant.booking_policy === "instant"
+                  ? "Instant Book"
+                  : "Request"}
               </Text>
             </View>
           </View>
         </View>
-        
+
         {/* Restaurant Information */}
         <View className="p-4 border-b border-border">
           <View className="flex-row items-start justify-between mb-2">
@@ -204,7 +228,7 @@ export function EnhancedRestaurantCard({
               </Text>
             </View>
           </View>
-          
+
           {/* Rating and Price Row */}
           <View className="flex-row items-center gap-4 mb-3">
             <View className="flex-row items-center gap-1">
@@ -219,7 +243,12 @@ export function EnhancedRestaurantCard({
               )}
             </View>
             <Text className="text-sm font-semibold text-muted-foreground">
-              {"$".repeat(restaurant.price_range)} • {["Budget", "Moderate", "Upscale", "Fine Dining"][restaurant.price_range - 1]}
+              {"$".repeat(restaurant.price_range)} •{" "}
+              {
+                ["Budget", "Moderate", "Upscale", "Fine Dining"][
+                  restaurant.price_range - 1
+                ]
+              }
             </Text>
           </View>
 
@@ -231,7 +260,7 @@ export function EnhancedRestaurantCard({
                 {restaurant.address || "Location not available"}
               </Text>
             </View>
-            
+
             {restaurant.opening_time && restaurant.closing_time && (
               <View className="flex-row items-center gap-2">
                 <Clock size={16} color="#666" />
@@ -246,7 +275,10 @@ export function EnhancedRestaurantCard({
           {restaurant.tags && restaurant.tags.length > 0 && (
             <View className="flex-row flex-wrap gap-2">
               {restaurant.tags.slice(0, 3).map((tag) => (
-                <View key={tag} className="bg-primary/10 rounded-full px-3 py-1 border border-primary/20">
+                <View
+                  key={tag}
+                  className="bg-primary/10 rounded-full px-3 py-1 border border-primary/20"
+                >
                   <Text className="text-xs text-primary font-medium">
                     {tag}
                   </Text>
@@ -273,18 +305,18 @@ export function EnhancedRestaurantCard({
               >
                 <Calendar size={18} color="white" />
                 <Text className="text-primary-foreground font-semibold">
-                  {restaurant.booking_policy === "instant" ? "Book Now" : "Request Booking"}
+                  {restaurant.booking_policy === "instant"
+                    ? "Book Now"
+                    : "Request Booking"}
                 </Text>
               </Pressable>
-              
+
               <Pressable
                 onPress={handleViewMenu}
                 className="flex-1 bg-background rounded-lg py-3 px-4 flex-row items-center justify-center gap-2 border border-border"
               >
                 <Tag size={18} color="#666" />
-                <Text className="text-foreground font-semibold">
-                  View Menu
-                </Text>
+                <Text className="text-foreground font-semibold">View Menu</Text>
               </Pressable>
             </View>
           </View>
@@ -297,7 +329,10 @@ export function EnhancedRestaurantCard({
   return (
     <Pressable
       onPress={handlePress}
-      className={cn("bg-card rounded-xl overflow-hidden shadow-sm border border-border", className)}
+      className={cn(
+        "bg-card rounded-xl overflow-hidden shadow-sm border border-border",
+        className,
+      )}
     >
       {/* Full Width Image */}
       <View className="relative">
@@ -306,7 +341,7 @@ export function EnhancedRestaurantCard({
           className="w-full h-40"
           contentFit="cover"
         />
-        
+
         {/* Favorite Button Overlay */}
         {onFavoritePress && (
           <Pressable
@@ -324,7 +359,7 @@ export function EnhancedRestaurantCard({
             />
           </Pressable>
         )}
-        
+
         {/* Featured Badge */}
         {restaurant.featured && (
           <View className="absolute top-3 left-3 bg-primary px-2 py-1 rounded">
@@ -334,7 +369,7 @@ export function EnhancedRestaurantCard({
           </View>
         )}
       </View>
-      
+
       {/* Restaurant Information */}
       <View className="p-4">
         <H3 className="mb-1" numberOfLines={1}>
@@ -343,7 +378,7 @@ export function EnhancedRestaurantCard({
         <P className="text-muted-foreground text-sm mb-3">
           {restaurant.cuisine_type}
         </P>
-        
+
         <View className="flex-row items-center gap-3 mb-2">
           <View className="flex-row items-center gap-1">
             <Star size={14} color="#f59e0b" fill="#f59e0b" />
@@ -376,12 +411,18 @@ export function EnhancedRestaurantCard({
               </Text>
             </View>
           )}
-          
-          <Text className={cn(
-            "text-xs font-medium",
-            restaurant.booking_policy === "instant" ? "text-green-600" : "text-orange-600"
-          )}>
-            {restaurant.booking_policy === "instant" ? "Instant Book" : "Request"}
+
+          <Text
+            className={cn(
+              "text-xs font-medium",
+              restaurant.booking_policy === "instant"
+                ? "text-green-600"
+                : "text-orange-600",
+            )}
+          >
+            {restaurant.booking_policy === "instant"
+              ? "Instant Book"
+              : "Request"}
           </Text>
         </View>
       </View>

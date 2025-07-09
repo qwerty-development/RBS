@@ -31,7 +31,7 @@ export const ProgressBar: React.FC<{
 
 // Line Chart Component
 export const SimpleLineChart: React.FC<{
-  data: Array<{ month: string; bookings: number; completed: number }>;
+  data: { month: string; bookings: number; completed: number }[];
   height: number;
 }> = ({ data, height }) => {
   if (!data.length) {
@@ -43,7 +43,7 @@ export const SimpleLineChart: React.FC<{
   }
 
   const maxValue = Math.max(
-    ...data.map((d) => Math.max(d.bookings, d.completed))
+    ...data.map((d) => Math.max(d.bookings, d.completed)),
   );
   const chartWidth = SCREEN_WIDTH - CARD_MARGIN * 2 - CHART_PADDING * 2;
   const chartHeight = height - 80; // Reserve space for labels and legend
@@ -80,7 +80,7 @@ export const SimpleLineChart: React.FC<{
               style={{
                 left: Math.max(
                   0,
-                  Math.min(index * pointSpacing, chartWidth - 20)
+                  Math.min(index * pointSpacing, chartWidth - 20),
                 ),
               }}
             >
@@ -138,12 +138,12 @@ export const SimpleLineChart: React.FC<{
 
 // Pie Chart Component (Horizontal Bar Representation)
 export const SimplePieChart: React.FC<{
-  data: Array<{
+  data: {
     name: string;
     count: number;
     percentage: number;
     color: string;
-  }>;
+  }[];
   size: number;
 }> = ({ data, size }) => {
   if (!data.length) {
@@ -211,7 +211,7 @@ export const TierProgressBar: React.FC<{
       ? Math.min(
           ((currentPoints - currentTierMin) / (nextTierMin - currentTierMin)) *
             100,
-          100
+          100,
         )
       : 100;
 

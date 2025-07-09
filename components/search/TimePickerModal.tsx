@@ -95,5 +95,5 @@ export const TimePickerModal = React.memo(
         </Pressable>
       </Modal>
     );
-  }
+  },
 );

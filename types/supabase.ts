@@ -26,7 +26,7 @@ export interface Database {
             sms: boolean;
           } | null;
           loyalty_points: number;
-          membership_tier: 'bronze' | 'silver' | 'gold' | 'platinum';
+          membership_tier: "bronze" | "silver" | "gold" | "platinum";
           push_token: string | null;
           created_at: string;
           updated_at: string;
@@ -46,7 +46,7 @@ export interface Database {
             sms: boolean;
           } | null;
           loyalty_points?: number;
-          membership_tier?: 'bronze' | 'silver' | 'gold' | 'platinum';
+          membership_tier?: "bronze" | "silver" | "gold" | "platinum";
           push_token?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -66,7 +66,7 @@ export interface Database {
             sms: boolean;
           } | null;
           loyalty_points?: number;
-          membership_tier?: 'bronze' | 'silver' | 'gold' | 'platinum';
+          membership_tier?: "bronze" | "silver" | "gold" | "platinum";
           push_token?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -79,7 +79,7 @@ export interface Database {
           description: string;
           address: string;
           location: {
-            type: 'Point';
+            type: "Point";
             coordinates: [number, number]; // [longitude, latitude]
           };
           main_image_url: string;
@@ -88,7 +88,7 @@ export interface Database {
           tags: string[] | null;
           opening_time: string;
           closing_time: string;
-          booking_policy: 'instant' | 'request';
+          booking_policy: "instant" | "request";
           price_range: number; // 1-4
           average_rating: number;
           total_reviews: number;
@@ -118,7 +118,7 @@ export interface Database {
           description: string;
           address: string;
           location: {
-            type: 'Point';
+            type: "Point";
             coordinates: [number, number];
           };
           main_image_url: string;
@@ -127,7 +127,7 @@ export interface Database {
           tags?: string[] | null;
           opening_time: string;
           closing_time: string;
-          booking_policy: 'instant' | 'request';
+          booking_policy: "instant" | "request";
           price_range: number;
           average_rating?: number;
           total_reviews?: number;
@@ -157,7 +157,7 @@ export interface Database {
           description?: string;
           address?: string;
           location?: {
-            type: 'Point';
+            type: "Point";
             coordinates: [number, number];
           };
           main_image_url?: string;
@@ -166,7 +166,7 @@ export interface Database {
           tags?: string[] | null;
           opening_time?: string;
           closing_time?: string;
-          booking_policy?: 'instant' | 'request';
+          booking_policy?: "instant" | "request";
           price_range?: number;
           average_rating?: number;
           total_reviews?: number;
@@ -198,7 +198,13 @@ export interface Database {
           restaurant_id: string;
           booking_time: string;
           party_size: number;
-          status: 'pending' | 'confirmed' | 'cancelled_by_user' | 'declined_by_restaurant' | 'completed' | 'no_show';
+          status:
+            | "pending"
+            | "confirmed"
+            | "cancelled_by_user"
+            | "declined_by_restaurant"
+            | "completed"
+            | "no_show";
           special_requests: string | null;
           occasion: string | null;
           dietary_notes: string[] | null;
@@ -216,7 +222,13 @@ export interface Database {
           restaurant_id: string;
           booking_time: string;
           party_size: number;
-          status: 'pending' | 'confirmed' | 'cancelled_by_user' | 'declined_by_restaurant' | 'completed' | 'no_show';
+          status:
+            | "pending"
+            | "confirmed"
+            | "cancelled_by_user"
+            | "declined_by_restaurant"
+            | "completed"
+            | "no_show";
           special_requests?: string | null;
           occasion?: string | null;
           dietary_notes?: string[] | null;
@@ -234,7 +246,13 @@ export interface Database {
           restaurant_id?: string;
           booking_time?: string;
           party_size?: number;
-          status?: 'pending' | 'confirmed' | 'cancelled_by_user' | 'declined_by_restaurant' | 'completed' | 'no_show';
+          status?:
+            | "pending"
+            | "confirmed"
+            | "cancelled_by_user"
+            | "declined_by_restaurant"
+            | "completed"
+            | "no_show";
           special_requests?: string | null;
           occasion?: string | null;
           dietary_notes?: string[] | null;
@@ -330,7 +348,7 @@ export interface Database {
           desired_date: string;
           desired_time_range: string;
           party_size: number;
-          status: 'active' | 'notified' | 'booked' | 'expired';
+          status: "active" | "notified" | "booked" | "expired";
           created_at: string;
         };
         Insert: {
@@ -340,7 +358,7 @@ export interface Database {
           desired_date: string;
           desired_time_range: string;
           party_size: number;
-          status?: 'active' | 'notified' | 'booked' | 'expired';
+          status?: "active" | "notified" | "booked" | "expired";
           created_at?: string;
         };
         Update: {
@@ -350,7 +368,7 @@ export interface Database {
           desired_date?: string;
           desired_time_range?: string;
           party_size?: number;
-          status?: 'active' | 'notified' | 'booked' | 'expired';
+          status?: "active" | "notified" | "booked" | "expired";
           created_at?: string;
         };
       };
@@ -359,21 +377,21 @@ export interface Database {
           id: string;
           user_id: string;
           friend_id: string;
-          status: 'pending' | 'accepted' | 'blocked';
+          status: "pending" | "accepted" | "blocked";
           created_at: string;
         };
         Insert: {
           id?: string;
           user_id: string;
           friend_id: string;
-          status?: 'pending' | 'accepted' | 'blocked';
+          status?: "pending" | "accepted" | "blocked";
           created_at?: string;
         };
         Update: {
           id?: string;
           user_id?: string;
           friend_id?: string;
-          status?: 'pending' | 'accepted' | 'blocked';
+          status?: "pending" | "accepted" | "blocked";
           created_at?: string;
         };
       };
@@ -492,7 +510,7 @@ export interface Database {
         Args: {
           p_points: number;
         };
-        Returns: 'bronze' | 'silver' | 'gold' | 'platinum';
+        Returns: "bronze" | "silver" | "gold" | "platinum";
       };
     };
     Enums: {

@@ -14,7 +14,7 @@ export type Playlist = {
   emoji: string;
   is_public: boolean;
   share_code: string | null;
-  view_count: number;  
+  view_count: number;
   created_at: string;
   updated_at: string;
   item_count?: number;
@@ -47,7 +47,7 @@ export type PlaylistCollaborator = {
   id: string;
   playlist_id: string;
   user_id: string;
-  permission: 'view' | 'edit';
+  permission: "view" | "edit";
   invited_by: string;
   invited_at: string;
   accepted_at: string | null;
@@ -75,47 +75,52 @@ export const usePlaylists = () => {
     try {
       // Fetch user's own playlists with stats
       const { data: ownPlaylists, error: ownError } = await supabase
-        .from('playlist_stats')
-        .select('*')
-        .eq('user_id', profile.id)
-        .order('created_at', { ascending: false });
+        .from("playlist_stats")
+        .select("*")
+        .eq("user_id", profile.id)
+        .order("created_at", { ascending: false });
 
       if (ownError) throw ownError;
 
       // Fetch playlists user collaborates on (get playlist IDs first)
       const { data: collaborations, error: collabError } = await supabase
-        .from('playlist_collaborators')
-        .select('playlist_id, permission, accepted_at')
-        .eq('user_id', profile.id)
-        .not('accepted_at', 'is', null);
+        .from("playlist_collaborators")
+        .select("playlist_id, permission, accepted_at")
+        .eq("user_id", profile.id)
+        .not("accepted_at", "is", null);
 
       if (collabError) throw collabError;
 
       let collaborativePlaylists: any[] = [];
-      
+
       if (collaborations && collaborations.length > 0) {
         // Get the playlist IDs
-        const collaborativePlaylistIds = collaborations.map(c => c.playlist_id);
-        
+        const collaborativePlaylistIds = collaborations.map(
+          (c) => c.playlist_id,
+        );
+
         // Fetch full playlist data with stats for collaborative playlists
-        const { data: collabPlaylistsData, error: collabPlaylistsError } = await supabase
-          .from('playlist_stats')
-          .select('*')
-          .in('id', collaborativePlaylistIds)
-          .order('created_at', { ascending: false });
+        const { data: collabPlaylistsData, error: collabPlaylistsError } =
+          await supabase
+            .from("playlist_stats")
+            .select("*")
+            .in("id", collaborativePlaylistIds)
+            .order("created_at", { ascending: false });
 
         if (collabPlaylistsError) throw collabPlaylistsError;
 
         // Fetch owner data for collaborative playlists
-        const ownerIds = [...new Set(collabPlaylistsData?.map(p => p.user_id) || [])];
+        const ownerIds = [
+          ...new Set(collabPlaylistsData?.map((p) => p.user_id) || []),
+        ];
         let ownersData: any[] = [];
-        
+
         if (ownerIds.length > 0) {
           const { data: owners, error: ownersError } = await supabase
-            .from('profiles')
-            .select('id, full_name, avatar_url')
-            .in('id', ownerIds);
-          
+            .from("profiles")
+            .select("id, full_name, avatar_url")
+            .in("id", ownerIds);
+
           if (ownersError) throw ownersError;
           ownersData = owners || [];
         }
@@ -123,33 +128,32 @@ export const usePlaylists = () => {
         if (collabPlaylistsError) throw collabPlaylistsError;
 
         // Add collaborative metadata to each playlist
-        collaborativePlaylists = (collabPlaylistsData || []).map(playlist => {
-          const collaboration = collaborations.find(c => c.playlist_id === playlist.id);
-          const owner = ownersData.find(o => o.id === playlist.user_id);
+        collaborativePlaylists = (collabPlaylistsData || []).map((playlist) => {
+          const collaboration = collaborations.find(
+            (c) => c.playlist_id === playlist.id,
+          );
+          const owner = ownersData.find((o) => o.id === playlist.user_id);
           return {
             ...playlist,
             is_collaborative: true,
             user_permission: collaboration?.permission,
-            owner: owner || null
+            owner: owner || null,
           };
         });
       }
 
       // Combine and deduplicate playlists
-      const allPlaylists = [
-        ...(ownPlaylists || []),
-        ...collaborativePlaylists
-      ];
+      const allPlaylists = [...(ownPlaylists || []), ...collaborativePlaylists];
 
       // Remove duplicates (in case user owns and collaborates on same playlist)
       const uniquePlaylists = Array.from(
-        new Map(allPlaylists.map(p => [p.id, p])).values()
+        new Map(allPlaylists.map((p) => [p.id, p])).values(),
       );
 
       setPlaylists(uniquePlaylists as Playlist[]);
     } catch (error) {
-      console.error('Error fetching playlists:', error);
-      Alert.alert('Error', 'Failed to load playlists');
+      console.error("Error fetching playlists:", error);
+      Alert.alert("Error", "Failed to load playlists");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -157,66 +161,72 @@ export const usePlaylists = () => {
   }, [profile?.id]);
 
   // Create a new playlist
-  const createPlaylist = useCallback(async (
-    name: string,
-    description?: string,
-    emoji: string = '📍'
-  ): Promise<Playlist | null> => {
-    if (!profile?.id) return null;
+  const createPlaylist = useCallback(
+    async (
+      name: string,
+      description?: string,
+      emoji: string = "📍",
+    ): Promise<Playlist | null> => {
+      if (!profile?.id) return null;
 
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      const { data, error } = await supabase
-        .from('restaurant_playlists')
-        .insert({
-          user_id: profile.id,
-          name: name.trim(),
-          description: description?.trim() || null,
-          emoji
-        })
-        .select()
-        .single();
+        const { data, error } = await supabase
+          .from("restaurant_playlists")
+          .insert({
+            user_id: profile.id,
+            name: name.trim(),
+            description: description?.trim() || null,
+            emoji,
+          })
+          .select()
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      await fetchPlaylists();
-      return data;
-    } catch (error) {
-      console.error('Error creating playlist:', error);
-      Alert.alert('Error', 'Failed to create playlist');
-      return null;
-    }
-  }, [profile?.id, fetchPlaylists]);
+        await fetchPlaylists();
+        return data;
+      } catch (error) {
+        console.error("Error creating playlist:", error);
+        Alert.alert("Error", "Failed to create playlist");
+        return null;
+      }
+    },
+    [profile?.id, fetchPlaylists],
+  );
 
   // Update playlist details
-  const updatePlaylist = useCallback(async (
-    playlistId: string,
-    updates: Partial<Pick<Playlist, 'name' | 'description' | 'emoji' | 'is_public'>>
-  ): Promise<boolean> => {
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const updatePlaylist = useCallback(
+    async (
+      playlistId: string,
+      updates: Partial<
+        Pick<Playlist, "name" | "description" | "emoji" | "is_public">
+      >,
+    ): Promise<boolean> => {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      const { error } = await supabase
-        .from('restaurant_playlists')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', playlistId);
+        const { error } = await supabase
+          .from("restaurant_playlists")
+          .update({
+            ...updates,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", playlistId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      await fetchPlaylists();
-      return true;
-    } catch (error) {
-      console.error('Error updating playlist:', error);
-      Alert.alert('Error', 'Failed to update playlist');
-      return false;
-    }
-  }, [fetchPlaylists]);
-
-
+        await fetchPlaylists();
+        return true;
+      } catch (error) {
+        console.error("Error updating playlist:", error);
+        Alert.alert("Error", "Failed to update playlist");
+        return false;
+      }
+    },
+    [fetchPlaylists],
+  );
 
   // Refresh handler
   const handleRefresh = useCallback(async () => {
@@ -235,6 +245,6 @@ export const usePlaylists = () => {
     fetchPlaylists,
     createPlaylist,
     updatePlaylist,
-    handleRefresh
+    handleRefresh,
   };
 };

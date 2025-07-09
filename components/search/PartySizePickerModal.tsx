@@ -80,5 +80,5 @@ export const PartySizePickerModal = React.memo(
         </Pressable>
       </Modal>
     );
-  }
+  },
 );

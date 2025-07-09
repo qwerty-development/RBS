@@ -47,7 +47,8 @@ export const RestaurantMapView = React.memo(
     const markers = useMemo(() => {
       return restaurants
         .map((restaurant) => {
-          const coords:any = restaurant.staticCoordinates || restaurant.coordinates;
+          const coords: any =
+            restaurant.staticCoordinates || restaurant.coordinates;
           if (!coords) return null;
 
           const coordinate = {
@@ -177,10 +178,10 @@ export const RestaurantMapView = React.memo(
         >
           {/* User location marker */}
           {userLocationMarker}
-          
+
           {/* Restaurant markers */}
           {markers}
-          
+
           {/* Search radius circle (if needed) */}
           {searchRadiusCircle}
         </MapView>
@@ -200,5 +201,5 @@ export const RestaurantMapView = React.memo(
         )}
       </View>
     );
-  }
+  },
 );

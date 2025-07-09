@@ -121,7 +121,7 @@ export const POINTS_ACTIVITIES = {
 // Main loyalty hook
 export function useLoyalty() {
   const { profile, refreshProfile } = useAuth();
-  
+
   // State
   const [rewards, setRewards] = useState<LoyaltyReward[]>([]);
   const [claimedRewards, setClaimedRewards] = useState<UserRedemption[]>([]);
@@ -137,7 +137,7 @@ export function useLoyalty() {
   const nextTier = useMemo(() => {
     if (userTier === "platinum") return null;
     return Object.entries(TIER_CONFIG).find(
-      ([_, config]) => config.minPoints > userPoints
+      ([_, config]) => config.minPoints > userPoints,
     )?.[0] as TierType | null;
   }, [userTier, userPoints]);
 
@@ -145,8 +145,10 @@ export function useLoyalty() {
     if (!nextTier) return 100;
     const currentTierConfig = TIER_CONFIG[userTier];
     const nextTierConfig = TIER_CONFIG[nextTier];
-    const progress = ((userPoints - currentTierConfig.minPoints) / 
-                     (nextTierConfig.minPoints - currentTierConfig.minPoints)) * 100;
+    const progress =
+      ((userPoints - currentTierConfig.minPoints) /
+        (nextTierConfig.minPoints - currentTierConfig.minPoints)) *
+      100;
     return Math.max(0, Math.min(progress, 100));
   }, [userTier, userPoints, nextTier]);
 
@@ -164,14 +166,16 @@ export function useLoyalty() {
       setError(null);
 
       const now = new Date().toISOString();
-      
+
       // Fetch available special offers as rewards
       const { data: offersData, error: offersError } = await supabase
         .from("special_offers")
-        .select(`
+        .select(
+          `
           *,
           restaurant:restaurants (*)
-        `)
+        `,
+        )
         .lte("valid_from", now)
         .gte("valid_until", now);
 
@@ -186,63 +190,78 @@ export function useLoyalty() {
       if (claimedError) throw claimedError;
 
       const claimedMap = new Map(
-        claimedData?.map((c) => [c.offer_id, { claimed: true, used: !!c.used_at }]) || []
+        claimedData?.map((c) => [
+          c.offer_id,
+          { claimed: true, used: !!c.used_at },
+        ]) || [],
       );
 
       // Transform offers into loyalty rewards
-      const loyaltyRewards: LoyaltyReward[] = (offersData || []).map((offer) => {
-        const claimed = claimedMap.get(offer.id);
-        
-        // Calculate point cost based on discount percentage and restaurant tier
-        const basePointCost = Math.max(offer.discount_percentage * 25, 100);
-        
-        // Determine category based on offer characteristics
-        let category: LoyaltyReward["category"] = "discount";
-        const title = offer.title.toLowerCase();
-        const description = (offer.description || "").toLowerCase();
-        
-        if (title.includes("dessert") || title.includes("appetizer") || title.includes("meal")) {
-          category = "food";
-        } else if (title.includes("vip") || title.includes("chef") || title.includes("experience")) {
-          category = "experience";
-        } else if (offer.discount_percentage >= 50) {
-          category = "tier_exclusive";
-        }
+      const loyaltyRewards: LoyaltyReward[] = (offersData || []).map(
+        (offer) => {
+          const claimed = claimedMap.get(offer.id);
 
-        // Determine tier requirement based on discount value and category
-        let tierRequired: TierType = "bronze";
-        if (category === "experience" || offer.discount_percentage >= 50) {
-          tierRequired = "platinum";
-        } else if (offer.discount_percentage >= 40) {
-          tierRequired = "gold";
-        } else if (offer.discount_percentage >= 25) {
-          tierRequired = "silver";
-        }
+          // Calculate point cost based on discount percentage and restaurant tier
+          const basePointCost = Math.max(offer.discount_percentage * 25, 100);
 
-        // Calculate final point cost with category multiplier
-        const categoryMultipliers = {
-          food: 1,
-          discount: 1.2,
-          experience: 2.5,
-          tier_exclusive: 2,
-        };
+          // Determine category based on offer characteristics
+          let category: LoyaltyReward["category"] = "discount";
+          const title = offer.title.toLowerCase();
+          const description = (offer.description || "").toLowerCase();
 
-        const pointsCost = Math.round(basePointCost * categoryMultipliers[category]);
+          if (
+            title.includes("dessert") ||
+            title.includes("appetizer") ||
+            title.includes("meal")
+          ) {
+            category = "food";
+          } else if (
+            title.includes("vip") ||
+            title.includes("chef") ||
+            title.includes("experience")
+          ) {
+            category = "experience";
+          } else if (offer.discount_percentage >= 50) {
+            category = "tier_exclusive";
+          }
 
-        return {
-          ...offer,
-          pointsCost,
-          category,
-          tierRequired,
-          claimed: claimed?.claimed || false,
-          used: claimed?.used || false,
-          isAvailable: true,
-        };
-      });
+          // Determine tier requirement based on discount value and category
+          let tierRequired: TierType = "bronze";
+          if (category === "experience" || offer.discount_percentage >= 50) {
+            tierRequired = "platinum";
+          } else if (offer.discount_percentage >= 40) {
+            tierRequired = "gold";
+          } else if (offer.discount_percentage >= 25) {
+            tierRequired = "silver";
+          }
+
+          // Calculate final point cost with category multiplier
+          const categoryMultipliers = {
+            food: 1,
+            discount: 1.2,
+            experience: 2.5,
+            tier_exclusive: 2,
+          };
+
+          const pointsCost = Math.round(
+            basePointCost * categoryMultipliers[category],
+          );
+
+          return {
+            ...offer,
+            pointsCost,
+            category,
+            tierRequired,
+            claimed: claimed?.claimed || false,
+            used: claimed?.used || false,
+            isAvailable: true,
+          };
+        },
+      );
 
       // Sort rewards by points cost
       loyaltyRewards.sort((a, b) => a.pointsCost - b.pointsCost);
-      
+
       setRewards(loyaltyRewards);
     } catch (err: any) {
       console.error("Error fetching rewards:", err);
@@ -259,53 +278,59 @@ export function useLoyalty() {
     try {
       const { data, error } = await supabase
         .from("user_offers")
-        .select(`
+        .select(
+          `
           *,
           special_offer:special_offers (
             *,
             restaurant:restaurants (*)
           )
-        `)
+        `,
+        )
         .eq("user_id", profile.id)
         .order("claimed_at", { ascending: false });
 
       if (error) throw error;
 
       const now = new Date();
-      const enrichedRedemptions: UserRedemption[] = (data || []).map((redemption) => {
-        const claimedDate = new Date(redemption.claimed_at);
-        const validUntil = new Date(redemption.special_offer.valid_until);
-        
-        // Rewards expire 30 days after claim or offer expiry, whichever is sooner
-        const expiresAt = new Date(Math.min(
-          claimedDate.getTime() + 30 * 24 * 60 * 60 * 1000,
-          validUntil.getTime()
-        ));
+      const enrichedRedemptions: UserRedemption[] = (data || []).map(
+        (redemption) => {
+          const claimedDate = new Date(redemption.claimed_at);
+          const validUntil = new Date(redemption.special_offer.valid_until);
 
-        const isExpired = now > expiresAt;
-        const canUse = !isExpired && !redemption.used_at;
+          // Rewards expire 30 days after claim or offer expiry, whichever is sooner
+          const expiresAt = new Date(
+            Math.min(
+              claimedDate.getTime() + 30 * 24 * 60 * 60 * 1000,
+              validUntil.getTime(),
+            ),
+          );
 
-        // Convert to LoyaltyReward format
-        const reward: LoyaltyReward = {
-          ...redemption.special_offer,
-          pointsCost: 0, // Already redeemed
-          category: "discount", // Default category
-          tierRequired: "bronze", // Default tier
-          claimed: true,
-          used: !!redemption.used_at,
-          isAvailable: true,
-        };
+          const isExpired = now > expiresAt;
+          const canUse = !isExpired && !redemption.used_at;
 
-        return {
-          ...redemption,
-          reward,
-          redeemedAt: redemption.claimed_at,
-          usedAt: redemption.used_at || undefined,
-          expiresAt: expiresAt.toISOString(),
-          isExpired,
-          canUse,
-        };
-      });
+          // Convert to LoyaltyReward format
+          const reward: LoyaltyReward = {
+            ...redemption.special_offer,
+            pointsCost: 0, // Already redeemed
+            category: "discount", // Default category
+            tierRequired: "bronze", // Default tier
+            claimed: true,
+            used: !!redemption.used_at,
+            isAvailable: true,
+          };
+
+          return {
+            ...redemption,
+            reward,
+            redeemedAt: redemption.claimed_at,
+            usedAt: redemption.used_at || undefined,
+            expiresAt: expiresAt.toISOString(),
+            isExpired,
+            canUse,
+          };
+        },
+      );
 
       setClaimedRewards(enrichedRedemptions);
     } catch (err: any) {
@@ -314,155 +339,186 @@ export function useLoyalty() {
   }, [profile?.id]);
 
   // Award points to user
-  const awardPoints = useCallback(async (
-    points: number, 
-    activity: keyof typeof POINTS_ACTIVITIES,
-    relatedId?: string
-  ) => {
-    if (!profile?.id) return false;
+  const awardPoints = useCallback(
+    async (
+      points: number,
+      activity: keyof typeof POINTS_ACTIVITIES,
+      relatedId?: string,
+    ) => {
+      if (!profile?.id) return false;
 
-    try {
-      // Apply tier multiplier
-      const multipliedPoints = Math.round(points * tierConfig.pointsMultiplier);
-      
-      const { error } = await supabase.rpc("award_loyalty_points", {
-        p_user_id: profile.id,
-        p_points: multipliedPoints,
-      });
+      try {
+        // Apply tier multiplier
+        const multipliedPoints = Math.round(
+          points * tierConfig.pointsMultiplier,
+        );
 
-      if (error) throw error;
+        const { error } = await supabase.rpc("award_loyalty_points", {
+          p_user_id: profile.id,
+          p_points: multipliedPoints,
+        });
 
-      // Refresh profile to get updated points and tier
-      await refreshProfile();
-      
-      return true;
-    } catch (err: any) {
-      console.error("Error awarding points:", err);
-      return false;
-    }
-  }, [profile?.id, tierConfig.pointsMultiplier, refreshProfile]);
+        if (error) throw error;
+
+        // Refresh profile to get updated points and tier
+        await refreshProfile();
+
+        return true;
+      } catch (err: any) {
+        console.error("Error awarding points:", err);
+        return false;
+      }
+    },
+    [profile?.id, tierConfig.pointsMultiplier, refreshProfile],
+  );
 
   // Redeem reward
-  const redeemReward = useCallback(async (reward: LoyaltyReward) => {
-    if (!profile?.id) return false;
+  const redeemReward = useCallback(
+    async (reward: LoyaltyReward) => {
+      if (!profile?.id) return false;
 
-    try {
-      const canAfford = userPoints >= reward.pointsCost;
-      const tierAllowed = TIER_CONFIG[userTier].minPoints >= TIER_CONFIG[reward.tierRequired].minPoints;
+      try {
+        const canAfford = userPoints >= reward.pointsCost;
+        const tierAllowed =
+          TIER_CONFIG[userTier].minPoints >=
+          TIER_CONFIG[reward.tierRequired].minPoints;
 
-      if (!canAfford || !tierAllowed) {
-        throw new Error("Cannot redeem this reward");
+        if (!canAfford || !tierAllowed) {
+          throw new Error("Cannot redeem this reward");
+        }
+
+        // Start transaction - deduct points and claim offer
+        const { error: deductError } = await supabase.rpc(
+          "award_loyalty_points",
+          {
+            p_user_id: profile.id,
+            p_points: -reward.pointsCost,
+          },
+        );
+
+        if (deductError) throw deductError;
+
+        // Claim the offer
+        const { error: claimError } = await supabase
+          .from("user_offers")
+          .insert({
+            user_id: profile.id,
+            offer_id: reward.id,
+          });
+
+        if (claimError) {
+          // Rollback points if claim fails
+          await supabase.rpc("award_loyalty_points", {
+            p_user_id: profile.id,
+            p_points: reward.pointsCost,
+          });
+          throw claimError;
+        }
+
+        // Update local state
+        setRewards((prev) =>
+          prev.map((r) => (r.id === reward.id ? { ...r, claimed: true } : r)),
+        );
+
+        // Refresh profile and claimed rewards
+        await refreshProfile();
+        await fetchClaimedRewards();
+
+        return true;
+      } catch (err: any) {
+        console.error("Error redeeming reward:", err);
+        throw err;
       }
-
-      // Start transaction - deduct points and claim offer
-      const { error: deductError } = await supabase.rpc("award_loyalty_points", {
-        p_user_id: profile.id,
-        p_points: -reward.pointsCost,
-      });
-
-      if (deductError) throw deductError;
-
-      // Claim the offer
-      const { error: claimError } = await supabase
-        .from("user_offers")
-        .insert({
-          user_id: profile.id,
-          offer_id: reward.id,
-        });
-
-      if (claimError) {
-        // Rollback points if claim fails
-        await supabase.rpc("award_loyalty_points", {
-          p_user_id: profile.id,
-          p_points: reward.pointsCost,
-        });
-        throw claimError;
-      }
-
-      // Update local state
-      setRewards((prev) =>
-        prev.map((r) => (r.id === reward.id ? { ...r, claimed: true } : r))
-      );
-
-      // Refresh profile and claimed rewards
-      await refreshProfile();
-      await fetchClaimedRewards();
-
-      return true;
-    } catch (err: any) {
-      console.error("Error redeeming reward:", err);
-      throw err;
-    }
-  }, [profile?.id, userPoints, userTier, refreshProfile, fetchClaimedRewards]);
+    },
+    [profile?.id, userPoints, userTier, refreshProfile, fetchClaimedRewards],
+  );
 
   // Use claimed reward
-  const useReward = useCallback(async (redemptionId: string) => {
-    if (!profile?.id) return false;
+  const useReward = useCallback(
+    async (redemptionId: string) => {
+      if (!profile?.id) return false;
 
-    try {
-      const { error } = await supabase
-        .from("user_offers")
-        .update({ used_at: new Date().toISOString() })
-        .eq("id", redemptionId)
-        .eq("user_id", profile.id);
+      try {
+        const { error } = await supabase
+          .from("user_offers")
+          .update({ used_at: new Date().toISOString() })
+          .eq("id", redemptionId)
+          .eq("user_id", profile.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Update local state
-      setClaimedRewards((prev) =>
-        prev.map((r) =>
-          r.id === redemptionId
-            ? { ...r, usedAt: new Date().toISOString(), canUse: false }
-            : r
-        )
-      );
+        // Update local state
+        setClaimedRewards((prev) =>
+          prev.map((r) =>
+            r.id === redemptionId
+              ? { ...r, usedAt: new Date().toISOString(), canUse: false }
+              : r,
+          ),
+        );
 
-      return true;
-    } catch (err: any) {
-      console.error("Error using reward:", err);
-      return false;
-    }
-  }, [profile?.id]);
+        return true;
+      } catch (err: any) {
+        console.error("Error using reward:", err);
+        return false;
+      }
+    },
+    [profile?.id],
+  );
 
   // Calculate points for booking
-  const calculateBookingPoints = useCallback((
-    partySize: number,
-    priceRange: number,
-    isRepeatCustomer: boolean = false
-  ) => {
-    const basePoints = POINTS_ACTIVITIES.BOOKING_COMPLETED.base;
-    const sizeMultiplier = Math.min(partySize * 0.2 + 0.8, 2); // Cap at 2x
-    const priceMultiplier = priceRange * 0.3 + 0.7; // 0.7x to 1.6x based on price
-    const repeatBonus = isRepeatCustomer ? 1.1 : 1;
-    
-    const totalPoints = Math.round(
-      basePoints * sizeMultiplier * priceMultiplier * repeatBonus
-    );
-    
-    return Math.max(totalPoints, 10); // Minimum 10 points
-  }, []);
+  const calculateBookingPoints = useCallback(
+    (
+      partySize: number,
+      priceRange: number,
+      isRepeatCustomer: boolean = false,
+    ) => {
+      const basePoints = POINTS_ACTIVITIES.BOOKING_COMPLETED.base;
+      const sizeMultiplier = Math.min(partySize * 0.2 + 0.8, 2); // Cap at 2x
+      const priceMultiplier = priceRange * 0.3 + 0.7; // 0.7x to 1.6x based on price
+      const repeatBonus = isRepeatCustomer ? 1.1 : 1;
+
+      const totalPoints = Math.round(
+        basePoints * sizeMultiplier * priceMultiplier * repeatBonus,
+      );
+
+      return Math.max(totalPoints, 10); // Minimum 10 points
+    },
+    [],
+  );
 
   // Get tier benefits
-  const getTierBenefits = useCallback((tier: TierType = userTier) => {
-    return TIER_CONFIG[tier].benefits;
-  }, [userTier]);
+  const getTierBenefits = useCallback(
+    (tier: TierType = userTier) => {
+      return TIER_CONFIG[tier].benefits;
+    },
+    [userTier],
+  );
 
   // Check if user can access reward
-  const canAccessReward = useCallback((reward: LoyaltyReward) => {
-    const canAfford = userPoints >= reward.pointsCost;
-    const tierAllowed = TIER_CONFIG[userTier].minPoints >= TIER_CONFIG[reward.tierRequired].minPoints;
-    const isAvailable = reward.isAvailable && !reward.claimed;
-    
-    return {
-      canRedeem: canAfford && tierAllowed && isAvailable,
-      canAfford,
-      tierAllowed,
-      isAvailable,
-      reason: !canAfford ? "insufficient_points" :
-              !tierAllowed ? "tier_required" :
-              !isAvailable ? "unavailable" : null
-    };
-  }, [userPoints, userTier]);
+  const canAccessReward = useCallback(
+    (reward: LoyaltyReward) => {
+      const canAfford = userPoints >= reward.pointsCost;
+      const tierAllowed =
+        TIER_CONFIG[userTier].minPoints >=
+        TIER_CONFIG[reward.tierRequired].minPoints;
+      const isAvailable = reward.isAvailable && !reward.claimed;
+
+      return {
+        canRedeem: canAfford && tierAllowed && isAvailable,
+        canAfford,
+        tierAllowed,
+        isAvailable,
+        reason: !canAfford
+          ? "insufficient_points"
+          : !tierAllowed
+            ? "tier_required"
+            : !isAvailable
+              ? "unavailable"
+              : null,
+      };
+    },
+    [userPoints, userTier],
+  );
 
   // Load data on mount
   useEffect(() => {
@@ -482,23 +538,23 @@ export function useLoyalty() {
     nextTier,
     tierProgress,
     pointsToNextTier,
-    
+
     // State
     loading,
     error,
-    
+
     // Actions
     fetchRewards,
     fetchClaimedRewards,
     awardPoints,
     redeemReward,
     useReward,
-    
+
     // Utilities
     calculateBookingPoints,
     getTierBenefits,
     canAccessReward,
-    
+
     // Constants
     TIER_CONFIG,
     POINTS_ACTIVITIES,

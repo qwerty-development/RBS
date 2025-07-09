@@ -9,7 +9,7 @@ export const isValidDate = (dateString: string | undefined): boolean => {
 
 export const parseDate = (
   dateString: string | undefined,
-  fallback: Date = new Date()
+  fallback: Date = new Date(),
 ): Date => {
   if (!dateString) return fallback;
 
@@ -166,7 +166,7 @@ export type BookingStatus = keyof typeof BOOKING_STATUS_CONFIG;
 export const calculateEarnablePoints = (
   partySize: number,
   priceRange: number = 2,
-  tier: TierType = "bronze"
+  tier: TierType = "bronze",
 ): number => {
   const basePoints = partySize * priceRange * 10;
   const multiplier = TIER_CONFIG[tier].pointsMultiplier;
@@ -175,7 +175,7 @@ export const calculateEarnablePoints = (
 
 export const isBookingUpcoming = (
   bookingDate: string,
-  bookingTime: string
+  bookingTime: string,
 ): boolean => {
   try {
     const bookingDateTime = new Date(`${bookingDate}T${bookingTime}`);
@@ -208,7 +208,7 @@ export const isBookingTomorrow = (bookingDate: string): boolean => {
 
 export const getTimeUntilBooking = (
   bookingDate: string,
-  bookingTime: string
+  bookingTime: string,
 ): string => {
   try {
     const bookingDateTime = new Date(`${bookingDate}T${bookingTime}`);

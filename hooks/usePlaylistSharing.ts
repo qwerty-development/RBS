@@ -9,8 +9,12 @@ import { PlaylistCollaborator } from "./usePlaylists";
 
 export const usePlaylistSharing = (playlistId: string | null) => {
   const { profile } = useAuth();
-  const [collaborators, setCollaborators] = useState<PlaylistCollaborator[]>([]);
-  const [pendingInvites, setPendingInvites] = useState<PlaylistCollaborator[]>([]);
+  const [collaborators, setCollaborators] = useState<PlaylistCollaborator[]>(
+    [],
+  );
+  const [pendingInvites, setPendingInvites] = useState<PlaylistCollaborator[]>(
+    [],
+  );
   const [loading, setLoading] = useState(false);
 
   // Fetch collaborators
@@ -19,10 +23,11 @@ export const usePlaylistSharing = (playlistId: string | null) => {
 
     try {
       setLoading(true);
-      
+
       const { data, error } = await supabase
-        .from('playlist_collaborators')
-        .select(`
+        .from("playlist_collaborators")
+        .select(
+          `
           *,
           user:profiles!playlist_collaborators_user_id_fkey (
             id,
@@ -33,262 +38,280 @@ export const usePlaylistSharing = (playlistId: string | null) => {
             id,
             full_name
           )
-        `)
-        .eq('playlist_id', playlistId)
-        .order('invited_at', { ascending: false });
+        `,
+        )
+        .eq("playlist_id", playlistId)
+        .order("invited_at", { ascending: false });
 
       if (error) throw error;
 
-      const accepted = data?.filter(c => c.accepted_at) || [];
-      const pending = data?.filter(c => !c.accepted_at) || [];
+      const accepted = data?.filter((c) => c.accepted_at) || [];
+      const pending = data?.filter((c) => !c.accepted_at) || [];
 
       setCollaborators(accepted);
       setPendingInvites(pending);
     } catch (error) {
-      console.error('Error fetching collaborators:', error);
+      console.error("Error fetching collaborators:", error);
     } finally {
       setLoading(false);
     }
   }, [playlistId]);
 
   // Make playlist public/private
-  const togglePublicAccess = useCallback(async (
-    isPublic: boolean
-  ): Promise<{ success: boolean; shareCode?: string }> => {
-    if (!playlistId) return { success: false };
+  const togglePublicAccess = useCallback(
+    async (
+      isPublic: boolean,
+    ): Promise<{ success: boolean; shareCode?: string }> => {
+      if (!playlistId) return { success: false };
 
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      const { data, error } = await supabase
-        .from('restaurant_playlists')
-        .update({ 
-          is_public: isPublic,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', playlistId)
-        .select('share_code')
-        .single();
+        const { data, error } = await supabase
+          .from("restaurant_playlists")
+          .update({
+            is_public: isPublic,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", playlistId)
+          .select("share_code")
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      return { 
-        success: true, 
-        shareCode: data?.share_code || undefined 
-      };
-    } catch (error) {
-      console.error('Error toggling public access:', error);
-      Alert.alert('Error', 'Failed to update sharing settings');
-      return { success: false };
-    }
-  }, [playlistId]);
+        return {
+          success: true,
+          shareCode: data?.share_code || undefined,
+        };
+      } catch (error) {
+        console.error("Error toggling public access:", error);
+        Alert.alert("Error", "Failed to update sharing settings");
+        return { success: false };
+      }
+    },
+    [playlistId],
+  );
 
   // Share playlist link
-  const sharePlaylist = useCallback(async (
-    playlistName: string,
-    shareCode: string
-  ): Promise<void> => {
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const sharePlaylist = useCallback(
+    async (playlistName: string, shareCode: string): Promise<void> => {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      const shareUrl = `https://yourapp.com/playlist/${shareCode}`;
-      const message = `Check out my restaurant playlist "${playlistName}"!\n\n${shareUrl}`;
+        const shareUrl = `https://yourapp.com/playlist/${shareCode}`;
+        const message = `Check out my restaurant playlist "${playlistName}"!\n\n${shareUrl}`;
 
-      await Share.share({
-        message,
-        title: `Restaurant Playlist: ${playlistName}`
-      });
-    } catch (error) {
-      console.error('Error sharing playlist:', error);
-    }
-  }, []);
+        await Share.share({
+          message,
+          title: `Restaurant Playlist: ${playlistName}`,
+        });
+      } catch (error) {
+        console.error("Error sharing playlist:", error);
+      }
+    },
+    [],
+  );
 
   // Copy share link
-  const copyShareLink = useCallback(async (shareCode: string): Promise<void> => {
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      
-      const shareUrl = `https://yourapp.com/playlist/${shareCode}`;
-      await Clipboard.setStringAsync(shareUrl);
-      
-      Alert.alert('Success', 'Share link copied to clipboard!');
-    } catch (error) {
-      console.error('Error copying link:', error);
-      Alert.alert('Error', 'Failed to copy link');
-    }
-  }, []);
+  const copyShareLink = useCallback(
+    async (shareCode: string): Promise<void> => {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+        const shareUrl = `https://yourapp.com/playlist/${shareCode}`;
+        await Clipboard.setStringAsync(shareUrl);
+
+        Alert.alert("Success", "Share link copied to clipboard!");
+      } catch (error) {
+        console.error("Error copying link:", error);
+        Alert.alert("Error", "Failed to copy link");
+      }
+    },
+    [],
+  );
 
   // Invite collaborator
-  const inviteCollaborator = useCallback(async (
-    userId: string,
-    permission: 'view' | 'edit' = 'view'
-  ): Promise<boolean> => {
-    if (!profile?.id || !playlistId) return false;
+  const inviteCollaborator = useCallback(
+    async (
+      userId: string,
+      permission: "view" | "edit" = "view",
+    ): Promise<boolean> => {
+      if (!profile?.id || !playlistId) return false;
 
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      const { error } = await supabase
-        .from('playlist_collaborators')
-        .insert({
+        const { error } = await supabase.from("playlist_collaborators").insert({
           playlist_id: playlistId,
           user_id: userId,
           permission,
-          invited_by: profile.id
+          invited_by: profile.id,
         });
 
-      if (error) {
-        if (error.code === '23505') {
-          Alert.alert('Info', 'User is already invited to this playlist');
-          return false;
+        if (error) {
+          if (error.code === "23505") {
+            Alert.alert("Info", "User is already invited to this playlist");
+            return false;
+          }
+          throw error;
         }
-        throw error;
-      }
 
-      await fetchCollaborators();
-      return true;
-    } catch (error) {
-      console.error('Error inviting collaborator:', error);
-      Alert.alert('Error', 'Failed to send invitation');
-      return false;
-    }
-  }, [profile?.id, playlistId, fetchCollaborators]);
+        await fetchCollaborators();
+        return true;
+      } catch (error) {
+        console.error("Error inviting collaborator:", error);
+        Alert.alert("Error", "Failed to send invitation");
+        return false;
+      }
+    },
+    [profile?.id, playlistId, fetchCollaborators],
+  );
 
   // Accept collaboration invite
-  const acceptInvite = useCallback(async (
-    inviteId: string
-  ): Promise<boolean> => {
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const acceptInvite = useCallback(
+    async (inviteId: string): Promise<boolean> => {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      const { error } = await supabase
-        .from('playlist_collaborators')
-        .update({ 
-          accepted_at: new Date().toISOString() 
-        })
-        .eq('id', inviteId);
+        const { error } = await supabase
+          .from("playlist_collaborators")
+          .update({
+            accepted_at: new Date().toISOString(),
+          })
+          .eq("id", inviteId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      return true;
-    } catch (error) {
-      console.error('Error accepting invite:', error);
-      Alert.alert('Error', 'Failed to accept invitation');
-      return false;
-    }
-  }, []);
+        return true;
+      } catch (error) {
+        console.error("Error accepting invite:", error);
+        Alert.alert("Error", "Failed to accept invitation");
+        return false;
+      }
+    },
+    [],
+  );
 
   // Remove collaborator
-  const removeCollaborator = useCallback(async (
-    collaboratorId: string
-  ): Promise<boolean> => {
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  const removeCollaborator = useCallback(
+    async (collaboratorId: string): Promise<boolean> => {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      const { error } = await supabase
-        .from('playlist_collaborators')
-        .delete()
-        .eq('id', collaboratorId);
+        const { error } = await supabase
+          .from("playlist_collaborators")
+          .delete()
+          .eq("id", collaboratorId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setCollaborators(prev => prev.filter(c => c.id !== collaboratorId));
-      setPendingInvites(prev => prev.filter(c => c.id !== collaboratorId));
-      
-      return true;
-    } catch (error) {
-      console.error('Error removing collaborator:', error);
-      Alert.alert('Error', 'Failed to remove collaborator');
-      return false;
-    }
-  }, []);
+        setCollaborators((prev) => prev.filter((c) => c.id !== collaboratorId));
+        setPendingInvites((prev) =>
+          prev.filter((c) => c.id !== collaboratorId),
+        );
+
+        return true;
+      } catch (error) {
+        console.error("Error removing collaborator:", error);
+        Alert.alert("Error", "Failed to remove collaborator");
+        return false;
+      }
+    },
+    [],
+  );
 
   // Update collaborator permission
-  const updateCollaboratorPermission = useCallback(async (
-    collaboratorId: string,
-    permission: 'view' | 'edit'
-  ): Promise<boolean> => {
-    try {
-      const { error } = await supabase
-        .from('playlist_collaborators')
-        .update({ permission })
-        .eq('id', collaboratorId);
+  const updateCollaboratorPermission = useCallback(
+    async (
+      collaboratorId: string,
+      permission: "view" | "edit",
+    ): Promise<boolean> => {
+      try {
+        const { error } = await supabase
+          .from("playlist_collaborators")
+          .update({ permission })
+          .eq("id", collaboratorId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setCollaborators(prev => prev.map(c =>
-        c.id === collaboratorId ? { ...c, permission } : c
-      ));
+        setCollaborators((prev) =>
+          prev.map((c) => (c.id === collaboratorId ? { ...c, permission } : c)),
+        );
 
-      return true;
-    } catch (error) {
-      console.error('Error updating permission:', error);
-      Alert.alert('Error', 'Failed to update permission');
-      return false;
-    }
-  }, []);
+        return true;
+      } catch (error) {
+        console.error("Error updating permission:", error);
+        Alert.alert("Error", "Failed to update permission");
+        return false;
+      }
+    },
+    [],
+  );
 
   // Join playlist by share code
-  const joinPlaylistByCode = useCallback(async (
-    shareCode: string
-  ): Promise<{ success: boolean; playlistId?: string }> => {
-    if (!profile?.id) return { success: false };
+  const joinPlaylistByCode = useCallback(
+    async (
+      shareCode: string,
+    ): Promise<{ success: boolean; playlistId?: string }> => {
+      if (!profile?.id) return { success: false };
 
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      // Find playlist by share code
-      const { data: playlist, error: findError } = await supabase
-        .from('restaurant_playlists')
-        .select('id, name, user_id')
-        .eq('share_code', shareCode.toUpperCase())
-        .eq('is_public', true)
-        .single();
+        // Find playlist by share code
+        const { data: playlist, error: findError } = await supabase
+          .from("restaurant_playlists")
+          .select("id, name, user_id")
+          .eq("share_code", shareCode.toUpperCase())
+          .eq("is_public", true)
+          .single();
 
-      if (findError || !playlist) {
-        Alert.alert('Error', 'Invalid or expired share code');
+        if (findError || !playlist) {
+          Alert.alert("Error", "Invalid or expired share code");
+          return { success: false };
+        }
+
+        // Check if user is already a collaborator or owner
+        if (playlist.user_id === profile.id) {
+          Alert.alert("Info", "You already own this playlist");
+          return { success: true, playlistId: playlist.id };
+        }
+
+        const { data: existing } = await supabase
+          .from("playlist_collaborators")
+          .select("id")
+          .eq("playlist_id", playlist.id)
+          .eq("user_id", profile.id)
+          .single();
+
+        if (existing) {
+          Alert.alert("Info", "You already have access to this playlist");
+          return { success: true, playlistId: playlist.id };
+        }
+
+        // Add as collaborator with view permission
+        const { error: addError } = await supabase
+          .from("playlist_collaborators")
+          .insert({
+            playlist_id: playlist.id,
+            user_id: profile.id,
+            permission: "view",
+            invited_by: playlist.user_id,
+            accepted_at: new Date().toISOString(),
+          });
+
+        if (addError) throw addError;
+
+        Alert.alert("Success", `You've joined the playlist "${playlist.name}"`);
+        return { success: true, playlistId: playlist.id };
+      } catch (error) {
+        console.error("Error joining playlist:", error);
+        Alert.alert("Error", "Failed to join playlist");
         return { success: false };
       }
-
-      // Check if user is already a collaborator or owner
-      if (playlist.user_id === profile.id) {
-        Alert.alert('Info', 'You already own this playlist');
-        return { success: true, playlistId: playlist.id };
-      }
-
-      const { data: existing } = await supabase
-        .from('playlist_collaborators')
-        .select('id')
-        .eq('playlist_id', playlist.id)
-        .eq('user_id', profile.id)
-        .single();
-
-      if (existing) {
-        Alert.alert('Info', 'You already have access to this playlist');
-        return { success: true, playlistId: playlist.id };
-      }
-
-      // Add as collaborator with view permission
-      const { error: addError } = await supabase
-        .from('playlist_collaborators')
-        .insert({
-          playlist_id: playlist.id,
-          user_id: profile.id,
-          permission: 'view',
-          invited_by: playlist.user_id,
-          accepted_at: new Date().toISOString()
-        });
-
-      if (addError) throw addError;
-
-      Alert.alert('Success', `You've joined the playlist "${playlist.name}"`);
-      return { success: true, playlistId: playlist.id };
-    } catch (error) {
-      console.error('Error joining playlist:', error);
-      Alert.alert('Error', 'Failed to join playlist');
-      return { success: false };
-    }
-  }, [profile?.id]);
+    },
+    [profile?.id],
+  );
 
   return {
     collaborators,
@@ -302,6 +325,6 @@ export const usePlaylistSharing = (playlistId: string | null) => {
     acceptInvite,
     removeCollaborator,
     updateCollaboratorPermission,
-    joinPlaylistByCode
+    joinPlaylistByCode,
   };
 };

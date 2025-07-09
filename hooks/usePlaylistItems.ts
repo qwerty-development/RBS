@@ -22,8 +22,9 @@ export const usePlaylistItems = (playlistId: string | null) => {
 
     try {
       const { data, error } = await supabase
-        .from('playlist_items')
-        .select(`
+        .from("playlist_items")
+        .select(
+          `
           *,
           restaurant:restaurants (*),
           added_by_user:profiles!playlist_items_added_by_fkey (
@@ -31,16 +32,17 @@ export const usePlaylistItems = (playlistId: string | null) => {
             full_name,
             avatar_url
           )
-        `)
-        .eq('playlist_id', playlistId)
-        .order('position', { ascending: true });
+        `,
+        )
+        .eq("playlist_id", playlistId)
+        .order("position", { ascending: true });
 
       if (error) throw error;
 
       setItems(data || []);
     } catch (error) {
-      console.error('Error fetching playlist items:', error);
-      Alert.alert('Error', 'Failed to load playlist items');
+      console.error("Error fetching playlist items:", error);
+      Alert.alert("Error", "Failed to load playlist items");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -48,141 +50,148 @@ export const usePlaylistItems = (playlistId: string | null) => {
   }, [playlistId]);
 
   // Add restaurant to playlist
-  const addRestaurant = useCallback(async (
-    restaurantId: string,
-    note?: string
-  ): Promise<boolean> => {
-    if (!profile?.id || !playlistId) return false;
+  const addRestaurant = useCallback(
+    async (restaurantId: string, note?: string): Promise<boolean> => {
+      if (!profile?.id || !playlistId) return false;
 
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      // Get current max position
-      const { data: maxPosData } = await supabase
-        .from('playlist_items')
-        .select('position')
-        .eq('playlist_id', playlistId)
-        .order('position', { ascending: false })
-        .limit(1)
-        .single();
+        // Get current max position
+        const { data: maxPosData } = await supabase
+          .from("playlist_items")
+          .select("position")
+          .eq("playlist_id", playlistId)
+          .order("position", { ascending: false })
+          .limit(1)
+          .single();
 
-      const nextPosition = (maxPosData?.position ?? -1) + 1;
+        const nextPosition = (maxPosData?.position ?? -1) + 1;
 
-      const { error } = await supabase
-        .from('playlist_items')
-        .insert({
+        const { error } = await supabase.from("playlist_items").insert({
           playlist_id: playlistId,
           restaurant_id: restaurantId,
           added_by: profile.id,
           position: nextPosition,
-          note: note?.trim() || null
+          note: note?.trim() || null,
         });
 
-      if (error) {
-        if (error.code === '23505') { // Unique constraint violation
-          Alert.alert('Info', 'This restaurant is already in the playlist');
-          return false;
+        if (error) {
+          if (error.code === "23505") {
+            // Unique constraint violation
+            Alert.alert("Info", "This restaurant is already in the playlist");
+            return false;
+          }
+          throw error;
         }
-        throw error;
-      }
 
-      await fetchItems();
-      return true;
-    } catch (error) {
-      console.error('Error adding restaurant to playlist:', error);
-      Alert.alert('Error', 'Failed to add restaurant to playlist');
-      return false;
-    }
-  }, [profile?.id, playlistId, fetchItems]);
+        await fetchItems();
+        return true;
+      } catch (error) {
+        console.error("Error adding restaurant to playlist:", error);
+        Alert.alert("Error", "Failed to add restaurant to playlist");
+        return false;
+      }
+    },
+    [profile?.id, playlistId, fetchItems],
+  );
 
   // Remove restaurant from playlist
-  const removeRestaurant = useCallback(async (itemId: string): Promise<boolean> => {
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  const removeRestaurant = useCallback(
+    async (itemId: string): Promise<boolean> => {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      const { error } = await supabase
-        .from('playlist_items')
-        .delete()
-        .eq('id', itemId);
+        const { error } = await supabase
+          .from("playlist_items")
+          .delete()
+          .eq("id", itemId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setItems(prev => prev.filter(item => item.id !== itemId));
-      return true;
-    } catch (error) {
-      console.error('Error removing restaurant from playlist:', error);
-      Alert.alert('Error', 'Failed to remove restaurant');
-      return false;
-    }
-  }, []);
+        setItems((prev) => prev.filter((item) => item.id !== itemId));
+        return true;
+      } catch (error) {
+        console.error("Error removing restaurant from playlist:", error);
+        Alert.alert("Error", "Failed to remove restaurant");
+        return false;
+      }
+    },
+    [],
+  );
 
   // Update item note
-  const updateItemNote = useCallback(async (
-    itemId: string,
-    note: string
-  ): Promise<boolean> => {
-    try {
-      const { error } = await supabase
-        .from('playlist_items')
-        .update({ note: note.trim() || null })
-        .eq('id', itemId);
+  const updateItemNote = useCallback(
+    async (itemId: string, note: string): Promise<boolean> => {
+      try {
+        const { error } = await supabase
+          .from("playlist_items")
+          .update({ note: note.trim() || null })
+          .eq("id", itemId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setItems(prev => prev.map(item =>
-        item.id === itemId ? { ...item, note: note.trim() || null } : item
-      ));
-      return true;
-    } catch (error) {
-      console.error('Error updating note:', error);
-      Alert.alert('Error', 'Failed to update note');
-      return false;
-    }
-  }, []);
+        setItems((prev) =>
+          prev.map((item) =>
+            item.id === itemId ? { ...item, note: note.trim() || null } : item,
+          ),
+        );
+        return true;
+      } catch (error) {
+        console.error("Error updating note:", error);
+        Alert.alert("Error", "Failed to update note");
+        return false;
+      }
+    },
+    [],
+  );
 
   // Reorder items
-  const reorderItems = useCallback(async (
-    fromIndex: number,
-    toIndex: number
-  ): Promise<boolean> => {
-    if (fromIndex === toIndex) return true;
+  const reorderItems = useCallback(
+    async (fromIndex: number, toIndex: number): Promise<boolean> => {
+      if (fromIndex === toIndex) return true;
 
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      const newItems = [...items];
-      const [movedItem] = newItems.splice(fromIndex, 1);
-      newItems.splice(toIndex, 0, movedItem);
+        const newItems = [...items];
+        const [movedItem] = newItems.splice(fromIndex, 1);
+        newItems.splice(toIndex, 0, movedItem);
 
-      // Update positions
-      const updates = newItems.map((item, index) => ({
-        id: item.id,
-        position: index
-      }));
+        // Update positions
+        const updates = newItems.map((item, index) => ({
+          id: item.id,
+          position: index,
+        }));
 
-      // Optimistically update UI
-      setItems(newItems.map((item, index) => ({ ...item, position: index })));
+        // Optimistically update UI
+        setItems(newItems.map((item, index) => ({ ...item, position: index })));
 
-      // Update in database
-      const { error } = await supabase.rpc('update_playlist_positions', {
-        updates: updates
-      });
+        // Update in database
+        const { error } = await supabase.rpc("update_playlist_positions", {
+          updates: updates,
+        });
 
-      if (error) throw error;
+        if (error) throw error;
 
-      return true;
-    } catch (error) {
-      console.error('Error reordering items:', error);
-      Alert.alert('Error', 'Failed to reorder items');
-      await fetchItems(); // Revert to server state
-      return false;
-    }
-  }, [items, fetchItems]);
+        return true;
+      } catch (error) {
+        console.error("Error reordering items:", error);
+        Alert.alert("Error", "Failed to reorder items");
+        await fetchItems(); // Revert to server state
+        return false;
+      }
+    },
+    [items, fetchItems],
+  );
 
   // Check if restaurant is in playlist
-  const isRestaurantInPlaylist = useCallback((restaurantId: string): boolean => {
-    return items.some(item => item.restaurant_id === restaurantId);
-  }, [items]);
+  const isRestaurantInPlaylist = useCallback(
+    (restaurantId: string): boolean => {
+      return items.some((item) => item.restaurant_id === restaurantId);
+    },
+    [items],
+  );
 
   // Refresh handler
   const handleRefresh = useCallback(async () => {
@@ -204,6 +213,6 @@ export const usePlaylistItems = (playlistId: string | null) => {
     updateItemNote,
     reorderItems,
     isRestaurantInPlaylist,
-    handleRefresh
+    handleRefresh,
   };
 };

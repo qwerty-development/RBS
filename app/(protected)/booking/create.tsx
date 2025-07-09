@@ -86,12 +86,12 @@ export default function BookingCreateScreen() {
   // Create form helper functions
   const toggleDietaryRestriction = useCallback(
     createToggleDietaryRestriction(getValues, setValue),
-    [getValues, setValue]
+    [getValues, setValue],
   );
 
   const toggleTablePreference = useCallback(
     createToggleTablePreference(getValues, setValue),
-    [getValues, setValue]
+    [getValues, setValue],
   );
 
   // Loading state

@@ -42,16 +42,16 @@ interface Post {
   restaurant_image: string;
   booking_id: string;
   content: string;
-  images: Array<{
+  images: {
     id: string;
     image_url: string;
     image_order: number;
-  }>;
-  tagged_friends: Array<{
+  }[];
+  tagged_friends: {
     id: string;
     full_name: string;
     avatar_url: string;
-  }>;
+  }[];
   likes_count: number;
   comments_count: number;
   created_at: string;
@@ -90,7 +90,9 @@ const PostCard: React.FC<{
               <>
                 <Muted className="text-xs mx-1">•</Muted>
                 <Pressable
-                  onPress={() => router.push(`/restaurant/${post.restaurant_id}`)}
+                  onPress={() =>
+                    router.push(`/restaurant/${post.restaurant_id}`)
+                  }
                 >
                   <Muted className="text-xs text-primary">
                     {post.restaurant_name}
@@ -120,9 +122,7 @@ const PostCard: React.FC<{
             <Muted className="text-sm ml-2">with </Muted>
             {post.tagged_friends.map((friend, index) => (
               <React.Fragment key={friend.id}>
-                <Pressable
-                  onPress={() => router.push(`/profile/${friend.id}`)}
-                >
+                <Pressable onPress={() => router.push(`/profile/${friend.id}`)}>
                   <Text className="text-sm text-primary">
                     {friend.full_name}
                   </Text>
@@ -146,7 +146,8 @@ const PostCard: React.FC<{
             showsHorizontalScrollIndicator={false}
             onMomentumScrollEnd={(e) => {
               const index = Math.round(
-                e.nativeEvent.contentOffset.x / e.nativeEvent.layoutMeasurement.width
+                e.nativeEvent.contentOffset.x /
+                  e.nativeEvent.layoutMeasurement.width,
               );
               setImageIndex(index);
             }}
@@ -226,19 +227,20 @@ export default function SocialFeedScreen() {
       const { data: friendships, error: friendsError } = await supabase
         .from("friends")
         .select("user_id, friend_id")
-        .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`)
+        .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`);
 
       if (friendsError) throw friendsError;
 
       // Extract friend IDs
-      const friendIds = friendships?.reduce((acc: string[], friendship) => {
-        if (friendship.user_id === profile.id) {
-          acc.push(friendship.friend_id);
-        } else {
-          acc.push(friendship.user_id);
-        }
-        return acc;
-      }, []) || [];
+      const friendIds =
+        friendships?.reduce((acc: string[], friendship) => {
+          if (friendship.user_id === profile.id) {
+            acc.push(friendship.friend_id);
+          } else {
+            acc.push(friendship.user_id);
+          }
+          return acc;
+        }, []) || [];
 
       // Include user's own posts
       friendIds.push(profile.id);
@@ -254,20 +256,21 @@ export default function SocialFeedScreen() {
       if (postsError) throw postsError;
 
       // Check which posts the user has liked
-      const postIds = postsData?.map(p => p.id) || [];
+      const postIds = postsData?.map((p) => p.id) || [];
       const { data: userLikes } = await supabase
         .from("post_likes")
         .select("post_id")
         .eq("user_id", profile.id)
         .in("post_id", postIds);
 
-      const likedPostIds = new Set(userLikes?.map(l => l.post_id) || []);
+      const likedPostIds = new Set(userLikes?.map((l) => l.post_id) || []);
 
       // Format posts with liked status
-      const formattedPosts = postsData?.map(post => ({
-        ...post,
-        liked_by_user: likedPostIds.has(post.id),
-      })) || [];
+      const formattedPosts =
+        postsData?.map((post) => ({
+          ...post,
+          liked_by_user: likedPostIds.has(post.id),
+        })) || [];
 
       setPosts(formattedPosts);
     } catch (error) {
@@ -284,7 +287,7 @@ export default function SocialFeedScreen() {
 
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    const post = posts.find(p => p.id === postId);
+    const post = posts.find((p) => p.id === postId);
     if (!post) return;
 
     try {
@@ -296,22 +299,26 @@ export default function SocialFeedScreen() {
           .eq("post_id", postId)
           .eq("user_id", profile.id);
 
-        setPosts(posts.map(p => 
-          p.id === postId 
-            ? { ...p, liked_by_user: false, likes_count: p.likes_count - 1 }
-            : p
-        ));
+        setPosts(
+          posts.map((p) =>
+            p.id === postId
+              ? { ...p, liked_by_user: false, likes_count: p.likes_count - 1 }
+              : p,
+          ),
+        );
       } else {
         // Like
         await supabase
           .from("post_likes")
           .insert({ post_id: postId, user_id: profile.id });
 
-        setPosts(posts.map(p => 
-          p.id === postId 
-            ? { ...p, liked_by_user: true, likes_count: p.likes_count + 1 }
-            : p
-        ));
+        setPosts(
+          posts.map((p) =>
+            p.id === postId
+              ? { ...p, liked_by_user: true, likes_count: p.likes_count + 1 }
+              : p,
+          ),
+        );
       }
     } catch (error) {
       console.error("Error toggling like:", error);
@@ -352,10 +359,7 @@ export default function SocialFeedScreen() {
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
         <H2>Social Feed</H2>
         <View className="flex-row items-center gap-3">
-          <Pressable
-            onPress={() => router.push("/friends")}
-            className="p-2"
-          >
+          <Pressable onPress={() => router.push("/friends")} className="p-2">
             <Users size={24} color="#666" />
           </Pressable>
           <Pressable

@@ -62,7 +62,7 @@ export function useBookingCreate() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [selectedOfferUserId, setSelectedOfferUserId] = useState<string | null>(
-    null
+    null,
   );
   const [availableOffers, setAvailableOffers] = useState<
     UserOfferWithDetails[]
@@ -149,7 +149,7 @@ export function useBookingCreate() {
                 minimum_party_size,
                 terms_conditions
               )
-            `
+            `,
             )
             .eq("user_id", profile.id)
             .is("used_at", null)
@@ -158,7 +158,7 @@ export function useBookingCreate() {
           if (!offersError && userOffersData) {
             const restaurantOffers = userOffersData
               .filter(
-                (offer) => offer.special_offer?.restaurant_id === restaurantId
+                (offer) => offer.special_offer?.restaurant_id === restaurantId,
               )
               .filter((offer) => offer.special_offer !== null)
               .map((offer) => ({
@@ -171,7 +171,7 @@ export function useBookingCreate() {
             // Auto-select preselected offer
             if (preselectedOfferId) {
               const matchingUserOffer = restaurantOffers.find(
-                (offer) => offer.special_offer.id === preselectedOfferId
+                (offer) => offer.special_offer.id === preselectedOfferId,
               );
               if (matchingUserOffer) {
                 setSelectedOfferUserId(matchingUserOffer.id);
@@ -309,7 +309,7 @@ export function useBookingCreate() {
 
         // Success haptic feedback
         await Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Success
+          Haptics.NotificationFeedbackType.Success,
         );
 
         // Navigate to success
@@ -337,7 +337,7 @@ export function useBookingCreate() {
         console.error("Error creating booking:", error);
         Alert.alert(
           "Booking Failed",
-          error.message || "Failed to create booking. Please try again."
+          error.message || "Failed to create booking. Please try again.",
         );
       } finally {
         setSubmitting(false);
@@ -355,7 +355,7 @@ export function useBookingCreate() {
       earnablePoints,
       userTier,
       invitedFriends,
-    ]
+    ],
   );
 
   // Friend invitation handlers

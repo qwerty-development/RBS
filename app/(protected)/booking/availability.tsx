@@ -168,7 +168,7 @@ const DateSelector: React.FC<{
     // Check if selected date is outside the normal range
     const selectedDateStr = selectedDate.toDateString();
     const isSelectedInRange = datesArray.some(
-      (date) => date.toDateString() === selectedDateStr
+      (date) => date.toDateString() === selectedDateStr,
     );
 
     // If selected date is outside range and is in the future, add it at the beginning
@@ -200,7 +200,7 @@ const DateSelector: React.FC<{
     if (scrollViewRef.current && dates.length > 0) {
       const selectedDateStr = selectedDate.toDateString();
       const selectedIndex = dates.findIndex(
-        (date) => date.toDateString() === selectedDateStr
+        (date) => date.toDateString() === selectedDateStr,
       );
 
       if (selectedIndex >= 0) {
@@ -225,7 +225,7 @@ const DateSelector: React.FC<{
       setShowCalendar(false);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     },
-    [onDateChange]
+    [onDateChange],
   );
 
   const openCalendar = useCallback(() => {
@@ -653,7 +653,7 @@ const OffersPreview: React.FC<{
           <Text className="text-green-800 dark:text-green-200 font-bold text-sm">
             Save up to{" "}
             {Math.max(
-              ...availableOffers.map((o) => o.discount_percentage || 0)
+              ...availableOffers.map((o) => o.discount_percentage || 0),
             )}
             %
           </Text>
@@ -750,7 +750,7 @@ export default function AvailabilitySelectionScreen() {
         offer.restaurant_id === params.restaurantId &&
         !offer.usedAt &&
         new Date(offer.expiresAt || offer.valid_until) > new Date() &&
-        offer.id !== preselectedOffer?.id // Exclude preselected offer
+        offer.id !== preselectedOffer?.id, // Exclude preselected offer
     );
   }, [offers, params.restaurantId, preselectedOffer]);
 
@@ -765,7 +765,7 @@ export default function AvailabilitySelectionScreen() {
     if (!selectedTime || !restaurant) {
       Alert.alert(
         "Please select a time",
-        "You need to select an available time slot to continue."
+        "You need to select an available time slot to continue.",
       );
       return;
     }
@@ -827,7 +827,7 @@ export default function AvailabilitySelectionScreen() {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
           },
         },
-      ]
+      ],
     );
   }, []);
 

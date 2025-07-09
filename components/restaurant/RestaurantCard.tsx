@@ -2,7 +2,14 @@
 import React, { useState } from "react";
 import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { Star, DollarSign, MapPin, Clock, Heart, FolderPlus } from "lucide-react-native";
+import {
+  Star,
+  DollarSign,
+  MapPin,
+  Clock,
+  Heart,
+  FolderPlus,
+} from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 import { Image } from "@/components/image";
@@ -65,12 +72,12 @@ export function RestaurantCard({
       });
     }
   };
-  
+
   const handleAddToPlaylistPress = async () => {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setPlaylistModalVisible(true);
   };
-  
+
   const handlePlaylistSuccess = (playlistName: string) => {
     // You can add a Toast notification here for better UX
     console.log(`Added ${restaurantData.name} to ${playlistName}`);
@@ -87,7 +94,7 @@ export function RestaurantCard({
       <Text
         className={cn(
           "font-medium",
-          variant === "compact" ? "text-xs" : "text-sm"
+          variant === "compact" ? "text-xs" : "text-sm",
         )}
       >
         {rating?.toFixed(1) || "N/A"}
@@ -102,7 +109,7 @@ export function RestaurantCard({
     <Text
       className={cn(
         "text-muted-foreground",
-        variant === "compact" ? "text-xs" : "text-sm"
+        variant === "compact" ? "text-xs" : "text-sm",
       )}
     >
       {"$".repeat(priceRange || 1)}
@@ -123,7 +130,7 @@ export function RestaurantCard({
       </View>
     );
   };
-  
+
   // Using a Fragment to wrap the card and the modal
   return (
     <>
@@ -132,7 +139,7 @@ export function RestaurantCard({
           onPress={handlePress}
           className={cn(
             "bg-card border border-border rounded-xl overflow-hidden shadow-sm mr-3 w-64",
-            className
+            className,
           )}
         >
           <Image
@@ -163,7 +170,7 @@ export function RestaurantCard({
           onPress={handlePress}
           className={cn(
             "bg-card rounded-xl overflow-hidden shadow-sm mr-4 w-72",
-            className
+            className,
           )}
         >
           <View className="relative">
@@ -175,13 +182,13 @@ export function RestaurantCard({
             {/* Action Buttons */}
             <View className="absolute top-3 right-3 flex-row gap-2">
               {showAddToPlaylistButton && (
-                  <Pressable
-                    onPress={handleAddToPlaylistPress}
-                    className="bg-black/50 rounded-full p-2"
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <FolderPlus size={20} color="white" />
-                  </Pressable>
+                <Pressable
+                  onPress={handleAddToPlaylistPress}
+                  className="bg-black/50 rounded-full p-2"
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <FolderPlus size={20} color="white" />
+                </Pressable>
               )}
               {showFavorite && onFavoritePress && (
                 <Pressable
@@ -225,7 +232,7 @@ export function RestaurantCard({
           onPress={handlePress}
           className={cn(
             "bg-card rounded-xl overflow-hidden shadow-sm",
-            className
+            className,
           )}
         >
           <View className="flex-row">
@@ -247,32 +254,32 @@ export function RestaurantCard({
                 </View>
                 {/* Action Buttons */}
                 <View className="flex-row items-center gap-2">
-                    {showAddToPlaylistButton && (
-                        <Pressable
-                            onPress={(e) => {
-                                e.stopPropagation(); // Prevent card press
-                                handleAddToPlaylistPress();
-                            }}
-                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        >
-                            <FolderPlus size={20} color="#666" />
-                        </Pressable>
-                    )}
-                    {showFavorite && onFavoritePress && (
-                        <Pressable
-                            onPress={(e) => {
-                                e.stopPropagation(); // Prevent card press
-                                onFavoritePress();
-                            }}
-                            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                        >
-                            <Heart
-                            size={20}
-                            color={isFavorite ? "#ef4444" : "#666"}
-                            fill={isFavorite ? "#ef4444" : "transparent"}
-                            />
-                        </Pressable>
-                    )}
+                  {showAddToPlaylistButton && (
+                    <Pressable
+                      onPress={(e) => {
+                        e.stopPropagation(); // Prevent card press
+                        handleAddToPlaylistPress();
+                      }}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <FolderPlus size={20} color="#666" />
+                    </Pressable>
+                  )}
+                  {showFavorite && onFavoritePress && (
+                    <Pressable
+                      onPress={(e) => {
+                        e.stopPropagation(); // Prevent card press
+                        onFavoritePress();
+                      }}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Heart
+                        size={20}
+                        color={isFavorite ? "#ef4444" : "#666"}
+                        fill={isFavorite ? "#ef4444" : "transparent"}
+                      />
+                    </Pressable>
+                  )}
                 </View>
               </View>
 
@@ -299,7 +306,7 @@ export function RestaurantCard({
                     "text-sm font-medium mt-2",
                     restaurantData.booking_policy === "instant"
                       ? "text-green-600"
-                      : "text-orange-600"
+                      : "text-orange-600",
                   )}
                 >
                   {restaurantData.booking_policy === "instant"

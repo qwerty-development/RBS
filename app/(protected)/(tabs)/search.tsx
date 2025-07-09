@@ -21,7 +21,8 @@ export default function SearchScreen() {
   const { colorScheme } = useColorScheme();
 
   // Use the updated search logic hook with new location system
-  const { searchState, actions, handlers, computed, location } = useSearchLogic();
+  const { searchState, actions, handlers, computed, location } =
+    useSearchLogic();
 
   // Modal visibility state (local to this component)
   const [showGeneralFilters, setShowGeneralFilters] = useState(false);
@@ -45,7 +46,10 @@ export default function SearchScreen() {
   // Update map region when user location changes
   React.useEffect(() => {
     if (searchState.userLocation) {
-      console.log("🗺️ Search screen: Updating map region with user location:", searchState.userLocation);
+      console.log(
+        "🗺️ Search screen: Updating map region with user location:",
+        searchState.userLocation,
+      );
       setMapRegion((prev) => ({
         ...prev,
         latitude: searchState.userLocation!.latitude,
@@ -66,7 +70,7 @@ export default function SearchScreen() {
         setMapRegion(region);
       }
     },
-    [mapRegion]
+    [mapRegion],
   );
 
   // Debug logging
@@ -76,7 +80,7 @@ export default function SearchScreen() {
       userLocation: searchState.userLocation,
       loading: searchState.loading,
       viewMode: searchState.viewMode,
-      locationDisplayName: location.displayName
+      locationDisplayName: location.displayName,
     });
   }, [searchState, location.displayName]);
 
@@ -120,8 +124,6 @@ export default function SearchScreen() {
         onMapRegionChange={handleMapRegionChange}
       />
 
-
-
       {/* Modals */}
       <DatePickerModal
         visible={showDatePicker}
@@ -154,7 +156,6 @@ export default function SearchScreen() {
       />
 
       {/* Debug info for location in development */}
-      
     </SafeAreaView>
   );
 }

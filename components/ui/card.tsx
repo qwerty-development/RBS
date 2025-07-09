@@ -28,4 +28,4 @@ export function Card({ children, style, ...props }: CardProps) {
       {children}
     </View>
   );
-} 
+}

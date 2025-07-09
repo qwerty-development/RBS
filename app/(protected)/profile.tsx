@@ -1,6 +1,12 @@
 // app/(protected)/profile.tsx
 import React, { useState, useCallback } from "react";
-import { View, ScrollView, RefreshControl, Pressable, Alert } from "react-native";
+import {
+  View,
+  ScrollView,
+  RefreshControl,
+  Pressable,
+  Alert,
+} from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
@@ -77,7 +83,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { profile, signOut } = useAuth();
   const userRating = useUserRating();
-  
+
   const [refreshing, setRefreshing] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
@@ -88,21 +94,17 @@ export default function ProfileScreen() {
   }, [userRating]);
 
   const handleSignOut = useCallback(async () => {
-    Alert.alert(
-      "Sign Out",
-      "Are you sure you want to sign out?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Sign Out",
-          style: "destructive",
-          onPress: async () => {
-            await signOut();
-            router.replace("/sign-in");
-          },
+    Alert.alert("Sign Out", "Are you sure you want to sign out?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Sign Out",
+        style: "destructive",
+        onPress: async () => {
+          await signOut();
+          router.replace("/sign-in");
         },
-      ]
-    );
+      },
+    ]);
   }, [signOut, router]);
 
   const pickImage = useCallback(async () => {
@@ -117,38 +119,40 @@ export default function ProfileScreen() {
       setUploadingAvatar(true);
       try {
         const image = result.assets[0];
-        const fileExt = image.uri.split('.').pop();
+        const fileExt = image.uri.split(".").pop();
         const fileName = `${Math.random()}.${fileExt}`;
         const filePath = `avatars/${fileName}`;
 
         const formData = new FormData();
-        formData.append('file', {
+        formData.append("file", {
           uri: image.uri,
           type: `image/${fileExt}`,
           name: fileName,
         } as any);
 
         const { error: uploadError } = await supabase.storage
-          .from('avatars')
+          .from("avatars")
           .upload(filePath, formData);
 
         if (uploadError) throw uploadError;
 
-        const { data: { publicUrl } } = supabase.storage
-          .from('avatars')
-          .getPublicUrl(filePath);
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("avatars").getPublicUrl(filePath);
 
         const { error: updateError } = await supabase
-          .from('profiles')
+          .from("profiles")
           .update({ avatar_url: publicUrl })
-          .eq('id', profile?.id);
+          .eq("id", profile?.id);
 
         if (updateError) throw updateError;
 
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        );
       } catch (error) {
-        console.error('Error uploading avatar:', error);
-        Alert.alert('Error', 'Failed to upload avatar');
+        console.error("Error uploading avatar:", error);
+        Alert.alert("Error", "Failed to upload avatar");
       } finally {
         setUploadingAvatar(false);
       }
@@ -268,9 +272,7 @@ export default function ProfileScreen() {
         <View className="flex-row items-center flex-1">
           <View
             className={`w-10 h-10 rounded-full items-center justify-center mr-3 ${
-              item.destructive
-                ? "bg-red-100 dark:bg-red-900/30"
-                : "bg-muted"
+              item.destructive ? "bg-red-100 dark:bg-red-900/30" : "bg-muted"
             }`}
           >
             <IconComponent
@@ -279,8 +281,8 @@ export default function ProfileScreen() {
                 item.destructive
                   ? "#ef4444"
                   : colorScheme === "dark"
-                  ? "#fff"
-                  : "#000"
+                    ? "#fff"
+                    : "#000"
               }
             />
           </View>
@@ -307,9 +309,7 @@ export default function ProfileScreen() {
             </View>
           )}
         </View>
-        {!item.destructive && (
-          <ChevronRight size={20} color="#666" />
-        )}
+        {!item.destructive && <ChevronRight size={20} color="#666" />}
       </Pressable>
     );
   };
@@ -359,7 +359,7 @@ export default function ProfileScreen() {
           <H2 className="mt-4 text-center">
             {profile?.full_name || "Loading..."}
           </H2>
-          
+
           {/* Rating Display */}
           <View className="flex-row items-center mt-3 px-3 py-1.5 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
             <Star size={16} color="#f59e0b" fill="#f59e0b" />
@@ -376,9 +376,7 @@ export default function ProfileScreen() {
         {/* Menu Sections */}
         {menuSections.map((section) => (
           <View key={section.title} className="mt-6">
-            <H3 className="px-4 mb-3 text-lg font-semibold">
-              {section.title}
-            </H3>
+            <H3 className="px-4 mb-3 text-lg font-semibold">{section.title}</H3>
             <View className="bg-card border-t border-b border-border">
               {section.items.map(renderMenuItem)}
             </View>

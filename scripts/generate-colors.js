@@ -18,8 +18,8 @@ const colorsTsPath = path.join(__dirname, "../constants/colors.ts");
 
 // Read global.css
 if (!fs.existsSync(globalCssPath)) {
-	console.error("Error: global.css file not found.");
-	process.exit(1);
+  console.error("Error: global.css file not found.");
+  process.exit(1);
 }
 
 const cssContent = fs.readFileSync(globalCssPath, "utf-8");
@@ -30,20 +30,20 @@ const darkRootRegex = /\.dark:root\s*{([^}]*)}/;
 
 // Helper function to convert kebab-case to camelCase
 const toCamelCase = (str) =>
-	str.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
+  str.replace(/-([a-z])/g, (_, char) => char.toUpperCase());
 
 const extractColors = (cssBlock) => {
-	const hslRegex = /--([\w-]+):\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%;/g;
-	const colors = {};
-	let match;
+  const hslRegex = /--([\w-]+):\s*([\d.]+)\s+([\d.]+)%\s+([\d.]+)%;/g;
+  const colors = {};
+  let match;
 
-	while ((match = hslRegex.exec(cssBlock)) !== null) {
-		// eslint-disable-next-line no-unused-vars
-		const [_, name, h, s, l] = match;
-		colors[toCamelCase(name)] = `hsl(${h}, ${s}%, ${l}%)`;
-	}
+  while ((match = hslRegex.exec(cssBlock)) !== null) {
+    // eslint-disable-next-line no-unused-vars
+    const [_, name, h, s, l] = match;
+    colors[toCamelCase(name)] = `hsl(${h}, ${s}%, ${l}%)`;
+  }
 
-	return colors;
+  return colors;
 };
 
 const rootMatch = rootRegex.exec(cssContent);
@@ -54,8 +54,8 @@ const darkRootColors = darkRootMatch ? extractColors(darkRootMatch[1]) : {};
 
 // Combine colors into a single object
 const colors = {
-	light: rootColors,
-	dark: darkRootColors,
+  light: rootColors,
+  dark: darkRootColors,
 };
 
 // Generate colors.ts content
