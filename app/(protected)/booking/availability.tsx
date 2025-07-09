@@ -1,5 +1,11 @@
 // app/(protected)/booking/availability.tsx
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import {
   ScrollView,
   View,
@@ -146,19 +152,33 @@ const DateSelector: React.FC<{
   maxDaysAhead?: number;
 }> = ({ selectedDate, onDateChange, maxDaysAhead = 30 }) => {
   const [showCalendar, setShowCalendar] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const dates = useMemo(() => {
     const today = new Date();
     const datesArray = [];
 
+    // Generate the normal date range
     for (let i = 0; i < maxDaysAhead; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       datesArray.push(date);
     }
 
+    // Check if selected date is outside the normal range
+    const selectedDateStr = selectedDate.toDateString();
+    const isSelectedInRange = datesArray.some(
+      (date) => date.toDateString() === selectedDateStr
+    );
+
+    // If selected date is outside range and is in the future, add it at the beginning
+    if (!isSelectedInRange && selectedDate > today) {
+      const extendedArray = [selectedDate, ...datesArray];
+      return extendedArray;
+    }
+
     return datesArray;
-  }, [maxDaysAhead]);
+  }, [maxDaysAhead, selectedDate]);
 
   const formatDate = useCallback((date: Date) => {
     const today = new Date();
@@ -174,6 +194,29 @@ const DateSelector: React.FC<{
       day: "numeric",
     });
   }, []);
+
+  // Auto-scroll to selected date when it changes
+  useEffect(() => {
+    if (scrollViewRef.current && dates.length > 0) {
+      const selectedDateStr = selectedDate.toDateString();
+      const selectedIndex = dates.findIndex(
+        (date) => date.toDateString() === selectedDateStr
+      );
+
+      if (selectedIndex >= 0) {
+        // Calculate scroll position (80px min-width + 12px gap = 92px per item)
+        const scrollPosition = Math.max(0, selectedIndex * 92 - 100); // Center it more or less
+
+        // Small delay to ensure the ScrollView is rendered
+        setTimeout(() => {
+          scrollViewRef.current?.scrollTo({
+            x: scrollPosition,
+            animated: true,
+          });
+        }, 100);
+      }
+    }
+  }, [selectedDate, dates]);
 
   const handleCalendarDateChange = useCallback(
     (day: any) => {
@@ -282,56 +325,105 @@ const DateSelector: React.FC<{
         </Pressable>
       </Modal>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      {/* Out-of-range date indicator */}
+      {dates.length > 1 && dates[0].getTime() > dates[1].getTime() && (
+        <View className="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-700">
+          <View className="flex-row items-center gap-2">
+            <CalendarDays size={16} color="#3b82f6" />
+            <Text className="text-sm font-medium text-blue-700 dark:text-blue-300">
+              📅 Selected from calendar:{" "}
+              {selectedDate.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year:
+                  selectedDate.getFullYear() !== new Date().getFullYear()
+                    ? "numeric"
+                    : undefined,
+              })}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 4 }}
+      >
         <View className="flex-row gap-3">
-          {dates.map((date) => {
+          {dates.map((date, index) => {
             const isSelected =
               date.toDateString() === selectedDate.toDateString();
             const isToday = date.toDateString() === new Date().toDateString();
 
+            // Check if this is an out-of-range date (first item and not in normal sequence)
+            const isOutOfRange =
+              index === 0 &&
+              dates.length > 1 &&
+              date.getTime() > dates[1].getTime();
+
             return (
-              <Pressable
-                key={date.toISOString()}
-                onPress={() => {
-                  onDateChange(date);
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
-                className={`min-w-[80px] p-3 rounded-lg border-2 items-center ${
-                  isSelected
-                    ? "bg-primary border-primary"
-                    : "bg-background border-border"
-                }`}
-              >
-                <Text
-                  className={`text-xs font-medium mb-1 ${
+              <View key={date.toISOString()} className="relative">
+                {/* Out of range indicator */}
+                {isOutOfRange && (
+                  <View className="absolute -top-2 -right-2 z-10 bg-blue-500 rounded-full px-2 py-1">
+                    <Text className="text-white text-xs font-bold">📅</Text>
+                  </View>
+                )}
+
+                <Pressable
+                  onPress={() => {
+                    onDateChange(date);
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  }}
+                  className={`min-w-[80px] p-3 rounded-lg border-2 items-center ${
                     isSelected
-                      ? "text-primary-foreground"
-                      : "text-muted-foreground"
+                      ? "bg-primary border-primary"
+                      : isOutOfRange
+                        ? "bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700"
+                        : "bg-background border-border"
                   }`}
                 >
-                  {date
-                    .toLocaleDateString("en-US", { weekday: "short" })
-                    .toUpperCase()}
-                </Text>
-                <Text
-                  className={`text-lg font-bold mb-1 ${
-                    isSelected ? "text-primary-foreground" : "text-foreground"
-                  }`}
-                >
-                  {date.getDate()}
-                </Text>
-                <Text
-                  className={`text-xs ${
-                    isSelected
-                      ? "text-primary-foreground"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {isToday
-                    ? "Today"
-                    : date.toLocaleDateString("en-US", { month: "short" })}
-                </Text>
-              </Pressable>
+                  <Text
+                    className={`text-xs font-medium mb-1 ${
+                      isSelected
+                        ? "text-primary-foreground"
+                        : isOutOfRange
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-muted-foreground"
+                    }`}
+                  >
+                    {date
+                      .toLocaleDateString("en-US", { weekday: "short" })
+                      .toUpperCase()}
+                  </Text>
+                  <Text
+                    className={`text-lg font-bold mb-1 ${
+                      isSelected
+                        ? "text-primary-foreground"
+                        : isOutOfRange
+                          ? "text-blue-700 dark:text-blue-300"
+                          : "text-foreground"
+                    }`}
+                  >
+                    {date.getDate()}
+                  </Text>
+                  <Text
+                    className={`text-xs ${
+                      isSelected
+                        ? "text-primary-foreground"
+                        : isOutOfRange
+                          ? "text-blue-600 dark:text-blue-400"
+                          : "text-muted-foreground"
+                    }`}
+                  >
+                    {isToday
+                      ? "Today"
+                      : date.toLocaleDateString("en-US", { month: "short" })}
+                  </Text>
+                </Pressable>
+              </View>
             );
           })}
         </View>
