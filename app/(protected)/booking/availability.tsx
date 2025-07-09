@@ -8,11 +8,12 @@ import {
   Alert,
   Dimensions,
   Platform,
+  Modal,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ChevronLeft,
-  Calendar,
+  Calendar as CalendarIcon,
   Clock,
   Users,
   ChevronDown,
@@ -27,9 +28,10 @@ import {
   Sparkles,
   QrCode,
   CalendarDays,
+  X,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import { Calendar } from "react-native-calendars";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
@@ -174,19 +176,11 @@ const DateSelector: React.FC<{
   }, []);
 
   const handleCalendarDateChange = useCallback(
-    (event: any, selectedDate?: Date) => {
-      if (Platform.OS === "android") {
-        setShowCalendar(false);
-      }
-
-      if (selectedDate) {
-        onDateChange(selectedDate);
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-        if (Platform.OS === "ios") {
-          setShowCalendar(false);
-        }
-      }
+    (day: any) => {
+      const selectedDate = new Date(day.dateString);
+      onDateChange(selectedDate);
+      setShowCalendar(false);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     },
     [onDateChange]
   );
@@ -196,11 +190,24 @@ const DateSelector: React.FC<{
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 
+  const closeCalendar = useCallback(() => {
+    setShowCalendar(false);
+  }, []);
+
+  // Calculate min and max dates
+  const today = new Date();
+  const maxDate = new Date();
+  maxDate.setMonth(maxDate.getMonth() + 6);
+
+  const minDateString = today.toISOString().split("T")[0];
+  const maxDateString = maxDate.toISOString().split("T")[0];
+  const selectedDateString = selectedDate.toISOString().split("T")[0];
+
   return (
     <View className="bg-card border border-border rounded-xl p-4">
       <View className="flex-row items-center justify-between mb-3">
         <View className="flex-row items-center gap-3">
-          <Calendar size={20} color="#3b82f6" />
+          <CalendarIcon size={20} color="#3b82f6" />
           <Text className="font-semibold text-lg">Select Date</Text>
         </View>
 
@@ -213,21 +220,67 @@ const DateSelector: React.FC<{
         </Pressable>
       </View>
 
-      {/* Native Calendar Picker */}
-      {showCalendar && (
-        <DateTimePicker
-          value={selectedDate}
-          mode="date"
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          onChange={handleCalendarDateChange}
-          minimumDate={new Date()}
-          maximumDate={(() => {
-            const maxDate = new Date();
-            maxDate.setMonth(maxDate.getMonth() + 6); // 6 months ahead
-            return maxDate;
-          })()}
-        />
-      )}
+      {/* Universal Calendar Modal */}
+      <Modal
+        visible={showCalendar}
+        transparent
+        animationType="fade"
+        onRequestClose={closeCalendar}
+      >
+        <Pressable
+          className="flex-1 bg-black/50 justify-center items-center"
+          onPress={closeCalendar}
+        >
+          <Pressable
+            className="bg-white dark:bg-gray-800 rounded-xl p-4 m-4 max-w-sm w-full"
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View className="flex-row items-center justify-between mb-4">
+              <Text className="font-semibold text-lg text-gray-900 dark:text-white">
+                Select Date
+              </Text>
+              <Pressable onPress={closeCalendar} className="p-1">
+                <X size={24} color="#666" />
+              </Pressable>
+            </View>
+
+            <Calendar
+              current={selectedDateString}
+              minDate={minDateString}
+              maxDate={maxDateString}
+              onDayPress={handleCalendarDateChange}
+              monthFormat={"MMMM yyyy"}
+              hideExtraDays={true}
+              firstDay={1}
+              enableSwipeMonths={true}
+              theme={{
+                backgroundColor: "transparent",
+                calendarBackground: "transparent",
+                textSectionTitleColor: "#666",
+                selectedDayBackgroundColor: "#3b82f6",
+                selectedDayTextColor: "#ffffff",
+                todayTextColor: "#3b82f6",
+                dayTextColor: "#2d3748",
+                textDisabledColor: "#cbd5e0",
+                dotColor: "#3b82f6",
+                selectedDotColor: "#ffffff",
+                arrowColor: "#3b82f6",
+                monthTextColor: "#2d3748",
+                indicatorColor: "#3b82f6",
+                textDayFontFamily: "System",
+                textMonthFontFamily: "System",
+                textDayHeaderFontFamily: "System",
+                textDayFontWeight: "400",
+                textMonthFontWeight: "600",
+                textDayHeaderFontWeight: "600",
+                textDayFontSize: 16,
+                textMonthFontSize: 18,
+                textDayHeaderFontSize: 14,
+              }}
+            />
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View className="flex-row gap-3">
