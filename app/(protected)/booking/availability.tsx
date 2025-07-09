@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Platform,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -25,8 +26,10 @@ import {
   Tag,
   Sparkles,
   QrCode,
+  CalendarDays,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
@@ -140,6 +143,8 @@ const DateSelector: React.FC<{
   onDateChange: (date: Date) => void;
   maxDaysAhead?: number;
 }> = ({ selectedDate, onDateChange, maxDaysAhead = 30 }) => {
+  const [showCalendar, setShowCalendar] = useState(false);
+
   const dates = useMemo(() => {
     const today = new Date();
     const datesArray = [];
@@ -168,12 +173,61 @@ const DateSelector: React.FC<{
     });
   }, []);
 
+  const handleCalendarDateChange = useCallback(
+    (event: any, selectedDate?: Date) => {
+      if (Platform.OS === "android") {
+        setShowCalendar(false);
+      }
+
+      if (selectedDate) {
+        onDateChange(selectedDate);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+        if (Platform.OS === "ios") {
+          setShowCalendar(false);
+        }
+      }
+    },
+    [onDateChange]
+  );
+
+  const openCalendar = useCallback(() => {
+    setShowCalendar(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
+
   return (
     <View className="bg-card border border-border rounded-xl p-4">
-      <View className="flex-row items-center gap-3 mb-3">
-        <Calendar size={20} color="#3b82f6" />
-        <Text className="font-semibold text-lg">Select Date</Text>
+      <View className="flex-row items-center justify-between mb-3">
+        <View className="flex-row items-center gap-3">
+          <Calendar size={20} color="#3b82f6" />
+          <Text className="font-semibold text-lg">Select Date</Text>
+        </View>
+
+        {/* Calendar Shortcut Button */}
+        <Pressable
+          onPress={openCalendar}
+          className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+        >
+          <CalendarDays size={20} color="#3b82f6" />
+        </Pressable>
       </View>
+
+      {/* Native Calendar Picker */}
+      {showCalendar && (
+        <DateTimePicker
+          value={selectedDate}
+          mode="date"
+          display={Platform.OS === "ios" ? "spinner" : "default"}
+          onChange={handleCalendarDateChange}
+          minimumDate={new Date()}
+          maximumDate={(() => {
+            const maxDate = new Date();
+            maxDate.setMonth(maxDate.getMonth() + 6); // 6 months ahead
+            return maxDate;
+          })()}
+        />
+      )}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View className="flex-row gap-3">
@@ -710,7 +764,7 @@ export default function AvailabilitySelectionScreen() {
           <PartySizeSelector
             partySize={partySize}
             onPartySizeChange={setPartySize}
-            maxPartySize={restaurant.max_party_size || 12}
+            maxPartySize={12}
           />
 
           {/* Date Selector */}
