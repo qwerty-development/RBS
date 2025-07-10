@@ -41,7 +41,7 @@ import {
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
- import { ShareBookingButton } from "@/components/social/ShareBookingButton";
+import { ShareBookingButton } from "@/components/social/ShareBookingButton";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
@@ -89,7 +89,7 @@ const SuccessAnimation: React.FC<{ hasOffer: boolean }> = ({ hasOffer }) => {
     const timer = setTimeout(() => {
       setShowCheckmark(true);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
+
       Animated.spring(scaleAnim, {
         toValue: 1,
         useNativeDriver: true,
@@ -113,23 +113,22 @@ const SuccessAnimation: React.FC<{ hasOffer: boolean }> = ({ hasOffer }) => {
           <Text className="text-6xl">🎉</Text>
         </View>
       )}
-      
-      <Animated.View 
+
+      <Animated.View
         style={{ transform: [{ scale: scaleAnim }] }}
         className="w-24 h-24 rounded-full bg-green-100 items-center justify-center mb-4"
       >
         <CheckCircle size={48} color="#10b981" />
       </Animated.View>
-      
+
       <H1 className="text-3xl font-bold text-center mb-2">
         {hasOffer ? "Booking Confirmed with Savings!" : "Booking Confirmed!"}
       </H1>
-      
+
       <Text className="text-center text-muted-foreground px-8 text-lg">
-        {hasOffer 
-          ? "Your table is reserved and your special offer has been applied. You're all set!" 
-          : "Your table reservation has been successfully confirmed. We can't wait to serve you!"
-        }
+        {hasOffer
+          ? "Your table is reserved and your special offer has been applied. You're all set!"
+          : "Your table reservation has been successfully confirmed. We can't wait to serve you!"}
       </Text>
     </View>
   );
@@ -159,7 +158,7 @@ const AppliedOfferShowcase: React.FC<{
               </Text>
             </View>
           </View>
-          
+
           <View className="bg-green-600 rounded-full px-4 py-2">
             <Text className="text-white font-bold text-lg">
               {offerDetails.discount_percentage}% OFF
@@ -208,7 +207,7 @@ const AppliedOfferShowcase: React.FC<{
                 {offerDetails.redemption_code.slice(-8).toUpperCase()}
               </Text>
             </View>
-            <Pressable 
+            <Pressable
               onPress={onCopyCode}
               className="bg-green-500 rounded-full p-3"
             >
@@ -232,10 +231,12 @@ const AppliedOfferShowcase: React.FC<{
               <Text className="text-green-700">Share Deal</Text>
             </View>
           </Button>
-          
+
           <Button
             variant="outline"
-            onPress={() => {/* Navigate to offers */}}
+            onPress={() => {
+              /* Navigate to offers */
+            }}
             className="flex-1 border-green-400"
           >
             <View className="flex-row items-center justify-center gap-2">
@@ -246,18 +247,22 @@ const AppliedOfferShowcase: React.FC<{
         </View>
 
         {/* Terms if available */}
-        {offerDetails.terms_conditions && offerDetails.terms_conditions.length > 0 && (
-          <View className="mt-4 pt-4 border-t border-green-200 dark:border-green-700">
-            <Text className="text-green-700 dark:text-green-300 text-sm font-medium mb-2">
-              Terms & Conditions
-            </Text>
-            {offerDetails.terms_conditions.slice(0, 2).map((term, index) => (
-              <Text key={index} className="text-green-600 dark:text-green-400 text-xs mb-1">
-                • {term}
+        {offerDetails.terms_conditions &&
+          offerDetails.terms_conditions.length > 0 && (
+            <View className="mt-4 pt-4 border-t border-green-200 dark:border-green-700">
+              <Text className="text-green-700 dark:text-green-300 text-sm font-medium mb-2">
+                Terms & Conditions
               </Text>
-            ))}
-          </View>
-        )}
+              {offerDetails.terms_conditions.slice(0, 2).map((term, index) => (
+                <Text
+                  key={index}
+                  className="text-green-600 dark:text-green-400 text-xs mb-1"
+                >
+                  • {term}
+                </Text>
+              ))}
+            </View>
+          )}
       </View>
     </View>
   );
@@ -297,7 +302,9 @@ const BookingDetailsCard: React.FC<{
         />
         <View className="flex-1">
           <H3 className="text-xl font-bold mb-1">{booking.restaurant.name}</H3>
-          <Text className="text-muted-foreground mb-2">{booking.restaurant.cuisine_type}</Text>
+          <Text className="text-muted-foreground mb-2">
+            {booking.restaurant.cuisine_type}
+          </Text>
           <View className="flex-row items-center gap-1">
             <Star size={14} color="#f59e0b" fill="#f59e0b" />
             <Text className="text-sm font-medium">
@@ -310,7 +317,9 @@ const BookingDetailsCard: React.FC<{
               <>
                 <Text className="text-sm text-muted-foreground">•</Text>
                 <View className="bg-green-100 px-2 py-1 rounded-full">
-                  <Text className="text-green-700 text-xs font-bold">OFFER APPLIED</Text>
+                  <Text className="text-green-700 text-xs font-bold">
+                    OFFER APPLIED
+                  </Text>
                 </View>
               </>
             )}
@@ -324,7 +333,9 @@ const BookingDetailsCard: React.FC<{
           <Calendar size={20} color="#3b82f6" />
           <View>
             <Text className="font-semibold">Date</Text>
-            <Text className="text-muted-foreground">{formatDate(booking.booking_time)}</Text>
+            <Text className="text-muted-foreground">
+              {formatDate(booking.booking_time)}
+            </Text>
           </View>
         </View>
 
@@ -332,7 +343,9 @@ const BookingDetailsCard: React.FC<{
           <Clock size={20} color="#3b82f6" />
           <View>
             <Text className="font-semibold">Time</Text>
-            <Text className="text-muted-foreground">{formatTime(booking.booking_time)}</Text>
+            <Text className="text-muted-foreground">
+              {formatTime(booking.booking_time)}
+            </Text>
           </View>
         </View>
 
@@ -341,7 +354,8 @@ const BookingDetailsCard: React.FC<{
           <View>
             <Text className="font-semibold">Party Size</Text>
             <Text className="text-muted-foreground">
-              {booking.party_size} {booking.party_size === 1 ? "guest" : "guests"}
+              {booking.party_size}{" "}
+              {booking.party_size === 1 ? "guest" : "guests"}
             </Text>
           </View>
         </View>
@@ -350,7 +364,9 @@ const BookingDetailsCard: React.FC<{
           <MapPin size={20} color="#3b82f6" />
           <View className="flex-1">
             <Text className="font-semibold">Location</Text>
-            <Text className="text-muted-foreground">{booking.restaurant.address}</Text>
+            <Text className="text-muted-foreground">
+              {booking.restaurant.address}
+            </Text>
           </View>
         </View>
       </View>
@@ -359,12 +375,17 @@ const BookingDetailsCard: React.FC<{
       <View className="mt-6 p-4 bg-primary/10 rounded-xl">
         <View className="flex-row items-center justify-between">
           <View className="flex-1">
-            <Text className="font-semibold text-primary mb-1">Confirmation Code</Text>
+            <Text className="font-semibold text-primary mb-1">
+              Confirmation Code
+            </Text>
             <Text className="text-2xl font-mono font-bold text-primary">
               {booking.confirmation_code}
             </Text>
           </View>
-          <Pressable onPress={onCopyConfirmation} className="bg-primary rounded-full p-3">
+          <Pressable
+            onPress={onCopyConfirmation}
+            className="bg-primary rounded-full p-3"
+          >
             <Copy size={20} color="white" />
           </Pressable>
         </View>
@@ -408,10 +429,9 @@ const LoyaltyRewardsCard: React.FC<{
             +{earnedPoints}
           </Text>
           <Text className="text-amber-700 dark:text-amber-300 text-center">
-            {hasAppliedOffer 
-              ? "Loyalty points earned + discount applied!" 
-              : "Loyalty points have been added to your account"
-            }
+            {hasAppliedOffer
+              ? "Loyalty points earned + discount applied!"
+              : "Loyalty points have been added to your account"}
           </Text>
         </View>
 
@@ -434,7 +454,13 @@ const QuickActionsSection: React.FC<{
   onGetDirections: () => void;
   onShareBooking: () => void;
   onAddToCalendar: () => void;
-}> = ({ restaurant, onCallRestaurant, onGetDirections, onShareBooking, onAddToCalendar }) => {
+}> = ({
+  restaurant,
+  onCallRestaurant,
+  onGetDirections,
+  onShareBooking,
+  onAddToCalendar,
+}) => {
   return (
     <View className="mx-4 mb-6">
       <H3 className="mb-4">Quick Actions</H3>
@@ -482,8 +508,6 @@ const QuickActionsSection: React.FC<{
             Set a reminder
           </Text>
         </Pressable>
-
-
       </View>
     </View>
   );
@@ -493,7 +517,7 @@ export default function BookingSuccessScreen() {
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();
   const router = useRouter();
-  
+
   const params = useLocalSearchParams<{
     bookingId: string;
     restaurantName?: string;
@@ -508,7 +532,8 @@ export default function BookingSuccessScreen() {
   // State management
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
-  const [appliedOfferDetails, setAppliedOfferDetails] = useState<AppliedOfferDetails | null>(null);
+  const [appliedOfferDetails, setAppliedOfferDetails] =
+    useState<AppliedOfferDetails | null>(null);
 
   const earnedPoints = parseInt(params.earnedPoints || "0", 10);
   const userTier = (params.userTier as TierType) || "bronze";
@@ -520,10 +545,12 @@ export default function BookingSuccessScreen() {
       // Fetch booking with restaurant details
       const { data: bookingData, error: bookingError } = await supabase
         .from("bookings")
-        .select(`
+        .select(
+          `
           *,
           restaurant:restaurants (*)
-        `)
+        `
+        )
         .eq("id", params.bookingId)
         .single();
 
@@ -532,8 +559,11 @@ export default function BookingSuccessScreen() {
 
       // Fetch applied offer details if applicable
       if (bookingData.applied_offer_id) {
-        console.log("Fetching applied offer details for:", bookingData.applied_offer_id);
-        
+        console.log(
+          "Fetching applied offer details for:",
+          bookingData.applied_offer_id
+        );
+
         // Get the special offer details
         const { data: offerData, error: offerError } = await supabase
           .from("special_offers")
@@ -554,8 +584,10 @@ export default function BookingSuccessScreen() {
 
           // Calculate estimated savings (rough estimate)
           const estimatedSavings = Math.round(
-            (bookingData.party_size * (bookingData.restaurant.price_range || 2) * 25) * 
-            (offerData.discount_percentage / 100)
+            bookingData.party_size *
+              (bookingData.restaurant.price_range || 2) *
+              25 *
+              (offerData.discount_percentage / 100)
           );
 
           setAppliedOfferDetails({
@@ -581,7 +613,7 @@ export default function BookingSuccessScreen() {
   // Enhanced event handlers
   const handleCopyConfirmation = useCallback(async () => {
     if (!booking?.confirmation_code) return;
-    
+
     await Clipboard.setStringAsync(booking.confirmation_code);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert("Copied!", "Confirmation code copied to clipboard");
@@ -589,7 +621,7 @@ export default function BookingSuccessScreen() {
 
   const handleCopyOfferCode = useCallback(async () => {
     if (!appliedOfferDetails?.redemption_code) return;
-    
+
     await Clipboard.setStringAsync(appliedOfferDetails.redemption_code);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert("Copied!", "Offer redemption code copied to clipboard");
@@ -597,7 +629,7 @@ export default function BookingSuccessScreen() {
 
   const handleShareOffer = useCallback(async () => {
     if (!appliedOfferDetails || !booking) return;
-    
+
     try {
       await Share.share({
         message: `I just saved ${appliedOfferDetails.discount_percentage}% at ${booking.restaurant.name} with a special offer! 🎉 Check out the app for more deals.`,
@@ -623,11 +655,11 @@ export default function BookingSuccessScreen() {
 
   const handleShareBooking = useCallback(async () => {
     if (!booking) return;
-    
-    const offerText = appliedOfferDetails 
-      ? ` Plus I saved ${appliedOfferDetails.discount_percentage}% with a special offer!` 
-      : '';
-    
+
+    const offerText = appliedOfferDetails
+      ? ` Plus I saved ${appliedOfferDetails.discount_percentage}% with a special offer!`
+      : "";
+
     try {
       await Share.share({
         message: `I just booked a table at ${booking.restaurant.name}! Confirmation: ${booking.confirmation_code}${offerText}`,
@@ -639,7 +671,10 @@ export default function BookingSuccessScreen() {
   }, [booking, appliedOfferDetails]);
 
   const handleAddToCalendar = useCallback(() => {
-    Alert.alert("Add to Calendar", "This feature will open your calendar app to add the booking.");
+    Alert.alert(
+      "Add to Calendar",
+      "This feature will open your calendar app to add the booking."
+    );
   }, []);
 
   const handleGoHome = useCallback(() => {
@@ -662,8 +697,13 @@ export default function BookingSuccessScreen() {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#000"} />
-          <Text className="mt-4 text-muted-foreground">Loading booking details...</Text>
+          <ActivityIndicator
+            size="large"
+            color={colorScheme === "dark" ? "#fff" : "#000"}
+          />
+          <Text className="mt-4 text-muted-foreground">
+            Loading booking details...
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -721,27 +761,34 @@ export default function BookingSuccessScreen() {
                 <TrendingUp size={20} color="#3b82f6" />
                 <Text className="font-bold text-lg ml-2">Your Total Value</Text>
               </View>
-              
+
               <View className="space-y-2">
                 <View className="flex-row justify-between">
-                  <Text className="text-muted-foreground">Discount Savings</Text>
+                  <Text className="text-muted-foreground">
+                    Discount Savings
+                  </Text>
                   <Text className="font-bold text-green-600">
                     {appliedOfferDetails.estimated_savings.toFixed(2)}
                   </Text>
                 </View>
-                
+
                 <View className="flex-row justify-between">
-                  <Text className="text-muted-foreground">Loyalty Points Value</Text>
+                  <Text className="text-muted-foreground">
+                    Loyalty Points Value
+                  </Text>
                   <Text className="font-bold text-amber-600">
-                     {(earnedPoints * 0.05).toFixed(2)}
+                    {(earnedPoints * 0.05).toFixed(2)}
                   </Text>
                 </View>
-                
+
                 <View className="border-t border-border pt-2">
                   <View className="flex-row justify-between">
                     <Text className="font-medium">Total Value Gained</Text>
                     <Text className="font-bold text-lg text-primary">
-                      {(appliedOfferDetails.estimated_savings + (earnedPoints * 0.05)).toFixed(2)}
+                      {(
+                        appliedOfferDetails.estimated_savings +
+                        earnedPoints * 0.05
+                      ).toFixed(2)}
                     </Text>
                   </View>
                 </View>
@@ -764,33 +811,36 @@ export default function BookingSuccessScreen() {
 
       {/* Enhanced Bottom Actions */}
       <View className="p-4 border-t border-border bg-background">
-        <View className="flex-row gap-3">
+        <View className="flex-row gap-3 pb-4">
           <Button
             variant="outline"
             onPress={handleViewBooking}
             className="flex-1"
           >
-            <Calendar size={16} className="mr-2" />
-            <Text>View Booking</Text>
+            <View className="flex-row items-center justify-center gap-2">
+              <Calendar size={16} color="#666" />
+              <Text>View Booking</Text>
+            </View>
           </Button>
-          <Button
-            onPress={handleGoHome}
-            className="flex-1"
-          >
-            <Home size={16} className="mr-2" />
-            <Text className="text-white">Done</Text>
+          <Button onPress={handleGoHome} className="flex-1">
+            <View className="flex-row items-center justify-center gap-2">
+              <Home size={16} color="white" />
+              <Text className="text-white">Done</Text>
+            </View>
           </Button>
         </View>
 
         <ShareBookingButton
- bookingId={booking.id}
- restaurantId={booking.restaurant.id}
-  restaurantName={booking.restaurant.name} />
-        
+          bookingId={booking.id}
+          restaurantId={booking.restaurant.id}
+          restaurantName={booking.restaurant.name}
+        />
+
         {/* Enhanced bottom message */}
         {appliedOfferDetails && (
           <Text className="text-center text-xs text-muted-foreground mt-3">
-            🎉 Congrats on your {appliedOfferDetails.discount_percentage}% savings and {earnedPoints} loyalty points!
+            🎉 Congrats on your {appliedOfferDetails.discount_percentage}%
+            savings and {earnedPoints} loyalty points!
           </Text>
         )}
       </View>
