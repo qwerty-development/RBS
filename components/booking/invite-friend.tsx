@@ -371,13 +371,13 @@ export function InviteFriends({
                 {sending ? (
                   <ActivityIndicator size="small" color="white" />
                 ) : (
-                  <>
+                  <View className="flex-row items-center justify-center gap-2">
                     <Send size={20} color="white" />
-                    <Text className="text-white font-semibold ml-2">
+                    <Text className="text-white font-semibold">
                       Send {selectedFriends.size} Invite
                       {selectedFriends.size > 1 ? "s" : ""}
                     </Text>
-                  </>
+                  </View>
                 )}
               </Button>
             </View>

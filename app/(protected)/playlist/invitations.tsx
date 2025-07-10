@@ -157,16 +157,20 @@ export default function PlaylistInvitationsScreen() {
             className="flex-1"
             onPress={() => handleRejectInvitation(item)}
           >
-            <X size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
-            <Text className="ml-2">Decline</Text>
+            <View className="flex-row items-center justify-center gap-2">
+              <X size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
+              <Text>Decline</Text>
+            </View>
           </Button>
           
           <Button
             className="flex-1"
             onPress={() => handleAcceptInvitation(item)}
           >
-            <Check size={16} color="#fff" />
-            <Text className="ml-2 text-white">Accept</Text>
+            <View className="flex-row items-center justify-center gap-2">
+              <Check size={16} color="#fff" />
+              <Text className="text-white">Accept</Text>
+            </View>
           </Button>
         </View>
       </View>
@@ -216,8 +220,10 @@ export default function PlaylistInvitationsScreen() {
             variant="outline"
             onPress={() => router.push('/playlist/join')}
           >
-            <Users size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
-            <Text className="ml-2">Join with Code Instead</Text>
+            <View className="flex-row items-center justify-center gap-2">
+              <Users size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
+              <Text>Join with Code Instead</Text>
+            </View>
           </Button>
         </View>
       ) : (

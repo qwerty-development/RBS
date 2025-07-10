@@ -692,10 +692,12 @@ export default function HelpScreen() {
                 onPress={submitSupportTicket}
                 disabled={submittingTicket || !contactSubject.trim() || !contactMessage.trim()}
               >
-                <Send size={16} color="white" />
-                <Text className="text-primary-foreground ml-2">
-                  {submittingTicket ? "Sending..." : "Send Message"}
-                </Text>
+                <View className="flex-row items-center justify-center gap-2">
+                  <Send size={16} color="white" />
+                  <Text className="text-primary-foreground">
+                    {submittingTicket ? "Sending..." : "Send Message"}
+                  </Text>
+                </View>
               </Button>
             </View>
           </>

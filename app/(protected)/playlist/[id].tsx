@@ -368,8 +368,10 @@ export default function PlaylistDetailScreen() {
             onPress={handleAddRestaurants}
             className="flex-row items-center"
           >
-            <Plus size={16} color="#fff" className="mr-1" />
-            <Text className="text-white text-sm">Add Restaurants</Text>
+            <View className="flex-row items-center justify-center gap-2">
+              <Plus size={16} color="#fff" />
+              <Text className="text-white text-sm">Add Restaurants</Text>
+            </View>
           </Button>
           
           <Button
