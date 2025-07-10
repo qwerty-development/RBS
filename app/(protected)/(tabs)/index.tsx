@@ -25,8 +25,9 @@ import { useHomeScreenLogic } from "@/hooks/useHomeScreenLogic";
 import { useOffers } from "@/hooks/useOffers";
 import { CUISINE_CATEGORIES } from "@/constants/homeScreenData";
 import { SpecialOffersCarousel } from "@/components/home/SpecialOffersCarousel";
+import { SpecialOfferBannerCarousel } from "@/components/home/SpecialOfferBannerCarousel";
 
-// Global ref for scroll to top functionality  
+// Global ref for scroll to top functionality
 export const homeScrollRef = { current: null as any };
 
 export default function HomeScreen() {
@@ -235,6 +236,9 @@ export default function HomeScreen() {
             </View>
           </ScrollView>
         </View>
+
+        {/* Special Offer Banners - Large banners for offers with custom images */}
+        <SpecialOfferBannerCarousel offers={specialOffers} />
 
         {specialOffers.length > 0 && (
           <View className="mb-6">
