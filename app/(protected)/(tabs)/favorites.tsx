@@ -17,6 +17,7 @@ import { Text } from "@/components/ui/text";
 import { H2, H3, Muted } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useFavorites } from "@/hooks/useFavorites";
 import { usePlaylists } from "@/hooks/usePlaylists";
@@ -412,18 +413,15 @@ export default function FavoritesScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* Header */}
-      <View className="px-4 pt-4 pb-2">
-        <View className="flex-row items-center justify-between mb-4">
-          <View className="flex-1">
-            <H2>My Collection</H2>
-            <Muted className="text-sm">
-              {activeTab === "favorites"
-                ? `${favorites?.length || 0} ${(favorites?.length || 0) === 1 ? "restaurant" : "restaurants"}`
-                : `${playlists?.length || 0} ${(playlists?.length || 0) === 1 ? "playlist" : "playlists"}`}
-            </Muted>
-          </View>
-          
-          {activeTab === "favorites" ? (
+      <PageHeader 
+        title="My Collection"
+        subtitle={
+          activeTab === "favorites"
+            ? `${favorites?.length || 0} ${(favorites?.length || 0) === 1 ? "restaurant" : "restaurants"}`
+            : `${playlists?.length || 0} ${(playlists?.length || 0) === 1 ? "playlist" : "playlists"}`
+        }
+        actions={
+          activeTab === "favorites" ? (
             <Pressable
               onPress={() => setShowOptions(!showOptions)}
               className="p-2 relative"
@@ -435,9 +433,11 @@ export default function FavoritesScreen() {
             </Pressable>
           ) : (
             <PlaylistHeaderActions />
-          )}
-        </View>
+          )
+        }
+      />
 
+      <View className="px-4">
         {/* Tabs */}
         <View className="flex-row bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
           <Pressable

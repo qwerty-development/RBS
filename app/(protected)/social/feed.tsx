@@ -26,6 +26,7 @@ import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { H2, H3, P, Muted } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
+import { PageHeader } from "@/components/ui/page-header";
 import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
@@ -349,23 +350,26 @@ export default function SocialFeedScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
-        <H2>Social Feed</H2>
-        <View className="flex-row items-center gap-3">
-          <Pressable
-            onPress={() => router.push("/friends")}
-            className="p-2"
-          >
-            <Users size={24} color="#666" />
-          </Pressable>
-          <Pressable
-            onPress={() => router.push("/social/create-post")}
-            className="p-2"
-          >
-            <Plus size={24} color="#666" />
-          </Pressable>
-        </View>
-      </View>
+      <PageHeader
+        title="Social Feed"
+        actions={
+          <View className="flex-row items-center gap-3">
+            <Pressable
+              onPress={() => router.push("/friends")}
+              className="p-2"
+            >
+              <Users size={24} color="#666" />
+            </Pressable>
+            <Pressable
+              onPress={() => router.push("/social/create-post")}
+              className="p-2"
+            >
+              <Plus size={24} color="#666" />
+            </Pressable>
+          </View>
+        }
+        className="border-b border-border"
+      />
 
       {/* Posts */}
       <FlatList

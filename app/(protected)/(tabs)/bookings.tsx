@@ -13,6 +13,7 @@ import { Text } from "@/components/ui/text";
 import { H2, Muted } from "@/components/ui/typography";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TabButton } from "@/components/ui/tab-button";
+import { PageHeader } from "@/components/ui/page-header";
 import { BookingCard } from "@/components/booking/BookingCard";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useBookings } from "@/hooks/useBookings";
@@ -58,12 +59,10 @@ export default function BookingsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* Header */}
-      <View className="px-4 pt-4 pb-2">
-        <H2 className="text-2xl">My Bookings</H2>
-        <Muted className="text-sm mt-1">
-          Tap any booking for full details and options
-        </Muted>
-      </View>
+      <PageHeader 
+        title="My Bookings"
+        subtitle="Tap any booking for full details and options"
+      />
 
       {/* Tabs */}
       <View className="flex-row border-b border-border bg-background">
