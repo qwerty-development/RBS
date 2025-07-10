@@ -35,6 +35,7 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react-native";
+import { FontAwesome } from "@expo/vector-icons";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
@@ -66,15 +67,15 @@ interface SupportTicket {
   id: string;
   subject: string;
   description: string;
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: "open" | "in_progress" | "resolved" | "closed";
+  priority: "low" | "medium" | "high" | "urgent";
   created_at: string;
   updated_at: string;
 }
 
 interface ContactMethod {
   id: string;
-  type: 'email' | 'phone' | 'chat' | 'whatsapp';
+  type: "email" | "phone" | "chat" | "whatsapp";
   title: string;
   subtitle: string;
   value: string;
@@ -177,7 +178,8 @@ const SAMPLE_FAQS: FAQItem[] = [
     id: "1",
     category: "booking",
     question: "How do I make a restaurant reservation?",
-    answer: "To make a reservation, browse restaurants, select your preferred date and time, choose party size, and confirm your booking. You'll receive a confirmation email and reminder notifications.",
+    answer:
+      "To make a reservation, browse restaurants, select your preferred date and time, choose party size, and confirm your booking. You'll receive a confirmation email and reminder notifications.",
     helpful_count: 45,
     tags: ["reservation", "booking", "how-to"],
   },
@@ -185,7 +187,8 @@ const SAMPLE_FAQS: FAQItem[] = [
     id: "2",
     category: "booking",
     question: "Can I modify or cancel my reservation?",
-    answer: "Yes! You can modify or cancel reservations up to 2 hours before your booking time. Go to 'My Bookings' in your profile, select the reservation, and choose 'Modify' or 'Cancel'.",
+    answer:
+      "Yes! You can modify or cancel reservations up to 2 hours before your booking time. Go to 'My Bookings' in your profile, select the reservation, and choose 'Modify' or 'Cancel'.",
     helpful_count: 38,
     tags: ["cancel", "modify", "change"],
   },
@@ -193,7 +196,8 @@ const SAMPLE_FAQS: FAQItem[] = [
     id: "3",
     category: "payments",
     question: "What payment methods do you accept?",
-    answer: "We accept all major credit cards (Visa, MasterCard, American Express), debit cards, PayPal, Apple Pay, and Google Pay. Some restaurants may require a deposit at booking.",
+    answer:
+      "We accept all major credit cards (Visa, MasterCard, American Express), debit cards, PayPal, Apple Pay, and Google Pay. Some restaurants may require a deposit at booking.",
     helpful_count: 22,
     tags: ["payment", "credit-card", "methods"],
   },
@@ -201,7 +205,8 @@ const SAMPLE_FAQS: FAQItem[] = [
     id: "4",
     category: "account",
     question: "How do I update my profile information?",
-    answer: "Go to your Profile tab, tap 'Edit Profile', update your information, and save changes. You can update your name, email, phone number, dietary preferences, and profile picture.",
+    answer:
+      "Go to your Profile tab, tap 'Edit Profile', update your information, and save changes. You can update your name, email, phone number, dietary preferences, and profile picture.",
     helpful_count: 31,
     tags: ["profile", "edit", "update"],
   },
@@ -209,7 +214,8 @@ const SAMPLE_FAQS: FAQItem[] = [
     id: "5",
     category: "reviews",
     question: "How do I leave a review for a restaurant?",
-    answer: "After dining, you'll receive a notification to review your experience. You can also go to 'My Bookings', find your completed reservation, and tap 'Write Review'.",
+    answer:
+      "After dining, you'll receive a notification to review your experience. You can also go to 'My Bookings', find your completed reservation, and tap 'Write Review'.",
     helpful_count: 28,
     tags: ["review", "rating", "feedback"],
   },
@@ -238,27 +244,33 @@ export default function HelpScreen() {
   // 3.3 UI State
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<'faq' | 'contact' | 'tickets'>('faq');
+  const [activeTab, setActiveTab] = useState<"faq" | "contact" | "tickets">(
+    "faq"
+  );
 
   // 4. FAQ Search and Filtering
-  const searchFAQs = useCallback((query: string, category?: string) => {
-    let filtered = faqs;
+  const searchFAQs = useCallback(
+    (query: string, category?: string) => {
+      let filtered = faqs;
 
-    if (category) {
-      filtered = filtered.filter(faq => faq.category === category);
-    }
+      if (category) {
+        filtered = filtered.filter((faq) => faq.category === category);
+      }
 
-    if (query.trim()) {
-      const searchTerm = query.toLowerCase();
-      filtered = filtered.filter(faq =>
-        faq.question.toLowerCase().includes(searchTerm) ||
-        faq.answer.toLowerCase().includes(searchTerm) ||
-        faq.tags.some(tag => tag.toLowerCase().includes(searchTerm))
-      );
-    }
+      if (query.trim()) {
+        const searchTerm = query.toLowerCase();
+        filtered = filtered.filter(
+          (faq) =>
+            faq.question.toLowerCase().includes(searchTerm) ||
+            faq.answer.toLowerCase().includes(searchTerm) ||
+            faq.tags.some((tag) => tag.toLowerCase().includes(searchTerm))
+        );
+      }
 
-    setFilteredFaqs(filtered);
-  }, [faqs]);
+      setFilteredFaqs(filtered);
+    },
+    [faqs]
+  );
 
   useEffect(() => {
     searchFAQs(searchQuery, selectedCategory || undefined);
@@ -266,7 +278,7 @@ export default function HelpScreen() {
 
   // 5. FAQ Management
   const toggleFAQ = useCallback((faqId: string) => {
-    setExpandedFaqs(prev => {
+    setExpandedFaqs((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(faqId)) {
         newSet.delete(faqId);
@@ -280,9 +292,13 @@ export default function HelpScreen() {
   const markFAQHelpful = useCallback(async (faqId: string) => {
     try {
       // Update local state immediately
-      setFaqs(prev => prev.map(faq =>
-        faq.id === faqId ? { ...faq, helpful_count: faq.helpful_count + 1 } : faq
-      ));
+      setFaqs((prev) =>
+        prev.map((faq) =>
+          faq.id === faqId
+            ? { ...faq, helpful_count: faq.helpful_count + 1 }
+            : faq
+        )
+      );
 
       // In a real app, this would update the backend
       console.log(`Marked FAQ ${faqId} as helpful`);
@@ -304,14 +320,14 @@ export default function HelpScreen() {
         id: Date.now().toString(),
         subject: contactSubject,
         description: contactMessage,
-        status: 'open',
-        priority: 'medium',
+        status: "open",
+        priority: "medium",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
       // In a real app, this would be sent to the backend
-      setSupportTickets(prev => [newTicket, ...prev]);
+      setSupportTickets((prev) => [newTicket, ...prev]);
       setContactSubject("");
       setContactMessage("");
       setShowContactForm(false);
@@ -319,7 +335,7 @@ export default function HelpScreen() {
       Alert.alert(
         "Ticket Submitted",
         "Your support request has been submitted. We'll get back to you within 24 hours.",
-        [{ text: "OK", onPress: () => setActiveTab('tickets') }]
+        [{ text: "OK", onPress: () => setActiveTab("tickets") }]
       );
     } catch (error) {
       console.error("Error submitting support ticket:", error);
@@ -333,21 +349,26 @@ export default function HelpScreen() {
   const handleContactMethod = useCallback(async (method: ContactMethod) => {
     try {
       switch (method.type) {
-        case 'email':
+        case "email":
           await Linking.openURL(`mailto:${method.value}`);
           break;
-        case 'phone':
+        case "phone":
           await Linking.openURL(`tel:${method.value}`);
           break;
-        case 'whatsapp':
-          await Linking.openURL(`whatsapp://send?phone=${method.value.replace(/\D/g, '')}`);
+        case "whatsapp":
+          await Linking.openURL(
+            `whatsapp://send?phone=${method.value.replace(/\D/g, "")}`
+          );
           break;
-        case 'chat':
+        case "chat":
           // Open in-app chat
           Alert.alert("Live Chat", "Opening live chat...");
           break;
         default:
-          Alert.alert("Coming Soon", "This contact method will be available soon");
+          Alert.alert(
+            "Coming Soon",
+            "This contact method will be available soon"
+          );
       }
     } catch (error) {
       console.error("Error opening contact method:", error);
@@ -383,9 +404,12 @@ export default function HelpScreen() {
   // 10. Render Components
   const renderFAQItem = (faq: FAQItem) => {
     const isExpanded = expandedFaqs.has(faq.id);
-    
+
     return (
-      <View key={faq.id} className="bg-card mx-4 mb-3 rounded-xl overflow-hidden">
+      <View
+        key={faq.id}
+        className="bg-card mx-4 mb-3 rounded-xl overflow-hidden"
+      >
         <Pressable
           onPress={() => toggleFAQ(faq.id)}
           className="p-4 flex-row items-center justify-between"
@@ -393,19 +417,25 @@ export default function HelpScreen() {
           <View className="flex-1 pr-3">
             <Text className="font-medium">{faq.question}</Text>
             <View className="flex-row items-center gap-2 mt-1">
-              <Muted className="text-xs">{faq.helpful_count} people found this helpful</Muted>
+              <Muted className="text-xs">
+                {faq.helpful_count} people found this helpful
+              </Muted>
             </View>
           </View>
-          <View className={`transform ${isExpanded ? "rotate-180" : "rotate-0"}`}>
+          <View
+            className={`transform ${isExpanded ? "rotate-180" : "rotate-0"}`}
+          >
             <ChevronDown size={20} color="#666" />
           </View>
         </Pressable>
-        
+
         {isExpanded && (
           <View className="px-4 pb-4 border-t border-border">
             <P className="text-sm mt-3 mb-4">{faq.answer}</P>
             <View className="flex-row items-center justify-between">
-              <Text className="text-xs text-muted-foreground">Was this helpful?</Text>
+              <Text className="text-xs text-muted-foreground">
+                Was this helpful?
+              </Text>
               <Pressable
                 onPress={() => markFAQHelpful(faq.id)}
                 className="flex-row items-center gap-1 bg-primary/10 px-3 py-1 rounded-full"
@@ -427,14 +457,16 @@ export default function HelpScreen() {
       className="bg-card mx-4 mb-3 rounded-xl p-4 flex-row items-center"
     >
       <View className="w-12 h-12 bg-primary/10 rounded-full items-center justify-center">
-        <method.icon size={24} color="#3b82f6" />
+        {method.type === "whatsapp" ? (
+          <FontAwesome name="whatsapp" size={24} color="#25D366" />
+        ) : (
+          <method.icon size={24} color="#3b82f6" />
+        )}
       </View>
       <View className="flex-1 ml-3">
         <Text className="font-medium">{method.title}</Text>
         <Muted className="text-sm">{method.subtitle}</Muted>
-        {method.hours && (
-          <Muted className="text-xs mt-1">{method.hours}</Muted>
-        )}
+        {method.hours && <Muted className="text-xs mt-1">{method.hours}</Muted>}
       </View>
       <View className="flex-row items-center gap-2">
         {method.available && (
@@ -465,7 +497,9 @@ export default function HelpScreen() {
               className="w-2 h-2 rounded-full"
               style={{ backgroundColor: statusColors[ticket.status] }}
             />
-            <Text className="text-xs capitalize">{ticket.status.replace('_', ' ')}</Text>
+            <Text className="text-xs capitalize">
+              {ticket.status.replace("_", " ")}
+            </Text>
           </View>
         </View>
         <View className="flex-row items-center justify-between">
@@ -486,7 +520,10 @@ export default function HelpScreen() {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#000"} />
+          <ActivityIndicator
+            size="large"
+            color={colorScheme === "dark" ? "#fff" : "#000"}
+          />
         </View>
       </SafeAreaView>
     );
@@ -497,7 +534,10 @@ export default function HelpScreen() {
       {/* 11.1 Header */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
         <Pressable onPress={() => router.back()} className="p-2 -ml-2">
-          <ArrowLeft size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
+          <ArrowLeft
+            size={24}
+            color={colorScheme === "dark" ? "#fff" : "#000"}
+          />
         </Pressable>
         <H2>Help & Support</H2>
         <View className="w-10" />
@@ -506,9 +546,9 @@ export default function HelpScreen() {
       {/* 11.2 Tab Navigation */}
       <View className="flex-row bg-muted mx-4 mt-4 rounded-lg p-1">
         {[
-          { id: 'faq', label: 'FAQ', icon: HelpCircle },
-          { id: 'contact', label: 'Contact', icon: MessageCircle },
-          { id: 'tickets', label: 'My Tickets', icon: Clock },
+          { id: "faq", label: "FAQ", icon: HelpCircle },
+          { id: "contact", label: "Contact", icon: MessageCircle },
+          { id: "tickets", label: "My Tickets", icon: Clock },
         ].map((tab) => (
           <Pressable
             key={tab.id}
@@ -519,7 +559,13 @@ export default function HelpScreen() {
           >
             <tab.icon
               size={16}
-              color={activeTab === tab.id ? (colorScheme === "dark" ? "#fff" : "#000") : "#666"}
+              color={
+                activeTab === tab.id
+                  ? colorScheme === "dark"
+                    ? "#fff"
+                    : "#000"
+                  : "#666"
+              }
             />
             <Text
               className={`ml-2 text-sm ${
@@ -543,7 +589,7 @@ export default function HelpScreen() {
         }
       >
         {/* 11.3 FAQ Tab */}
-        {activeTab === 'faq' && (
+        {activeTab === "faq" && (
           <>
             {/* Search Bar */}
             <View className="mx-4 mt-4 mb-3">
@@ -569,12 +615,16 @@ export default function HelpScreen() {
               <Pressable
                 onPress={() => setSelectedCategory(null)}
                 className={`mr-3 px-4 py-2 rounded-full ${
-                  !selectedCategory ? "bg-primary" : "bg-card border border-border"
+                  !selectedCategory
+                    ? "bg-primary"
+                    : "bg-card border border-border"
                 }`}
               >
                 <Text
                   className={`text-sm ${
-                    !selectedCategory ? "text-primary-foreground font-medium" : "text-foreground"
+                    !selectedCategory
+                      ? "text-primary-foreground font-medium"
+                      : "text-foreground"
                   }`}
                 >
                   All
@@ -621,7 +671,9 @@ export default function HelpScreen() {
                     <View className="flex-1 ml-3">
                       <Text className="font-medium">{category.name}</Text>
                       <Muted className="text-sm">{category.description}</Muted>
-                      <Muted className="text-xs mt-1">{category.faqCount} articles</Muted>
+                      <Muted className="text-xs mt-1">
+                        {category.faqCount} articles
+                      </Muted>
                     </View>
                     <ChevronRight size={20} color="#666" />
                   </Pressable>
@@ -635,19 +687,22 @@ export default function HelpScreen() {
                 <View className="flex-row items-center justify-between px-4 mb-3">
                   <Text className="text-sm font-semibold text-muted-foreground uppercase">
                     {selectedCategory
-                      ? HELP_CATEGORIES.find(c => c.id === selectedCategory)?.name
-                      : "Search Results"
-                    }
+                      ? HELP_CATEGORIES.find((c) => c.id === selectedCategory)
+                          ?.name
+                      : "Search Results"}
                   </Text>
                   <Text className="text-xs text-muted-foreground">
-                    {filteredFaqs.length} {filteredFaqs.length === 1 ? "result" : "results"}
+                    {filteredFaqs.length}{" "}
+                    {filteredFaqs.length === 1 ? "result" : "results"}
                   </Text>
                 </View>
                 {filteredFaqs.map(renderFAQItem)}
                 {filteredFaqs.length === 0 && (
                   <View className="items-center py-12">
                     <AlertCircle size={48} color="#666" strokeWidth={1} />
-                    <Text className="mt-4 text-center font-medium">No results found</Text>
+                    <Text className="mt-4 text-center font-medium">
+                      No results found
+                    </Text>
                     <Muted className="mt-2 text-center px-8">
                       Try adjusting your search terms or browse categories above
                     </Muted>
@@ -659,7 +714,7 @@ export default function HelpScreen() {
         )}
 
         {/* 11.4 Contact Tab */}
-        {activeTab === 'contact' && (
+        {activeTab === "contact" && (
           <>
             <Text className="text-sm font-semibold text-muted-foreground uppercase px-4 mt-6 mb-3">
               Get in Touch
@@ -690,7 +745,11 @@ export default function HelpScreen() {
               />
               <Button
                 onPress={submitSupportTicket}
-                disabled={submittingTicket || !contactSubject.trim() || !contactMessage.trim()}
+                disabled={
+                  submittingTicket ||
+                  !contactSubject.trim() ||
+                  !contactMessage.trim()
+                }
               >
                 <View className="flex-row items-center justify-center gap-2">
                   <Send size={16} color="white" />
@@ -704,7 +763,7 @@ export default function HelpScreen() {
         )}
 
         {/* 11.5 Support Tickets Tab */}
-        {activeTab === 'tickets' && (
+        {activeTab === "tickets" && (
           <>
             <Text className="text-sm font-semibold text-muted-foreground uppercase px-4 mt-6 mb-3">
               Your Support Requests
@@ -714,14 +773,16 @@ export default function HelpScreen() {
             ) : (
               <View className="items-center py-12">
                 <Clock size={48} color="#666" strokeWidth={1} />
-                <Text className="mt-4 text-center font-medium">No support tickets</Text>
+                <Text className="mt-4 text-center font-medium">
+                  No support tickets
+                </Text>
                 <Muted className="mt-2 text-center px-8">
                   When you contact support, your tickets will appear here
                 </Muted>
                 <Button
                   variant="outline"
                   className="mt-4"
-                  onPress={() => setActiveTab('contact')}
+                  onPress={() => setActiveTab("contact")}
                 >
                   <Text>Contact Support</Text>
                 </Button>
@@ -735,7 +796,7 @@ export default function HelpScreen() {
           <Text className="text-sm font-semibold text-muted-foreground uppercase px-4 mb-3">
             Additional Resources
           </Text>
-          
+
           {[
             {
               title: "User Guide",
@@ -747,7 +808,8 @@ export default function HelpScreen() {
               title: "Community Guidelines",
               subtitle: "Rules and best practices",
               icon: Users,
-              onPress: () => Alert.alert("Guidelines", "Opening community guidelines..."),
+              onPress: () =>
+                Alert.alert("Guidelines", "Opening community guidelines..."),
             },
             {
               title: "App Status",

@@ -2,11 +2,11 @@ import React from "react";
 import { View, Pressable, Linking } from "react-native";
 import {
   Phone,
-  MessageCircle,
   Instagram,
   Globe,
   ChevronRight,
 } from "lucide-react-native";
+import { FontAwesome } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
 import { H3 } from "@/components/ui/typography";
 import { Database } from "@/types/supabase";
@@ -60,7 +60,7 @@ export const ContactSection = ({
             className="p-4 flex-row items-center justify-between"
           >
             <View className="flex-row items-center gap-3">
-              <MessageCircle size={20} color="#25D366" />
+              <FontAwesome name="whatsapp" size={20} color="#25D366" />
               <Text>WhatsApp</Text>
             </View>
             <ChevronRight size={20} color="#666" />
