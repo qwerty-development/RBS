@@ -149,8 +149,10 @@ export const AppliedOfferCard: React.FC<AppliedOfferCardProps> = ({
           onPress={onShareOffer}
           className="flex-1 border-green-400"
         >
-          <Share2 size={16} color="#059669" />
-          <Text className="text-green-700 ml-2">Share Deal</Text>
+          <View className="flex-row items-center justify-center gap-2">
+            <Share2 size={16} color="#059669" />
+            <Text className="text-green-700">Share Deal</Text>
+          </View>
         </Button>
 
         <Button
@@ -158,8 +160,10 @@ export const AppliedOfferCard: React.FC<AppliedOfferCardProps> = ({
           onPress={onViewOffers}
           className="flex-1 border-green-400"
         >
-          <Tag size={16} color="#059669" />
-          <Text className="text-green-700 ml-2">More Offers</Text>
+          <View className="flex-row items-center justify-center gap-2">
+            <Tag size={16} color="#059669" />
+            <Text className="text-green-700">More Offers</Text>
+          </View>
         </Button>
       </View>
 

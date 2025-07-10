@@ -40,8 +40,10 @@ export function ShareBookingButton({
         variant="outline"
         className="flex-row items-center justify-center"
       >
-        <Camera size={20} className="mr-2" />
-        <Text>Share to Social Feed</Text>
+        <View className="flex-row items-center justify-center gap-2">
+          <Camera size={20} color="#666" />
+          <Text>Share to Social Feed</Text>
+        </View>
       </Button>
     </View>
   );

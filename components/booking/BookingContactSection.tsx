@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Alert, Linking } from "react-native";
-import { Phone, MessageCircle, Info } from "lucide-react-native";
+import { Phone, Info } from "lucide-react-native";
+import { FontAwesome } from "@expo/vector-icons";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
@@ -82,7 +83,7 @@ export const BookingContactSection: React.FC<BookingContactSectionProps> = ({
             className="w-full"
           >
             <View className="flex-row items-center gap-2">
-              <MessageCircle size={20} color="#25D366" />
+              <FontAwesome name="whatsapp" size={20} color="#25D366" />
               <Text>WhatsApp</Text>
             </View>
           </Button>

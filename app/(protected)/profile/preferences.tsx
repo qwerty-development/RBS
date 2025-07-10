@@ -584,10 +584,10 @@ export default function DiningPreferencesScreen() {
           {saving ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <>
-              <Save size={20} />
+            <View className="flex-row items-center justify-center gap-2">
+              <Save size={20} color="white" />
               <Text>Save Preferences</Text>
-            </>
+            </View>
           )}
         </Button>
       </View>

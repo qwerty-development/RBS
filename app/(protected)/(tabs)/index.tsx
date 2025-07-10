@@ -6,21 +6,18 @@ import {
   ActivityIndicator,
   FlatList,
   SafeAreaView,
-  Text,
-  Pressable,
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { Muted } from "@/components/ui/typography";
-import { Image } from "@/components/image";
 import { RestaurantCard } from "@/components/restaurant/RestaurantCard";
 import { SpecialOfferCard } from "@/components/home/SpecialOfferCard";
 import { CuisineCategory } from "@/components/home/CuisineCategory";
 import { SectionHeader } from "@/components/ui/section-header";
 import { LoyaltyWidget } from "@/components/home/LoyaltyWidget";
 import { LocationHeader } from "@/components/home/LocationHeader";
+import { HomeHeader } from "@/components/home/HomeHeader";
 import { useHomeScreenLogic } from "@/hooks/useHomeScreenLogic";
 import { useOffers } from "@/hooks/useOffers";
 import { CUISINE_CATEGORIES } from "@/constants/homeScreenData";
@@ -34,7 +31,6 @@ export const homeScrollRef = { current: null as any };
 export default function HomeScreen() {
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   const {
     featuredRestaurants,
@@ -79,115 +75,15 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      <Animated.View
-        className="absolute top-0 left-0 right-0 bg-background border-b border-border/20"
-        onLayout={(event) => {
-          setTotalHeaderHeight(event.nativeEvent.layout.height);
-        }}
-        style={{
-          paddingTop: insets.top,
-          transform: [{ translateY: headerTranslateY }],
-          zIndex: 100, // Lower z-index than profile picture
-          elevation: 100, // Android elevation
-        }}
-        // Ensure child elements can receive touch events
-        pointerEvents="box-none"
-      >
-        <Animated.View
-          onLayout={(event) => {
-            setCollapsibleHeaderHeight(event.nativeEvent.layout.height);
-          }}
-          style={{ opacity: greetingOpacity }}
-          // Allow touch events to pass through to child elements
-          pointerEvents="box-none"
-        >
-          <View
-            className="flex-row items-center justify-between px-4 pt-2"
-            // Allow touch events for child elements
-            pointerEvents="box-none"
-          >
-            <View
-              className="flex-1"
-              // Prevent this container from capturing touch events meant for the profile picture
-              pointerEvents="none"
-            >
-              <Text className="text-2xl font-bold text-foreground">
-                Hello {profile?.full_name?.split(" ")[0] || "there"}{" "}
-                <Text className="text-2xl">👋</Text>
-              </Text>
-            </View>
-
-            <Pressable
-              onPress={() => {
-                router.push("/profile");
-              }}
-              style={({ pressed }) => ({
-                marginLeft: 12,
-                padding: 4,
-                zIndex: 999,
-                elevation: 999,
-                opacity: pressed ? 0.7 : 1,
-                transform: [{ scale: pressed ? 0.95 : 1 }],
-              })}
-              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-              pointerEvents="box-only"
-            >
-              <View
-                style={{
-                  position: "relative",
-                  zIndex: 999,
-                  elevation: 999,
-                }}
-              >
-                <Image
-                  source={
-                    profile?.avatar_url
-                      ? { uri: profile.avatar_url }
-                      : require("@/assets/default-avatar.jpeg")
-                  }
-                  style={{
-                    width: 40,
-                    height: 40,
-                    borderRadius: 20,
-                    borderWidth: 2,
-                    borderColor:
-                      colorScheme === "dark"
-                        ? "rgba(255,255,255,0.2)"
-                        : "rgba(0,0,0,0.2)",
-                  }}
-                  contentFit="cover"
-                />
-                {/* Online status indicator */}
-                <View
-                  style={{
-                    position: "absolute",
-                    bottom: 0,
-                    right: 0,
-                    width: 12,
-                    height: 12,
-                    backgroundColor: "#22c55e",
-                    borderRadius: 6,
-                    borderWidth: 2,
-                    borderColor: colorScheme === "dark" ? "#000" : "#fff",
-                    zIndex: 1000,
-                    elevation: 1000,
-                  }}
-                />
-              </View>
-            </Pressable>
-          </View>
-        </Animated.View>
-
-        <View className="-mt-12">
-          <LocationHeader
-            location={location}
-            onLocationPress={handleLocationPress}
-            getGreeting={function (): string {
-              throw new Error("Function not implemented.");
-            }}
-          />
-        </View>
-      </Animated.View>
+      <HomeHeader
+        profile={profile}
+        location={location}
+        headerTranslateY={headerTranslateY}
+        greetingOpacity={greetingOpacity}
+        setTotalHeaderHeight={setTotalHeaderHeight}
+        setCollapsibleHeaderHeight={setCollapsibleHeaderHeight}
+        onLocationPress={handleLocationPress}
+      />
 
       <Animated.ScrollView
         ref={(ref) => {

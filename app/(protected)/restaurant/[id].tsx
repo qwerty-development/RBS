@@ -1,6 +1,6 @@
 // app/(protected)/restaurant/[id].tsx
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { BookOpen, FolderPlus } from 'lucide-react-native';
+import { BookOpen, FolderPlus } from "lucide-react-native";
 import {
   ScrollView,
   View,
@@ -29,7 +29,7 @@ import {
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import MapView, { Marker } from "react-native-maps";
- import { RestaurantPosts } from "@/components/restaurant/RestaurantPosts";
+import { RestaurantPosts } from "@/components/restaurant/RestaurantPosts";
 import { AddToPlaylistModal } from "@/components/playlists/AddToPlaylistModal";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
@@ -140,7 +140,7 @@ const QuickActionsBar: React.FC<{
   onCall: () => void;
   onDirections: () => void;
   setShowAddToPlaylist: (show: boolean) => void;
-  colorScheme: any
+  colorScheme: any;
 }> = ({
   restaurant,
   isFavorite,
@@ -149,7 +149,7 @@ const QuickActionsBar: React.FC<{
   onCall,
   onDirections,
   setShowAddToPlaylist,
-  colorScheme
+  colorScheme,
 }) => {
   return (
     <View className="flex-row justify-around py-4 border-b border-border bg-background">
@@ -164,15 +164,16 @@ const QuickActionsBar: React.FC<{
         </Text>
       </Pressable>
       <Pressable
-  onPress={() => setShowAddToPlaylist(true)}
-  className="bg-white dark:bg-gray-700 rounded-full p-2 shadow-sm active:scale-95"
-  style={{ transform: [{ scale: 1 }] }}
->
-  <FolderPlus size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
-   <Text className="text-xs text-muted-foreground">
-          Add 
-        </Text>
-</Pressable>
+        onPress={() => setShowAddToPlaylist(true)}
+        className="bg-white dark:bg-gray-700 rounded-full p-2 shadow-sm active:scale-95"
+        style={{ transform: [{ scale: 1 }] }}
+      >
+        <FolderPlus
+          size={24}
+          color={colorScheme === "dark" ? "#fff" : "#000"}
+        />
+        <Text className="text-xs text-muted-foreground">Add</Text>
+      </Pressable>
 
       <Pressable onPress={onShare} className="items-center gap-1 p-2">
         <Share size={24} color="#666" />
@@ -235,7 +236,6 @@ const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({
             >
               {isOpen() ? "Open now" : "Closed"}
             </Text>
-
           </View>
         </View>
       </View>
@@ -326,14 +326,14 @@ const FeaturesSection: React.FC<{ restaurant: Restaurant }> = ({
   );
 };
 
-const MenuSection: React.FC<{ 
+const MenuSection: React.FC<{
   restaurantId: string;
   onViewMenu: () => void;
 }> = ({ restaurantId, onViewMenu }) => {
   return (
     <View className="p-4 border-b border-border">
       <H3 className="mb-3">Menu</H3>
-      <Pressable 
+      <Pressable
         onPress={onViewMenu}
         className="bg-primary/10 p-4 rounded-lg flex-row items-center justify-between"
       >
@@ -533,20 +533,11 @@ export default function RestaurantDetailsScreen() {
   const { profile } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
-const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
+  const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   const [showImageGallery, setShowImageGallery] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   const id = params?.id;
-
-  const handleAddToPlaylistSuccess = useCallback((playlistName: string) => {
-  Alert.alert(
-    "Added to Playlist",
-    `${restaurant?.name} has been added to "${playlistName}"`,
-    [{ text: "OK" }]
-  );
-}, [restaurant?.name]);
-
 
   // Custom hooks
   const {
@@ -559,6 +550,17 @@ const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
     handleCall,
     openDirections,
   } = useRestaurant(id);
+
+  const handleAddToPlaylistSuccess = useCallback(
+    (playlistName: string) => {
+      Alert.alert(
+        "Added to Playlist",
+        `${restaurant?.name} has been added to "${playlistName}"`,
+        [{ text: "OK" }]
+      );
+    },
+    [restaurant?.name]
+  );
 
   const allImages = React.useMemo(() => {
     if (!restaurant) return [];
@@ -587,10 +589,9 @@ const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
     });
   }, [router, id]);
 
-
   const handleViewMenu = useCallback(() => {
     if (!restaurant) return;
-    
+
     router.push(`/restaurant/menu/${restaurant.id}`);
   }, [router, restaurant?.id]);
 
@@ -680,7 +681,7 @@ const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
 
         {/* Restaurant Header Info */}
         <RestaurantHeaderInfo restaurant={restaurant} />
-        <RestaurantPlaylistIndicator restaurantId={restaurant.id}/>
+        <RestaurantPlaylistIndicator restaurantId={restaurant.id} />
 
         {/* About Section */}
         <AboutSection restaurant={restaurant} />
@@ -695,13 +696,7 @@ const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
           onWebsite={handleWebsite}
         />
 
-      
-
-<MenuSection 
-  restaurantId={restaurant.id}
-  onViewMenu={handleViewMenu}
-/>
-
+        <MenuSection restaurantId={restaurant.id} onViewMenu={handleViewMenu} />
 
         {/* Location */}
         <LocationMap
@@ -716,20 +711,20 @@ const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
           onViewAllReviews={handleViewAllReviews}
         />
 
-       <RestaurantPosts 
-   restaurantId={restaurant.id} 
-   restaurantName={restaurant.name} 
- />
+        <RestaurantPosts
+          restaurantId={restaurant.id}
+          restaurantName={restaurant.name}
+        />
 
- {restaurant && (
-  <AddToPlaylistModal
-    visible={showAddToPlaylist}
-    restaurantId={restaurant.id}
-    restaurantName={restaurant.name}
-    onClose={() => setShowAddToPlaylist(false)}
-    onSuccess={handleAddToPlaylistSuccess}
-  />
-)}
+        {restaurant && (
+          <AddToPlaylistModal
+            visible={showAddToPlaylist}
+            restaurantId={restaurant.id}
+            restaurantName={restaurant.name}
+            onClose={() => setShowAddToPlaylist(false)}
+            onSuccess={handleAddToPlaylistSuccess}
+          />
+        )}
 
         {/* Bottom Padding */}
         <View className="h-24" />
@@ -740,8 +735,12 @@ const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
         <SafeAreaView edges={["bottom"]}>
           <View className="p-4 bg-background border-t border-border">
             <Button onPress={handleBookTable} size="lg" className="w-full">
-              <Calendar size={20} className="mr-2" />
-              <Text className="text-white font-bold text-lg">Book a Table</Text>
+              <View className="flex-row items-center justify-center gap-2">
+                <Calendar size={20} color="white" />
+                <Text className="text-white font-bold text-lg">
+                  Book a Table
+                </Text>
+              </View>
             </Button>
           </View>
         </SafeAreaView>

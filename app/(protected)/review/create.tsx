@@ -252,15 +252,15 @@ export default function ReviewCreateScreen() {
             className="flex-1"
           >
             {submitting ? (
-              <>
+              <View className="flex-row items-center justify-center gap-2">
                 <ActivityIndicator size="small" color="#fff" />
-                <Text className="ml-2">Submitting...</Text>
-              </>
+                <Text>Submitting...</Text>
+              </View>
             ) : currentStep === totalSteps - 1 ? (
-              <>
-                <CheckCircle size={20} />
+              <View className="flex-row items-center justify-center gap-2">
+                <CheckCircle size={20} color="white" />
                 <Text>Submit Review</Text>
-              </>
+              </View>
             ) : (
               <Text>Next</Text>
             )}

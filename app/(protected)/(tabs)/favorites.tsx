@@ -10,13 +10,21 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Filter, Plus, FolderPlus, Heart, UserPlus, Mail } from "lucide-react-native";
+import {
+  Filter,
+  Plus,
+  FolderPlus,
+  Heart,
+  UserPlus,
+  Mail,
+} from "lucide-react-native";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { H2, H3, Muted } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
+import { PageHeader } from "@/components/ui/page-header";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useFavorites } from "@/hooks/useFavorites";
 import { usePlaylists } from "@/hooks/usePlaylists";
@@ -46,7 +54,7 @@ class PlaylistErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: any, errorInfo: any) {
-    console.error('Playlist Error:', error, errorInfo);
+    console.error("Playlist Error:", error, errorInfo);
   }
 
   render() {
@@ -62,7 +70,9 @@ export default function FavoritesScreen() {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
-  const [activeTab, setActiveTab] = useState<"favorites" | "playlists">("favorites");
+  const [activeTab, setActiveTab] = useState<"favorites" | "playlists">(
+    "favorites"
+  );
   const [playlistError, setPlaylistError] = useState(false);
   const [invitationError, setInvitationError] = useState(false);
 
@@ -84,7 +94,7 @@ export default function FavoritesScreen() {
     try {
       return usePlaylists();
     } catch (error) {
-      console.error('Playlists hook error:', error);
+      console.error("Playlists hook error:", error);
       setPlaylistError(true);
       return {
         playlists: [],
@@ -109,7 +119,7 @@ export default function FavoritesScreen() {
     try {
       return usePlaylistInvitations();
     } catch (error) {
-      console.error('Invitations hook error:', error);
+      console.error("Invitations hook error:", error);
       setInvitationError(true);
       return { pendingCount: 0 };
     }
@@ -142,7 +152,7 @@ export default function FavoritesScreen() {
           params: { id: restaurantId },
         });
       } catch (error) {
-        console.error('Navigation error:', error);
+        console.error("Navigation error:", error);
       }
     },
     [router]
@@ -156,7 +166,7 @@ export default function FavoritesScreen() {
           params: { id: playlistId },
         });
       } catch (error) {
-        console.error('Navigation error:', error);
+        console.error("Navigation error:", error);
       }
     },
     [router]
@@ -166,7 +176,7 @@ export default function FavoritesScreen() {
     try {
       router.push("/profile/insights");
     } catch (error) {
-      console.error('Navigation error:', error);
+      console.error("Navigation error:", error);
     }
   }, [router]);
 
@@ -174,7 +184,7 @@ export default function FavoritesScreen() {
     try {
       router.push("/search");
     } catch (error) {
-      console.error('Navigation error:', error);
+      console.error("Navigation error:", error);
     }
   }, [router]);
 
@@ -182,7 +192,7 @@ export default function FavoritesScreen() {
     try {
       router.push("/playlist/join");
     } catch (error) {
-      console.error('Navigation error:', error);
+      console.error("Navigation error:", error);
     }
   }, [router]);
 
@@ -190,7 +200,7 @@ export default function FavoritesScreen() {
     try {
       router.push("/playlist/invitations");
     } catch (error) {
-      console.error('Navigation error:', error);
+      console.error("Navigation error:", error);
     }
   }, [router]);
 
@@ -204,39 +214,47 @@ export default function FavoritesScreen() {
         handlePlaylistsRefresh?.();
       }
     } catch (error) {
-      console.error('Refresh error:', error);
+      console.error("Refresh error:", error);
     }
-  }, [activeTab, resetBannerOnRefresh, originalHandleRefresh, handlePlaylistsRefresh]);
+  }, [
+    activeTab,
+    resetBannerOnRefresh,
+    originalHandleRefresh,
+    handlePlaylistsRefresh,
+  ]);
 
   // Handle playlist creation with error handling
-  const handleCreatePlaylist = useCallback(async (data: {
-    name: string;
-    description: string;
-    emoji: string;
-  }) => {
-    try {
-      if (!createPlaylist) {
-        console.error('createPlaylist function not available');
-        return;
-      }
-      
-      const newPlaylist = await createPlaylist(data.name, data.description, data.emoji);
-      if (newPlaylist) {
+  const handleCreatePlaylist = useCallback(
+    async (data: { name: string; description: string; emoji: string }) => {
+      try {
+        if (!createPlaylist) {
+          console.error("createPlaylist function not available");
+          return;
+        }
+
+        const newPlaylist = await createPlaylist(
+          data.name,
+          data.description,
+          data.emoji
+        );
+        if (newPlaylist) {
+          setShowCreatePlaylist(false);
+          navigateToPlaylist(newPlaylist.id);
+        }
+      } catch (error) {
+        console.error("Create playlist error:", error);
         setShowCreatePlaylist(false);
-        navigateToPlaylist(newPlaylist.id);
       }
-    } catch (error) {
-      console.error('Create playlist error:', error);
-      setShowCreatePlaylist(false);
-    }
-  }, [createPlaylist, navigateToPlaylist]);
+    },
+    [createPlaylist, navigateToPlaylist]
+  );
 
   // Handle tab switching with error handling
   const handleTabSwitch = useCallback((tab: "favorites" | "playlists") => {
     try {
       setActiveTab(tab);
     } catch (error) {
-      console.error('Tab switch error:', error);
+      console.error("Tab switch error:", error);
     }
   }, []);
 
@@ -247,7 +265,7 @@ export default function FavoritesScreen() {
         fetchFavorites();
       }
     } catch (error) {
-      console.error('Fetch favorites error:', error);
+      console.error("Fetch favorites error:", error);
     }
   }, [activeTab, fetchFavorites]);
 
@@ -266,7 +284,7 @@ export default function FavoritesScreen() {
           />
         );
       } catch (error) {
-        console.error('Render grid row error:', error);
+        console.error("Render grid row error:", error);
         return null;
       }
     },
@@ -274,17 +292,14 @@ export default function FavoritesScreen() {
   );
 
   // Render section header
-  const renderSectionHeader = useCallback(
-    ({ section }: any) => {
-      try {
-        return <SectionHeader title={section.title} />;
-      } catch (error) {
-        console.error('Render section header error:', error);
-        return null;
-      }
-    },
-    []
-  );
+  const renderSectionHeader = useCallback(({ section }: any) => {
+    try {
+      return <SectionHeader title={section.title} />;
+    } catch (error) {
+      console.error("Render section header error:", error);
+      return null;
+    }
+  }, []);
 
   // Render playlist item with error handling
   const renderPlaylistItem = useCallback(
@@ -293,12 +308,14 @@ export default function FavoritesScreen() {
         if (!item || !item.id) {
           return null;
         }
-        
+
         return (
           <PlaylistErrorBoundary
             fallback={
               <View className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg m-2">
-                <Text className="text-center text-gray-500">Unable to load playlist</Text>
+                <Text className="text-center text-gray-500">
+                  Unable to load playlist
+                </Text>
               </View>
             }
           >
@@ -311,10 +328,12 @@ export default function FavoritesScreen() {
           </PlaylistErrorBoundary>
         );
       } catch (error) {
-        console.error('Render playlist item error:', error);
+        console.error("Render playlist item error:", error);
         return (
           <View className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg m-2">
-            <Text className="text-center text-gray-500">Unable to load playlist</Text>
+            <Text className="text-center text-gray-500">
+              Unable to load playlist
+            </Text>
           </View>
         );
       }
@@ -333,25 +352,31 @@ export default function FavoritesScreen() {
               onPress={navigateToInvitations}
               className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg relative"
             >
-              <Mail size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+              <Mail
+                size={20}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+              />
               {pendingCount > 0 && (
                 <View className="absolute -top-1 -right-1 bg-primary rounded-full min-w-5 h-5 items-center justify-center px-1">
                   <Text className="text-white text-xs font-bold">
-                    {pendingCount > 9 ? '9+' : pendingCount}
+                    {pendingCount > 9 ? "9+" : pendingCount}
                   </Text>
                 </View>
               )}
             </Pressable>
           )}
-          
+
           {/* Join Button */}
           <Pressable
             onPress={navigateToJoinPlaylist}
             className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg"
           >
-            <UserPlus size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+            <UserPlus
+              size={20}
+              color={colorScheme === "dark" ? "#fff" : "#000"}
+            />
           </Pressable>
-          
+
           {/* Create Button */}
           <Pressable
             onPress={() => setShowCreatePlaylist(true)}
@@ -362,7 +387,7 @@ export default function FavoritesScreen() {
         </View>
       );
     } catch (error) {
-      console.error('Playlist header actions error:', error);
+      console.error("Playlist header actions error:", error);
       return (
         <Pressable
           onPress={() => setShowCreatePlaylist(true)}
@@ -372,10 +397,19 @@ export default function FavoritesScreen() {
         </Pressable>
       );
     }
-  }, [navigateToInvitations, navigateToJoinPlaylist, setShowCreatePlaylist, colorScheme, pendingCount, invitationError]);
+  }, [
+    navigateToInvitations,
+    navigateToJoinPlaylist,
+    setShowCreatePlaylist,
+    colorScheme,
+    pendingCount,
+    invitationError,
+  ]);
 
-  const loading = activeTab === "favorites" ? favoritesLoading : playlistsLoading;
-  const refreshing = activeTab === "favorites" ? favoritesRefreshing : playlistsRefreshing;
+  const loading =
+    activeTab === "favorites" ? favoritesLoading : playlistsLoading;
+  const refreshing =
+    activeTab === "favorites" ? favoritesRefreshing : playlistsRefreshing;
 
   // Loading state
   if (loading) {
@@ -412,32 +446,34 @@ export default function FavoritesScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* Header */}
-      <View className="px-4 pt-4 pb-2">
-        <View className="flex-row items-center justify-between mb-4">
-          <View className="flex-1">
-            <H2>My Collection</H2>
-            <Muted className="text-sm">
-              {activeTab === "favorites"
-                ? `${favorites?.length || 0} ${(favorites?.length || 0) === 1 ? "restaurant" : "restaurants"}`
-                : `${playlists?.length || 0} ${(playlists?.length || 0) === 1 ? "playlist" : "playlists"}`}
-            </Muted>
-          </View>
-          
-          {activeTab === "favorites" ? (
+      <PageHeader
+        title="My Collection"
+        subtitle={
+          activeTab === "favorites"
+            ? `${favorites?.length || 0} ${(favorites?.length || 0) === 1 ? "restaurant" : "restaurants"}`
+            : `${playlists?.length || 0} ${(playlists?.length || 0) === 1 ? "playlist" : "playlists"}`
+        }
+        actions={
+          activeTab === "favorites" ? (
             <Pressable
               onPress={() => setShowOptions(!showOptions)}
               className="p-2 relative"
             >
-              <Filter size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
+              <Filter
+                size={24}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+              />
               {hasActiveFilters && (
                 <View className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-background" />
               )}
             </Pressable>
           ) : (
             <PlaylistHeaderActions />
-          )}
-        </View>
+          )
+        }
+      />
 
+      <View className="px-4">
         {/* Tabs */}
         <View className="flex-row bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
           <Pressable
@@ -453,13 +489,15 @@ export default function FavoritesScreen() {
             />
             <Text
               className={`ml-2 font-medium ${
-                activeTab === "favorites" ? "text-primary" : "text-gray-600 dark:text-gray-400"
+                activeTab === "favorites"
+                  ? "text-primary"
+                  : "text-gray-600 dark:text-gray-400"
               }`}
             >
               Favorites
             </Text>
           </Pressable>
-          
+
           <Pressable
             onPress={() => handleTabSwitch("playlists")}
             className={`flex-1 flex-row items-center justify-center py-2.5 rounded-lg relative ${
@@ -472,7 +510,9 @@ export default function FavoritesScreen() {
             />
             <Text
               className={`ml-2 font-medium ${
-                activeTab === "playlists" ? "text-primary" : "text-gray-600 dark:text-gray-400"
+                activeTab === "playlists"
+                  ? "text-primary"
+                  : "text-gray-600 dark:text-gray-400"
               }`}
             >
               Playlists
@@ -481,7 +521,7 @@ export default function FavoritesScreen() {
             {pendingCount > 0 && !invitationError && (
               <View className="absolute -top-1 -right-1 bg-primary rounded-full min-w-5 h-5 items-center justify-center px-1">
                 <Text className="text-white text-xs font-bold">
-                  {pendingCount > 9 ? '9+' : pendingCount}
+                  {pendingCount > 9 ? "9+" : pendingCount}
                 </Text>
               </View>
             )}
@@ -495,7 +535,8 @@ export default function FavoritesScreen() {
           <View className="flex-1 items-center justify-center px-8">
             <H3 className="text-center mb-2">Something went wrong</H3>
             <Muted className="text-center mb-6">
-              Please try switching back to favorites and then to playlists again.
+              Please try switching back to favorites and then to playlists
+              again.
             </Muted>
             <Button onPress={() => handleTabSwitch("favorites")}>
               <Text className="text-white">Go to Favorites</Text>
@@ -511,7 +552,9 @@ export default function FavoritesScreen() {
             <FlatList
               data={processedFavorites?.[0]?.data || []}
               renderItem={renderGridRow}
-              keyExtractor={(item, index) => `${item?.[0]?.id || index}-${index}`}
+              keyExtractor={(item, index) =>
+                `${item?.[0]?.id || index}-${index}`
+              }
               contentContainerStyle={{ padding: 8, paddingBottom: 100 }}
               showsVerticalScrollIndicator={false}
               refreshControl={
@@ -527,7 +570,9 @@ export default function FavoritesScreen() {
               sections={processedFavorites || []}
               renderItem={renderGridRow}
               renderSectionHeader={renderSectionHeader}
-              keyExtractor={(item, index) => `${item?.[0]?.id || index}-${index}`}
+              keyExtractor={(item, index) =>
+                `${item?.[0]?.id || index}-${index}`
+              }
               contentContainerStyle={{
                 padding: 8,
                 paddingBottom: 100,
@@ -543,47 +588,56 @@ export default function FavoritesScreen() {
               stickySectionHeadersEnabled
             />
           )
-        ) : (
-          // Playlists content
-          (playlists?.length || 0) === 0 ? (
-            <View className="flex-1 items-center justify-center px-8">
-              <FolderPlus size={64} color="#6b7280" className="mb-4" />
-              <H3 className="text-center mb-2">No Playlists Yet</H3>
-              <Muted className="text-center mb-6">
-                Create playlists to organize your favorite restaurants by theme, occasion, or any way you like!
-              </Muted>
-              
-              <View className="flex-row gap-3">
-                <Button 
-                  variant="outline" 
-                  onPress={navigateToJoinPlaylist}
-                  className="flex-1"
-                >
-                  <UserPlus size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
-                  <Text className="ml-2">Join Playlist</Text>
-                </Button>
-                <Button onPress={() => setShowCreatePlaylist(true)} className="flex-1">
+        ) : // Playlists content
+        (playlists?.length || 0) === 0 ? (
+          <View className="flex-1 items-center justify-center px-8">
+            <FolderPlus size={64} color="#6b7280" className="mb-4" />
+            <H3 className="text-center mb-2">No Playlists Yet</H3>
+            <Muted className="text-center mb-6">
+              Create playlists to organize your favorite restaurants by theme,
+              occasion, or any way you like!
+            </Muted>
+
+            <View className="flex-row gap-3">
+              <Button
+                variant="outline"
+                onPress={navigateToJoinPlaylist}
+                className="flex-1"
+              >
+                <View className="flex-row items-center justify-center gap-2">
+                  <UserPlus
+                    size={16}
+                    color={colorScheme === "dark" ? "#fff" : "#000"}
+                  />
+                  <Text>Join Playlist</Text>
+                </View>
+              </Button>
+              <Button
+                onPress={() => setShowCreatePlaylist(true)}
+                className="flex-1"
+              >
+                <View className="flex-row items-center justify-center gap-2">
                   <Plus size={16} color="#fff" />
-                  <Text className="ml-2 text-white">Create Playlist</Text>
-                </Button>
-              </View>
+                  <Text className="text-white">Create Playlist</Text>
+                </View>
+              </Button>
             </View>
-          ) : (
-            <FlatList
-              data={playlists || []}
-              renderItem={renderPlaylistItem}
-              keyExtractor={(item) => item?.id || Math.random().toString()}
-              contentContainerStyle={{ paddingBottom: 100 }}
-              showsVerticalScrollIndicator={false}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={handleRefresh}
-                  tintColor={colorScheme === "dark" ? "#fff" : "#000"}
-                />
-              }
-            />
-          )
+          </View>
+        ) : (
+          <FlatList
+            data={playlists || []}
+            renderItem={renderPlaylistItem}
+            keyExtractor={(item) => item?.id || Math.random().toString()}
+            contentContainerStyle={{ paddingBottom: 100 }}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={handleRefresh}
+                tintColor={colorScheme === "dark" ? "#fff" : "#000"}
+              />
+            }
+          />
         )}
       </PlaylistErrorBoundary>
 

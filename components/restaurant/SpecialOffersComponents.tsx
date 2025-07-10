@@ -162,10 +162,10 @@ export const OfferCard: React.FC<{
             {processing ? (
               <ActivityIndicator size="small" color="white" />
             ) : (
-              <>
-                <Tag size={16} className="mr-2" />
+              <View className="flex-row items-center justify-center gap-2">
+                <Tag size={16} color="white" />
                 <Text className="text-white font-medium">Claim Offer</Text>
-              </>
+              </View>
             )}
           </Button>
         ) : offer.canUse ? (
@@ -178,10 +178,10 @@ export const OfferCard: React.FC<{
             {processing ? (
               <ActivityIndicator size="small" color="white" />
             ) : (
-              <>
-                <QrCode size={16} className="mr-2" />
+              <View className="flex-row items-center justify-center gap-2">
+                <QrCode size={16} color="white" />
                 <Text className="text-white font-medium">Use Now</Text>
-              </>
+              </View>
             )}
           </Button>
         ) : (
@@ -195,10 +195,10 @@ export const OfferCard: React.FC<{
             {processing ? (
               <ActivityIndicator size="small" />
             ) : (
-              <>
-                <Calendar size={16} className="mr-2" />
+              <View className="flex-row items-center justify-center gap-2">
+                <Calendar size={16} color="#666" />
                 <Text className="font-medium">Book with Offer</Text>
-              </>
+              </View>
             )}
           </Button>
         )}

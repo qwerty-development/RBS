@@ -98,8 +98,13 @@ export const ReviewRatingStep: React.FC<ReviewRatingStepProps> = ({
             }}
             className="w-full"
           >
-            <ThumbsUp size={20} />
-            <Text>I'd recommend this to friends</Text>
+            <View className="flex-row items-center justify-center gap-2">
+              <ThumbsUp
+                size={20}
+                color={recommendToFriend ? "white" : "#666"}
+              />
+              <Text>I'd recommend this to friends</Text>
+            </View>
           </Button>
 
           <Button
@@ -110,8 +115,10 @@ export const ReviewRatingStep: React.FC<ReviewRatingStepProps> = ({
             }}
             className="w-full"
           >
-            <Sparkles size={20} />
-            <Text>I'll definitely visit again</Text>
+            <View className="flex-row items-center justify-center gap-2">
+              <Sparkles size={20} color={visitAgain ? "white" : "#666"} />
+              <Text>I'll definitely visit again</Text>
+            </View>
           </Button>
         </View>
       )}
