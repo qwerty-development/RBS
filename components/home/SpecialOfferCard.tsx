@@ -1,13 +1,12 @@
-
 // components/home/SpecialOfferCard.tsx
 import React from "react";
 import { View, Pressable } from "react-native";
-import { 
-  Star, 
-  MapPin, 
-  Calendar, 
-  Users, 
-  Tag, 
+import {
+  Star,
+  MapPin,
+  Calendar,
+  Users,
+  Tag,
   Clock,
   CheckCircle,
   Gift,
@@ -43,7 +42,7 @@ export function SpecialOfferCard({ offer }: SpecialOfferCardProps) {
         icon: CheckCircle,
       };
     }
-    
+
     if (offer.isExpired) {
       return {
         label: "Expired",
@@ -52,7 +51,7 @@ export function SpecialOfferCard({ offer }: SpecialOfferCardProps) {
         icon: Clock,
       };
     }
-    
+
     if (offer.claimed) {
       return {
         label: `${offer.daysUntilExpiry || 0}d left`,
@@ -61,7 +60,7 @@ export function SpecialOfferCard({ offer }: SpecialOfferCardProps) {
         icon: Tag,
       };
     }
-    
+
     return {
       label: "Available",
       color: "#10b981",
@@ -77,17 +76,17 @@ export function SpecialOfferCard({ offer }: SpecialOfferCardProps) {
     <View className="mx-4 bg-card border border-border rounded-2xl overflow-hidden shadow-lg shadow-black/5">
       {/* Restaurant Image with Overlay Info */}
       <View className="relative">
-        <Image 
-          source={{ uri: offer.restaurant.main_image_url }} 
-          className="w-full h-48" 
-          contentFit="cover" 
+        <Image
+          source={{ uri: offer.img_url }}
+          className="w-full h-48"
+          contentFit="cover"
         />
-        
+
         {/* Gradient Overlay */}
         <View className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-        
+
         {/* Status Badge */}
-        <View 
+        <View
           className="absolute top-3 left-3 px-3 py-1 rounded-full flex-row items-center gap-1"
           style={{ backgroundColor: status.bgColor }}
         >
@@ -96,7 +95,7 @@ export function SpecialOfferCard({ offer }: SpecialOfferCardProps) {
             {status.label}
           </Text>
         </View>
-        
+
         {/* Discount Badge - Top Right */}
         <View className="absolute top-3 right-3 bg-primary h-14 w-14 rounded-full items-center justify-center border-2 border-white">
           <Text className="text-white font-extrabold text-lg">
@@ -104,7 +103,7 @@ export function SpecialOfferCard({ offer }: SpecialOfferCardProps) {
           </Text>
           <Text className="text-white font-bold text-xs -mt-1">%</Text>
         </View>
-        
+
         {/* Restaurant Info Overlay */}
         <View className="absolute bottom-3 left-3 right-3">
           <Text className="text-white font-bold text-xl mb-1">
@@ -124,19 +123,22 @@ export function SpecialOfferCard({ offer }: SpecialOfferCardProps) {
           </View>
         </View>
       </View>
-      
+
       {/* Offer Details */}
       <View className="p-4">
         <Text className="font-bold text-lg mb-2" numberOfLines={1}>
           {offer.title}
         </Text>
-        
+
         {offer.description && (
-          <Text className="text-muted-foreground text-sm mb-3" numberOfLines={2}>
+          <Text
+            className="text-muted-foreground text-sm mb-3"
+            numberOfLines={2}
+          >
             {offer.description}
           </Text>
         )}
-        
+
         {/* Metadata Row */}
         <View className="flex-row items-center justify-between mb-4">
           <View className="flex-row items-center gap-4">
@@ -146,7 +148,7 @@ export function SpecialOfferCard({ offer }: SpecialOfferCardProps) {
                 Until {formatDate(offer.valid_until)}
               </Text>
             </View>
-            
+
             {offer.minimum_party_size && offer.minimum_party_size > 1 && (
               <View className="flex-row items-center gap-1">
                 <Users size={14} color="#666" />
@@ -157,8 +159,6 @@ export function SpecialOfferCard({ offer }: SpecialOfferCardProps) {
             )}
           </View>
         </View>
-        
- 
       </View>
     </View>
   );
