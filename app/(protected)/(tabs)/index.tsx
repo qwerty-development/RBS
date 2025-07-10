@@ -240,7 +240,7 @@ export default function HomeScreen() {
         {/* Special Offer Banners - Large banners for offers with custom images */}
         <SpecialOfferBannerCarousel offers={specialOffers} />
 
-        {specialOffers.length > 0 && (
+        {/* {specialOffers.length > 0 && (
           <View className="mb-6">
             <SectionHeader
               title="Special Offers"
@@ -262,7 +262,7 @@ export default function HomeScreen() {
               }}
             />
           </View>
-        )}
+        )} */}
 
         {featuredRestaurants.length > 0 && (
           <View className="mb-6">
