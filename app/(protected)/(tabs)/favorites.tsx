@@ -38,6 +38,7 @@ import {
 } from "@/components/favorites";
 import { PlaylistCard } from "@/components/playlists/PlaylistCard";
 import { CreatePlaylistModal } from "@/components/playlists/CreatePlaylistModal";
+import FavoritesScreenSkeleton from "@/components/skeletons/FavoritesScreenSkeleton";
 
 // Error boundary component for playlists
 class PlaylistErrorBoundary extends React.Component<
@@ -412,18 +413,7 @@ export default function FavoritesScreen() {
     activeTab === "favorites" ? favoritesRefreshing : playlistsRefreshing;
 
   // Loading state
-  if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator
-            size="large"
-            color={colorScheme === "dark" ? "#fff" : "#000"}
-          />
-        </View>
-      </SafeAreaView>
-    );
-  }
+
 
   // Error state for playlists
   if (playlistError && activeTab === "playlists") {
@@ -441,6 +431,15 @@ export default function FavoritesScreen() {
         </View>
       </SafeAreaView>
     );
+  }
+
+    if (
+    loading &&
+    (activeTab === "favorites"
+      ? (favorites?.length || 0) === 0
+      : (playlists?.length || 0) === 0)
+  ) {
+    return <FavoritesScreenSkeleton />;
   }
 
   return (

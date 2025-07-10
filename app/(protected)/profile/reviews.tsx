@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { View, Text, ScrollView, StyleSheet, Pressable } from "react-native";
 import { Card } from "@/components/ui/card";
+import { ReviewsScreenSkeleton } from '@/components/skeletons/ReviewsScreenSkeleton';
 import { Star, ChevronLeft } from "lucide-react-native";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { useColorScheme } from "@/lib/useColorScheme";
@@ -108,16 +109,7 @@ export default function ReviewsPage() {
     };
 
     if (isLoading) {
-        return (
-            <SafeAreaView style={[styles.container, { backgroundColor: isDark ? "#000" : "#f5f5f5" }]}>
-                <View style={[styles.header, { backgroundColor: isDark ? "#1a1a1a" : "#fff" }]}>
-                    <Pressable onPress={() => router.back()} style={styles.backButton}>
-                        <ChevronLeft size={24} color={isDark ? "#fff" : "#000"} />
-                    </Pressable>
-                    <Text style={[styles.headerTitle, { color: isDark ? "#fff" : "#000" }]}>Loading reviews...</Text>
-                </View>
-            </SafeAreaView>
-        );
+        return <ReviewsScreenSkeleton />;
     }
 
     return (

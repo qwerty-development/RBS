@@ -30,6 +30,7 @@ import { H1, H2, H3, P, Muted } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { Image } from "@/components/image";
 import { RestaurantSearchCard } from "@/components/search/RestaurantSearchCard";
+import CuisineScreenSkeleton from '@/components/skeletons/CuisineScreenSkeleton';
 import { useColorScheme } from "@/lib/useColorScheme";
 import { supabase } from "@/config/supabase";
 import { Database } from "@/types/supabase";
@@ -152,7 +153,7 @@ export default function CuisineScreen() {
           restaurantData = allData.filter(
             (restaurant) =>
               restaurant.tags &&
-              restaurant.tags.some((tag) =>
+              restaurant.tags.some((tag: string) =>
                 tag.toLowerCase().includes(cuisineId.toLowerCase())
               )
           );
@@ -341,17 +342,7 @@ export default function CuisineScreen() {
 
   // Loading State
   if (loading && !refreshing) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator
-            size="large"
-            color={colorScheme === "dark" ? "#fff" : "#000"}
-          />
-          <Muted className="mt-4">Loading {cuisineName} restaurants...</Muted>
-        </View>
-      </SafeAreaView>
-    );
+    return <CuisineScreenSkeleton />;
   }
 
   return (

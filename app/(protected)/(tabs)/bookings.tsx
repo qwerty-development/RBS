@@ -42,17 +42,15 @@ export default function BookingsScreen() {
 
 
 
-// ... (rest of the imports)
 
-// ... (rest of the code)
 
-  // Loading state
-  if (loading) {
-    return <BookingsScreenSkeleton />;
-  }
 
   const currentBookings =
     activeTab === "upcoming" ? bookings.upcoming : bookings.past;
+
+      if (loading) {
+    return <BookingsScreenSkeleton />;
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>

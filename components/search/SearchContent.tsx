@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { Muted } from "@/components/ui/typography";
 import { RestaurantSearchCard } from "./RestaurantSearchCard";
+import SearchScreenSkeleton from "../skeletons/SearchScreenSkeleton";
 import { RestaurantMap } from "../maps/RestaurantMap";
 import { useLocationWithDistance } from "@/hooks/useLocationWithDistance";
 import type { Restaurant, ViewMode, BookingFilters } from "@/types/search";
@@ -53,19 +54,7 @@ export const SearchContent = React.memo(
     const listRef = useRef<FlatList>(null);
     const { location: userLocation } = useLocationWithDistance();
 
-    if (loading) {
-      return (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator
-            size="large"
-            color={colorScheme === "dark" ? "#fff" : "#000"}
-          />
-          <Text className="mt-4 text-muted-foreground">
-            Loading restaurants...
-          </Text>
-        </View>
-      );
-    }
+
 
     if (viewMode === "list") {
       return (
@@ -117,8 +106,9 @@ export const SearchContent = React.memo(
         />
       );
     }
-
-    // Map view using your RestaurantMap component
+    if (loading && restaurants.length === 0) {
+      return <SearchScreenSkeleton />;
+    }
     return (
       <RestaurantMap
         restaurants={restaurants.map(restaurant => ({

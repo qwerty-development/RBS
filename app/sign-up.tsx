@@ -72,9 +72,6 @@ const formSchema = z
 export default function SignUp() {
 	const { signUp, loading } = useAuth();
 
-  if (loading) {
-    return <SignUpScreenSkeleton />;
-  }
 
 
 	const form = useForm<z.infer<typeof formSchema>>({
@@ -117,6 +114,11 @@ export default function SignUp() {
 			Alert.alert("Sign Up Error", errorMessage);
 		}
 	}
+
+
+  if (loading) {
+    return <SignUpScreenSkeleton />;
+  }
 
 	return (
 		<SafeAreaView className="flex-1 bg-background" edges={["bottom"]}>

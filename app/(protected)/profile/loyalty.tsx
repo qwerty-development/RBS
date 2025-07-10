@@ -23,6 +23,7 @@ import {
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
+import LoyaltyScreenSkeleton from "@/components/skeletons/LoyaltyScreenSkeleton";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { H2, H3, P, Muted } from "@/components/ui/typography";
@@ -492,12 +493,7 @@ export default function LoyaltyScreen() {
   }, [rewards]);
 
   if (loading && !refreshing) {
-    return (
-      <SafeAreaView className="flex-1 bg-background justify-center items-center">
-        <ActivityIndicator size="large" color="#3b82f6" />
-        <Text className="mt-4 text-muted-foreground">Loading rewards...</Text>
-      </SafeAreaView>
-    );
+    return <LoyaltyScreenSkeleton />;
   }
 
   return (

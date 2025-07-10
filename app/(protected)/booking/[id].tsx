@@ -163,14 +163,8 @@ export default function BookingDetailsScreen() {
   };
 
 
-// ... (rest of the imports)
-
-// ... (rest of the code)
-
   // Loading state
-  if (loading) {
-    return <BookingDetailsScreenSkeleton />;
-  }
+
 
   if (!booking) {
     return (
@@ -191,6 +185,10 @@ export default function BookingDetailsScreen() {
   const statusConfig = BOOKING_STATUS_CONFIG[booking.status];
   const StatusIcon = statusConfig.icon;
   const bookingDate = new Date(booking.booking_time);
+
+    if (loading) {
+    return <BookingDetailsScreenSkeleton />;
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>

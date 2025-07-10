@@ -23,6 +23,7 @@ import {
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
+import MyRewardsScreenSkeleton from "@/components/skeletons/MyRewardsScreenSkeleton";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { H2, H3, P, Muted } from "@/components/ui/typography";
@@ -40,14 +41,14 @@ type UserOffer = Database["public"]["Tables"]["user_offers"]["Row"] & {
   };
 };
 
-interface ClaimedReward extends UserOffer {
+interface EnrichedOffer extends UserOffer {
   isExpired: boolean;
   daysUntilExpiry: number;
   canUse: boolean;
 }
 
 // Reward status component
-const RewardStatus: React.FC<{ reward: ClaimedReward }> = ({ reward }) => {
+const RewardStatus: React.FC<{ reward: EnrichedOffer }> = ({ reward }) => {
   if (reward.used_at) {
     return (
       <View className="flex-row items-center bg-green-100 px-3 py-1 rounded-full">
@@ -78,9 +79,9 @@ const RewardStatus: React.FC<{ reward: ClaimedReward }> = ({ reward }) => {
 
 // Claimed reward card component
 const ClaimedRewardCard: React.FC<{
-  reward: ClaimedReward;
-  onUse: (reward: ClaimedReward) => void;
-  onShare: (reward: ClaimedReward) => void;
+  reward: EnrichedOffer;
+  onUse: (reward: EnrichedOffer) => void;
+  onShare: (reward: EnrichedOffer) => void;
   onViewRestaurant: (restaurantId: string) => void;
 }> = ({ reward, onUse, onShare, onViewRestaurant }) => {
   const { colorScheme } = useColorScheme();
@@ -222,7 +223,7 @@ export default function MyRewardsScreen() {
   else if (filter === "used") filteredRewards = used;
   else if (filter === "expired") filteredRewards = expired;
   // Handler for marking as used
-  const handleUseReward = async (reward: any) => {
+  const handleUseReward = async (reward: EnrichedOffer) => {
     Alert.alert(
       "Use Reward",
       `Show this screen to the restaurant staff to use your ${reward.discount_percentage}% discount at ${reward.restaurant.name}.`,
@@ -247,7 +248,7 @@ export default function MyRewardsScreen() {
     );
   };
   // Handler for sharing
-  const handleShareReward = async (reward: any) => {
+  const handleShareReward = async (reward: EnrichedOffer) => {
     const offer = reward;
     const restaurant = offer.restaurant;
     const message = `Check out this ${offer.discount_percentage}% discount I got at ${restaurant.name}! "${offer.title}" - ${offer.description || "Great deal!"}`;
@@ -269,12 +270,7 @@ export default function MyRewardsScreen() {
     fetchOffers();
   };
   if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background justify-center items-center">
-        <ActivityIndicator size="large" color="#3b82f6" />
-        <Text className="mt-4 text-muted-foreground">Loading your rewards...</Text>
-      </SafeAreaView>
-    );
+    return <MyRewardsScreenSkeleton />;
   }
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>

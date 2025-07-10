@@ -37,6 +37,7 @@ import {
 } from "lucide-react-native";
 import { FontAwesome } from "@expo/vector-icons";
 
+import HelpScreenSkeleton from "@/components/skeletons/HelpScreenSkeleton";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
@@ -247,6 +248,8 @@ export default function HelpScreen() {
   const [activeTab, setActiveTab] = useState<"faq" | "contact" | "tickets">(
     "faq"
   );
+
+
 
   // 4. FAQ Search and Filtering
   const searchFAQs = useCallback(
@@ -515,18 +518,8 @@ export default function HelpScreen() {
     );
   };
 
-  // 11. Main Render
   if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator
-            size="large"
-            color={colorScheme === "dark" ? "#fff" : "#000"}
-          />
-        </View>
-      </SafeAreaView>
-    );
+    return <HelpScreenSkeleton />;
   }
 
   return (

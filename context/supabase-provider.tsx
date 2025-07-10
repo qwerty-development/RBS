@@ -25,6 +25,8 @@ type Profile = {
 	favorite_cuisines?: string[];
 	dietary_restrictions?: string[];
 	preferred_party_size?: number;
+	preferred_ambiance?: string[];
+	special_requirements?: string[];
 	notification_preferences?: {
 		email: boolean;
 		push: boolean;

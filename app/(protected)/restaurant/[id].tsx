@@ -608,9 +608,6 @@ export default function RestaurantDetailsScreen() {
   }, [router, id, restaurant]);
 
 
-// ... (rest of the imports)
-
-// ... (rest of the code)
 
   if (loading) {
     return <RestaurantDetailsScreenSkeleton />;

@@ -21,6 +21,7 @@ import {
 import * as Haptics from "expo-haptics";
 import { format } from "date-fns";
 
+import PostsScreenSkeleton from "@/components/skeletons/PostsScreenSkeleton";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { H2, H3, P, Muted } from "@/components/ui/typography";
@@ -215,13 +216,7 @@ export default function UserPostsScreen() {
   }, [fetchPosts]);
 
   if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" />
-        </View>
-      </SafeAreaView>
-    );
+    return <PostsScreenSkeleton />;
   }
 
   return (

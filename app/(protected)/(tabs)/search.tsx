@@ -14,8 +14,7 @@ import { DatePickerModal } from "@/components/search/DatePickerModal";
 import { TimePickerModal } from "@/components/search/TimePickerModal";
 import { PartySizePickerModal } from "@/components/search/PartySizePickerModal";
 import { GeneralFiltersModal } from "@/components/search/GeneralFiltersModal";
-import { DebugPanel } from "@/components/debug/DebugPanel"; // Temporary debug component
-import { Text } from "@/components/ui/text";
+
 
 export default function SearchScreen() {
   const { colorScheme } = useColorScheme();

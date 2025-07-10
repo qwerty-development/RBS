@@ -51,6 +51,7 @@ import { Database } from "@/types/supabase";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { useLoyalty } from "@/hooks/useLoyalty";
 import { useOffers } from "@/hooks/useOffers";
+import AvailabilityScreenSkeleton from '@/components/skeletons/AvailabilityScreenSkeleton';
 
 // Type definitions
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
@@ -446,10 +447,12 @@ const TimeSlots: React.FC<{
           <Clock size={20} color="#3b82f6" />
           <Text className="font-semibold text-lg">Available Times</Text>
         </View>
-        <View className="items-center py-8">
-          <Text className="text-muted-foreground text-center">
-            Loading available times...
-          </Text>
+        <View className="flex-row flex-wrap gap-3">
+          {[...Array(6)].map((_, i) => (
+            <View key={i} className="px-4 py-3 rounded-lg border-2 min-w-[80px] items-center bg-muted/50">
+              <View className="h-5 w-12 bg-muted rounded" />
+            </View>
+          ))}
         </View>
       </View>
     );
@@ -833,20 +836,7 @@ export default function AvailabilitySelectionScreen() {
 
   // Loading state
   if (!restaurant) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center px-4">
-          <H3 className="text-center mb-2">Restaurant not found</H3>
-          <Button
-            variant="outline"
-            onPress={() => router.back()}
-            className="mt-4"
-          >
-            <Text>Go Back</Text>
-          </Button>
-        </View>
-      </SafeAreaView>
-    );
+    return <AvailabilityScreenSkeleton />;
   }
 
   return (

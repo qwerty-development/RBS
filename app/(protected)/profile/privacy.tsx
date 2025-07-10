@@ -9,6 +9,7 @@ import {
   RefreshControl,
   Switch,
 } from "react-native";
+import PrivacyScreenSkeleton from '@/components/skeletons/PrivacyScreenSkeleton';
 import { useRouter } from "expo-router";
 import {
   ArrowLeft,
@@ -342,13 +343,7 @@ export default function PrivacyScreen() {
 
   // 11. Main Render
   if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#000"} />
-        </View>
-      </SafeAreaView>
-    );
+    return <PrivacyScreenSkeleton />;
   }
 
   return (

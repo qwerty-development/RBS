@@ -9,6 +9,7 @@ import {
   Dimensions,
   Alert,
 } from "react-native";
+import RatingDetailsScreenSkeleton from '@/components/skeletons/RatingDetailsScreenSkeleton';
 import { useRouter } from "expo-router";
 import {
   ChevronLeft,
@@ -219,14 +220,7 @@ export default function RatingDetailsPage() {
   };
 
   if (loading && !stats) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" />
-          <Text className="mt-4 text-muted-foreground">Loading rating details...</Text>
-        </View>
-      </SafeAreaView>
-    );
+    return <RatingDetailsScreenSkeleton />;
   }
 
   if (error) {
@@ -360,7 +354,7 @@ export default function RatingDetailsPage() {
               Your rating will update as you complete bookings and build your dining history.
             </Text>
             <Button 
-              onPress={() => router.push("/(tabs)/search")}
+              onPress={() => router.push("/search")}
               className="mt-2"
             >
               <Text>Explore Restaurants</Text>

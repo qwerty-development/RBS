@@ -1,20 +1,16 @@
 
 import React from 'react';
-import SkeletonContent from 'react-native-skeleton-content';
+import SkeletonPlaceholder from './SkeletonPlaceholder';
 import { View } from 'react-native';
 
 const FavoritesGridCardSkeleton = () => {
   return (
     <View style={{ flex: 1, margin: 8 }}>
-      <SkeletonContent
-        containerStyle={{ width: '100%' }}
-        isLoading={true}
-        layout={[
-          { key: 'image', width: '100%', height: 120, borderRadius: 8, marginBottom: 8 },
-          { key: 'title', width: '90%', height: 18, marginBottom: 4 },
-          { key: 'subtitle', width: '70%', height: 14 },
-        ]}
-      />
+      <View>
+        <SkeletonPlaceholder width="100%" height={120} style={{ borderRadius: 8, marginBottom: 8 }} />
+        <SkeletonPlaceholder width="90%" height={18} style={{ marginBottom: 4 }} />
+        <SkeletonPlaceholder width="70%" height={14} />
+      </View>
     </View>
   );
 };

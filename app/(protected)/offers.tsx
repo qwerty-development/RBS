@@ -661,12 +661,6 @@ export default function SpecialOffersScreen() {
     );
   };
 
-
-// ... (rest of the imports)
-
-// ... (rest of the code)
-
-  // Loading state
   if (loading) {
     return <OffersScreenSkeleton />;
   }

@@ -23,6 +23,7 @@ import * as Haptics from "expo-haptics";
 import { format } from "date-fns";
 
 import { SafeAreaView } from "@/components/safe-area-view";
+import SocialFeedScreenSkeleton from "@/components/skeletons/SocialFeedScreenSkeleton";
 import { Text } from "@/components/ui/text";
 import { H2, H3, P, Muted } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
@@ -347,13 +348,7 @@ export default function SocialFeedScreen() {
   }, [fetchPosts]);
 
   if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" />
-        </View>
-      </SafeAreaView>
-    );
+    return <SocialFeedScreenSkeleton />;
   }
 
   return (

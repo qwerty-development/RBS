@@ -11,23 +11,22 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import WelcomeScreenSkeleton from '@/components/skeletons/WelcomeScreenSkeleton';
 import { useAuth } from "@/context/supabase-provider";
 
-// ... (rest of the imports)
-
-// ... (rest of the code)
 
 export default function WelcomeScreen() {
 	const router = useRouter();
 	const { colorScheme } = useColorScheme();
   const { loading } = useAuth();
 
-  if (loading) {
-    return <WelcomeScreenSkeleton />;
-  }
+
 
 	const appIcon =
 		colorScheme === "dark"
 			? require("@/assets/icon.png")
 			: require("@/assets/icon-dark.png");
+
+if (loading) {
+    return <WelcomeScreenSkeleton />;
+  }
 
 	return (
 		<SafeAreaView className="flex flex-1 bg-background p-4">

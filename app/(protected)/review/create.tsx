@@ -64,36 +64,7 @@ export default function ReviewCreateScreen() {
 
 
 
-// ... (rest of the imports)
 
-// ... (rest of the code)
-
-  // Loading state
-  if (loading) {
-    return <ReviewCreateScreenSkeleton />;
-  }
-
-  // Error state
-  if (!restaurant || !booking) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center px-4">
-          <AlertCircle size={48} color="#ef4444" />
-          <H2 className="mt-4 text-center">Booking not found</H2>
-          <P className="text-center text-muted-foreground mt-2">
-            Unable to load the booking details needed to create a review.
-          </P>
-          <Button
-            variant="outline"
-            onPress={() => router.back()}
-            className="mt-4"
-          >
-            <Text>Go Back</Text>
-          </Button>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   // Review steps configuration
   const reviewSteps = [
@@ -177,6 +148,34 @@ export default function ReviewCreateScreen() {
     setCurrentStep(currentStep - 1);
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
+
+
+    // Loading state
+  if (loading) {
+    return <ReviewCreateScreenSkeleton />;
+  }
+
+  // Error state
+  if (!restaurant || !booking) {
+    return (
+      <SafeAreaView className="flex-1 bg-background">
+        <View className="flex-1 items-center justify-center px-4">
+          <AlertCircle size={48} color="#ef4444" />
+          <H2 className="mt-4 text-center">Booking not found</H2>
+          <P className="text-center text-muted-foreground mt-2">
+            Unable to load the booking details needed to create a review.
+          </P>
+          <Button
+            variant="outline"
+            onPress={() => router.back()}
+            className="mt-4"
+          >
+            <Text>Go Back</Text>
+          </Button>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>

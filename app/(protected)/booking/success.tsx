@@ -42,6 +42,7 @@ import {
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
 import { ShareBookingButton } from "@/components/social/ShareBookingButton";
+import BookingSuccessScreenSkeleton from '@/components/skeletons/BookingSuccessScreenSkeleton';
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
@@ -678,7 +679,7 @@ export default function BookingSuccessScreen() {
   }, []);
 
   const handleGoHome = useCallback(() => {
-    router.push("/(tabs)/");
+    router.push("/");
   }, [router]);
 
   const handleViewBooking = useCallback(() => {
@@ -694,19 +695,7 @@ export default function BookingSuccessScreen() {
   }, [fetchBookingDetails]);
 
   if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator
-            size="large"
-            color={colorScheme === "dark" ? "#fff" : "#000"}
-          />
-          <Text className="mt-4 text-muted-foreground">
-            Loading booking details...
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
+    return <BookingSuccessScreenSkeleton />;
   }
 
   if (!booking) {

@@ -2,7 +2,7 @@
 export { ReviewCard } from "./ReviewCard";
 export { ReviewSummary } from "./ReviewSummary";
 export { RestaurantCard } from "./RestaurantCard";
-export { LongRestaurantCard } from "./LongRestaurantCard";
+export { EnhancedRestaurantCard } from "./LongRestaurantCard";
 
 // New review components
 export { ReviewsHeader } from "./ReviewsHeader";

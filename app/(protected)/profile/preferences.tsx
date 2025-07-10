@@ -20,6 +20,7 @@ import {
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
+import PreferencesScreenSkeleton from "@/components/skeletons/PreferencesScreenSkeleton";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
@@ -283,15 +284,7 @@ export default function DiningPreferencesScreen() {
   }, [preferences, profile]);
 
   // 7. Loading state
-  if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#000"} />
-        </View>
-      </SafeAreaView>
-    );
-  }
+
 
   // 8. Safety check for preferences
   if (!preferences) {
@@ -314,6 +307,9 @@ export default function DiningPreferencesScreen() {
     );
   }
 
+    if (loading) {
+    return <PreferencesScreenSkeleton />;
+  }
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
       {/* Header */}

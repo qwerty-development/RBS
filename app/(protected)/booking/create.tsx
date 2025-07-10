@@ -96,9 +96,7 @@ export default function BookingCreateScreen() {
   );
 
 
-// ... (rest of the imports)
 
-// ... (rest of the code)
 
   // Loading state
   if (loading) {

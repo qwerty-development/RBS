@@ -84,9 +84,7 @@ export default function ProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  if (authLoading || userRating.loading) {
-    return <ProfileScreenSkeleton />;
-  }
+
 
 
   const handleRefresh = useCallback(async () => {
@@ -321,7 +319,9 @@ export default function ProfileScreen() {
       </Pressable>
     );
   };
-
+  if (authLoading || userRating.loading) {
+    return <ProfileScreenSkeleton />;
+  }
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView

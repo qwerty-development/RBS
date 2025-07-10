@@ -24,9 +24,6 @@ const formSchema = z.object({
 export default function SignIn() {
 	const { signIn, loading } = useAuth();
 
-  if (loading) {
-    return <SignInScreenSkeleton />;
-  }
 
 
 	const form = useForm<z.infer<typeof formSchema>>({
@@ -67,6 +64,9 @@ export default function SignIn() {
 		}
 	}
 
+  if (loading) {
+    return <SignInScreenSkeleton />;
+  }
 	return (
 		<SafeAreaView className="flex-1 bg-background p-4" edges={["bottom"]}>
 			<View className="flex-1 gap-4 web:m-4">
