@@ -23,6 +23,7 @@ import { BookingHeader } from "@/components/booking/BookingHeader";
 import { BookingCTA } from "@/components/booking/BookingCTA";
 import { FriendsInvitationSection } from "@/components/booking/invite-friend";
 import { TIER_CONFIG } from "@/lib/bookingUtils";
+import BookingCreateScreenSkeleton from '@/components/skeletons/BookingCreateScreenSkeleton';
 
 // Form validation schema
 const bookingFormSchema = z.object({
@@ -94,9 +95,14 @@ export default function BookingCreateScreen() {
     [getValues, setValue]
   );
 
+
+// ... (rest of the imports)
+
+// ... (rest of the code)
+
   // Loading state
   if (loading) {
-    return <LoadingScreen />;
+    return <BookingCreateScreenSkeleton />;
   }
 
   // No restaurant found

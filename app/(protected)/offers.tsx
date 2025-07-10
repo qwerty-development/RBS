@@ -45,6 +45,7 @@ import { H2, H3, P, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useOffers } from "@/hooks/useOffers";
+import OffersScreenSkeleton from '@/components/skeletons/OffersScreenSkeleton';
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -660,14 +661,14 @@ export default function SpecialOffersScreen() {
     );
   };
 
+
+// ... (rest of the imports)
+
+// ... (rest of the code)
+
   // Loading state
   if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background justify-center items-center">
-        <ActivityIndicator size="large" />
-        <Text className="mt-4 text-muted-foreground">Loading offers...</Text>
-      </SafeAreaView>
-    );
+    return <OffersScreenSkeleton />;
   }
 
   // Error state

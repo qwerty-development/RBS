@@ -16,6 +16,7 @@ import { TabButton } from "@/components/ui/tab-button";
 import { BookingCard } from "@/components/booking/BookingCard";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useBookings } from "@/hooks/useBookings";
+import BookingsScreenSkeleton from '@/components/skeletons/BookingsScreenSkeleton';
 
 export default function BookingsScreen() {
   const { colorScheme } = useColorScheme();
@@ -38,18 +39,15 @@ export default function BookingsScreen() {
     reviewBooking,
   } = useBookings();
 
+
+
+// ... (rest of the imports)
+
+// ... (rest of the code)
+
   // Loading state
   if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator
-            size="large"
-            color={colorScheme === "dark" ? "#fff" : "#000"}
-          />
-        </View>
-      </SafeAreaView>
-    );
+    return <BookingsScreenSkeleton />;
   }
 
   const currentBookings =

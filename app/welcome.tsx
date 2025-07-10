@@ -8,10 +8,22 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { H1, Muted } from "@/components/ui/typography";
 import { useColorScheme } from "@/lib/useColorScheme";
+import WelcomeScreenSkeleton from '@/components/skeletons/WelcomeScreenSkeleton';
+import { useAuth } from "@/context/supabase-provider";
+
+// ... (rest of the imports)
+
+// ... (rest of the code)
 
 export default function WelcomeScreen() {
 	const router = useRouter();
 	const { colorScheme } = useColorScheme();
+  const { loading } = useAuth();
+
+  if (loading) {
+    return <WelcomeScreenSkeleton />;
+  }
+
 	const appIcon =
 		colorScheme === "dark"
 			? require("@/assets/icon.png")

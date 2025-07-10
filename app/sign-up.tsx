@@ -10,6 +10,7 @@ import { Text } from "@/components/ui/text";
 import { H1, P } from "@/components/ui/typography";
 import { useAuth } from "@/context/supabase-provider";
 import { Checkbox } from "@/components/ui/checkbox";
+import SignUpScreenSkeleton from '@/components/skeletons/SignUpScreenSkeleton';
 
 // Lebanese phone number validation regex
 const lebanesPhoneRegex = /^(\+961|961|03|70|71|76|78|79|80|81)\d{6,7}$/;
@@ -67,8 +68,14 @@ const formSchema = z
 		path: ["confirmPassword"],
 	});
 
+
 export default function SignUp() {
-	const { signUp } = useAuth();
+	const { signUp, loading } = useAuth();
+
+  if (loading) {
+    return <SignUpScreenSkeleton />;
+  }
+
 
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),

@@ -42,6 +42,7 @@ import { useBookingDetails } from "@/hooks/useBookingDetails";
 
 // Import constants
 import { BOOKING_STATUS_CONFIG } from "@/constants/bookingConstants";
+import BookingDetailsScreenSkeleton from '@/components/skeletons/BookingDetailsScreenSkeleton';
 
 export default function BookingDetailsScreen() {
   const params = useLocalSearchParams<{ id: string }>();
@@ -161,21 +162,14 @@ export default function BookingDetailsScreen() {
     }
   };
 
+
+// ... (rest of the imports)
+
+// ... (rest of the code)
+
   // Loading state
   if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator
-            size="large"
-            color={colorScheme === "dark" ? "#fff" : "#000"}
-          />
-          <Text className="mt-4 text-muted-foreground">
-            Loading booking details...
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
+    return <BookingDetailsScreenSkeleton />;
   }
 
   if (!booking) {

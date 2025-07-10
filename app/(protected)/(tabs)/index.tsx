@@ -26,6 +26,7 @@ import { useOffers } from "@/hooks/useOffers";
 import { CUISINE_CATEGORIES } from "@/constants/homeScreenData";
 import { SpecialOffersCarousel } from "@/components/home/SpecialOffersCarousel";
 import { SpecialOfferBannerCarousel } from "@/components/home/SpecialOfferBannerCarousel";
+import HomeScreenSkeleton from '@/components/skeletons/HomeScreenSkeleton';
 
 // Global ref for scroll to top functionality
 export const homeScrollRef = { current: null as any };
@@ -70,20 +71,10 @@ export default function HomeScreen() {
     extrapolate: "clamp",
   });
 
+
+
   if (loading || offersLoading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator
-            size="large"
-            color={colorScheme === "dark" ? "#fff" : "#000"}
-          />
-          <Muted className="mt-4">
-            Loading your personalized experience...
-          </Muted>
-        </View>
-      </SafeAreaView>
-    );
+    return <HomeScreenSkeleton />;
   }
 
   return (

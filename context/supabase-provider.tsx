@@ -38,6 +38,7 @@ type Profile = {
 
 type AuthState = {
 	initialized: boolean;
+	loading: boolean;
 	session: Session | null;
 	user: User | null;
 	profile: Profile | null;
@@ -50,6 +51,7 @@ type AuthState = {
 
 export const AuthContext = createContext<AuthState>({
 	initialized: false,
+	loading: true,
 	session: null,
 	user: null,
 	profile: null,
@@ -64,6 +66,7 @@ export const useAuth = () => useContext(AuthContext);
 
 function AuthContent({ children }: PropsWithChildren) {
 	const [initialized, setInitialized] = useState(false);
+	const [loading, setLoading] = useState(true);
 	const [session, setSession] = useState<Session | null>(null);
 	const [user, setUser] = useState<User | null>(null);
 	const [profile, setProfile] = useState<Profile | null>(null);
@@ -302,6 +305,7 @@ function AuthContent({ children }: PropsWithChildren) {
 	// Fetch profile when user changes
 	useEffect(() => {
 		if (user && !profile) {
+			setLoading(true);
 			console.log('🔄 User found, fetching profile...');
 			fetchProfile(user.id)
 				.then(profileData => {
@@ -314,7 +318,12 @@ function AuthContent({ children }: PropsWithChildren) {
 				})
 				.catch(error => {
 					console.error('❌ Failed to fetch profile:', error);
+				})
+				.finally(() => {
+					setLoading(false);
 				});
+		} else if (!user) {
+			setLoading(false);
 		}
 	}, [user?.id, profile, fetchProfile]);
 
@@ -377,6 +386,7 @@ function AuthContent({ children }: PropsWithChildren) {
 		<AuthContext.Provider
 			value={{
 				initialized,
+				loading,
 				session,
 				user,
 				profile,

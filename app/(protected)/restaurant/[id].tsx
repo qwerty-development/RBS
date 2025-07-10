@@ -42,6 +42,7 @@ import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { RestaurantPlaylistIndicator } from "@/components/restaurant/RestaurantPlaylistIndicator";
+import RestaurantDetailsScreenSkeleton from '@/components/skeletons/RestaurantDetailsScreenSkeleton';
 
 // Type definitions
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
@@ -605,20 +606,13 @@ const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
     });
   }, [router, id, restaurant]);
 
+
+// ... (rest of the imports)
+
+// ... (rest of the code)
+
   if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator
-            size="large"
-            color={colorScheme === "dark" ? "#fff" : "#000"}
-          />
-          <Text className="mt-4 text-muted-foreground">
-            Loading restaurant...
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
+    return <RestaurantDetailsScreenSkeleton />;
   }
 
   if (!restaurant) {

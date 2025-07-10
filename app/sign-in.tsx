@@ -9,6 +9,7 @@ import { Form, FormField, FormInput } from "@/components/ui/form";
 import { Text } from "@/components/ui/text";
 import { H1 } from "@/components/ui/typography";
 import { useAuth } from "@/context/supabase-provider";
+import SignInScreenSkeleton from '@/components/skeletons/SignInScreenSkeleton';
 
 const formSchema = z.object({
 	email: z.string().email("Please enter a valid email address."),
@@ -18,8 +19,15 @@ const formSchema = z.object({
 		.max(64, "Please enter fewer than 64 characters."),
 });
 
+
+
 export default function SignIn() {
-	const { signIn } = useAuth();
+	const { signIn, loading } = useAuth();
+
+  if (loading) {
+    return <SignInScreenSkeleton />;
+  }
+
 
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),

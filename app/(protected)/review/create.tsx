@@ -14,6 +14,7 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { useReviewCreate } from "@/hooks/useReviewCreate";
 import { REVIEW_TAGS } from "@/constants/reviewConstants";
+import ReviewCreateScreenSkeleton from '@/components/skeletons/ReviewCreateScreenSkeleton';
 
 // Extracted Components
 import { ReviewHeader } from "@/components/review/ReviewHeader";
@@ -61,21 +62,15 @@ export default function ReviewCreateScreen() {
     restaurantId: params.restaurantId,
   });
 
+
+
+// ... (rest of the imports)
+
+// ... (rest of the code)
+
   // Loading state
   if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator
-            size="large"
-            color={colorScheme === "dark" ? "#fff" : "#000"}
-          />
-          <Text className="mt-4 text-muted-foreground">
-            Loading booking details...
-          </Text>
-        </View>
-      </SafeAreaView>
-    );
+    return <ReviewCreateScreenSkeleton />;
   }
 
   // Error state

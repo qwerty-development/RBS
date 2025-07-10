@@ -36,6 +36,7 @@ import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { useUserRating } from "@/hooks/useUserRating";
+import ProfileScreenSkeleton from '@/components/skeletons/ProfileScreenSkeleton';
 
 // Add index signature for iconMap
 const iconMap: { [key: string]: any } = {
@@ -72,14 +73,21 @@ interface MenuItem {
   destructive?: boolean;
 }
 
+
+
 export default function ProfileScreen() {
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-  const { profile, signOut } = useAuth();
+  const { profile, signOut, loading: authLoading } = useAuth();
   const userRating = useUserRating();
   
   const [refreshing, setRefreshing] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  if (authLoading || userRating.loading) {
+    return <ProfileScreenSkeleton />;
+  }
+
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
