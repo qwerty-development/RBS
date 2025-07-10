@@ -67,8 +67,8 @@ export const ReviewsTabContent = ({
       {/* Write Review Button */}
       <View className="mb-6">
         <Button onPress={onWriteReview} variant="outline" className="w-full">
-          <View className="flex-row items-center gap-2">
-            <Star size={16} />
+          <View className="flex-row items-center justify-center gap-2">
+            <Star size={16} color="#666" />
             <Text>Write a Review</Text>
           </View>
         </Button>
