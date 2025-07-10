@@ -43,10 +43,7 @@ const profileEditSchema = z.object({
     .min(2, "Name must be at least 2 characters")
     .max(50, "Name must be less than 50 characters")
     .regex(/^[a-zA-Z\s\u0600-\u06FF]+$/, "Please enter a valid name"),
-  email: z
-    .string()
-    .email("Please enter a valid email address")
-    .toLowerCase(),
+  email: z.string().email("Please enter a valid email address").toLowerCase(),
   phone_number: z
     .string()
     .regex(lebanesPhoneRegex, "Please enter a valid Lebanese phone number")
@@ -67,11 +64,11 @@ export default function ProfileEditScreen() {
   const { profile, user, updateProfile } = useAuth();
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-  
+
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
-  
+
   // 3. Form Setup with Current Values
   const form = useForm<ProfileEditFormData>({
     resolver: zodResolver(profileEditSchema),
@@ -84,8 +81,9 @@ export default function ProfileEditScreen() {
 
   // 4. Avatar Upload Handler
   const handleAvatarUpload = useCallback(async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+
     if (!permissionResult.granted) {
       Alert.alert(
         "Permission Required",
@@ -93,41 +91,41 @@ export default function ProfileEditScreen() {
       );
       return;
     }
-    
+
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
     });
-    
+
     if (result.canceled || !result.assets[0]) return;
-    
+
     setUploadingAvatar(true);
-    
+
     try {
       const file = result.assets[0];
       const fileExt = file.uri.split(".").pop();
       const fileName = `${profile?.id}-${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
-      
+
       const formData = new FormData();
       formData.append("file", {
         uri: file.uri,
         name: fileName,
         type: `image/${fileExt}`,
       } as any);
-      
+
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(filePath, formData);
-      
+
       if (uploadError) throw uploadError;
-      
+
       const { data: publicUrl } = supabase.storage
         .from("avatars")
         .getPublicUrl(filePath);
-      
+
       setAvatarUrl(publicUrl.publicUrl);
     } catch (error) {
       console.error("Error uploading avatar:", error);
@@ -138,41 +136,39 @@ export default function ProfileEditScreen() {
   }, [profile?.id]);
 
   // 5. Profile Update Handler
-  const handleSaveProfile = useCallback(async (data: ProfileEditFormData) => {
-    setSavingProfile(true);
-    
-    try {
-      // 5.1 Update auth email if changed
-      if (data.email !== user?.email) {
-        const { error: emailError } = await supabase.auth.updateUser({
-          email: data.email,
+  const handleSaveProfile = useCallback(
+    async (data: ProfileEditFormData) => {
+      setSavingProfile(true);
+
+      try {
+        // 5.1 Update auth email if changed
+        if (data.email !== user?.email) {
+          const { error: emailError } = await supabase.auth.updateUser({
+            email: data.email,
+          });
+
+          if (emailError) throw emailError;
+        }
+
+        // 5.2 Update profile
+        await updateProfile({
+          full_name: data.full_name,
+          phone_number: data.phone_number,
+          avatar_url: avatarUrl,
         });
-        
-        if (emailError) throw emailError;
+
+        Alert.alert("Success", "Your profile has been updated successfully", [
+          { text: "OK", onPress: () => router.back() },
+        ]);
+      } catch (error: any) {
+        console.error("Error updating profile:", error);
+        Alert.alert("Error", error.message || "Failed to update profile");
+      } finally {
+        setSavingProfile(false);
       }
-      
-      // 5.2 Update profile
-      await updateProfile({
-        full_name: data.full_name,
-        phone_number: data.phone_number,
-        avatar_url: avatarUrl,
-      });
-      
-      Alert.alert(
-        "Success",
-        "Your profile has been updated successfully",
-        [{ text: "OK", onPress: () => router.back() }]
-      );
-    } catch (error: any) {
-      console.error("Error updating profile:", error);
-      Alert.alert(
-        "Error",
-        error.message || "Failed to update profile"
-      );
-    } finally {
-      setSavingProfile(false);
-    }
-  }, [user?.email, avatarUrl, updateProfile, router]);
+    },
+    [user?.email, avatarUrl, updateProfile, router]
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
@@ -188,7 +184,7 @@ export default function ProfileEditScreen() {
           <H2>Edit Profile</H2>
           <View className="w-10" />
         </View>
-        
+
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           {/* Avatar Section */}
           <View className="items-center py-6">
@@ -217,7 +213,7 @@ export default function ProfileEditScreen() {
               <Text className="text-primary font-medium">Change Photo</Text>
             </Pressable>
           </View>
-          
+
           {/* Form Fields */}
           <View className="px-4 pb-6">
             <Form {...form}>
@@ -235,7 +231,7 @@ export default function ProfileEditScreen() {
                     />
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="email"
@@ -251,7 +247,7 @@ export default function ProfileEditScreen() {
                     />
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="phone_number"
@@ -267,7 +263,7 @@ export default function ProfileEditScreen() {
                 />
               </View>
             </Form>
-            
+
             {/* Account Info */}
             <View className="mt-6 p-4 bg-muted/50 rounded-lg">
               <View className="flex-row items-center gap-2 mb-2">
@@ -275,7 +271,8 @@ export default function ProfileEditScreen() {
                 <Text className="font-medium">Account Information</Text>
               </View>
               <Text className="text-sm text-muted-foreground">
-                Member since {new Date(profile?.created_at || "").toLocaleDateString()}
+                Member since{" "}
+                {new Date(profile?.created_at || "").toLocaleDateString()}
               </Text>
               <Text className="text-sm text-muted-foreground">
                 User ID: {profile?.id?.slice(0, 8)}...
@@ -283,9 +280,9 @@ export default function ProfileEditScreen() {
             </View>
           </View>
         </ScrollView>
-        
+
         {/* Save Button */}
-        <View className="p-4 border-t border-border">
+        <View className="p-4 flex border-t border-border">
           <Button
             onPress={form.handleSubmit(handleSaveProfile)}
             disabled={savingProfile || !form.formState.isDirty}
@@ -293,10 +290,10 @@ export default function ProfileEditScreen() {
             {savingProfile ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <>
-                <Save size={20} />
+              <View className="flex-row items-center justify-center gap-2">
+                <Save size={20} color="white" />
                 <Text>Save Changes</Text>
-              </>
+              </View>
             )}
           </Button>
         </View>
