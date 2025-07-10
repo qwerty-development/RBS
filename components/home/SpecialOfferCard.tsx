@@ -77,7 +77,7 @@ export function SpecialOfferCard({ offer }: SpecialOfferCardProps) {
       {/* Restaurant Image with Overlay Info */}
       <View className="relative">
         <Image
-          source={{ uri: offer.img_url }}
+          source={{ uri: offer.restaurant.main_image_url }}
           className="w-full h-48"
           contentFit="cover"
         />
