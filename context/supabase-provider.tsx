@@ -16,11 +16,12 @@ import * as WebBrowser from "expo-web-browser";
 import { makeRedirectUri } from "expo-auth-session";
 import * as Linking from "expo-linking";
 
+// Add this at the top of your AuthContent component
+WebBrowser.maybeCompleteAuthSession();
 // Prevent auto hide initially
 SplashScreen.preventAutoHideAsync().catch(console.warn);
 
-// Configure WebBrowser for OAuth flows
-WebBrowser.maybeCompleteAuthSession();
+
 
 // Profile type definition
 type Profile = {
@@ -395,174 +396,185 @@ const googleSignIn = useCallback(async () => {
   try {
     console.log('🚀 Starting Google sign in');
     
-    // Use makeRedirectUri to create proper redirect URL
+    // Create the redirect URI - use expo-auth-session format
     const redirectUrl = makeRedirectUri({
       scheme: 'qwerty-booklet',
-      path: 'auth/callback'
+      preferLocalhost: false,
+      isTripleSlashed: true,
+      native: 'qwerty-booklet://google'
     });
     
     console.log('🎯 Using redirect URL:', redirectUrl);
 
-    // Step 1: Initiate OAuth with Supabase
+    // Step 1: Start OAuth flow
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: redirectUrl,
         skipBrowserRedirect: true,
         queryParams: {
+          prompt: 'select_account',
           access_type: 'offline',
-          prompt: 'select_account', // This forces account selection
         },
       },
     });
 
-    if (error) {
+    if (error || !data?.url) {
       console.error('❌ Error initiating Google OAuth:', error);
-      return { error };
-    }
-
-    if (!data?.url) {
-      return { error: new Error('No OAuth URL received') };
+      return { error: error || new Error('No OAuth URL received') };
     }
 
     console.log('🌐 Opening Google auth session');
+    
+    // Step 2: Set up a URL listener BEFORE opening the browser
+    let urlSubscription: any;
+    const urlPromise = new Promise<string>((resolve, reject) => {
+      // Listen for the redirect
+      urlSubscription = Linking.addEventListener('url', (event) => {
+        console.log('🔗 Received URL:', event.url);
+        if (event.url.includes('google') || event.url.includes('#access_token') || event.url.includes('code=')) {
+          resolve(event.url);
+        }
+      });
+      
+      // Set a timeout
+      setTimeout(() => reject(new Error('OAuth timeout')), 120000); // 2 minutes
+    });
 
-    // Step 2: Open auth session
-    const result = await WebBrowser.openAuthSessionAsync(
+    // Step 3: Open the browser
+    const browserPromise = WebBrowser.openAuthSessionAsync(
       data.url,
       redirectUrl,
       {
         showInRecents: false,
-        dismissButtonStyle: 'close',
+        createTask: false,
+        preferEphemeralSession: true,
       }
     );
 
-    console.log('📱 WebBrowser result:', result.type);
+    // Step 4: Wait for either the browser to close or URL to be received
+    try {
+      const result = await Promise.race([
+        browserPromise,
+        urlPromise.then(url => ({ type: 'success' as const, url }))
+      ]);
 
-    if (result.type === 'success' && result.url) {
-      console.log('✅ OAuth callback received');
-      
-      // Step 3: Parse the callback URL
-      const url = new URL(result.url);
-      let params = new URLSearchParams();
-      
-      // Check both hash and search params
-      if (url.hash) {
-        params = new URLSearchParams(url.hash.substring(1));
-      } else if (url.search) {
-        params = new URLSearchParams(url.search);
+      console.log('📱 Auth result:', result);
+
+      // Clean up the URL listener
+      if (urlSubscription) {
+        urlSubscription.remove();
       }
-      
-      // Look for the session data
-      const access_token = params.get('access_token');
-      const refresh_token = params.get('refresh_token');
-      const error_description = params.get('error_description');
-      
-      if (error_description) {
-        console.error('❌ OAuth error:', error_description);
-        return { error: new Error(error_description) };
-      }
-      
-      // Step 4: Exchange code for session (if using code flow)
-      // Sometimes Google returns a code instead of tokens directly
-      const code = params.get('code');
-      
-      if (code) {
-        console.log('🔄 Exchanging code for session');
+
+      if (result.type === 'success' && result.url) {
+        console.log('✅ OAuth callback received');
         
-        // Let Supabase handle the code exchange
-        const { data: sessionData, error: sessionError } = 
-          await supabase.auth.exchangeCodeForSession(code);
+        // Step 5: Parse the callback URL
+        const url = new URL(result.url);
         
-        if (sessionError) {
-          console.error('❌ Code exchange error:', sessionError);
-          return { error: sessionError };
+        // Extract parameters from hash or query
+        let params = new URLSearchParams();
+        if (url.hash) {
+          params = new URLSearchParams(url.hash.substring(1));
+        } else if (url.search) {
+          params = new URLSearchParams(url.search);
         }
         
-        if (sessionData?.session) {
-          console.log('🎉 Session established via code exchange');
-          setSession(sessionData.session);
-          setUser(sessionData.session.user);
+        const access_token = params.get('access_token');
+        const refresh_token = params.get('refresh_token');
+        const code = params.get('code');
+        const error_description = params.get('error_description');
+        
+        if (error_description) {
+          console.error('❌ OAuth error:', error_description);
+          return { error: new Error(error_description) };
+        }
+        
+        // Step 6: Handle code exchange
+        if (code && !access_token) {
+          console.log('🔄 Exchanging code for session');
           
-          // Process OAuth user profile
-          const userProfile = await processOAuthUser(sessionData.session);
-          if (userProfile) {
-            setProfile(userProfile);
-            const needsUpdate = !userProfile.phone_number;
-            return { needsProfileUpdate: needsUpdate };
+          const { data: sessionData, error: sessionError } = 
+            await supabase.auth.exchangeCodeForSession(code);
+          
+          if (sessionError) {
+            console.error('❌ Code exchange error:', sessionError);
+            return { error: sessionError };
           }
           
-          return {};
-        }
-      }
-      
-      // Step 5: Set session with tokens (if using implicit flow)
-      if (access_token) {
-        console.log('✅ Access token found, setting session');
-        
-        const { data: sessionData, error: sessionError } = 
-          await supabase.auth.setSession({
-            access_token,
-            refresh_token: refresh_token || '',
-          });
-
-        if (sessionError) {
-          console.error('❌ Session creation failed:', sessionError);
-          return { error: sessionError };
-        }
-
-        if (sessionData?.session) {
-          console.log('🎉 Session established via tokens');
-          setSession(sessionData.session);
-          setUser(sessionData.session.user);
-
-          // Process OAuth user profile
-          const userProfile = await processOAuthUser(sessionData.session);
-          if (userProfile) {
-            setProfile(userProfile);
-            const needsUpdate = !userProfile.phone_number;
-            return { needsProfileUpdate: needsUpdate };
+          if (sessionData?.session) {
+            console.log('🎉 Session established via code exchange');
+            // Session will be handled by onAuthStateChange
+            return {};
           }
+        }
+        
+        // Step 7: Handle direct token
+        if (access_token) {
+          console.log('✅ Access token found, setting session');
           
+          const { data: sessionData, error: sessionError } = 
+            await supabase.auth.setSession({
+              access_token,
+              refresh_token: refresh_token || '',
+            });
+
+          if (sessionError) {
+            console.error('❌ Session creation failed:', sessionError);
+            return { error: sessionError };
+          }
+
+          if (sessionData?.session) {
+            console.log('🎉 Session established via tokens');
+            // Session will be handled by onAuthStateChange
+            return {};
+          }
+        }
+        
+        // Step 8: Final fallback check
+        console.log('🔄 Checking for session via getSession');
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait a bit
+        
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        
+        if (currentSession) {
+          console.log('✅ Session found via getSession');
           return {};
         }
+        
+        console.error('❌ No session established after OAuth');
+        return { error: new Error('Failed to establish session') };
+        
+      } else if (result.type === 'cancel') {
+        console.log('👤 User canceled Google sign-in');
+        return {};
+      } else {
+        console.error('❌ OAuth flow failed');
+        return { error: new Error('OAuth flow failed') };
       }
       
-      // Step 6: Fallback - check if session was set by Supabase
-      console.log('🔄 Checking for session via getSession');
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
+    } catch (timeoutError) {
+      // Clean up listener if timeout
+      if (urlSubscription) {
+        urlSubscription.remove();
+      }
+      console.error('⏱️ OAuth timeout:', timeoutError);
       
-      if (currentSession) {
-        console.log('✅ Session found via getSession');
-        setSession(currentSession);
-        setUser(currentSession.user);
-        
-        const userProfile = await processOAuthUser(currentSession);
-        if (userProfile) {
-          setProfile(userProfile);
-          const needsUpdate = !userProfile.phone_number;
-          return { needsProfileUpdate: needsUpdate };
-        }
-        
+      // Check if session was created anyway
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        console.log('✅ Session found despite timeout');
         return {};
       }
       
-      console.error('❌ No session established after OAuth');
-      return { error: new Error('Failed to establish session') };
-      
-    } else if (result.type === 'cancel') {
-      console.log('👤 User canceled Google sign-in');
-      return {}; // Not an error
-    } else {
-      console.error('❌ OAuth flow failed:', result);
-      return { error: new Error('OAuth flow failed') };
+      return { error: new Error('OAuth timeout') };
     }
     
   } catch (error) {
     console.error('💥 Google sign in error:', error);
     return { error: error as Error };
   }
-}, [processOAuthUser]);
+}, []);
 
 	// Initialize auth state - RUNS ONLY ONCE
 	useEffect(() => {
