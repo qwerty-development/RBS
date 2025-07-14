@@ -8,9 +8,12 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "owner": "qwerty-app",
-    "assetBundlePatterns": ["**/*"],
-    "runtimeVersion": { "policy": "appVersion" },
-
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "updates": {
       "url": "https://u.expo.dev/9cb3f29d-a85c-439a-ac34-513843ed9279",
       "fallbackToCacheTimeout": 0,
@@ -18,15 +21,14 @@
         "expo-channel-name": "production"
       }
     },
-
     "ios": {
       "supportsTablet": true,
-      "config": { 
+        "usesAppleSignIn": true,
+      "config": {
         "googleMapsApiKey": "AIzaSyDvW1iMajBuW0mqJHIyNFtDm8A7VkgkAdg",
-        "usesNonExemptEncryption": false 
+        "usesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.notqwerty.booklet",
-
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Booklet uses your location to find nearby restaurants and provide personalized recommendations.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Booklet uses your location to find nearby restaurants and provide personalized recommendations.",
@@ -40,9 +42,13 @@
               "NSIncludesSubdomains": true
             }
           }
-        }
+        }, "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": ["qwerty-booklet", "com.notqwerty.booklet"]
+          }
+        ]
+      
       },
-
       "splash": {
         "image": "./assets/splash.png",
         "resizeMode": "cover",
@@ -53,22 +59,20 @@
           "backgroundColor": "#000000"
         }
       },
-
       "icon": {
         "light": "./assets/icon.png",
         "dark": "./assets/icon-dark.png"
       }
     },
-
     "android": {
-      "adaptiveIcon": { "foregroundImage": "./assets/adaptive-icon.png" },
-      
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png"
+      },
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyCDuRjdx7YfYc0Y46fcEisE6YbY0zVY7jk"
         }
       },
-
       "permissions": [
         "ACCESS_COARSE_LOCATION",
         "ACCESS_FINE_LOCATION",
@@ -77,7 +81,6 @@
         "android.permission.INTERNET",
         "android.permission.VIBRATE"
       ],
-
       "splash": {
         "image": "./assets/splash.png",
         "resizeMode": "cover",
@@ -88,18 +91,29 @@
           "backgroundColor": "#000000"
         }
       },
-
+          "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "qwerty-booklet"
+            }
+          ],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "usesCleartextTraffic": false,
       "networkSecurityConfig": "./network_security_config.xml",
       "package": "com.notqwerty.booklet"
     },
-
     "newArchEnabled": false,
-
-    "experiments": { "typedRoutes": true },
-
+    "experiments": {
+      "typedRoutes": true
+    },
     "plugins": [
       "expo-router",
+      "expo-apple-authentication",
       "expo-secure-store",
       [
         "expo-location",
@@ -115,16 +129,17 @@
           "icon": "./assets/icon.png",
           "color": "#ffffff"
         }
-      ]
+      ],
+      "expo-web-browser"
     ],
-
     "extra": {
       "router": {},
-      "eas": { "projectId": "9cb3f29d-a85c-439a-ac34-513843ed9279" },
+      "eas": {
+        "projectId": "9cb3f29d-a85c-439a-ac34-513843ed9279"
+      },
       "EXPO_PUBLIC_SUPABASE_URL": "https://xsovqvbigdettnpeisjs.supabase.co",
       "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhzb3ZxdmJpZ2RldHRucGVpc2pzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTAwNzUzODIsImV4cCI6MjA2NTY1MTM4Mn0.QY4L0oKNEjJE5dv7dok2zz4TouiehxqibbfBGnmjLO8"
     },
-
     "hooks": {
       "postInstall": "npx patch-package"
     }

@@ -1,15 +1,19 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { ActivityIndicator, View, Alert } from "react-native";
+import { ActivityIndicator, View, Alert, Platform, TouchableOpacity } from "react-native";
 import * as z from "zod";
+import { useState, useEffect } from "react";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import * as AppleAuthentication from 'expo-apple-authentication';
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Form, FormField, FormInput } from "@/components/ui/form";
 import { Text } from "@/components/ui/text";
-import { H1 } from "@/components/ui/typography";
+import { H1, P } from "@/components/ui/typography";
 import { useAuth } from "@/context/supabase-provider";
-import SignInScreenSkeleton from '@/components/skeletons/SignInScreenSkeleton';
+import { useColorScheme } from "@/lib/useColorScheme";
 
 const formSchema = z.object({
 	email: z.string().email("Please enter a valid email address."),
@@ -19,12 +23,16 @@ const formSchema = z.object({
 		.max(64, "Please enter fewer than 64 characters."),
 });
 
-
-
 export default function SignIn() {
-	const { signIn, loading } = useAuth();
-
-
+	const { signIn, appleSignIn, googleSignIn } = useAuth();
+	const { colorScheme } = useColorScheme();
+	const router = useRouter();
+	const isDark = colorScheme === "dark";
+	
+	const [isEmailLoading, setIsEmailLoading] = useState(false);
+	const [isAppleLoading, setIsAppleLoading] = useState(false);
+	const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+	const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
 
 	const form = useForm<z.infer<typeof formSchema>>({
 		resolver: zodResolver(formSchema),
@@ -34,8 +42,25 @@ export default function SignIn() {
 		},
 	});
 
+	// Check if Apple Authentication is available
+	useEffect(() => {
+		const checkAppleAuthAvailability = async () => {
+			if (Platform.OS === 'ios') {
+				try {
+					const isAvailable = await AppleAuthentication.isAvailableAsync();
+					setAppleAuthAvailable(isAvailable);
+				} catch {
+					setAppleAuthAvailable(false);
+				}
+			}
+		};
+
+		checkAppleAuthAvailability();
+	}, []);
+
 	async function onSubmit(data: z.infer<typeof formSchema>) {
 		try {
+			setIsEmailLoading(true);
 			console.log('🔄 Starting sign-in process...');
 			await signIn(data.email, data.password);
 			console.log('✅ Sign-in successful');
@@ -61,16 +86,65 @@ export default function SignIn() {
 			Alert.alert("Sign In Error", errorMessage, [
 				{ text: "OK", style: "default" }
 			]);
+		} finally {
+			setIsEmailLoading(false);
 		}
 	}
 
-  if (loading) {
-    return <SignInScreenSkeleton />;
-  }
+	// Handle Apple Sign In
+	const handleAppleSignIn = async () => {
+		try {
+			setIsAppleLoading(true);
+			const { error, needsProfileUpdate } = await appleSignIn();
+			
+			if (error) {
+				if (error.message !== 'User canceled Apple sign-in') {
+					Alert.alert("Sign In Error", error.message || "Apple sign in failed.");
+				}
+			} else if (needsProfileUpdate) {
+				// Navigate to profile completion if needed
+				console.log('Profile needs updating after Apple sign in');
+			}
+		} catch (err: any) {
+			console.error("Apple sign in error:", err);
+			Alert.alert("Sign In Error", err.message || "Failed to sign in with Apple.");
+		} finally {
+			setIsAppleLoading(false);
+		}
+	};
+
+	// Handle Google Sign In
+	const handleGoogleSignIn = async () => {
+		try {
+			setIsGoogleLoading(true);
+			const { error, needsProfileUpdate } = await googleSignIn();
+			
+			if (error) {
+				if (error.message !== 'User canceled Google sign-in') {
+					Alert.alert("Sign In Error", error.message || "Google sign in failed.");
+				}
+			} else if (needsProfileUpdate) {
+				// Navigate to profile completion if needed
+				console.log('Profile needs updating after Google sign in');
+			}
+		} catch (err: any) {
+			console.error("Google sign in error:", err);
+			Alert.alert("Sign In Error", err.message || "Failed to sign in with Google.");
+		} finally {
+			setIsGoogleLoading(false);
+		}
+	};
+
 	return (
 		<SafeAreaView className="flex-1 bg-background p-4" edges={["bottom"]}>
 			<View className="flex-1 gap-4 web:m-4">
-				<H1 className="self-start">Sign In</H1>
+				<View>
+					<H1 className="self-start">Welcome Back</H1>
+					<P className="text-muted-foreground mt-2">
+						Sign in to discover and book amazing restaurants
+					</P>
+				</View>
+				
 				<Form {...form}>
 					<View className="gap-4">
 						<FormField
@@ -105,19 +179,84 @@ export default function SignIn() {
 					</View>
 				</Form>
 			</View>
-			<Button
-				size="default"
-				variant="default"
-				onPress={form.handleSubmit(onSubmit)}
-				disabled={form.formState.isSubmitting}
-				className="web:m-4"
-			>
-				{form.formState.isSubmitting ? (
-					<ActivityIndicator size="small" color="white" />
-				) : (
-					<Text>Sign In</Text>
-				)}
-			</Button>
+			
+			<View className="gap-4 web:m-4">
+				<Button
+					size="default"
+					variant="default"
+					onPress={form.handleSubmit(onSubmit)}
+					disabled={isEmailLoading || isAppleLoading || isGoogleLoading}
+				>
+					{isEmailLoading ? (
+						<ActivityIndicator size="small" color="white" />
+					) : (
+						<Text>Sign In</Text>
+					)}
+				</Button>
+				
+				{/* Social Sign In Section */}
+				<View className="items-center">
+					<View className="flex-row items-center w-full mb-4">
+						<View className="flex-1 h-px bg-border/30" />
+						<Text className="mx-4 text-sm text-muted-foreground">or continue with</Text>
+						<View className="flex-1 h-px bg-border/30" />
+					</View>
+					
+					<View className="flex-row gap-3 w-full">
+						{/* Apple Sign In Button */}
+						{Platform.OS === 'ios' && appleAuthAvailable && (
+							<TouchableOpacity
+								onPress={handleAppleSignIn}
+								disabled={isAppleLoading || isEmailLoading || isGoogleLoading}
+								className="flex-1"
+							>
+								<View className="bg-foreground rounded-md h-12 items-center justify-center flex-row gap-2">
+									{isAppleLoading ? (
+										<ActivityIndicator size="small" color={isDark ? "#000" : "#fff"} />
+									) : (
+										<>
+											<Ionicons name="logo-apple" size={20} color={isDark ? "#000" : "#fff"} />
+											<Text className={isDark ? "text-black font-medium" : "text-white font-medium"}>
+												Apple
+											</Text>
+										</>
+									)}
+								</View>
+							</TouchableOpacity>
+						)}
+						
+						{/* Google Sign In Button */}
+						<TouchableOpacity
+							onPress={handleGoogleSignIn}
+							disabled={isGoogleLoading || isEmailLoading || isAppleLoading}
+							className="flex-1"
+						>
+							<View className="bg-background border border-border rounded-md h-12 items-center justify-center flex-row gap-2">
+								{isGoogleLoading ? (
+									<ActivityIndicator size="small" color={isDark ? "#fff" : "#000"} />
+								) : (
+									<>
+										<Ionicons name="logo-google" size={20} color="#EA4335" />
+										<Text className="text-foreground font-medium">Google</Text>
+									</>
+								)}
+							</View>
+						</TouchableOpacity>
+					</View>
+				</View>
+				
+				<View className="flex-row items-center gap-2 justify-center mt-2">
+					<Text className="text-muted-foreground">
+						Don't have an account?
+					</Text>
+					<Text
+						className="text-primary font-medium"
+						onPress={() => router.push("/sign-up")}
+					>
+						Sign Up
+					</Text>
+				</View>
+			</View>
 		</SafeAreaView>
 	);
 }

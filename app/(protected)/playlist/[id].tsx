@@ -34,7 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { H2, H3, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
-import { RestaurantSearchCard } from "@/components/search/RestaurantSearchCard";
+
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { supabase } from "@/config/supabase";
