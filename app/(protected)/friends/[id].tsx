@@ -29,6 +29,7 @@ import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
+import { FriendProfileSkeleton } from "@/components/skeletons/FriendProfileSkeleton";
 
 interface FriendProfile {
   id: string;
@@ -175,13 +176,7 @@ export default function FriendProfileScreen() {
   };
 
   if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" />
-        </View>
-      </SafeAreaView>
-    );
+    return <FriendProfileSkeleton />;
   }
 
   if (!friendProfile) {

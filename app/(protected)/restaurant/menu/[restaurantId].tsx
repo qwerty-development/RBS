@@ -32,6 +32,7 @@ import { Button } from '@/components/ui/button';
 import { useColorScheme } from '@/lib/useColorScheme';
 import { useMenu } from '@/hooks/useMenu';
 import { MenuItem, MenuCategory, DIETARY_TAGS } from '@/types/menu';
+import { MenuScreenSkeleton } from '@/components/skeletons/MenuScreenSkeleton';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -170,11 +171,7 @@ export default function MenuScreen() {
   ), [filters.dietary_tags.length]);
 
   if (loading) {
-    return (
-      <SafeAreaView className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" />
-      </SafeAreaView>
-    );
+    return <MenuScreenSkeleton />;
   }
 
   if (error) {

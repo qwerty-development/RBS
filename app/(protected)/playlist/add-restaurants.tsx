@@ -29,6 +29,7 @@ import { supabase } from "@/config/supabase";
 import { Database } from "@/types/supabase";
 import { usePlaylistItems } from "@/hooks/usePlaylistItems";
 import { useFavorites } from "@/hooks/useFavorites";
+import { AddRestaurantSkeleton } from "@/components/skeletons/AddRestaurantSkeleton";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -233,9 +234,7 @@ export default function AddRestaurantsScreen() {
 
       {/* Restaurant List */}
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#000"} />
-        </View>
+        <AddRestaurantSkeleton />
       ) : restaurants.length === 0 ? (
         <View className="flex-1 items-center justify-center px-8">
           <Search size={48} color="#6b7280" className="mb-4" />

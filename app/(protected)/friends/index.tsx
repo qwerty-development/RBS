@@ -37,6 +37,7 @@ import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
+import { FriendListSkeleton } from "@/components/skeletons/FriendListSkeleton";
 
 // Type definitions
 interface Friend {
@@ -652,9 +653,7 @@ export default function FriendsScreen() {
 
       {/* Content */}
       {loading ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" />
-        </View>
+        <FriendListSkeleton />
       ) : (
         <FlatList
           data={

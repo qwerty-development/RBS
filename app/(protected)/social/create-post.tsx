@@ -34,6 +34,7 @@ import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
+import { CreatePostSkeleton } from "@/components/skeletons/CreatePostSkeleton";
 
 interface Friend {
   id: string;
@@ -63,6 +64,7 @@ export default function CreatePostScreen() {
   const [posting, setPosting] = useState(false);
   const [bookingDetails, setBookingDetails] = useState<any>(null);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   // Fetch booking details if bookingId is provided
   useEffect(() => {
@@ -96,6 +98,8 @@ export default function CreatePostScreen() {
       setBookingDetails(data);
     } catch (error) {
       console.error("Error fetching booking:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -307,6 +311,10 @@ export default function CreatePostScreen() {
     }
     return new Blob([bytes], { type: "image/jpeg" });
   };
+
+  if (loading) {
+    return <CreatePostSkeleton />;
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-background">

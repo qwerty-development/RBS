@@ -44,6 +44,9 @@ import { PlaylistItem } from "@/hooks/usePlaylists"
 import { useDeletePlaylist } from "@/hooks/useDeletePlaylist";
 
 import { usePlaylistSharing } from "@/hooks/usePlaylistSharing";
+import { RestaurantSearchCard } from "@/components/search/RestaurantSearchCard";
+import { Database } from "@/types/supabase";
+import { PlaylistDetailsSkeleton } from "@/components/skeletons/PlaylistDetailsSkeleton";
 import { CreatePlaylistModal } from "@/components/playlists/CreatePlaylistModal";
 
 type PlaylistParams = {
@@ -256,14 +259,9 @@ export default function PlaylistDetailScreen() {
     );
   }, [handleRestaurantPress, userPermission]);
 
-  if (loading) {
-    return (
-      <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#000"} />
-        </View>
-      </SafeAreaView>
-    );
+  // Loading state
+  if (loading || !playlist) {
+    return <PlaylistDetailsSkeleton />;
   }
 
   if (!playlist) return null;

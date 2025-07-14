@@ -29,6 +29,7 @@ import { H2, H3, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { usePlaylistInvitations, PlaylistInvitation } from "@/hooks/usePlaylistInvitations";
+import { PlaylistInvitationSkeleton } from "@/components/skeletons/PlaylistInvitationSkeleton";
 
 export default function PlaylistInvitationsScreen() {
   const router = useRouter();
@@ -181,12 +182,7 @@ export default function PlaylistInvitationsScreen() {
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator
-            size="large"
-            color={colorScheme === "dark" ? "#fff" : "#000"}
-          />
-        </View>
+        <PlaylistInvitationSkeleton />
       </SafeAreaView>
     );
   }
