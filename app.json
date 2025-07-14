@@ -98,8 +98,10 @@
           "data": [
             {
               "scheme": "qwerty-booklet"
-            }
-          ],
+            },{
+            "scheme": "com.notqwerty.booklet"
+          }
+        ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
       ],
