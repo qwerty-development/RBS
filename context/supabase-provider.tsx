@@ -391,7 +391,6 @@ function AuthContent({ children }: PropsWithChildren) {
 		}
 	}, [processOAuthUser]);
 
-// Google Sign In implementation
 const googleSignIn = useCallback(async () => {
   try {
     console.log('🚀 Starting Google sign in');
@@ -448,7 +447,7 @@ const googleSignIn = useCallback(async () => {
       {
         showInRecents: false,
         createTask: false,
-        preferEphemeralSession: true,
+        preferEphemeralSession: false, 
       }
     );
 
@@ -574,6 +573,40 @@ const googleSignIn = useCallback(async () => {
     console.error('💥 Google sign in error:', error);
     return { error: error as Error };
   }
+}, []);
+
+// Make sure you have this in your AuthContent component
+useEffect(() => {
+  // Listen for incoming URLs when app resumes
+  const handleUrl = (url: string) => {
+    console.log('🔗 App opened with URL:', url);
+    
+    // Check if it's an OAuth callback
+    if (url.includes('#access_token') || url.includes('code=')) {
+      console.log('🔄 Processing OAuth callback');
+      
+      // Supabase should handle this automatically
+      // Just check for session after a short delay
+      setTimeout(async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          console.log('✅ Session established from URL');
+        }
+      }, 500);
+    }
+  };
+
+  // Get initial URL
+  Linking.getInitialURL().then((url) => {
+    if (url) handleUrl(url);
+  });
+
+  // Listen for URL changes
+  const subscription = Linking.addEventListener('url', (event) => {
+    handleUrl(event.url);
+  });
+
+  return () => subscription.remove();
 }, []);
 
 	// Initialize auth state - RUNS ONLY ONCE
