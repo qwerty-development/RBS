@@ -412,8 +412,9 @@ const googleSignIn = useCallback(async () => {
         redirectTo: redirectUrl,
         skipBrowserRedirect: true,
         queryParams: {
-          prompt: 'select_account',
+          prompt: 'select_account consent', 
           access_type: 'offline',
+          include_granted_scopes: 'true',
         },
       },
     });
@@ -447,7 +448,7 @@ const googleSignIn = useCallback(async () => {
       {
         showInRecents: false,
         createTask: false,
-        preferEphemeralSession: false, 
+        preferEphemeralSession: false, // Changed to false to allow account selection
       }
     );
 
