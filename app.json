@@ -46,7 +46,8 @@
           {
             "CFBundleURLSchemes": ["qwerty-booklet", "com.notqwerty.booklet"]
           }
-        ]
+        ],
+        "LSApplicationQueriesSchemes": ["mailto", "tel", "sms", "https", "http"]
       
       },
       "splash": {
@@ -97,11 +98,14 @@
           "autoVerify": true,
           "data": [
             {
-              "scheme": "qwerty-booklet"
-            },{
-            "scheme": "com.notqwerty.booklet"
-          }
-        ],
+              "scheme": "qwerty-booklet",
+              "host": "auth",
+              "pathPrefix": "/callback"
+            },
+            {
+              "scheme": "com.notqwerty.booklet"
+            }
+          ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
       ],
