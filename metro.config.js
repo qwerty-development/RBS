@@ -3,11 +3,50 @@ const { getSentryExpoConfig } = require("@sentry/react-native/metro");
 
 const config = getSentryExpoConfig(__dirname);
 
-// https://github.com/supabase/supabase-js/issues/1258#issuecomment-2801695478
+// Supabase resolver workaround
 config.resolver = {
   ...config.resolver,
   unstable_conditionNames: ["browser"],
   unstable_enablePackageExports: false,
 };
 
-module.exports = withNativeWind(config, { input: "./global.css" });
+// Apply NativeWind
+const nativeWindConfig = withNativeWind(config, { input: "./global.css" });
+
+// Obfuscator plugin
+const jsoMetroPlugin = require("obfuscator-io-metro-plugin")(
+  {
+    compact: false,
+    sourceMap: false,
+    controlFlowFlattening: true,
+    controlFlowFlatteningThreshold: 1,
+    numbersToExpressions: true,
+    simplify: true,
+    stringArrayShuffle: true,
+    splitStrings: true,
+    stringArrayThreshold: 1,
+  },
+  {
+    runInDev: false,
+    logObfuscatedFiles: true,
+    filter: (filename) => {
+      // Only obfuscate files in your project, not in node_modules
+      return !filename.includes(`${path.sep}node_modules${path.sep}`);
+    },
+  }
+);
+
+// Merge everything into one export
+module.exports = {
+  ...nativeWindConfig,
+  transformer: {
+    ...nativeWindConfig.transformer,
+    getTransformOptions: async () => ({
+      transform: {
+        experimentalImportSupport: false,
+        inlineRequires: false,
+      },
+    }),
+  },
+  ...jsoMetroPlugin,
+};
