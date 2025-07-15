@@ -7,6 +7,7 @@ import {
   FlatList,
   SafeAreaView,
   ScrollView,
+  Button,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useColorScheme } from "@/lib/useColorScheme";
@@ -24,6 +25,7 @@ import { CUISINE_CATEGORIES } from "@/constants/homeScreenData";
 import { SpecialOffersCarousel } from "@/components/home/SpecialOffersCarousel";
 import { SpecialOfferBannerCarousel } from "@/components/home/SpecialOfferBannerCarousel";
 import HomeScreenSkeleton from "@/components/skeletons/HomeScreenSkeleton";
+import * as Sentry from "@sentry/react-native";
 
 // Global ref for scroll to top functionality
 export const homeScrollRef = { current: null as any };

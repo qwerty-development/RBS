@@ -8,7 +8,7 @@ import React, {
   useRef,
   PropsWithChildren,
 } from "react";
-import NetInfo, { NetInfoState, NetInfoStateType } from "@react-native-async-storage/async-storage";
+import NetInfo, { NetInfoState, NetInfoStateType } from "@react-native-community/netinfo";
 import { Platform } from "react-native";
 
 // Types
@@ -28,6 +28,8 @@ type NetworkState = {
     frequency?: number;
     ipAddress?: string;
     subnet?: string;
+    cellularGeneration?: string;
+    carrier?: string;
   } | null;
 };
 
@@ -59,7 +61,7 @@ const QUALITY_THRESHOLDS = {
 
 // Speed test configuration
 const SPEED_TEST_CONFIG = {
-  testUrl: "https://httpbin.org/bytes/1024", // 1KB test file
+  testUrl: "https://httpbin.org/bytes/10240", // 10KB test file for better accuracy
   timeout: 10000,
   retries: 2,
 };
@@ -75,9 +77,8 @@ export function NetworkProvider({ children }: PropsWithChildren) {
     details: null,
   });
 
-  const [listeners, setListeners] = useState<Set<(state: NetworkState) => void>>(
-    new Set()
-  );
+  // Use ref for listeners to avoid re-renders
+  const listenersRef = useRef<Set<(state: NetworkState) => void>>(new Set());
   const speedTestRef = useRef<Promise<any> | null>(null);
 
   // Determine connection quality based on type and details
@@ -89,7 +90,7 @@ export function NetworkProvider({ children }: PropsWithChildren) {
 
       switch (state.type) {
         case NetInfoStateType.wifi:
-          if (state.details?.strength !== undefined) {
+          if (state.details && 'strength' in state.details && typeof state.details.strength === 'number') {
             const strength = state.details.strength;
             if (strength >= -50) return "excellent";
             if (strength >= -60) return "good";
@@ -99,7 +100,7 @@ export function NetworkProvider({ children }: PropsWithChildren) {
           return "good"; // Default for WiFi when strength unknown
 
         case NetInfoStateType.cellular:
-          if (state.details?.cellularGeneration) {
+          if (state.details && 'cellularGeneration' in state.details && state.details.cellularGeneration) {
             switch (state.details.cellularGeneration) {
               case "5g":
                 return "excellent";
@@ -133,31 +134,88 @@ export function NetworkProvider({ children }: PropsWithChildren) {
 
   // Update network state from NetInfo
   const updateNetworkState = useCallback(
-    (state: NetInfoState) => {
+    (state: NetInfoState | null) => {
+      if (!state) {
+        setNetworkState({
+          isConnected: false,
+          isInternetReachable: false,
+          type: NetInfoStateType.unknown,
+          connectionQuality: "poor",
+          isSlowConnection: true,
+          effectiveType: null,
+          details: null,
+        });
+        return;
+      }
+      
       const quality = getConnectionQuality(state);
+      
+      // Helper function to safely extract details based on connection type
+      const getConnectionDetails = (): NetworkState['details'] => {
+        if (!state.details) return null;
+
+        const baseDetails: NetworkState['details'] = {
+          ipAddress: state.details.ipAddress || undefined,
+          subnet: state.details.subnet || undefined,
+        };
+
+        // Type-specific details
+        switch (state.type) {
+          case NetInfoStateType.wifi:
+            if ('ssid' in state.details) {
+              return {
+                ...baseDetails,
+                ssid: state.details.ssid || undefined,
+                bssid: state.details.bssid || undefined,
+                frequency: state.details.frequency || undefined,
+                strength: typeof state.details.strength === 'number' ? state.details.strength : undefined,
+              };
+            }
+            break;
+            
+          case NetInfoStateType.cellular:
+            if ('cellularGeneration' in state.details) {
+              return {
+                ...baseDetails,
+                cellularGeneration: state.details.cellularGeneration || undefined,
+                carrier: state.details.carrier || undefined,
+              };
+            }
+            break;
+            
+          default:
+            return baseDetails;
+        }
+        
+        return baseDetails;
+      };
+
+      // Get effectiveType equivalent from cellular generation
+      const getEffectiveType = (): string | null => {
+        if (state.type === NetInfoStateType.cellular && 
+            state.details && 
+            'cellularGeneration' in state.details) {
+          return state.details.cellularGeneration || null;
+        }
+        return null;
+      };
+
       const newNetworkState: NetworkState = {
         isConnected: state.isConnected,
         isInternetReachable: state.isInternetReachable,
         type: state.type,
         connectionQuality: quality,
         isSlowConnection: isSlowConnection(quality),
-        effectiveType: state.details?.effectiveType || null,
-        details: state.details ? {
-          strength: state.details.strength,
-          ssid: state.details.ssid,
-          bssid: state.details.bssid,
-          frequency: state.details.frequency,
-          ipAddress: state.details.ipAddress,
-          subnet: state.details.subnet,
-        } : null,
+        effectiveType: getEffectiveType(),
+        details: getConnectionDetails(),
       };
 
       setNetworkState(newNetworkState);
 
       // Notify listeners
-      listeners.forEach((callback) => callback(newNetworkState));
+      listenersRef.current.forEach((callback) => callback(newNetworkState));
     },
-    [getConnectionQuality, isSlowConnection, listeners]
+    [getConnectionQuality, isSlowConnection]
   );
 
   // Test connection speed
@@ -247,15 +305,11 @@ export function NetworkProvider({ children }: PropsWithChildren) {
   // Network change event handler
   const onNetworkChange = useCallback(
     (callback: (state: NetworkState) => void) => {
-      setListeners((prev) => new Set(prev).add(callback));
+      listenersRef.current.add(callback);
 
       // Return cleanup function
       return () => {
-        setListeners((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(callback);
-          return newSet;
-        });
+        listenersRef.current.delete(callback);
       };
     },
     []

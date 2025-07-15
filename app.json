@@ -8,9 +8,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "owner": "qwerty-app",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "runtimeVersion": {
       "policy": "appVersion"
     },
@@ -23,7 +21,7 @@
     },
     "ios": {
       "supportsTablet": true,
-        "usesAppleSignIn": true,
+      "usesAppleSignIn": true,
       "config": {
         "googleMapsApiKey": "AIzaSyDvW1iMajBuW0mqJHIyNFtDm8A7VkgkAdg",
         "usesNonExemptEncryption": false
@@ -42,13 +40,13 @@
               "NSIncludesSubdomains": true
             }
           }
-        }, "CFBundleURLTypes": [
+        },
+        "CFBundleURLTypes": [
           {
             "CFBundleURLSchemes": ["qwerty-booklet", "com.notqwerty.booklet"]
           }
         ],
         "LSApplicationQueriesSchemes": ["mailto", "tel", "sms", "https", "http"]
-      
       },
       "splash": {
         "image": "./assets/splash.png",
@@ -92,7 +90,7 @@
           "backgroundColor": "#000000"
         }
       },
-          "intentFilters": [
+      "intentFilters": [
         {
           "action": "VIEW",
           "autoVerify": true,
@@ -136,7 +134,15 @@
           "color": "#ffffff"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "@sentry/react-native/expo",
+        {
+          "url": "https://sentry.io/",
+          "project": "react-native",
+          "organization": "qwerty-5v"
+        }
+      ]
     ],
     "extra": {
       "router": {},
