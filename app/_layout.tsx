@@ -47,11 +47,7 @@ Sentry.init({
 
   // Better error filtering and processing
   beforeSend: (event, hint) => {
-    // Enhanced logging in development
-    if (__DEV__) {
-      console.log("🚨 Sentry Error:", event.exception?.values?.[0]?.value || event.message);
-      console.log("📍 Error Context:", event.tags, event.extra);
-    }
+    // Sentry console.log statements removed as requested
     
     const error = hint.originalException;
     
