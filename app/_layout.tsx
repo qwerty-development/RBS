@@ -8,6 +8,7 @@ import { LogBox, Alert } from "react-native";
 import { useEffect, useState } from "react";
 import * as Updates from "expo-updates";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { NetworkProvider } from "@/context/network-provider";
 
 LogBox.ignoreAllLogs();
 
@@ -62,6 +63,7 @@ export default function AppLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
+      <NetworkProvider>
       <AuthProvider>
         <ErrorBoundary>
         <Stack screenOptions={{ headerShown: false, gestureEnabled: false }}>
@@ -108,7 +110,7 @@ export default function AppLayout() {
         </Stack>
               </ErrorBoundary>
       </AuthProvider>
-
+</NetworkProvider>
     </GestureHandlerRootView>
   );
 }

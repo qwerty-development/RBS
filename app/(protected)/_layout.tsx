@@ -3,6 +3,7 @@ import { Stack } from "expo-router";
 import { useAuth } from "@/context/supabase-provider";
 import { GlobalChatTab } from "@/components/ui/global-chat-tab";
 import { View, ActivityIndicator, Text } from "react-native";
+import { NetworkStatusBanner } from "@/components/network/NetworkStatusBanner"; 
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -46,10 +47,12 @@ export default function ProtectedLayout() {
     );
   }
 
-  // User has session - show protected area
-  // Profile is optional and will load asynchronously
   return (
     <View style={{ flex: 1 }}>
+      <NetworkStatusBanner 
+        position="top"
+        autoDismiss={5000}
+      />
       <Stack
         screenOptions={{
           headerShown: false,
