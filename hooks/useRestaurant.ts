@@ -1,11 +1,15 @@
-// hooks/useRestaurant.ts
+// hooks/useRestaurant.ts - Updated with offline support
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { Alert, Share, Platform, Linking } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
+import { useNetwork } from "@/context/network-provider";
 import { Database } from "@/types/supabase";
+import { offlineStorage } from "@/utils/offlineStorage";
+import { offlineSync } from "@/services/offlineSync";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Core Types
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
@@ -55,6 +59,17 @@ interface LocationCoordinate {
   longitude: number;
 }
 
+interface RestaurantCache {
+  restaurant: Restaurant;
+  reviews: Review[];
+  timestamp: number;
+}
+
+// Cache keys
+const RESTAURANT_CACHE_KEY = (id: string) => `@restaurant_${id}`;
+const RESTAURANT_FAVORITE_KEY = (userId: string, restaurantId: string) => `@favorite_${userId}_${restaurantId}`;
+const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+
 // Helper interface for consolidated return
 interface UseRestaurantReturn {
   // Data
@@ -64,6 +79,7 @@ interface UseRestaurantReturn {
   loading: boolean;
   availableSlots: TimeSlot[];
   loadingSlots: boolean;
+  isFromCache: boolean;
 
   // Actions
   toggleFavorite: () => Promise<void>;
@@ -76,7 +92,7 @@ interface UseRestaurantReturn {
   navigateToCreateReview: () => void;
   refresh: () => Promise<void>;
 
-  // Helper functions (from useRestaurantHelpers)
+  // Helper functions
   extractLocationCoordinates: (location: any) => LocationCoordinate | null;
   isRestaurantOpen: (restaurant: Restaurant) => boolean;
   getDistanceText: (distance: number) => string;
@@ -96,6 +112,7 @@ export function useRestaurant(
 ): UseRestaurantReturn {
   const router = useRouter();
   const { profile } = useAuth();
+  const { isOnline, isOffline } = useNetwork();
 
   // Core state
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -104,8 +121,81 @@ export function useRestaurant(
   const [loading, setLoading] = useState(true);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [isFromCache, setIsFromCache] = useState(false);
 
-  // Helper Functions (merged from useRestaurantHelpers)
+  // Cache management functions
+  const getCachedRestaurant = useCallback(async (): Promise<RestaurantCache | null> => {
+    if (!restaurantId) return null;
+    
+    try {
+      const cachedData = await AsyncStorage.getItem(RESTAURANT_CACHE_KEY(restaurantId));
+      
+      if (cachedData) {
+        const parsedData: RestaurantCache = JSON.parse(cachedData);
+        const isStale = Date.now() - parsedData.timestamp > CACHE_DURATION;
+        
+        if (!isStale || isOffline) {
+          console.log("📱 Using cached restaurant data");
+          return parsedData;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error("Error reading cached restaurant:", error);
+      return null;
+    }
+  }, [restaurantId, isOffline]);
+
+  const cacheRestaurant = useCallback(async (
+    restaurantData: Restaurant, 
+    reviewsData: Review[]
+  ): Promise<void> => {
+    if (!restaurantId) return;
+    
+    try {
+      const cacheData: RestaurantCache = {
+        restaurant: restaurantData,
+        reviews: reviewsData,
+        timestamp: Date.now(),
+      };
+      
+      await AsyncStorage.setItem(
+        RESTAURANT_CACHE_KEY(restaurantId), 
+        JSON.stringify(cacheData)
+      );
+      console.log("💾 Restaurant data cached for offline use");
+    } catch (error) {
+      console.error("Error caching restaurant:", error);
+    }
+  }, [restaurantId]);
+
+  const getCachedFavoriteStatus = useCallback(async (): Promise<boolean> => {
+    if (!profile?.id || !restaurantId) return false;
+    
+    try {
+      const cached = await AsyncStorage.getItem(
+        RESTAURANT_FAVORITE_KEY(profile.id, restaurantId)
+      );
+      return cached === 'true';
+    } catch (error) {
+      return false;
+    }
+  }, [profile?.id, restaurantId]);
+
+  const cacheFavoriteStatus = useCallback(async (status: boolean): Promise<void> => {
+    if (!profile?.id || !restaurantId) return;
+    
+    try {
+      await AsyncStorage.setItem(
+        RESTAURANT_FAVORITE_KEY(profile.id, restaurantId),
+        status.toString()
+      );
+    } catch (error) {
+      console.error("Error caching favorite status:", error);
+    }
+  }, [profile?.id, restaurantId]);
+
+  // Helper Functions
   const extractLocationCoordinates = useCallback(
     (location: any): LocationCoordinate | null => {
       if (!location) return null;
@@ -385,8 +475,8 @@ export function useRestaurant(
     [restaurantId, restaurant, generateTimeSlots],
   );
 
-  // Main data fetching
-  const fetchRestaurantDetails = useCallback(async () => {
+  // Main data fetching with offline support
+  const fetchRestaurantDetails = useCallback(async (forceOnline = false) => {
     if (!restaurantId) {
       setLoading(false);
       return;
@@ -394,6 +484,47 @@ export function useRestaurant(
 
     try {
       console.log("Fetching restaurant details for ID:", restaurantId);
+
+      // If offline and not forcing online, try to load from cache
+      if (isOffline && !forceOnline) {
+        console.log("📱 Loading restaurant from cache (offline)");
+        const cachedData = await getCachedRestaurant();
+        
+        if (cachedData) {
+          setRestaurant(cachedData.restaurant);
+          setReviews(cachedData.reviews);
+          setIsFromCache(true);
+          
+          // Load cached favorite status
+          const cachedFavorite = await getCachedFavoriteStatus();
+          setIsFavorite(cachedFavorite);
+          
+          return;
+        } else {
+          throw new Error("No cached restaurant data available");
+        }
+      }
+
+      // Check if we can use cache first
+      if (!forceOnline) {
+        const cachedData = await getCachedRestaurant();
+        if (cachedData) {
+          console.log("📱 Using cached restaurant data");
+          setRestaurant(cachedData.restaurant);
+          setReviews(cachedData.reviews);
+          setIsFromCache(true);
+          setLoading(false);
+          
+          // Load cached favorite status
+          const cachedFavorite = await getCachedFavoriteStatus();
+          setIsFavorite(cachedFavorite);
+          
+          return;
+        }
+      }
+
+      // Online fetch
+      console.log("🌐 Fetching restaurant from server");
 
       const { data: restaurantData, error: restaurantError } = await supabase
         .from("restaurants")
@@ -422,7 +553,9 @@ export function useRestaurant(
           .eq("restaurant_id", restaurantId)
           .single();
 
-        setIsFavorite(!!favoriteData);
+        const favoriteStatus = !!favoriteData;
+        setIsFavorite(favoriteStatus);
+        await cacheFavoriteStatus(favoriteStatus);
       }
 
       // Fetch reviews with user details
@@ -457,6 +590,9 @@ export function useRestaurant(
             total_reviews: calculatedSummary.total_reviews,
           };
           setRestaurant(updatedRestaurant);
+          
+          // Cache the updated restaurant data
+          await cacheRestaurant(updatedRestaurant, reviewsData || []);
         } else {
           // No reviews, set zero summary
           const zeroSummary = {
@@ -478,38 +614,104 @@ export function useRestaurant(
             total_reviews: 0,
           };
           setRestaurant(updatedRestaurant);
+          
+          // Cache the restaurant data
+          await cacheRestaurant(updatedRestaurant, []);
         }
       }
+
+      setIsFromCache(false);
+
     } catch (error) {
       console.error("Error fetching restaurant details:", error);
-      Alert.alert("Error", "Failed to load restaurant details");
+      
+      // If error and offline, try cache as fallback
+      if (isOffline) {
+        const cachedData = await getCachedRestaurant();
+        if (cachedData) {
+          setRestaurant(cachedData.restaurant);
+          setReviews(cachedData.reviews);
+          setIsFromCache(true);
+          
+          const cachedFavorite = await getCachedFavoriteStatus();
+          setIsFavorite(cachedFavorite);
+          
+          console.log("📱 Using cached restaurant after error");
+          return;
+        }
+      }
+      
+      Alert.alert(
+        "Error", 
+        isOffline 
+          ? "Unable to load restaurant details. Please check your internet connection."
+          : "Failed to load restaurant details"
+      );
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, profile?.id, calculateReviewSummary]);
+  }, [
+    restaurantId, 
+    profile?.id, 
+    calculateReviewSummary, 
+    isOffline,
+    getCachedRestaurant,
+    cacheRestaurant,
+    getCachedFavoriteStatus,
+    cacheFavoriteStatus,
+  ]);
 
   // Action handlers
   const toggleFavorite = useCallback(async () => {
     if (!profile?.id || !restaurant || !restaurantId) return;
 
     try {
-      if (isFavorite) {
+      const newFavoriteStatus = !isFavorite;
+      
+      // Optimistic update
+      setIsFavorite(newFavoriteStatus);
+      await cacheFavoriteStatus(newFavoriteStatus);
+
+      // If offline, queue the action
+      if (isOffline) {
+        await offlineStorage.addToOfflineQueue({
+          type: newFavoriteStatus ? 'ADD_FAVORITE' : 'REMOVE_FAVORITE',
+          payload: {
+            user_id: profile.id,
+            restaurant_id: restaurantId,
+          },
+        });
+
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        return;
+      }
+
+      // Online action
+      if (newFavoriteStatus) {
+        const { error } = await supabase.from("favorites").insert({
+          user_id: profile.id,
+          restaurant_id: restaurantId,
+        });
+
+        if (error) {
+          // Revert on error
+          setIsFavorite(isFavorite);
+          await cacheFavoriteStatus(isFavorite);
+          throw error;
+        }
+      } else {
         const { error } = await supabase
           .from("favorites")
           .delete()
           .eq("user_id", profile.id)
           .eq("restaurant_id", restaurantId);
 
-        if (error) throw error;
-        setIsFavorite(false);
-      } else {
-        const { error } = await supabase.from("favorites").insert({
-          user_id: profile.id,
-          restaurant_id: restaurantId,
-        });
-
-        if (error) throw error;
-        setIsFavorite(true);
+        if (error) {
+          // Revert on error
+          setIsFavorite(isFavorite);
+          await cacheFavoriteStatus(isFavorite);
+          throw error;
+        }
       }
 
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -517,7 +719,7 @@ export function useRestaurant(
       console.error("Error toggling favorite:", error);
       Alert.alert("Error", "Failed to update favorite status");
     }
-  }, [profile?.id, restaurant, isFavorite, restaurantId]);
+  }, [profile?.id, restaurant, isFavorite, restaurantId, isOffline]);
 
   const handleShare = useCallback(async () => {
     if (!restaurant) return;
@@ -544,6 +746,14 @@ export function useRestaurant(
         return;
       }
 
+      if (isOffline) {
+        Alert.alert(
+          "Offline Mode",
+          "You need an internet connection to make a booking."
+        );
+        return;
+      }
+
       router.push({
         pathname: "/booking/create",
         params: {
@@ -555,11 +765,19 @@ export function useRestaurant(
         },
       });
     },
-    [restaurantId, restaurant, router],
+    [restaurantId, restaurant, router, isOffline],
   );
 
   const navigateToCreateReview = useCallback(() => {
     if (!restaurantId || !restaurant) return;
+
+    if (isOffline) {
+      Alert.alert(
+        "Offline Mode",
+        "You need an internet connection to write a review."
+      );
+      return;
+    }
 
     router.push({
       pathname: "/review/create",
@@ -568,12 +786,26 @@ export function useRestaurant(
         restaurantName: restaurant.name,
       },
     });
-  }, [restaurantId, restaurant, router]);
+  }, [restaurantId, restaurant, router, isOffline]);
 
   // Initialize data fetch
   useEffect(() => {
     fetchRestaurantDetails();
   }, [fetchRestaurantDetails]);
+
+  // Refresh when coming back online
+  useEffect(() => {
+    if (isOnline && isFromCache) {
+      console.log("🔄 Back online, refreshing restaurant data");
+      
+      // Sync any offline actions
+      offlineSync.syncOfflineActions().then(result => {
+        if (result.synced > 0) {
+          fetchRestaurantDetails(true); // Force online refresh
+        }
+      });
+    }
+  }, [isOnline, isFromCache]);
 
   return {
     // Data
@@ -583,13 +815,14 @@ export function useRestaurant(
     loading,
     availableSlots,
     loadingSlots,
+    isFromCache,
 
     // Actions
     toggleFavorite,
     handleShare,
     handleBooking,
     navigateToCreateReview,
-    refresh: fetchRestaurantDetails,
+    refresh: () => fetchRestaurantDetails(!isOffline),
 
     // Helper functions
     extractLocationCoordinates,

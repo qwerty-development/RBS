@@ -1,3 +1,4 @@
+// hooks/useBookings.ts - Updated with offline support
 import { useState, useCallback, useEffect, useRef } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
@@ -6,6 +7,9 @@ import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
+import { useNetwork } from "@/context/network-provider";
+import { offlineStorage } from "@/utils/offlineStorage";
+import { offlineSync } from "@/services/offlineSync";
 
 type Booking = Database["public"]["Tables"]["bookings"]["Row"] & {
   restaurant: Database["public"]["Tables"]["restaurants"]["Row"];
@@ -16,6 +20,7 @@ type TabType = "upcoming" | "past";
 export function useBookings() {
   const router = useRouter();
   const { profile } = useAuth();
+  const { isOnline, isOffline } = useNetwork();
 
   const [activeTab, setActiveTab] = useState<TabType>("upcoming");
   const [bookings, setBookings] = useState<{
@@ -27,14 +32,30 @@ export function useBookings() {
   const [processingBookingId, setProcessingBookingId] = useState<string | null>(
     null,
   );
+  const [isFromCache, setIsFromCache] = useState(false);
 
   const hasInitialLoad = useRef(false);
 
-  // Data Fetching Functions
-  const fetchBookings = useCallback(async () => {
+  // Data Fetching Functions with offline support
+  const fetchBookings = useCallback(async (forceOnline = false) => {
     if (!profile?.id) return;
 
     try {
+      // If offline and not forcing online, try to load from cache
+      if (isOffline && !forceOnline) {
+        console.log("📱 Loading bookings from cache (offline)");
+        const cachedBookings = await offlineStorage.getCachedBookings();
+        
+        if (cachedBookings) {
+          setBookings(cachedBookings);
+          setIsFromCache(true);
+          return;
+        } else {
+          throw new Error("No cached bookings available");
+        }
+      }
+
+      // Online fetch
       const now = new Date().toISOString();
 
       // Fetch upcoming bookings (pending, confirmed)
@@ -53,7 +74,7 @@ export function useBookings() {
 
       if (upcomingError) throw upcomingError;
 
-      // Fetch past bookings (all statuses, past dates or completed/cancelled)
+      // Fetch past bookings
       const { data: pastData, error: pastError } = await supabase
         .from("bookings")
         .select(
@@ -64,156 +85,173 @@ export function useBookings() {
         )
         .eq("user_id", profile.id)
         .or(
-          `booking_time.lt.${now},status.in.(completed,cancelled_by_user,declined_by_restaurant,no_show)`,
+          `booking_time.lt.${now},status.in.("completed","cancelled","no_show")`,
         )
         .order("booking_time", { ascending: false })
         .limit(50);
 
       if (pastError) throw pastError;
 
-      setBookings({
+      const bookingsData = {
         upcoming: upcomingData || [],
         past: pastData || [],
-      });
+      };
+
+      setBookings(bookingsData);
+      setIsFromCache(false);
+
+      // Cache the data for offline use
+      await offlineStorage.cacheBookings(bookingsData);
+      console.log("💾 Bookings cached for offline use");
     } catch (error) {
       console.error("Error fetching bookings:", error);
-      Alert.alert("Error", "Failed to load bookings");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      
+      // If error and offline, try cache as fallback
+      if (isOffline) {
+        const cachedBookings = await offlineStorage.getCachedBookings();
+        if (cachedBookings) {
+          setBookings(cachedBookings);
+          setIsFromCache(true);
+          console.log("📱 Using cached bookings after error");
+          return;
+        }
+      }
+      
+      Alert.alert(
+        "Error",
+        isOffline 
+          ? "Unable to load bookings. Please check your internet connection."
+          : "Failed to load bookings. Please try again.",
+      );
     }
-  }, [profile?.id]);
+  }, [profile?.id, isOffline]);
 
-  // Navigation Functions
-  const navigateToBookingDetails = useCallback(
-    (bookingId: string) => {
-      router.push({
-        pathname: "/booking/[id]",
-        params: { id: bookingId },
-      });
-    },
-    [router],
-  );
-
-  const navigateToRestaurant = useCallback(
-    (restaurantId: string) => {
-      router.push({
-        pathname: "/restaurant/[id]",
-        params: { id: restaurantId },
-      });
-    },
-    [router],
-  );
-
-  const navigateToSearch = useCallback(() => {
-    router.push("/search");
-  }, [router]);
-
-  // Quick Actions
+  // Action Functions with offline queue support
   const cancelBooking = useCallback(
     async (bookingId: string) => {
-      Alert.alert(
-        "Cancel Booking",
-        "Are you sure you want to cancel this booking?",
-        [
-          { text: "No", style: "cancel" },
-          {
-            text: "Yes, Cancel",
-            style: "destructive",
-            onPress: async () => {
-              setProcessingBookingId(bookingId);
+      if (!bookingId) return;
 
-              try {
-                const { error } = await supabase
-                  .from("bookings")
-                  .update({
-                    status: "cancelled_by_user",
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq("id", bookingId);
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        setProcessingBookingId(bookingId);
 
-                if (error) throw error;
-
-                await Haptics.notificationAsync(
-                  Haptics.NotificationFeedbackType.Success,
-                );
-
-                fetchBookings();
-                Alert.alert("Success", "Your booking has been cancelled");
-              } catch (error) {
-                console.error("Error cancelling booking:", error);
-                Alert.alert("Error", "Failed to cancel booking");
-              } finally {
-                setProcessingBookingId(null);
-              }
+        // If offline, add to queue
+        if (isOffline) {
+          await offlineStorage.addToOfflineQueue({
+            type: 'UPDATE_BOOKING',
+            payload: {
+              id: bookingId,
+              status: 'cancelled',
+              cancelled_at: new Date().toISOString(),
             },
-          },
-        ],
-      );
+          });
+
+          // Update local state
+          setBookings(prev => ({
+            upcoming: prev.upcoming.filter(b => b.id !== bookingId),
+            past: [...prev.past, ...prev.upcoming.filter(b => b.id === bookingId)],
+          }));
+
+          Alert.alert(
+            "Booking Cancelled",
+            "Your cancellation will be processed when you're back online.",
+          );
+          return;
+        }
+
+        // Online cancellation
+        const { error } = await supabase
+          .from("bookings")
+          .update({
+            status: "cancelled",
+            cancelled_at: new Date().toISOString(),
+          })
+          .eq("id", bookingId);
+
+        if (error) throw error;
+
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        );
+
+        Alert.alert(
+          "Booking Cancelled",
+          "Your booking has been successfully cancelled.",
+        );
+
+        // Refresh bookings
+        await fetchBookings();
+      } catch (error) {
+        console.error("Error cancelling booking:", error);
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        
+        Alert.alert(
+          "Cancellation Failed",
+          isOffline
+            ? "Unable to cancel while offline. Please try again when connected."
+            : "Failed to cancel booking. Please try again.",
+        );
+      } finally {
+        setProcessingBookingId(null);
+      }
     },
-    [fetchBookings],
+    [fetchBookings, isOffline],
   );
 
-  const rebookRestaurant = useCallback(
-    (booking: Booking) => {
-      router.push({
-        pathname: "/booking/create",
-        params: {
-          restaurantId: booking.restaurant_id,
-          restaurantName: booking.restaurant.name,
-          partySize: booking.party_size.toString(),
-          quickBook: "true",
-        },
-      });
-    },
-    [router],
-  );
-
-  const reviewBooking = useCallback(
-    (booking: Booking) => {
-      router.push({
-        pathname: "/review/create",
-        params: {
-          bookingId: booking.id,
-          restaurantId: booking.restaurant_id,
-          restaurantName: booking.restaurant.name,
-        },
-      });
-    },
-    [router],
-  );
-
-  // Refresh Handler
-  const handleRefresh = useCallback(() => {
-    setRefreshing(true);
-    fetchBookings();
-  }, [fetchBookings]);
-
-  // Lifecycle Management
+  // Load initial data
   useEffect(() => {
-    if (!hasInitialLoad.current && profile) {
-      fetchBookings();
+    if (!hasInitialLoad.current && profile?.id) {
       hasInitialLoad.current = true;
+      setLoading(true);
+      fetchBookings().finally(() => setLoading(false));
     }
-  }, [profile, fetchBookings]);
+  }, [profile?.id, fetchBookings]);
+
+  // Sync when coming back online
+  useEffect(() => {
+    if (isOnline && isFromCache) {
+      console.log("🔄 Back online, refreshing bookings");
+      
+      // Sync any offline actions
+      offlineSync.syncOfflineActions().then(result => {
+        if (result.synced > 0) {
+          fetchBookings(true); // Force online refresh
+        }
+      });
+    }
+  }, [isOnline, isFromCache, fetchBookings]);
+
+  // Refresh function
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchBookings(!isOffline); // Force online if possible
+    setRefreshing(false);
+  }, [fetchBookings, isOffline]);
+
+  const navigateToBooking = useCallback(
+    (bookingId: string) => {
+      router.push(`/booking/${bookingId}`);
+    },
+    [router],
+  );
 
   return {
-    // State
+    // Data
     activeTab,
-    setActiveTab,
     bookings,
     loading,
     refreshing,
     processingBookingId,
-
+    isFromCache,
+    
     // Actions
-    fetchBookings,
-    handleRefresh,
-    navigateToBookingDetails,
-    navigateToRestaurant,
-    navigateToSearch,
+    setActiveTab,
+    refresh,
     cancelBooking,
-    rebookRestaurant,
-    reviewBooking,
+    navigateToBooking,
+    
+    // Network state
+    isOnline,
+    isOffline,
   };
 }

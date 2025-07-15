@@ -1,10 +1,13 @@
+ // hooks/useHomeScreenLogic.ts - Updated with offline support
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/context/supabase-provider";
+import { useNetwork } from "@/context/network-provider";
 import { supabase } from "@/config/supabase";
+import { offlineStorage } from "@/utils/offlineStorage";
 
 // Type definitions
 interface Restaurant {
@@ -37,30 +40,32 @@ interface QuickFilter {
   params: Record<string, string>;
 }
 
+interface HomeScreenData {
+  featured: Restaurant[];
+  new: Restaurant[];
+  topRated: Restaurant[];
+  trending: Restaurant[];
+  nearby: Restaurant[];
+}
+
 export function useHomeScreenLogic() {
   const { profile } = useAuth();
+  const { isOnline, isOffline } = useNetwork();
   const router = useRouter();
 
   // Core data states
-  const [featuredRestaurants, setFeaturedRestaurants] = useState<Restaurant[]>(
-    [],
-  );
+  const [featuredRestaurants, setFeaturedRestaurants] = useState<Restaurant[]>([]);
   const [newRestaurants, setNewRestaurants] = useState<Restaurant[]>([]);
-  const [topRatedRestaurants, setTopRatedRestaurants] = useState<Restaurant[]>(
-    [],
-  );
-  const [trendingRestaurants, setTrendingRestaurants] = useState<Restaurant[]>(
-    [],
-  );
-
+  const [topRatedRestaurants, setTopRatedRestaurants] = useState<Restaurant[]>([]);
+  const [trendingRestaurants, setTrendingRestaurants] = useState<Restaurant[]>([]);
   const [nearbyRestaurants, setNearbyRestaurants] = useState<Restaurant[]>([]);
   const [location, setLocation] = useState<LocationData | null>(null);
 
   // UI state management
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [locationPermissionDenied, setLocationPermissionDenied] =
-    useState(false);
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
+  const [isFromCache, setIsFromCache] = useState(false);
 
   // Performance optimization refs
   const hasInitialLoad = useRef(false);
@@ -168,7 +173,7 @@ export function useHomeScreenLogic() {
     }
   }, [location]);
 
-  // Data Fetching Functions
+  // Offline-aware data fetching functions
   const fetchFeaturedRestaurants = useCallback(async () => {
     try {
       const { data, error } = await supabase
@@ -180,9 +185,10 @@ export function useHomeScreenLogic() {
         .limit(8);
 
       if (error) throw error;
-      setFeaturedRestaurants(data || []);
+      return data || [];
     } catch (error) {
       console.error("Error fetching featured restaurants:", error);
+      return [];
     }
   }, []);
 
@@ -199,9 +205,10 @@ export function useHomeScreenLogic() {
         .limit(6);
 
       if (error) throw error;
-      setNewRestaurants(data || []);
+      return data || [];
     } catch (error) {
       console.error("Error fetching new restaurants:", error);
+      return [];
     }
   }, []);
 
@@ -217,9 +224,10 @@ export function useHomeScreenLogic() {
         .limit(6);
 
       if (error) throw error;
-      setTopRatedRestaurants(data || []);
+      return data || [];
     } catch (error) {
       console.error("Error fetching top rated restaurants:", error);
+      return [];
     }
   }, []);
 
@@ -234,9 +242,10 @@ export function useHomeScreenLogic() {
         .limit(6);
 
       if (error) throw error;
-      setTrendingRestaurants(data || []);
+      return data || [];
     } catch (error) {
       console.error("Error fetching trending restaurants:", error);
+      return [];
     }
   }, []);
 
@@ -249,26 +258,153 @@ export function useHomeScreenLogic() {
         .limit(6);
 
       if (error) throw error;
-      setNearbyRestaurants(data || []);
+      return data || [];
     } catch (error) {
       console.error("Error fetching nearby restaurants:", error);
+      return [];
     }
-  }, [location]);
+  }, []);
 
-  // Unified Data Loading
-  const loadAllData = useCallback(async () => {
-    setLoading(true);
+  // Unified Data Loading with offline support
+  const loadAllData = useCallback(async (forceOnline = false) => {
+    try {
+      setLoading(true);
 
-    await Promise.all([
-      fetchFeaturedRestaurants(),
-      fetchNewRestaurants(),
-      fetchTopRatedRestaurants(),
-      fetchTrendingRestaurants(),
-      fetchNearbyRestaurants(),
-    ]);
+      // If offline and not forcing online, try to load from cache
+      if (isOffline && !forceOnline) {
+        console.log("📱 Loading home data from cache (offline)");
+        const cachedRestaurants = await offlineStorage.getCachedRestaurants();
+        
+        if (cachedRestaurants && cachedRestaurants.length > 0) {
+          // Distribute cached restaurants across sections
+          const featured = cachedRestaurants.filter(r => r.featured).slice(0, 8);
+          const topRated = cachedRestaurants
+            .filter(r => (r.average_rating || 0) >= 4.5)
+            .slice(0, 6);
+          const trending = cachedRestaurants
+            .filter(r => (r.total_reviews || 0) >= 5)
+            .slice(0, 6);
+          const nearby = cachedRestaurants.slice(0, 6);
+          const newOnes = cachedRestaurants
+            .filter(r => r.created_at)
+            .slice(0, 6);
 
-    setLoading(false);
+          setFeaturedRestaurants(featured);
+          setTopRatedRestaurants(topRated);
+          setTrendingRestaurants(trending);
+          setNearbyRestaurants(nearby);
+          setNewRestaurants(newOnes);
+          setIsFromCache(true);
+          return;
+        } else {
+          throw new Error("No cached restaurant data available");
+        }
+      }
+
+      // Check if cache is fresh enough
+      const isCacheStale = await offlineStorage.isCacheStale('restaurants');
+      
+      if (!isCacheStale && !forceOnline) {
+        const cachedRestaurants = await offlineStorage.getCachedRestaurants();
+        if (cachedRestaurants && cachedRestaurants.length > 0) {
+          console.log("📱 Using fresh cached home data");
+          
+          const featured = cachedRestaurants.filter(r => r.featured).slice(0, 8);
+          const topRated = cachedRestaurants
+            .filter(r => (r.average_rating || 0) >= 4.5)
+            .slice(0, 6);
+          const trending = cachedRestaurants
+            .filter(r => (r.total_reviews || 0) >= 5)
+            .slice(0, 6);
+          const nearby = cachedRestaurants.slice(0, 6);
+          const newOnes = cachedRestaurants
+            .filter(r => r.created_at)
+            .slice(0, 6);
+
+          setFeaturedRestaurants(featured);
+          setTopRatedRestaurants(topRated);
+          setTrendingRestaurants(trending);
+          setNearbyRestaurants(nearby);
+          setNewRestaurants(newOnes);
+          setIsFromCache(true);
+          setLoading(false);
+          return;
+        }
+      }
+
+      // Online fetch
+      console.log("🌐 Fetching home data from server");
+      
+      const [featured, newOnes, topRated, trending, nearby] = await Promise.all([
+        fetchFeaturedRestaurants(),
+        fetchNewRestaurants(),
+        fetchTopRatedRestaurants(),
+        fetchTrendingRestaurants(),
+        fetchNearbyRestaurants(),
+      ]);
+
+      setFeaturedRestaurants(featured);
+      setNewRestaurants(newOnes);
+      setTopRatedRestaurants(topRated);
+      setTrendingRestaurants(trending);
+      setNearbyRestaurants(nearby);
+      setIsFromCache(false);
+
+      // Cache all restaurants for offline use
+      const allRestaurants = Array.from(
+        new Map([
+          ...featured,
+          ...newOnes,
+          ...topRated,
+          ...trending,
+          ...nearby,
+        ].map(r => [r.id, r])).values()
+      );
+      
+      await offlineStorage.cacheRestaurants(allRestaurants);
+      console.log("💾 Home data cached for offline use");
+
+    } catch (error) {
+      console.error("Error loading home data:", error);
+      
+      // If error and offline, try cache as fallback
+      if (isOffline) {
+        const cachedRestaurants = await offlineStorage.getCachedRestaurants();
+        if (cachedRestaurants && cachedRestaurants.length > 0) {
+          const featured = cachedRestaurants.filter(r => r.featured).slice(0, 8);
+          const topRated = cachedRestaurants
+            .filter(r => (r.average_rating || 0) >= 4.5)
+            .slice(0, 6);
+          const trending = cachedRestaurants
+            .filter(r => (r.total_reviews || 0) >= 5)
+            .slice(0, 6);
+          const nearby = cachedRestaurants.slice(0, 6);
+          const newOnes = cachedRestaurants
+            .filter(r => r.created_at)
+            .slice(0, 6);
+
+          setFeaturedRestaurants(featured);
+          setTopRatedRestaurants(topRated);
+          setTrendingRestaurants(trending);
+          setNearbyRestaurants(nearby);
+          setNewRestaurants(newOnes);
+          setIsFromCache(true);
+          console.log("📱 Using cached home data after error");
+          return;
+        }
+      }
+      
+      Alert.alert(
+        "Error",
+        isOffline 
+          ? "Unable to load restaurant data. Please check your internet connection."
+          : "Failed to load restaurant data. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [
+    isOffline,
     fetchFeaturedRestaurants,
     fetchNewRestaurants,
     fetchTopRatedRestaurants,
@@ -280,9 +416,9 @@ export function useHomeScreenLogic() {
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await checkForLocationUpdates();
-    await loadAllData();
+    await loadAllData(!isOffline); // Force online if possible
     setRefreshing(false);
-  }, [loadAllData, checkForLocationUpdates]);
+  }, [loadAllData, checkForLocationUpdates, isOffline]);
 
   const handleLocationPress = useCallback(() => {
     router.push("/location-selector");
@@ -329,7 +465,6 @@ export function useHomeScreenLogic() {
     [router],
   );
 
-  // FIXED: handleCuisinePress now correctly handles cuisineId string parameter
   const handleCuisinePress = useCallback(
     (cuisineId: string) => {
       console.log("Navigating to cuisine:", cuisineId);
@@ -348,7 +483,6 @@ export function useHomeScreenLogic() {
       }
 
       try {
-        // Navigate to cuisine-specific screen
         router.push({
           pathname: "/cuisine/[cuisineId]",
           params: {
@@ -387,7 +521,15 @@ export function useHomeScreenLogic() {
     if (location && profile) {
       loadAllData();
     }
-  }, [location, profile, loadAllData]);
+  }, [location, profile]);
+
+  // Refresh when coming back online
+  useEffect(() => {
+    if (isOnline && isFromCache) {
+      console.log("🔄 Back online, refreshing home data");
+      loadAllData(true); // Force online refresh
+    }
+  }, [isOnline, isFromCache]);
 
   useEffect(() => {
     checkForLocationUpdates();
@@ -418,13 +560,15 @@ export function useHomeScreenLogic() {
     newRestaurants,
     topRatedRestaurants,
     trendingRestaurants,
-
     nearbyRestaurants,
     location,
     refreshing,
     loading,
     locationPermissionDenied,
     profile,
+    isFromCache,
+    isOnline,
+    isOffline,
 
     // Handlers
     handleRefresh,

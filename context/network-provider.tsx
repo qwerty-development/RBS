@@ -52,9 +52,9 @@ const QUALITY_THRESHOLDS = {
 
 // Speed test configuration
 const SPEED_TEST_CONFIG = {
-  testUrl: "https://httpbin.org/bytes/10240", // 10KB test file
-  timeout: 10000,
-  retries: 2,
+  testUrl: "https://httpbin.org/bytes/5120", // Smaller 5KB test file
+  timeout: 15000, // Increased timeout
+  retries: 1, // Fewer retries
 };
 
 export function NetworkProvider({ children }: PropsWithChildren) {
@@ -143,7 +143,7 @@ export function NetworkProvider({ children }: PropsWithChildren) {
     return "fair"; // Default quality
   }, []);
 
-  // Test connection speed
+  // Test connection speed (only when explicitly called)
   const testConnectionSpeed = useCallback(async () => {
     if (speedTestRef.current) {
       return speedTestRef.current;
@@ -154,20 +154,32 @@ export function NetworkProvider({ children }: PropsWithChildren) {
       latency: number;
       quality: ConnectionQuality;
     }> => {
+      // Quick check if we're even online
+      if (!networkState.isConnected || !networkState.isInternetReachable) {
+        return {
+          downloadSpeed: 0,
+          latency: 999,
+          quality: "poor" as ConnectionQuality,
+        };
+      }
+
       try {
         const startTime = Date.now();
         const latencyStart = performance.now();
 
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), SPEED_TEST_CONFIG.timeout);
+        const timeoutId = setTimeout(() => {
+          controller.abort();
+        }, SPEED_TEST_CONFIG.timeout);
 
         const response = await fetch(SPEED_TEST_CONFIG.testUrl, {
           method: "GET",
           cache: "no-cache",
           signal: controller.signal,
           headers: {
-            "Cache-Control": "no-cache",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
             "Pragma": "no-cache",
+            "Expires": "0",
           },
         });
 
@@ -181,12 +193,20 @@ export function NetworkProvider({ children }: PropsWithChildren) {
         const blob = await response.blob();
         const endTime = Date.now();
         
-        const duration = (endTime - startTime) / 1000;
+        const duration = Math.max((endTime - startTime) / 1000, 0.1); // Minimum 0.1s
         const sizeInBits = blob.size * 8;
         const speedBps = sizeInBits / duration;
         const speedMbps = speedBps / (1024 * 1024);
 
         const quality = getConnectionQuality(speedMbps, latency);
+
+        // Update network state with speed test results
+        setNetworkState(prev => ({
+          ...prev,
+          type: estimateConnectionType(speedMbps),
+          connectionQuality: quality,
+          isSlowConnection: quality === "poor" || quality === "fair",
+        }));
 
         return {
           downloadSpeed: Math.round(speedMbps * 100) / 100,
@@ -194,7 +214,13 @@ export function NetworkProvider({ children }: PropsWithChildren) {
           quality,
         };
       } catch (error) {
-        console.warn("[NetworkProvider] Speed test failed:", error);
+        // Don't log abort errors as warnings since they're expected
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.info("[NetworkProvider] Speed test timed out");
+        } else {
+          console.warn("[NetworkProvider] Speed test failed:", error);
+        }
+        
         return {
           downloadSpeed: 0,
           latency: 999,
@@ -208,32 +234,29 @@ export function NetworkProvider({ children }: PropsWithChildren) {
     speedTestRef.current = null;
 
     return result;
-  }, [getConnectionQuality]);
+  }, [getConnectionQuality, estimateConnectionType, networkState.isConnected, networkState.isInternetReachable]);
 
-  // Update network state
+  // Update network state (basic connectivity only)
   const updateNetworkState = useCallback(async () => {
     try {
       // Check basic connectivity
       const isConnected = await detectConnection();
       let isInternetReachable = false;
       let type: NetworkType = "UNKNOWN";
-      let quality: ConnectionQuality = "poor";
+      let quality: ConnectionQuality = "fair"; // Default to fair
 
       if (isConnected) {
         // Test internet reachability
         isInternetReachable = await testInternetConnectivity();
         
         if (isInternetReachable) {
-          // Run a quick speed test to estimate connection type and quality
-          try {
-            const speedResult = await testConnectionSpeed();
-            type = estimateConnectionType(speedResult.downloadSpeed);
-            quality = speedResult.quality;
-          } catch {
-            // Fallback values
-            type = "UNKNOWN";
-            quality = "fair";
+          // Estimate connection type based on platform (simple heuristic)
+          if (Platform.OS === 'web') {
+            type = "WIFI"; // Assume WiFi for web
+          } else {
+            type = "UNKNOWN"; // We'll determine this via speed test when requested
           }
+          quality = "good"; // Assume good quality if connected
         }
       }
 
@@ -244,7 +267,7 @@ export function NetworkProvider({ children }: PropsWithChildren) {
         connectionQuality: quality,
         isSlowConnection: quality === "poor" || quality === "fair",
         effectiveType: type.toLowerCase(),
-        details: null, // We can't reliably get IP without native modules
+        details: null,
       };
 
       setNetworkState(newNetworkState);
@@ -265,7 +288,7 @@ export function NetworkProvider({ children }: PropsWithChildren) {
       setNetworkState(offlineState);
       listenersRef.current.forEach((callback) => callback(offlineState));
     }
-  }, [detectConnection, testInternetConnectivity, testConnectionSpeed, estimateConnectionType]);
+  }, [detectConnection, testInternetConnectivity]);
 
   // Refresh network state
   const refresh = useCallback(async () => {
@@ -291,10 +314,10 @@ export function NetworkProvider({ children }: PropsWithChildren) {
     // Initial check
     updateNetworkState();
 
-    // Poll every 10 seconds (less frequent to avoid performance issues)
+    // Poll every 30 seconds (less frequent since we're only checking basic connectivity)
     pollingIntervalRef.current = setInterval(() => {
       updateNetworkState();
-    }, 10000);
+    }, 30000);
 
     // Monitor app state changes
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
@@ -347,7 +370,7 @@ export function NetworkProvider({ children }: PropsWithChildren) {
     isOffline,
     refresh,
     getConnectionInfo,
-    testConnectionSpeed,
+    testConnectionSpeed, // Only call this when you actually want to test speed
     onNetworkChange,
   };
 
@@ -383,5 +406,40 @@ export function useConnectionStatus() {
     isInternetReachable: networkState.isInternetReachable,
     isSlowConnection: networkState.isSlowConnection,
     connectionQuality: networkState.connectionQuality,
+  };
+}
+
+// Hook for testing connection speed manually
+export function useConnectionSpeedTest() {
+  const { testConnectionSpeed } = useNetwork();
+  const [isTestingSpeed, setIsTestingSpeed] = useState(false);
+  const [lastSpeedTest, setLastSpeedTest] = useState<{
+    downloadSpeed: number;
+    latency: number;
+    quality: ConnectionQuality;
+    timestamp: number;
+  } | null>(null);
+
+  const runSpeedTest = useCallback(async () => {
+    if (isTestingSpeed) return lastSpeedTest;
+    
+    setIsTestingSpeed(true);
+    try {
+      const result = await testConnectionSpeed();
+      const testResult = {
+        ...result,
+        timestamp: Date.now(),
+      };
+      setLastSpeedTest(testResult);
+      return testResult;
+    } finally {
+      setIsTestingSpeed(false);
+    }
+  }, [testConnectionSpeed, isTestingSpeed, lastSpeedTest]);
+
+  return {
+    runSpeedTest,
+    isTestingSpeed,
+    lastSpeedTest,
   };
 }

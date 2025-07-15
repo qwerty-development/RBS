@@ -10,6 +10,7 @@ import * as Updates from "expo-updates";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { NetworkProvider } from "@/context/network-provider";
 import * as Sentry from "@sentry/react-native";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 
 // Enhanced Sentry configuration
 Sentry.init({
@@ -352,6 +353,7 @@ function AppLayout() {
                 }}
               />
             </Stack>
+            <OfflineIndicator />
           </SentryErrorBoundary>
         </AuthProvider>
       </NetworkProvider>
