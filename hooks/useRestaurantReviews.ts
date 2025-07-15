@@ -99,7 +99,7 @@ export const useRestaurantReviews = (restaurantId: string) => {
             full_name,
             avatar_url
           )
-        `
+        `,
           )
           .eq("restaurant_id", restaurantId);
 
@@ -153,7 +153,7 @@ export const useRestaurantReviews = (restaurantId: string) => {
         setRefreshing(false);
       }
     },
-    [restaurantId, selectedSort, selectedRating]
+    [restaurantId, selectedSort, selectedRating],
   );
 
   // Event handlers
@@ -215,7 +215,7 @@ export const useRestaurantReviews = (restaurantId: string) => {
                 });
               },
             },
-          ]
+          ],
         );
         return;
       }
@@ -227,7 +227,7 @@ export const useRestaurantReviews = (restaurantId: string) => {
         .eq("user_id", profile.id)
         .in(
           "booking_id",
-          bookings.map((b) => b.id)
+          bookings.map((b) => b.id),
         );
 
       if (reviewError) {
@@ -237,7 +237,7 @@ export const useRestaurantReviews = (restaurantId: string) => {
       }
 
       const reviewedBookingIds = new Set(
-        existingReviews?.map((r) => r.booking_id) || []
+        existingReviews?.map((r) => r.booking_id) || [],
       );
       const unreviewed = bookings.filter((b) => !reviewedBookingIds.has(b.id));
 
@@ -245,7 +245,7 @@ export const useRestaurantReviews = (restaurantId: string) => {
         Alert.alert(
           "Already Reviewed",
           "You have already reviewed all your visits to this restaurant.",
-          [{ text: "OK" }]
+          [{ text: "OK" }],
         );
         return;
       }
@@ -282,7 +282,7 @@ export const useRestaurantReviews = (restaurantId: string) => {
           [
             { text: "Cancel", style: "cancel" },
             ...options.slice(0, 3), // Limit to 3 most recent
-          ]
+          ],
         );
       }
     } catch (error) {
@@ -330,7 +330,7 @@ export const useRestaurantReviews = (restaurantId: string) => {
     // Apply additional filters based on selection
     if (selectedSort === "photos") {
       filtered = filtered.filter(
-        (review) => review.photos && review.photos.length > 0
+        (review) => review.photos && review.photos.length > 0,
       );
     }
 

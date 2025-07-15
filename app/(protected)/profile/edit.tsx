@@ -87,7 +87,7 @@ export default function ProfileEditScreen() {
     if (!permissionResult.granted) {
       Alert.alert(
         "Permission Required",
-        "Please allow access to your photo library to change your profile picture."
+        "Please allow access to your photo library to change your profile picture.",
       );
       return;
     }
@@ -167,7 +167,7 @@ export default function ProfileEditScreen() {
         setSavingProfile(false);
       }
     },
-    [user?.email, avatarUrl, updateProfile, router]
+    [user?.email, avatarUrl, updateProfile, router],
   );
 
   return (

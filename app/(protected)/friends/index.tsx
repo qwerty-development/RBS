@@ -38,6 +38,7 @@ import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { FriendListSkeleton } from "@/components/skeletons/FriendListSkeleton";
+import { OptimizedList } from "@/components/ui/optimized-list";
 
 // Type definitions
 interface Friend {
@@ -137,7 +138,7 @@ export default function FriendsScreen() {
         `
         *,
         friend:friend_id(id, full_name, avatar_url)
-      `
+      `,
       )
       .eq("user_id", profile?.id)
       .order("friendship_date", { ascending: false });
@@ -161,7 +162,7 @@ export default function FriendsScreen() {
         *,
         from_user:from_user_id(id, full_name, avatar_url),
         to_user:to_user_id(id, full_name, avatar_url)
-      `
+      `,
       )
       .or(`to_user_id.eq.${profile?.id},from_user_id.eq.${profile?.id}`)
       .eq("status", "pending")
@@ -202,7 +203,7 @@ export default function FriendsScreen() {
               .from("friend_requests")
               .select("id")
               .or(
-                `and(from_user_id.eq.${profile?.id},to_user_id.eq.${user.id}),and(from_user_id.eq.${user.id},to_user_id.eq.${profile?.id})`
+                `and(from_user_id.eq.${profile?.id},to_user_id.eq.${user.id}),and(from_user_id.eq.${user.id},to_user_id.eq.${profile?.id})`,
               )
               .eq("status", "pending")
               .single();
@@ -211,7 +212,7 @@ export default function FriendsScreen() {
               ...user,
               hasPendingRequest: !!requestData,
             };
-          })
+          }),
         );
 
         setSearchResults(enrichedResults);
@@ -260,7 +261,7 @@ export default function FriendsScreen() {
 
   const handleFriendRequest = async (
     requestId: string,
-    action: "accept" | "reject"
+    action: "accept" | "reject",
   ) => {
     setProcessingIds((prev) => new Set(prev).add(requestId));
 
@@ -309,13 +310,13 @@ export default function FriendsScreen() {
                 .from("friends")
                 .delete()
                 .or(
-                  `and(user_id.eq.${profile?.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${profile?.id})`
+                  `and(user_id.eq.${profile?.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${profile?.id})`,
                 );
 
               if (error) throw error;
 
               await Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success
+                Haptics.NotificationFeedbackType.Success,
               );
               await loadFriends();
             } catch (error: any) {
@@ -323,7 +324,7 @@ export default function FriendsScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -655,7 +656,7 @@ export default function FriendsScreen() {
       {loading ? (
         <FriendListSkeleton />
       ) : (
-        <FlatList
+        <OptimizedList
           data={
             searchQuery && (activeTab === "friends" || activeTab === "discover")
               ? (searchResults as any[])

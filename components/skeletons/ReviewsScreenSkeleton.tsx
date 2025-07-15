@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { SafeAreaView } from '@/components/safe-area-view';
-import { Card } from '@/components/ui/card';
+import React from "react";
+import { View, StyleSheet } from "react-native";
+import { SafeAreaView } from "@/components/safe-area-view";
+import { Card } from "@/components/ui/card";
 
 const SkeletonPlaceholder = ({ style }: { style?: any }) => (
   <View style={[styles.skeleton, style]} />
@@ -43,20 +43,20 @@ export function ReviewsScreenSkeleton() {
 
 const styles = StyleSheet.create({
   skeleton: {
-    backgroundColor: '#e0e0e0',
+    backgroundColor: "#e0e0e0",
     borderRadius: 4,
   },
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
-    backgroundColor: '#fff',
+    borderBottomColor: "#eee",
+    backgroundColor: "#fff",
   },
   backButton: {
     width: 32,
@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     marginRight: 16,
   },
   headerTitle: {
-    width: '40%',
+    width: "40%",
     height: 24,
   },
   content: {
@@ -75,10 +75,10 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   ratingContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 12,
   },
   star: {
@@ -87,17 +87,17 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   commentLine1: {
-    width: '90%',
+    width: "90%",
     height: 16,
     marginBottom: 8,
   },
   commentLine2: {
-    width: '60%',
+    width: "60%",
     height: 16,
     marginBottom: 12,
   },
   date: {
-    width: '30%',
+    width: "30%",
     height: 12,
   },
 });

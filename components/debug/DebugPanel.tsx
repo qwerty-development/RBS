@@ -25,28 +25,36 @@ export function DebugPanel({ restaurants, searchState }: DebugPanelProps) {
     },
     restaurants: {
       total: restaurants.length,
-      withCoordinates: restaurants.filter(r => {
-        const coords = r.coordinates || 
-                     (r.staticCoordinates ? { latitude: r.staticCoordinates.lat, longitude: r.staticCoordinates.lng } : null) ||
-                     LocationService.extractCoordinates(r.location);
+      withCoordinates: restaurants.filter((r) => {
+        const coords =
+          r.coordinates ||
+          (r.staticCoordinates
+            ? {
+                latitude: r.staticCoordinates.lat,
+                longitude: r.staticCoordinates.lng,
+              }
+            : null) ||
+          LocationService.extractCoordinates(r.location);
         return coords !== null;
       }).length,
-      withDistance: restaurants.filter(r => r.distance !== null && r.distance !== undefined).length,
-      sample: restaurants.slice(0, 3).map(r => ({
+      withDistance: restaurants.filter(
+        (r) => r.distance !== null && r.distance !== undefined,
+      ).length,
+      sample: restaurants.slice(0, 3).map((r) => ({
         name: r.name,
         coordinates: r.coordinates,
         staticCoordinates: r.staticCoordinates,
         location: r.location,
         distance: r.distance,
-        extractedCoords: LocationService.extractCoordinates(r.location)
-      }))
+        extractedCoords: LocationService.extractCoordinates(r.location),
+      })),
     },
     searchState: {
       loading: searchState.loading,
       userLocation: searchState.userLocation,
       viewMode: searchState.viewMode,
-      restaurantCount: searchState.restaurants?.length || 0
-    }
+      restaurantCount: searchState.restaurants?.length || 0,
+    },
   };
 
   return (
@@ -59,10 +67,12 @@ export function DebugPanel({ restaurants, searchState }: DebugPanelProps) {
           🐛 DEBUG {expanded ? "▼" : "▶"}
         </Text>
       </Pressable>
-      
+
       {expanded && (
         <ScrollView className="bg-black/90 rounded-lg p-3 mt-2 max-h-96 w-80">
-          <Text className="text-white text-xs font-bold mb-2">🗺️ LOCATION DEBUG</Text>
+          <Text className="text-white text-xs font-bold mb-2">
+            🗺️ LOCATION DEBUG
+          </Text>
           <Text className="text-green-400 text-xs">
             Loading: {debugData.location.loading ? "YES" : "NO"}
           </Text>
@@ -73,10 +83,15 @@ export function DebugPanel({ restaurants, searchState }: DebugPanelProps) {
             Display: {debugData.location.displayName}
           </Text>
           <Text className="text-green-400 text-xs mb-2">
-            Coords: {location ? `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}` : "None"}
+            Coords:{" "}
+            {location
+              ? `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
+              : "None"}
           </Text>
-          
-          <Text className="text-white text-xs font-bold mb-2">🍽️ RESTAURANTS DEBUG</Text>
+
+          <Text className="text-white text-xs font-bold mb-2">
+            🍽️ RESTAURANTS DEBUG
+          </Text>
           <Text className="text-blue-400 text-xs">
             Total: {debugData.restaurants.total}
           </Text>
@@ -86,11 +101,15 @@ export function DebugPanel({ restaurants, searchState }: DebugPanelProps) {
           <Text className="text-blue-400 text-xs mb-2">
             With Distance: {debugData.restaurants.withDistance}
           </Text>
-          
-          <Text className="text-white text-xs font-bold mb-1">📊 SAMPLE DATA</Text>
+
+          <Text className="text-white text-xs font-bold mb-1">
+            📊 SAMPLE DATA
+          </Text>
           {debugData.restaurants.sample.map((r, i) => (
             <View key={i} className="mb-2 p-1 bg-gray-800 rounded">
-              <Text className="text-yellow-400 text-xs font-bold">{r.name}</Text>
+              <Text className="text-yellow-400 text-xs font-bold">
+                {r.name}
+              </Text>
               <Text className="text-gray-300 text-xs">
                 Coords: {r.coordinates ? "✅" : "❌"}
               </Text>
@@ -108,8 +127,10 @@ export function DebugPanel({ restaurants, searchState }: DebugPanelProps) {
               </Text>
             </View>
           ))}
-          
-          <Text className="text-white text-xs font-bold mb-2">🔍 SEARCH STATE</Text>
+
+          <Text className="text-white text-xs font-bold mb-2">
+            🔍 SEARCH STATE
+          </Text>
           <Text className="text-purple-400 text-xs">
             Loading: {debugData.searchState.loading ? "YES" : "NO"}
           </Text>

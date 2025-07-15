@@ -1,12 +1,12 @@
-import React from 'react';
-import { View, ScrollView } from 'react-native';
-import FavoritesGridCardSkeleton from './FavoritesGridCardSkeleton';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import SkeletonPlaceholder from './SkeletonPlaceholder';
+import React from "react";
+import { View, ScrollView } from "react-native";
+import FavoritesGridCardSkeleton from "./FavoritesGridCardSkeleton";
+import { SafeAreaView } from "react-native-safe-area-context";
+import SkeletonPlaceholder from "./SkeletonPlaceholder";
 
 const FavoritesScreenSkeleton = () => {
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* Header */}
       <View className="p-4">
         <SkeletonPlaceholder width="50%" height={28} />
@@ -14,7 +14,11 @@ const FavoritesScreenSkeleton = () => {
 
       {/* Tabs */}
       <View className="flex-row px-4 mb-4">
-        <SkeletonPlaceholder width={100} height={36} style={{ marginRight: 12 }} />
+        <SkeletonPlaceholder
+          width={100}
+          height={36}
+          style={{ marginRight: 12 }}
+        />
         <SkeletonPlaceholder width={100} height={36} />
       </View>
 

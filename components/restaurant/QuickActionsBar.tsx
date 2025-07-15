@@ -1,11 +1,6 @@
 import React from "react";
 import { View, Pressable } from "react-native";
-import {
-  Heart,
-  Share2,
-  Phone,
-  Navigation,
-} from "lucide-react-native";
+import { Heart, Share2, Phone, Navigation } from "lucide-react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
 import { Database } from "@/types/supabase";

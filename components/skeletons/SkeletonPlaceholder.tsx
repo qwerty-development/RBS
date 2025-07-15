@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Easing } from 'react-native';
+import React, { useEffect, useRef } from "react";
+import { View, StyleSheet, Animated, Easing } from "react-native";
 
 interface SkeletonPlaceholderProps {
   width: number | string;
@@ -8,7 +8,12 @@ interface SkeletonPlaceholderProps {
   style?: any;
 }
 
-const SkeletonPlaceholder: React.FC<SkeletonPlaceholderProps> = ({ width, height, borderRadius = 4, style }) => {
+const SkeletonPlaceholder: React.FC<SkeletonPlaceholderProps> = ({
+  width,
+  height,
+  borderRadius = 4,
+  style,
+}) => {
   const pulseAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -26,7 +31,7 @@ const SkeletonPlaceholder: React.FC<SkeletonPlaceholderProps> = ({ width, height
           easing: Easing.inOut(Easing.ease),
           useNativeDriver: true,
         }),
-      ])
+      ]),
     );
 
     sharedAnimation.start();
@@ -57,7 +62,7 @@ const SkeletonPlaceholder: React.FC<SkeletonPlaceholderProps> = ({ width, height
 
 const styles = StyleSheet.create({
   placeholder: {
-    backgroundColor: '#E1E9EE',
+    backgroundColor: "#E1E9EE",
   },
 });
 

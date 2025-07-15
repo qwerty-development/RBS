@@ -92,7 +92,7 @@ export const GeneralFiltersModal = React.memo(
             : [...prev.cuisines, cuisine],
         }));
       },
-      [tempFilters.cuisines]
+      [tempFilters.cuisines],
     );
 
     const togglePriceRange = useCallback(
@@ -105,7 +105,7 @@ export const GeneralFiltersModal = React.memo(
             : [...prev.priceRange, price].sort(),
         }));
       },
-      [tempFilters.priceRange]
+      [tempFilters.priceRange],
     );
 
     const toggleFeature = useCallback(
@@ -118,7 +118,7 @@ export const GeneralFiltersModal = React.memo(
             : [...prev.features, featureId],
         }));
       },
-      [tempFilters.features]
+      [tempFilters.features],
     );
 
     return (
@@ -360,5 +360,5 @@ export const GeneralFiltersModal = React.memo(
         </SafeAreaView>
       </Modal>
     );
-  }
+  },
 );

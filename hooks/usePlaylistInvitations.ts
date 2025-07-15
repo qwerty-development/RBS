@@ -9,7 +9,7 @@ export type PlaylistInvitation = {
   id: string;
   playlist_id: string;
   user_id: string;
-  permission: 'view' | 'edit';
+  permission: "view" | "edit";
   invited_by: string;
   invited_at: string;
   playlist: {
@@ -39,8 +39,9 @@ export const usePlaylistInvitations = () => {
 
     try {
       const { data, error } = await supabase
-        .from('playlist_collaborators')
-        .select(`
+        .from("playlist_collaborators")
+        .select(
+          `
           id,
           playlist_id,
           user_id,
@@ -59,44 +60,48 @@ export const usePlaylistInvitations = () => {
             full_name,
             avatar_url
           )
-        `)
-        .eq('user_id', profile.id)
-        .is('accepted_at', null)
-        .order('invited_at', { ascending: false });
+        `,
+        )
+        .eq("user_id", profile.id)
+        .is("accepted_at", null)
+        .order("invited_at", { ascending: false });
 
       if (error) throw error;
 
       // Fetch item counts for each playlist
-      const playlistIds = data?.map(inv => inv.playlist_id) || [];
+      const playlistIds = data?.map((inv) => inv.playlist_id) || [];
       let itemCounts: Record<string, number> = {};
 
       if (playlistIds.length > 0) {
         const { data: itemCountData, error: countError } = await supabase
-          .from('playlist_items')
-          .select('playlist_id')
-          .in('playlist_id', playlistIds);
+          .from("playlist_items")
+          .select("playlist_id")
+          .in("playlist_id", playlistIds);
 
         if (!countError && itemCountData) {
-          itemCounts = itemCountData.reduce((acc, item) => {
-            acc[item.playlist_id] = (acc[item.playlist_id] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
+          itemCounts = itemCountData.reduce(
+            (acc, item) => {
+              acc[item.playlist_id] = (acc[item.playlist_id] || 0) + 1;
+              return acc;
+            },
+            {} as Record<string, number>,
+          );
         }
       }
 
       // Combine data with item counts
-      const invitationsWithCounts = (data || []).map(inv => ({
+      const invitationsWithCounts = (data || []).map((inv) => ({
         ...inv,
         playlist: {
           ...inv.playlist,
-          item_count: itemCounts[inv.playlist_id] || 0
-        }
+          item_count: itemCounts[inv.playlist_id] || 0,
+        },
       }));
 
-      setInvitations(invitationsWithCounts );
+      setInvitations(invitationsWithCounts);
     } catch (error) {
-      console.error('Error fetching invitations:', error);
-      Alert.alert('Error', 'Failed to load invitations');
+      console.error("Error fetching invitations:", error);
+      Alert.alert("Error", "Failed to load invitations");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -104,53 +109,65 @@ export const usePlaylistInvitations = () => {
   }, [profile?.id]);
 
   // Accept invitation
-  const acceptInvitation = useCallback(async (invitationId: string): Promise<boolean> => {
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  const acceptInvitation = useCallback(
+    async (invitationId: string): Promise<boolean> => {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-      const { error } = await supabase
-        .from('playlist_collaborators')
-        .update({ 
-          accepted_at: new Date().toISOString() 
-        })
-        .eq('id', invitationId);
+        const { error } = await supabase
+          .from("playlist_collaborators")
+          .update({
+            accepted_at: new Date().toISOString(),
+          })
+          .eq("id", invitationId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Remove from local state
-      setInvitations((prev: any[]) => prev.filter((inv: { id: string; }) => inv.id !== invitationId));
-      
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      return true;
-    } catch (error) {
-      console.error('Error accepting invitation:', error);
-      Alert.alert('Error', 'Failed to accept invitation');
-      return false;
-    }
-  }, []);
+        // Remove from local state
+        setInvitations((prev: any[]) =>
+          prev.filter((inv: { id: string }) => inv.id !== invitationId),
+        );
+
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        );
+        return true;
+      } catch (error) {
+        console.error("Error accepting invitation:", error);
+        Alert.alert("Error", "Failed to accept invitation");
+        return false;
+      }
+    },
+    [],
+  );
 
   // Reject invitation
-  const rejectInvitation = useCallback(async (invitationId: string): Promise<boolean> => {
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  const rejectInvitation = useCallback(
+    async (invitationId: string): Promise<boolean> => {
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-      const { error } = await supabase
-        .from('playlist_collaborators')
-        .delete()
-        .eq('id', invitationId);
+        const { error } = await supabase
+          .from("playlist_collaborators")
+          .delete()
+          .eq("id", invitationId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Remove from local state
-      setInvitations((prev: any[]) => prev.filter((inv: { id: string; }) => inv.id !== invitationId));
-      
-      return true;
-    } catch (error) {
-      console.error('Error rejecting invitation:', error);
-      Alert.alert('Error', 'Failed to reject invitation');
-      return false;
-    }
-  }, []);
+        // Remove from local state
+        setInvitations((prev: any[]) =>
+          prev.filter((inv: { id: string }) => inv.id !== invitationId),
+        );
+
+        return true;
+      } catch (error) {
+        console.error("Error rejecting invitation:", error);
+        Alert.alert("Error", "Failed to reject invitation");
+        return false;
+      }
+    },
+    [],
+  );
 
   // Refresh handler
   const handleRefresh = useCallback(async () => {
@@ -171,6 +188,6 @@ export const usePlaylistInvitations = () => {
     acceptInvitation,
     rejectInvitation,
     handleRefresh,
-    pendingCount: invitations.length
+    pendingCount: invitations.length,
   };
 };

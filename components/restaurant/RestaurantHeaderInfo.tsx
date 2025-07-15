@@ -1,11 +1,11 @@
 // components/restaurant/RestaurantHeaderInfo.tsx
 import React from "react";
 import { View, Pressable } from "react-native";
-import { 
-  Star, 
-  MapPin, 
-  Clock, 
-  DollarSign, 
+import {
+  Star,
+  MapPin,
+  Clock,
+  DollarSign,
   Users,
   Gift,
   Sparkles,
@@ -43,7 +43,10 @@ export const RestaurantHeaderInfo: React.FC<RestaurantHeaderInfoProps> = ({
   const { colorScheme } = useColorScheme();
 
   const renderPriceRange = (priceRange: number) => {
-    return "$".repeat(priceRange) + "$".repeat(Math.max(0, 3 - priceRange)).replace(/AED /g, "$ ");
+    return (
+      "$".repeat(priceRange) +
+      "$".repeat(Math.max(0, 3 - priceRange)).replace(/AED /g, "$ ")
+    );
   };
 
   const renderStars = (rating: number) => {
@@ -52,21 +55,17 @@ export const RestaurantHeaderInfo: React.FC<RestaurantHeaderInfoProps> = ({
     const hasHalfStar = rating % 1 >= 0.5;
 
     for (let i = 0; i < fullStars; i++) {
-      stars.push(
-        <Star key={i} size={16} fill="#fbbf24" color="#fbbf24" />
-      );
+      stars.push(<Star key={i} size={16} fill="#fbbf24" color="#fbbf24" />);
     }
 
     if (hasHalfStar) {
-      stars.push(
-        <Star key="half" size={16} fill="none" color="#fbbf24" />
-      );
+      stars.push(<Star key="half" size={16} fill="none" color="#fbbf24" />);
     }
 
     const emptyStars = 5 - Math.ceil(rating);
     for (let i = 0; i < emptyStars; i++) {
       stars.push(
-        <Star key={`empty-${i}`} size={16} fill="none" color="#d1d5db" />
+        <Star key={`empty-${i}`} size={16} fill="none" color="#d1d5db" />,
       );
     }
 
@@ -78,7 +77,7 @@ export const RestaurantHeaderInfo: React.FC<RestaurantHeaderInfoProps> = ({
       {/* Restaurant Name and Basic Info */}
       <View className="mb-4">
         <H1 className="mb-2">{restaurant.name}</H1>
-        
+
         {/* Cuisine and Location */}
         <View className="flex-row items-center gap-4 mb-3">
           <Text className="text-lg text-muted-foreground capitalize">
@@ -86,7 +85,10 @@ export const RestaurantHeaderInfo: React.FC<RestaurantHeaderInfoProps> = ({
           </Text>
           <View className="flex-row items-center">
             <MapPin size={16} color="#666" />
-            <Text className="text-sm text-muted-foreground ml-1" numberOfLines={1}>
+            <Text
+              className="text-sm text-muted-foreground ml-1"
+              numberOfLines={1}
+            >
               {restaurant.address}
             </Text>
           </View>
@@ -130,7 +132,7 @@ export const RestaurantHeaderInfo: React.FC<RestaurantHeaderInfoProps> = ({
             >
               <Gift size={16} color="#3b82f6" />
               <Text className="text-primary font-bold text-sm ml-1">
-                {offerCount} offer{offerCount > 1 ? 's' : ''}
+                {offerCount} offer{offerCount > 1 ? "s" : ""}
               </Text>
               <ChevronRight size={14} color="#3b82f6" className="ml-1" />
             </Pressable>
@@ -148,10 +150,13 @@ export const RestaurantHeaderInfo: React.FC<RestaurantHeaderInfoProps> = ({
             <View className="flex-1">
               <View className="flex-row items-center mb-1">
                 <Sparkles size={18} color="#3b82f6" />
-                <Text className="font-bold text-primary ml-2">Special Offer Available!</Text>
+                <Text className="font-bold text-primary ml-2">
+                  Special Offer Available!
+                </Text>
               </View>
               <Text className="text-sm text-muted-foreground">
-                You have a special offer for this restaurant. Tap to view and claim it.
+                You have a special offer for this restaurant. Tap to view and
+                claim it.
               </Text>
             </View>
             <View className="bg-primary rounded-full p-2 ml-3">
@@ -178,7 +183,7 @@ export const RestaurantHeaderInfo: React.FC<RestaurantHeaderInfoProps> = ({
             Usually busy 7-9 PM
           </Text>
         </View>
-        
+
         <View className="flex-row items-center">
           <Users size={16} color="#666" />
           <Text className="text-sm text-muted-foreground ml-2">

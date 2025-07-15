@@ -1,4 +1,3 @@
-
 import { View } from "react-native";
 import { cn } from "@/lib/utils";
 
@@ -11,7 +10,10 @@ function Skeleton({
 }) {
   return (
     <View
-      className={cn("animate-pulse rounded-md bg-gray-200 dark:bg-gray-800", className)}
+      className={cn(
+        "animate-pulse rounded-md bg-gray-200 dark:bg-gray-800",
+        className,
+      )}
       {...props}
     />
   );

@@ -23,7 +23,7 @@ import { BookingHeader } from "@/components/booking/BookingHeader";
 import { BookingCTA } from "@/components/booking/BookingCTA";
 import { FriendsInvitationSection } from "@/components/booking/invite-friend";
 import { TIER_CONFIG } from "@/lib/bookingUtils";
-import BookingCreateScreenSkeleton from '@/components/skeletons/BookingCreateScreenSkeleton';
+import BookingCreateScreenSkeleton from "@/components/skeletons/BookingCreateScreenSkeleton";
 
 // Form validation schema
 const bookingFormSchema = z.object({
@@ -87,16 +87,13 @@ export default function BookingCreateScreen() {
   // Create form helper functions
   const toggleDietaryRestriction = useCallback(
     createToggleDietaryRestriction(getValues, setValue),
-    [getValues, setValue]
+    [getValues, setValue],
   );
 
   const toggleTablePreference = useCallback(
     createToggleTablePreference(getValues, setValue),
-    [getValues, setValue]
+    [getValues, setValue],
   );
-
-
-
 
   // Loading state
   if (loading) {

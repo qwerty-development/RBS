@@ -10,13 +10,20 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import { MapPin, Search, X, Navigation, ChevronRight } from "lucide-react-native";
+import {
+  MapPin,
+  Search,
+  X,
+  Navigation,
+  ChevronRight,
+} from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { H3 } from "@/components/ui/typography";
 import { LocationService, LocationData } from "@/lib/locationService";
 import { useColorScheme } from "@/lib/useColorScheme";
 import * as Haptics from "expo-haptics";
+import { OptimizedList } from "../ui/optimized-list";
 
 interface LocationOption {
   id: string;
@@ -247,25 +254,27 @@ export function LocationSelector({
   const filteredLocations = LEBANON_LOCATIONS.filter(
     (loc) =>
       loc.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      loc.district.toLowerCase().includes(searchQuery.toLowerCase())
+      loc.district.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const handleDetectLocation = useCallback(async () => {
     setDetectingLocation(true);
-    if (Platform.OS !== 'web') {
+    if (Platform.OS !== "web") {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
-    
+
     try {
       const location = await LocationService.getCurrentLocation();
       onLocationChange(location);
       setModalVisible(false);
-      if (Platform.OS !== 'web') {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (Platform.OS !== "web") {
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        );
       }
     } catch (error) {
       console.error("Error detecting location:", error);
-      if (Platform.OS !== 'web') {
+      if (Platform.OS !== "web") {
         await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
     } finally {
@@ -275,10 +284,10 @@ export function LocationSelector({
 
   const handleSelectLocation = useCallback(
     async (location: LocationOption) => {
-      if (Platform.OS !== 'web') {
+      if (Platform.OS !== "web") {
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-      
+
       const locationData: LocationData = {
         city: location.city,
         district: location.district,
@@ -286,11 +295,11 @@ export function LocationSelector({
         longitude: location.coordinates.longitude,
         country: "Lebanon",
       };
-      
+
       onLocationChange(locationData);
       setModalVisible(false);
     },
-    [onLocationChange]
+    [onLocationChange],
   );
 
   const isCurrentLocation = (location: LocationOption) => {
@@ -340,7 +349,10 @@ export function LocationSelector({
                   className="p-2"
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <X size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                  <X
+                    size={24}
+                    color={colorScheme === "dark" ? "#fff" : "#000"}
+                  />
                 </Pressable>
               </View>
 
@@ -364,7 +376,7 @@ export function LocationSelector({
             </View>
 
             {/* Location List */}
-            <FlatList
+            <OptimizedList
               data={filteredLocations}
               keyExtractor={(item) => item.id}
               contentContainerStyle={{ paddingBottom: 20 }}
@@ -373,8 +385,8 @@ export function LocationSelector({
                   onPress={handleDetectLocation}
                   disabled={detectingLocation}
                   className={`flex-row items-center justify-between p-4 mx-4 mt-4 rounded-lg border ${
-                    detectingLocation 
-                      ? "bg-primary/5 border-primary/10 opacity-50" 
+                    detectingLocation
+                      ? "bg-primary/5 border-primary/10 opacity-50"
                       : "bg-primary/10 border-primary/20"
                   }`}
                 >

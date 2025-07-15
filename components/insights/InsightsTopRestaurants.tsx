@@ -75,7 +75,7 @@ export const InsightsTopRestaurants: React.FC<InsightsTopRestaurantsProps> = ({
                       {
                         month: "short",
                         day: "numeric",
-                      }
+                      },
                     )}
                   </Muted>
                 </View>

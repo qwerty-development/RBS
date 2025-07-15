@@ -142,7 +142,7 @@ const PRICE_RANGE_VALUES = {
 
 export const useInsightsData = (
   userId: string | undefined,
-  selectedPeriod: "3m" | "6m" | "1y" | "all"
+  selectedPeriod: "3m" | "6m" | "1y" | "all",
 ) => {
   const [insights, setInsights] = useState<InsightData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -242,7 +242,7 @@ export const useInsightsData = (
         count,
         percentage:
           totalBookings > 0 ? Math.round((count / totalBookings) * 100) : 0,
-      })
+      }),
     );
 
     return {
@@ -254,7 +254,7 @@ export const useInsightsData = (
   };
 
   const processSpendingAnalytics = async (
-    bookings: Booking[]
+    bookings: Booking[],
   ): Promise<SpendingData> => {
     const completedBookings = bookings.filter((b) => b.status === "completed");
 
@@ -295,10 +295,10 @@ export const useInsightsData = (
       priceRangeCounts[range] = (priceRangeCounts[range] || 0) + 1;
     });
     const favoritesPriceRange = Object.entries(priceRangeCounts).sort(
-      ([, a], [, b]) => b - a
+      ([, a], [, b]) => b - a,
     )[0]?.[0]
       ? parseInt(
-          Object.entries(priceRangeCounts).sort(([, a], [, b]) => b - a)[0][0]
+          Object.entries(priceRangeCounts).sort(([, a], [, b]) => b - a)[0][0],
         )
       : 2;
 
@@ -310,7 +310,7 @@ export const useInsightsData = (
         ([month, amount]) => ({
           month,
           amount,
-        })
+        }),
       ),
       spendingByCategory: Object.entries(categorySpending).map(
         ([category, amount]) => ({
@@ -318,13 +318,13 @@ export const useInsightsData = (
           amount,
           percentage:
             totalSpent > 0 ? Math.round((amount / totalSpent) * 100) : 0,
-        })
+        }),
       ),
     };
   };
 
   const processRestaurantFrequency = (
-    bookings: Booking[]
+    bookings: Booking[],
   ): RestaurantFrequencyData[] => {
     const restaurantData: Record<
       string,
@@ -432,11 +432,11 @@ export const useInsightsData = (
   };
 
   const calculatePerformanceMetrics = (
-    bookings: Booking[]
+    bookings: Booking[],
   ): PerformanceData => {
     const totalBookings = bookings.length;
     const completedBookings = bookings.filter(
-      (b) => b.status === "completed"
+      (b) => b.status === "completed",
     ).length;
     const completionRate =
       totalBookings > 0 ? (completedBookings / totalBookings) * 100 : 0;
@@ -447,7 +447,7 @@ export const useInsightsData = (
       reviewedBookings.length > 0
         ? reviewedBookings.reduce(
             (sum, booking) => sum + (booking.review?.rating || 0),
-            0
+            0,
           ) / reviewedBookings.length
         : 0;
 
@@ -468,7 +468,7 @@ export const useInsightsData = (
 
   const calculateLoyaltyInsights = (
     bookings: Booking[],
-    profile: any
+    profile: any,
   ): LoyaltyData => {
     const pointsFromBookings = bookings
       .filter((b) => b.status === "completed")
@@ -485,7 +485,7 @@ export const useInsightsData = (
       currentTier === "platinum"
         ? "platinum"
         : Object.entries(TIER_THRESHOLDS).find(
-            ([tier, points]) => points > totalPoints
+            ([tier, points]) => points > totalPoints,
           )?.[0] || "platinum";
     const nextTierMin =
       TIER_THRESHOLDS[nextTierName as keyof typeof TIER_THRESHOLDS] || 3000;
@@ -542,7 +542,7 @@ export const useInsightsData = (
           *,
           restaurant:restaurants(*),
           review:reviews(*)
-        `
+        `,
         )
         .eq("user_id", userId)
         .gte("booking_time", startDate.toISOString())

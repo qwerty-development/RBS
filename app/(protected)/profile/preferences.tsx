@@ -116,12 +116,13 @@ export default function DiningPreferencesScreen() {
   const { profile, updateProfile } = useAuth();
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-  
+
   // 2. State Management with proper initialization
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [preferences, setPreferences] = useState<PreferencesData>(DEFAULT_PREFERENCES);
-  
+  const [preferences, setPreferences] =
+    useState<PreferencesData>(DEFAULT_PREFERENCES);
+
   // 3. Load Current Preferences with proper error handling
   useEffect(() => {
     const loadPreferences = () => {
@@ -129,14 +130,24 @@ export default function DiningPreferencesScreen() {
         if (profile) {
           // Safely extract preferences with fallbacks
           const loadedPreferences: PreferencesData = {
-            dietary_restrictions: profile.dietary_restrictions || DEFAULT_PREFERENCES.dietary_restrictions,
+            dietary_restrictions:
+              profile.dietary_restrictions ||
+              DEFAULT_PREFERENCES.dietary_restrictions,
             allergies: profile.allergies || DEFAULT_PREFERENCES.allergies,
-            favorite_cuisines: profile.favorite_cuisines || DEFAULT_PREFERENCES.favorite_cuisines,
-            preferred_ambiance: profile.preferred_ambiance || DEFAULT_PREFERENCES.preferred_ambiance,
-            preferred_party_size: profile.preferred_party_size || DEFAULT_PREFERENCES.preferred_party_size,
-            special_requirements: profile.special_requirements || DEFAULT_PREFERENCES.special_requirements,
+            favorite_cuisines:
+              profile.favorite_cuisines ||
+              DEFAULT_PREFERENCES.favorite_cuisines,
+            preferred_ambiance:
+              profile.preferred_ambiance ||
+              DEFAULT_PREFERENCES.preferred_ambiance,
+            preferred_party_size:
+              profile.preferred_party_size ||
+              DEFAULT_PREFERENCES.preferred_party_size,
+            special_requirements:
+              profile.special_requirements ||
+              DEFAULT_PREFERENCES.special_requirements,
           };
-          
+
           console.log("Loading preferences:", loadedPreferences);
           setPreferences(loadedPreferences);
         } else {
@@ -158,12 +169,12 @@ export default function DiningPreferencesScreen() {
   const toggleDietaryRestriction = useCallback((restriction: string) => {
     setPreferences((prev) => {
       if (!prev) return DEFAULT_PREFERENCES;
-      
+
       const currentRestrictions = prev.dietary_restrictions || [];
       const newRestrictions = currentRestrictions.includes(restriction)
         ? currentRestrictions.filter((r) => r !== restriction)
         : [...currentRestrictions, restriction];
-      
+
       return {
         ...prev,
         dietary_restrictions: newRestrictions,
@@ -175,12 +186,12 @@ export default function DiningPreferencesScreen() {
   const toggleAllergy = useCallback((allergy: string) => {
     setPreferences((prev) => {
       if (!prev) return DEFAULT_PREFERENCES;
-      
+
       const currentAllergies = prev.allergies || [];
       const newAllergies = currentAllergies.includes(allergy)
         ? currentAllergies.filter((a) => a !== allergy)
         : [...currentAllergies, allergy];
-      
+
       return {
         ...prev,
         allergies: newAllergies,
@@ -192,12 +203,12 @@ export default function DiningPreferencesScreen() {
   const toggleCuisine = useCallback((cuisine: string) => {
     setPreferences((prev) => {
       if (!prev) return DEFAULT_PREFERENCES;
-      
+
       const currentCuisines = prev.favorite_cuisines || [];
       const newCuisines = currentCuisines.includes(cuisine)
         ? currentCuisines.filter((c) => c !== cuisine)
         : [...currentCuisines, cuisine];
-      
+
       return {
         ...prev,
         favorite_cuisines: newCuisines,
@@ -209,12 +220,12 @@ export default function DiningPreferencesScreen() {
   const toggleAmbiance = useCallback((ambiance: string) => {
     setPreferences((prev) => {
       if (!prev) return DEFAULT_PREFERENCES;
-      
+
       const currentAmbiance = prev.preferred_ambiance || [];
       const newAmbiance = currentAmbiance.includes(ambiance)
         ? currentAmbiance.filter((a) => a !== ambiance)
         : [...currentAmbiance, ambiance];
-      
+
       return {
         ...prev,
         preferred_ambiance: newAmbiance,
@@ -226,7 +237,7 @@ export default function DiningPreferencesScreen() {
   const updatePartySize = useCallback((size: number) => {
     setPreferences((prev) => {
       if (!prev) return DEFAULT_PREFERENCES;
-      
+
       return {
         ...prev,
         preferred_party_size: size,
@@ -243,7 +254,7 @@ export default function DiningPreferencesScreen() {
     }
 
     setSaving(true);
-    
+
     try {
       await updateProfile({
         dietary_restrictions: preferences.dietary_restrictions,
@@ -253,11 +264,11 @@ export default function DiningPreferencesScreen() {
         preferred_party_size: preferences.preferred_party_size,
         special_requirements: preferences.special_requirements,
       });
-      
+
       Alert.alert(
         "Preferences Saved",
         "Your dining preferences have been updated successfully",
-        [{ text: "OK", onPress: () => router.back() }]
+        [{ text: "OK", onPress: () => router.back() }],
       );
     } catch (error) {
       console.error("Error saving preferences:", error);
@@ -270,7 +281,7 @@ export default function DiningPreferencesScreen() {
   // 6. Check if preferences have changed
   const hasChanges = React.useMemo(() => {
     if (!preferences || !profile) return false;
-    
+
     const originalPreferences = {
       dietary_restrictions: profile.dietary_restrictions || [],
       allergies: profile.allergies || [],
@@ -279,12 +290,11 @@ export default function DiningPreferencesScreen() {
       preferred_party_size: profile.preferred_party_size || 2,
       special_requirements: profile.special_requirements || "",
     };
-    
+
     return JSON.stringify(preferences) !== JSON.stringify(originalPreferences);
   }, [preferences, profile]);
 
   // 7. Loading state
-
 
   // 8. Safety check for preferences
   if (!preferences) {
@@ -307,7 +317,7 @@ export default function DiningPreferencesScreen() {
     );
   }
 
-    if (loading) {
+  if (loading) {
     return <PreferencesScreenSkeleton />;
   }
   return (
@@ -320,22 +330,28 @@ export default function DiningPreferencesScreen() {
         <H2>Dining Preferences</H2>
         <View className="w-10" />
       </View>
-      
+
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Why We Ask Section */}
         <View className="mx-4 mt-4 p-4 bg-primary/10 rounded-lg">
           <View className="flex-row items-start gap-3">
-            <Info size={20} color={colorScheme === "dark" ? "#3b82f6" : "#2563eb"} />
+            <Info
+              size={20}
+              color={colorScheme === "dark" ? "#3b82f6" : "#2563eb"}
+            />
             <View className="flex-1">
-              <Text className="font-medium mb-1">Why we ask for preferences</Text>
+              <Text className="font-medium mb-1">
+                Why we ask for preferences
+              </Text>
               <Text className="text-sm text-muted-foreground">
-                Your preferences help us recommend restaurants that match your taste and dietary needs. 
-                Restaurants will also be notified of your requirements when you make a booking.
+                Your preferences help us recommend restaurants that match your
+                taste and dietary needs. Restaurants will also be notified of
+                your requirements when you make a booking.
               </Text>
             </View>
           </View>
         </View>
-        
+
         {/* Dietary Restrictions */}
         <View className="px-4 mt-6">
           <View className="flex-row items-center gap-2 mb-3">
@@ -344,8 +360,10 @@ export default function DiningPreferencesScreen() {
           </View>
           <View className="flex-row flex-wrap gap-2">
             {DIETARY_RESTRICTIONS.map((restriction) => {
-              const isSelected = (preferences.dietary_restrictions || []).includes(restriction.id);
-              
+              const isSelected = (
+                preferences.dietary_restrictions || []
+              ).includes(restriction.id);
+
               return (
                 <Pressable
                   key={restriction.id}
@@ -357,24 +375,16 @@ export default function DiningPreferencesScreen() {
                   }`}
                 >
                   <Text>{restriction.icon}</Text>
-                  <Text
-                    className={
-                      isSelected
-                        ? "text-primary-foreground"
-                        : ""
-                    }
-                  >
+                  <Text className={isSelected ? "text-primary-foreground" : ""}>
                     {restriction.label}
                   </Text>
-                  {isSelected && (
-                    <Check size={16} color="#fff" />
-                  )}
+                  {isSelected && <Check size={16} color="#fff" />}
                 </Pressable>
               );
             })}
           </View>
         </View>
-        
+
         {/* Allergies */}
         <View className="px-4 mt-6">
           <View className="flex-row items-center gap-2 mb-3">
@@ -383,8 +393,10 @@ export default function DiningPreferencesScreen() {
           </View>
           <View className="flex-row flex-wrap gap-2">
             {ALLERGIES.map((allergy) => {
-              const isSelected = (preferences.allergies || []).includes(allergy);
-              
+              const isSelected = (preferences.allergies || []).includes(
+                allergy,
+              );
+
               return (
                 <Pressable
                   key={allergy}
@@ -397,9 +409,7 @@ export default function DiningPreferencesScreen() {
                 >
                   <Text
                     className={
-                      isSelected
-                        ? "text-red-800 dark:text-red-200"
-                        : ""
+                      isSelected ? "text-red-800 dark:text-red-200" : ""
                     }
                   >
                     {allergy}
@@ -411,12 +421,13 @@ export default function DiningPreferencesScreen() {
           {preferences.allergies && preferences.allergies.length > 0 && (
             <View className="mt-2 p-3 bg-red-50 dark:bg-red-900/10 rounded-lg">
               <Text className="text-sm text-red-800 dark:text-red-200">
-                ⚠️ Restaurants will be notified of your allergies with every booking
+                ⚠️ Restaurants will be notified of your allergies with every
+                booking
               </Text>
             </View>
           )}
         </View>
-        
+
         {/* Cuisine Preferences */}
         <View className="px-4 mt-6">
           <View className="flex-row items-center gap-2 mb-3">
@@ -424,13 +435,15 @@ export default function DiningPreferencesScreen() {
             <H3>Favorite Cuisines</H3>
           </View>
           <Muted className="mb-3">Select cuisines you enjoy most</Muted>
-          
+
           {/* Popular Cuisines */}
           <Text className="font-medium mb-2">Popular in Lebanon</Text>
           <View className="flex-row flex-wrap gap-2 mb-4">
             {CUISINE_PREFERENCES.filter((c) => c.popular).map((cuisine) => {
-              const isSelected = (preferences.favorite_cuisines || []).includes(cuisine.id);
-              
+              const isSelected = (preferences.favorite_cuisines || []).includes(
+                cuisine.id,
+              );
+
               return (
                 <Pressable
                   key={cuisine.id}
@@ -441,26 +454,22 @@ export default function DiningPreferencesScreen() {
                       : "bg-background border-border"
                   }`}
                 >
-                  <Text
-                    className={
-                      isSelected
-                        ? "text-primary-foreground"
-                        : ""
-                    }
-                  >
+                  <Text className={isSelected ? "text-primary-foreground" : ""}>
                     {cuisine.label}
                   </Text>
                 </Pressable>
               );
             })}
           </View>
-          
+
           {/* Other Cuisines */}
           <Text className="font-medium mb-2">Other Cuisines</Text>
           <View className="flex-row flex-wrap gap-2">
             {CUISINE_PREFERENCES.filter((c) => !c.popular).map((cuisine) => {
-              const isSelected = (preferences.favorite_cuisines || []).includes(cuisine.id);
-              
+              const isSelected = (preferences.favorite_cuisines || []).includes(
+                cuisine.id,
+              );
+
               return (
                 <Pressable
                   key={cuisine.id}
@@ -471,13 +480,7 @@ export default function DiningPreferencesScreen() {
                       : "bg-background border-border"
                   }`}
                 >
-                  <Text
-                    className={
-                      isSelected
-                        ? "text-primary-foreground"
-                        : ""
-                    }
-                  >
+                  <Text className={isSelected ? "text-primary-foreground" : ""}>
                     {cuisine.label}
                   </Text>
                 </Pressable>
@@ -485,15 +488,17 @@ export default function DiningPreferencesScreen() {
             })}
           </View>
         </View>
-        
+
         {/* Ambiance Preferences */}
         <View className="px-4 mt-6">
           <H3 className="mb-3">Preferred Ambiance</H3>
           <Muted className="mb-3">What type of atmosphere do you enjoy?</Muted>
           <View className="gap-2">
             {AMBIANCE_PREFERENCES.map((ambiance) => {
-              const isSelected = (preferences.preferred_ambiance || []).includes(ambiance.id);
-              
+              const isSelected = (
+                preferences.preferred_ambiance || []
+              ).includes(ambiance.id);
+
               return (
                 <Pressable
                   key={ambiance.id}
@@ -508,34 +513,38 @@ export default function DiningPreferencesScreen() {
                     <Text className="text-xl">{ambiance.icon}</Text>
                     <Text
                       className={`font-medium ${
-                        isSelected
-                          ? "text-primary"
-                          : ""
+                        isSelected ? "text-primary" : ""
                       }`}
                     >
                       {ambiance.label}
                     </Text>
                   </View>
                   {isSelected && (
-                    <Check size={20} color={colorScheme === "dark" ? "#3b82f6" : "#2563eb"} />
+                    <Check
+                      size={20}
+                      color={colorScheme === "dark" ? "#3b82f6" : "#2563eb"}
+                    />
                   )}
                 </Pressable>
               );
             })}
           </View>
         </View>
-        
+
         {/* Typical Party Size */}
         <View className="px-4 mt-6 mb-8">
           <View className="flex-row items-center gap-2 mb-3">
             <Users size={20} />
             <H3>Typical Party Size</H3>
           </View>
-          <Muted className="mb-3">How many people do you usually dine with?</Muted>
+          <Muted className="mb-3">
+            How many people do you usually dine with?
+          </Muted>
           <View className="flex-row flex-wrap gap-2">
             {PARTY_SIZES.map((size) => {
-              const isSelected = (preferences.preferred_party_size || 2) === size.value;
-              
+              const isSelected =
+                (preferences.preferred_party_size || 2) === size.value;
+
               return (
                 <Pressable
                   key={size.value}
@@ -548,9 +557,7 @@ export default function DiningPreferencesScreen() {
                 >
                   <Text
                     className={`font-bold text-lg ${
-                      isSelected
-                        ? "text-primary-foreground"
-                        : ""
+                      isSelected ? "text-primary-foreground" : ""
                     }`}
                   >
                     {size.value}
@@ -570,7 +577,7 @@ export default function DiningPreferencesScreen() {
           </View>
         </View>
       </ScrollView>
-      
+
       {/* Save Button */}
       <View className="p-4 border-t border-border">
         <Button

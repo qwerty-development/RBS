@@ -55,24 +55,24 @@ export const useFavoritesFilters = (favorites: Favorite[]) => {
     switch (sortBy) {
       case "name":
         sorted.sort((a, b) =>
-          a.restaurant.name.localeCompare(b.restaurant.name)
+          a.restaurant.name.localeCompare(b.restaurant.name),
         );
         break;
       case "rating":
         sorted.sort(
           (a, b) =>
             (b.restaurant.average_rating || 0) -
-            (a.restaurant.average_rating || 0)
+            (a.restaurant.average_rating || 0),
         );
         break;
       case "most_visited":
         sorted.sort(
-          (a, b) => (b.total_bookings || 0) - (a.total_bookings || 0)
+          (a, b) => (b.total_bookings || 0) - (a.total_bookings || 0),
         );
         break;
       case "cuisine":
         sorted.sort((a, b) =>
-          a.restaurant.cuisine_type.localeCompare(b.restaurant.cuisine_type)
+          a.restaurant.cuisine_type.localeCompare(b.restaurant.cuisine_type),
         );
         break;
       case "recently_added":
@@ -117,7 +117,7 @@ export const useFavoritesFilters = (favorites: Favorite[]) => {
         acc[key].push(favorite);
         return acc;
       },
-      {} as Record<string, Favorite[]>
+      {} as Record<string, Favorite[]>,
     );
 
     // Convert to section list format with paired items

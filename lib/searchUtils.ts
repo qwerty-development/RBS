@@ -9,7 +9,7 @@ import type {
 
 // Generate static coordinates for restaurants with realistic Lebanon distribution
 export const generateStaticCoordinates = (
-  restaurantId: string
+  restaurantId: string,
 ): { lat: number; lng: number } => {
   // Create a stable hash from restaurant ID
   const hash = restaurantId.split("").reduce((acc, char, index) => {
@@ -35,11 +35,11 @@ export const generateStaticCoordinates = (
 
   const lat = Math.max(
     LEBANON_BOUNDS.south,
-    Math.min(LEBANON_BOUNDS.north, selectedCity.lat + latOffset)
+    Math.min(LEBANON_BOUNDS.north, selectedCity.lat + latOffset),
   );
   const lng = Math.max(
     LEBANON_BOUNDS.west,
-    Math.min(LEBANON_BOUNDS.east, selectedCity.lng + lngOffset)
+    Math.min(LEBANON_BOUNDS.east, selectedCity.lng + lngOffset),
   );
 
   return { lat, lng };
@@ -50,7 +50,7 @@ export const calculateDistance = (
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number => {
   const R = 6371; // Earth's radius in kilometers
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -78,7 +78,7 @@ export const checkRestaurantAvailability = async (
   restaurantId: string,
   date: Date,
   time: string,
-  partySize: number
+  partySize: number,
 ): Promise<boolean> => {
   try {
     const dateStr = date.toISOString().split("T")[0];
@@ -135,7 +135,7 @@ export const checkRestaurantAvailability = async (
     const restaurantFactor = ((restaurantSeed % 100) / 100) * 0.3;
     availabilityChance = Math.max(
       0.1,
-      Math.min(0.95, availabilityChance + restaurantFactor)
+      Math.min(0.95, availabilityChance + restaurantFactor),
     );
 
     // Create deterministic result based on all inputs
@@ -158,7 +158,7 @@ export const sortRestaurants = (
   userLocation: UserLocation | null,
   favoriteCuisines: string[] | undefined,
   favorites: Set<string>,
-  availableOnly: boolean
+  availableOnly: boolean,
 ): Restaurant[] => {
   return [...restaurants].sort((a, b) => {
     switch (sortBy) {
@@ -194,7 +194,7 @@ export const sortRestaurants = (
 // Apply feature filters to restaurants
 export const applyFeatureFilters = (
   restaurants: Restaurant[],
-  features: string[]
+  features: string[],
 ): Restaurant[] => {
   if (features.length === 0) return restaurants;
 
@@ -202,14 +202,14 @@ export const applyFeatureFilters = (
     features.every((feature) => {
       const featureField = FEATURES.find((f) => f.id === feature)?.field;
       return featureField && restaurant[featureField as keyof Restaurant];
-    })
+    }),
   );
 };
 
 // Calculate active filter count
 export const calculateActiveFilterCount = (
   generalFilters: GeneralFilters,
-  bookingFilters: BookingFilters
+  bookingFilters: BookingFilters,
 ): number => {
   let count = 0;
   if (generalFilters.sortBy !== "recommended") count++;

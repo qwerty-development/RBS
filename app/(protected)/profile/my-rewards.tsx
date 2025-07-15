@@ -71,7 +71,9 @@ const RewardStatus: React.FC<{ reward: EnrichedOffer }> = ({ reward }) => {
     <View className="flex-row items-center bg-blue-100 px-3 py-1 rounded-full">
       <Gift size={14} color="#2563eb" />
       <Text className="text-blue-700 text-sm ml-1">
-        {reward.daysUntilExpiry === 0 ? "Expires today" : `${reward.daysUntilExpiry}d left`}
+        {reward.daysUntilExpiry === 0
+          ? "Expires today"
+          : `${reward.daysUntilExpiry}d left`}
       </Text>
     </View>
   );
@@ -108,21 +110,25 @@ const ClaimedRewardCard: React.FC<{
           <Text className="text-sm text-muted-foreground mb-2">
             {offer.description}
           </Text>
-          
+
           {/* Restaurant info */}
           <Pressable
             onPress={() => onViewRestaurant(restaurant.id)}
             className="flex-row items-center gap-2 mb-2"
           >
             <MapPin size={14} color="#666" />
-            <Text className="text-sm text-primary underline">{restaurant.name}</Text>
+            <Text className="text-sm text-primary underline">
+              {restaurant.name}
+            </Text>
             <ExternalLink size={12} color="#666" />
           </Pressable>
 
           {/* Discount info */}
           <View className="flex-row items-center gap-2 mb-2">
             <View className="bg-primary/10 px-3 py-1 rounded-full">
-              <Text className="text-primary font-bold">{offer.discount_percentage}% OFF</Text>
+              <Text className="text-primary font-bold">
+                {offer.discount_percentage}% OFF
+              </Text>
             </View>
             {offer.minimum_party_size > 1 && (
               <View className="bg-muted px-3 py-1 rounded-full">
@@ -176,15 +182,12 @@ const ClaimedRewardCard: React.FC<{
       {/* Action buttons */}
       <View className="flex-row gap-3">
         {reward.canUse && !reward.used_at && (
-          <Button
-            onPress={() => onUse(reward)}
-            className="flex-1"
-          >
+          <Button onPress={() => onUse(reward)} className="flex-1">
             <QrCode size={16} color="white" className="mr-2" />
             <Text className="text-white font-medium">Use Reward</Text>
           </Button>
         )}
-        
+
         <Button
           variant="outline"
           onPress={() => onShare(reward)}
@@ -211,7 +214,9 @@ export default function MyRewardsScreen() {
     error,
     fetchOffers,
   } = useOffers();
-  const [filter, setFilter] = useState<"all" | "active" | "used" | "expired">("all");
+  const [filter, setFilter] = useState<"all" | "active" | "used" | "expired">(
+    "all",
+  );
   const [processingId, setProcessingId] = useState<string | null>(null);
   // Filtering
   const all = getClaimedOffers();
@@ -235,7 +240,9 @@ export default function MyRewardsScreen() {
             setProcessingId(reward.id);
             try {
               await useOffer(reward.id);
-              await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              await Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success,
+              );
               Alert.alert("Success", "Reward marked as used!");
             } catch (error: any) {
               console.error("Error using reward:", error);
@@ -244,7 +251,7 @@ export default function MyRewardsScreen() {
             setProcessingId(null);
           },
         },
-      ]
+      ],
     );
   };
   // Handler for sharing
@@ -281,12 +288,19 @@ export default function MyRewardsScreen() {
             onPress={() => router.back()}
             className="p-2 rounded-full bg-muted"
           >
-            <ArrowLeft size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+            <ArrowLeft
+              size={20}
+              color={colorScheme === "dark" ? "#fff" : "#000"}
+            />
           </Pressable>
           <H2>My Rewards</H2>
         </View>
         {/* Filter tabs */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="mb-2"
+        >
           <View className="flex-row gap-2">
             {[
               { key: "all", label: "All", count: all.length },

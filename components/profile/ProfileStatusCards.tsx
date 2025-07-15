@@ -1,7 +1,6 @@
 import React from "react";
-import { View } from "react-native";
+import { View, ActivityIndicator } from "react-native";
 import { Trophy, Award } from "lucide-react-native";
-import { ActivityIndicator } from "react-native";
 
 import { Text } from "@/components/ui/text";
 import { UserRating } from "@/components/rating/UserRating";

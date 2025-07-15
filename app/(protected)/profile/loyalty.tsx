@@ -129,44 +129,54 @@ const TierBadge: React.FC<{
   const IconComponent = config.icon;
   const isLarge = size === "large";
 
-  const nextTier = tier === "platinum" ? null : 
-    Object.entries(TIER_CONFIG).find(([_, c]) => c.minPoints > points)?.[0] as TierType;
-  
-  const progress = nextTier ? 
-    ((points - config.minPoints) / (TIER_CONFIG[nextTier].minPoints - config.minPoints)) * 100 : 100;
+  const nextTier =
+    tier === "platinum"
+      ? null
+      : (Object.entries(TIER_CONFIG).find(
+          ([_, c]) => c.minPoints > points,
+        )?.[0] as TierType);
+
+  const progress = nextTier
+    ? ((points - config.minPoints) /
+        (TIER_CONFIG[nextTier].minPoints - config.minPoints)) *
+      100
+    : 100;
 
   return (
     <View className={`items-center ${isLarge ? "p-4" : "p-2"}`}>
       <View className={`flex-row items-center gap-2 mb-2`}>
-        <IconComponent 
-          size={isLarge ? 24 : 16} 
-          color={config.color} 
-        />
-        <Text className={`font-bold ${isLarge ? "text-lg" : "text-sm"}`} style={{ color: config.color }}>
+        <IconComponent size={isLarge ? 24 : 16} color={config.color} />
+        <Text
+          className={`font-bold ${isLarge ? "text-lg" : "text-sm"}`}
+          style={{ color: config.color }}
+        >
           {config.name}
         </Text>
       </View>
-      
+
       {isLarge && (
         <>
           <Text className="text-center text-muted-foreground mb-2">
             {points} points
           </Text>
-          
+
           {nextTier && (
             <View className="w-full">
               <View className="flex-row justify-between mb-1">
-                <Text className="text-sm">Progress to {TIER_CONFIG[nextTier].name}</Text>
+                <Text className="text-sm">
+                  Progress to {TIER_CONFIG[nextTier].name}
+                </Text>
                 <Text className="text-sm">{Math.round(progress)}%</Text>
               </View>
               <View className="w-full h-2 bg-muted rounded-full">
-                <View 
-                  className="h-full bg-primary rounded-full" 
+                <View
+                  className="h-full bg-primary rounded-full"
                   style={{ width: `${Math.min(progress, 100)}%` }}
                 />
               </View>
               <Text className="text-xs text-muted-foreground mt-1">
-                {TIER_CONFIG[nextTier].minPoints - points} points to {TIER_CONFIG[nextTier].name}
+                {TIER_CONFIG[nextTier].minPoints - points} points to{" "}
+                {TIER_CONFIG[nextTier].name}
               </Text>
             </View>
           )}
@@ -185,8 +195,11 @@ const RewardCard: React.FC<{
   loading?: boolean;
 }> = ({ reward, userPoints, userTier, onRedeem, loading }) => {
   const canAfford = userPoints >= reward.pointsCost;
-  const tierAllowed = TIER_CONFIG[userTier].minPoints >= TIER_CONFIG[reward.tierRequired].minPoints;
-  const isRedeemable = canAfford && tierAllowed && reward.isAvailable && !reward.claimed;
+  const tierAllowed =
+    TIER_CONFIG[userTier].minPoints >=
+    TIER_CONFIG[reward.tierRequired].minPoints;
+  const isRedeemable =
+    canAfford && tierAllowed && reward.isAvailable && !reward.claimed;
   const { colorScheme } = useColorScheme();
 
   const categoryConfig = REWARD_CATEGORIES[reward.category];
@@ -203,12 +216,16 @@ const RewardCard: React.FC<{
         <View className="flex-1">
           {/* Header with title and points */}
           <View className="flex-row items-center gap-2 mb-2">
-            <Text className={`font-bold text-lg ${isRedeemable ? "" : "text-muted-foreground"}`}>
+            <Text
+              className={`font-bold text-lg ${isRedeemable ? "" : "text-muted-foreground"}`}
+            >
               {reward.title}
             </Text>
             <View className="flex-row items-center bg-primary/10 px-2 py-1 rounded-full">
               <Star size={14} color="#3b82f6" />
-              <Text className="text-primary text-sm ml-1">{reward.pointsCost}</Text>
+              <Text className="text-primary text-sm ml-1">
+                {reward.pointsCost}
+              </Text>
             </View>
           </View>
 
@@ -230,10 +247,10 @@ const RewardCard: React.FC<{
                 reward.category === "food"
                   ? "bg-green-100"
                   : reward.category === "discount"
-                  ? "bg-blue-100"
-                  : reward.category === "experience"
-                  ? "bg-purple-100"
-                  : "bg-orange-100"
+                    ? "bg-blue-100"
+                    : reward.category === "experience"
+                      ? "bg-purple-100"
+                      : "bg-orange-100"
               }`}
             >
               <Text
@@ -241,10 +258,10 @@ const RewardCard: React.FC<{
                   reward.category === "food"
                     ? "text-green-700"
                     : reward.category === "discount"
-                    ? "text-blue-700"
-                    : reward.category === "experience"
-                    ? "text-purple-700"
-                    : "text-orange-700"
+                      ? "text-blue-700"
+                      : reward.category === "experience"
+                        ? "text-purple-700"
+                        : "text-orange-700"
                 }`}
               >
                 {categoryConfig.name}
@@ -255,7 +272,10 @@ const RewardCard: React.FC<{
             {reward.tierRequired !== "bronze" && (
               <View className="flex-row items-center bg-yellow-100 px-2 py-1 rounded-full">
                 <tierConfig.icon size={12} color={tierConfig.color} />
-                <Text className="text-xs ml-1" style={{ color: tierConfig.color }}>
+                <Text
+                  className="text-xs ml-1"
+                  style={{ color: tierConfig.color }}
+                >
                   {tierConfig.name}+
                 </Text>
               </View>
@@ -296,7 +316,13 @@ const RewardCard: React.FC<{
           ) : (
             <ChevronRight
               size={20}
-              color={isRedeemable ? "#3b82f6" : colorScheme === "dark" ? "#666" : "#999"}
+              color={
+                isRedeemable
+                  ? "#3b82f6"
+                  : colorScheme === "dark"
+                    ? "#666"
+                    : "#999"
+              }
             />
           )}
         </View>
@@ -334,14 +360,16 @@ export default function LoyaltyScreen() {
 
     try {
       const now = new Date().toISOString();
-      
+
       // Fetch available special offers as rewards
       const { data: offersData, error: offersError } = await supabase
         .from("special_offers")
-        .select(`
+        .select(
+          `
           *,
           restaurant:restaurants (*)
-        `)
+        `,
+        )
         .lte("valid_from", now)
         .gte("valid_until", now);
 
@@ -356,49 +384,62 @@ export default function LoyaltyScreen() {
       if (claimedError) throw claimedError;
 
       const claimedMap = new Map(
-        claimedData?.map((c) => [c.offer_id, { claimed: true, used: !!c.used_at }]) || []
+        claimedData?.map((c) => [
+          c.offer_id,
+          { claimed: true, used: !!c.used_at },
+        ]) || [],
       );
 
       // Transform offers into loyalty rewards
-      const loyaltyRewards: LoyaltyReward[] = (offersData || []).map((offer) => {
-        const claimed = claimedMap.get(offer.id);
-        
-        // Calculate point cost based on discount percentage
-        const basePointCost = Math.max(offer.discount_percentage * 20, 100);
-        
-        // Determine category based on discount and terms
-        let category: LoyaltyReward["category"] = "discount";
-        if (offer.title.toLowerCase().includes("dessert") || offer.title.toLowerCase().includes("appetizer")) {
-          category = "food";
-        } else if (offer.title.toLowerCase().includes("vip") || offer.title.toLowerCase().includes("chef")) {
-          category = "experience";
-        } else if (offer.discount_percentage >= 50) {
-          category = "tier_exclusive";
-        }
+      const loyaltyRewards: LoyaltyReward[] = (offersData || []).map(
+        (offer) => {
+          const claimed = claimedMap.get(offer.id);
 
-        // Determine tier requirement based on discount value
-        let tierRequired: TierType = "bronze";
-        if (offer.discount_percentage >= 50) {
-          tierRequired = "platinum";
-        } else if (offer.discount_percentage >= 30) {
-          tierRequired = "gold";
-        } else if (offer.discount_percentage >= 20) {
-          tierRequired = "silver";
-        }
+          // Calculate point cost based on discount percentage
+          const basePointCost = Math.max(offer.discount_percentage * 20, 100);
 
-        const categoryConfig = REWARD_CATEGORIES[category];
-        const pointsCost = Math.round(basePointCost * categoryConfig.multiplier);
+          // Determine category based on discount and terms
+          let category: LoyaltyReward["category"] = "discount";
+          if (
+            offer.title.toLowerCase().includes("dessert") ||
+            offer.title.toLowerCase().includes("appetizer")
+          ) {
+            category = "food";
+          } else if (
+            offer.title.toLowerCase().includes("vip") ||
+            offer.title.toLowerCase().includes("chef")
+          ) {
+            category = "experience";
+          } else if (offer.discount_percentage >= 50) {
+            category = "tier_exclusive";
+          }
 
-        return {
-          ...offer,
-          pointsCost,
-          category,
-          tierRequired,
-          claimed: claimed?.claimed || false,
-          used: claimed?.used || false,
-          isAvailable: true,
-        };
-      });
+          // Determine tier requirement based on discount value
+          let tierRequired: TierType = "bronze";
+          if (offer.discount_percentage >= 50) {
+            tierRequired = "platinum";
+          } else if (offer.discount_percentage >= 30) {
+            tierRequired = "gold";
+          } else if (offer.discount_percentage >= 20) {
+            tierRequired = "silver";
+          }
+
+          const categoryConfig = REWARD_CATEGORIES[category];
+          const pointsCost = Math.round(
+            basePointCost * categoryConfig.multiplier,
+          );
+
+          return {
+            ...offer,
+            pointsCost,
+            category,
+            tierRequired,
+            claimed: claimed?.claimed || false,
+            used: claimed?.used || false,
+            isAvailable: true,
+          };
+        },
+      );
 
       setRewards(loyaltyRewards);
     } catch (error) {
@@ -411,61 +452,80 @@ export default function LoyaltyScreen() {
   }, [profile?.id]);
 
   // Handle reward redemption
-  const handleRedeemReward = useCallback(async (reward: LoyaltyReward) => {
-    if (!profile?.id) return;
-    const canAfford = userPoints >= reward.pointsCost;
-    const tierAllowed = TIER_CONFIG[userTier].minPoints >= TIER_CONFIG[reward.tierRequired].minPoints;
-    if (!canAfford) {
-      Alert.alert("Insufficient Points", `You need ${reward.pointsCost - userPoints} more points to redeem this reward.`);
-      return;
-    }
-    if (!tierAllowed) {
-      Alert.alert("Tier Required", `This reward requires ${TIER_CONFIG[reward.tierRequired].name} tier or higher.`);
-      return;
-    }
-    Alert.alert(
-      "Redeem Reward",
-      `Redeem "${reward.title}" for ${reward.pointsCost} points?\n\nThis will deduct ${reward.pointsCost} points from your account.`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Redeem",
-          onPress: async () => {
-            setRedeemingId(reward.id);
-            try {
-              // Deduct points
-              const { error: deductError } = await supabase.rpc("award_loyalty_points", {
-                p_user_id: profile.id,
-                p_points: -reward.pointsCost,
-              });
-              if (deductError) throw deductError;
-              // Claim the offer using the hook
-              await claimOffer(reward.id);
-              // Refresh profile to get updated points
-              await refreshProfile();
-              await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-              Alert.alert(
-                "Reward Redeemed!",
-                `"${reward.title}" has been added to your account. Show this at ${reward.restaurant.name} to use your reward.`,
-                [
+  const handleRedeemReward = useCallback(
+    async (reward: LoyaltyReward) => {
+      if (!profile?.id) return;
+      const canAfford = userPoints >= reward.pointsCost;
+      const tierAllowed =
+        TIER_CONFIG[userTier].minPoints >=
+        TIER_CONFIG[reward.tierRequired].minPoints;
+      if (!canAfford) {
+        Alert.alert(
+          "Insufficient Points",
+          `You need ${reward.pointsCost - userPoints} more points to redeem this reward.`,
+        );
+        return;
+      }
+      if (!tierAllowed) {
+        Alert.alert(
+          "Tier Required",
+          `This reward requires ${TIER_CONFIG[reward.tierRequired].name} tier or higher.`,
+        );
+        return;
+      }
+      Alert.alert(
+        "Redeem Reward",
+        `Redeem "${reward.title}" for ${reward.pointsCost} points?\n\nThis will deduct ${reward.pointsCost} points from your account.`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Redeem",
+            onPress: async () => {
+              setRedeemingId(reward.id);
+              try {
+                // Deduct points
+                const { error: deductError } = await supabase.rpc(
+                  "award_loyalty_points",
                   {
-                    text: "View My Rewards",
-                    onPress: () => router.push("/profile/my-rewards"),
+                    p_user_id: profile.id,
+                    p_points: -reward.pointsCost,
                   },
-                  { text: "OK" },
-                ]
-              );
-            } catch (error) {
-              console.error("Error redeeming reward:", error);
-              Alert.alert("Error", error.message || "Failed to redeem reward. Please try again.");
-            } finally {
-              setRedeemingId(null);
-            }
+                );
+                if (deductError) throw deductError;
+                // Claim the offer using the hook
+                await claimOffer(reward.id);
+                // Refresh profile to get updated points
+                await refreshProfile();
+                await Haptics.notificationAsync(
+                  Haptics.NotificationFeedbackType.Success,
+                );
+                Alert.alert(
+                  "Reward Redeemed!",
+                  `"${reward.title}" has been added to your account. Show this at ${reward.restaurant.name} to use your reward.`,
+                  [
+                    {
+                      text: "View My Rewards",
+                      onPress: () => router.push("/profile/my-rewards"),
+                    },
+                    { text: "OK" },
+                  ],
+                );
+              } catch (error) {
+                console.error("Error redeeming reward:", error);
+                Alert.alert(
+                  "Error",
+                  error.message || "Failed to redeem reward. Please try again.",
+                );
+              } finally {
+                setRedeemingId(null);
+              }
+            },
           },
-        },
-      ]
-    );
-  }, [profile?.id, userPoints, userTier, refreshProfile, router, claimOffer]);
+        ],
+      );
+    },
+    [profile?.id, userPoints, userTier, refreshProfile, router, claimOffer],
+  );
 
   // Refresh handler
   const handleRefresh = useCallback(() => {
@@ -483,13 +543,16 @@ export default function LoyaltyScreen() {
 
   // Group rewards by category
   const rewardsByCategory = useMemo(() => {
-    return rewards.reduce((acc, reward) => {
-      if (!acc[reward.category]) {
-        acc[reward.category] = [];
-      }
-      acc[reward.category].push(reward);
-      return acc;
-    }, {} as Record<string, LoyaltyReward[]>);
+    return rewards.reduce(
+      (acc, reward) => {
+        if (!acc[reward.category]) {
+          acc[reward.category] = [];
+        }
+        acc[reward.category].push(reward);
+        return acc;
+      },
+      {} as Record<string, LoyaltyReward[]>,
+    );
   }, [rewards]);
 
   if (loading && !refreshing) {
@@ -498,7 +561,7 @@ export default function LoyaltyScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <ScrollView 
+      <ScrollView
         className="flex-1"
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
@@ -511,7 +574,10 @@ export default function LoyaltyScreen() {
               onPress={() => router.back()}
               className="mr-3 p-2 rounded-full bg-background"
             >
-              <ArrowLeft size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+              <ArrowLeft
+                size={20}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+              />
             </Pressable>
             <View className="flex-row items-center gap-3">
               <Trophy size={24} color="#3b82f6" />
@@ -527,18 +593,26 @@ export default function LoyaltyScreen() {
         <View className="p-4 border-b border-border">
           <View className="flex-row justify-around">
             <View className="items-center">
-              <Text className="text-2xl font-bold text-primary">{userPoints}</Text>
-              <Text className="text-sm text-muted-foreground">Total Points</Text>
+              <Text className="text-2xl font-bold text-primary">
+                {userPoints}
+              </Text>
+              <Text className="text-sm text-muted-foreground">
+                Total Points
+              </Text>
             </View>
             <View className="items-center">
               <Text className="text-2xl font-bold text-green-600">
-                {rewards.filter(r => r.claimed).length}
+                {rewards.filter((r) => r.claimed).length}
               </Text>
               <Text className="text-sm text-muted-foreground">Claimed</Text>
             </View>
             <View className="items-center">
               <Text className="text-2xl font-bold text-blue-600">
-                {rewards.filter(r => !r.claimed && userPoints >= r.pointsCost).length}
+                {
+                  rewards.filter(
+                    (r) => !r.claimed && userPoints >= r.pointsCost,
+                  ).length
+                }
               </Text>
               <Text className="text-sm text-muted-foreground">Available</Text>
             </View>
@@ -556,30 +630,36 @@ export default function LoyaltyScreen() {
               </Text>
             </View>
           ) : (
-            Object.entries(rewardsByCategory).map(([category, categoryRewards]) => (
-              <View key={category} className="mb-6">
-                <View className="flex-row items-center gap-2 mb-3">
-                  <H3 className="capitalize">
-                    {REWARD_CATEGORIES[category as keyof typeof REWARD_CATEGORIES].name}
-                  </H3>
-                  <View className="bg-primary/10 px-2 py-1 rounded-full">
-                    <Text className="text-xs text-primary">
-                      {categoryRewards.length}
-                    </Text>
+            Object.entries(rewardsByCategory).map(
+              ([category, categoryRewards]) => (
+                <View key={category} className="mb-6">
+                  <View className="flex-row items-center gap-2 mb-3">
+                    <H3 className="capitalize">
+                      {
+                        REWARD_CATEGORIES[
+                          category as keyof typeof REWARD_CATEGORIES
+                        ].name
+                      }
+                    </H3>
+                    <View className="bg-primary/10 px-2 py-1 rounded-full">
+                      <Text className="text-xs text-primary">
+                        {categoryRewards.length}
+                      </Text>
+                    </View>
                   </View>
+                  {categoryRewards.map((reward) => (
+                    <RewardCard
+                      key={reward.id}
+                      reward={reward}
+                      userPoints={userPoints}
+                      userTier={userTier}
+                      onRedeem={handleRedeemReward}
+                      loading={redeemingId === reward.id}
+                    />
+                  ))}
                 </View>
-                {categoryRewards.map((reward) => (
-                  <RewardCard
-                    key={reward.id}
-                    reward={reward}
-                    userPoints={userPoints}
-                    userTier={userTier}
-                    onRedeem={handleRedeemReward}
-                    loading={redeemingId === reward.id}
-                  />
-                ))}
-              </View>
-            ))
+              ),
+            )
           )}
         </View>
 
@@ -600,8 +680,9 @@ export default function LoyaltyScreen() {
             <Info size={16} color="#666" className="mt-1" />
             <View className="flex-1">
               <Text className="text-sm text-muted-foreground">
-                Points are earned by dining at participating restaurants and leaving reviews. 
-                Redeemed rewards expire 30 days after redemption. Terms and conditions apply.
+                Points are earned by dining at participating restaurants and
+                leaving reviews. Redeemed rewards expire 30 days after
+                redemption. Terms and conditions apply.
               </Text>
             </View>
           </View>

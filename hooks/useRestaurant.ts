@@ -71,7 +71,7 @@ interface UseRestaurantReturn {
   handleBooking: (
     selectedDate: Date,
     selectedTime: string,
-    partySize: number
+    partySize: number,
   ) => void;
   navigateToCreateReview: () => void;
   refresh: () => Promise<void>;
@@ -86,13 +86,13 @@ interface UseRestaurantReturn {
   generateTimeSlots: (
     openTime: string,
     closeTime: string,
-    intervalMinutes?: number
+    intervalMinutes?: number,
   ) => { time: string }[];
   fetchAvailableSlots: (date: Date, partySize: number) => Promise<void>;
 }
 
 export function useRestaurant(
-  restaurantId: string | undefined
+  restaurantId: string | undefined,
 ): UseRestaurantReturn {
   const router = useRouter();
   const { profile } = useAuth();
@@ -139,7 +139,7 @@ export function useRestaurant(
       console.warn("Unable to parse location:", location);
       return null;
     },
-    []
+    [],
   );
 
   const isRestaurantOpen = useCallback((restaurant: Restaurant): boolean => {
@@ -172,10 +172,10 @@ export function useRestaurant(
   const handleWhatsApp = useCallback((restaurant: Restaurant) => {
     if (!restaurant?.whatsapp_number) return;
     const message = encodeURIComponent(
-      `Hi! I'd like to inquire about making a reservation at ${restaurant.name}.`
+      `Hi! I'd like to inquire about making a reservation at ${restaurant.name}.`,
     );
     Linking.openURL(
-      `whatsapp://send?phone=${restaurant.whatsapp_number}&text=${message}`
+      `whatsapp://send?phone=${restaurant.whatsapp_number}&text=${message}`,
     );
   }, []);
 
@@ -214,7 +214,7 @@ export function useRestaurant(
         });
       }
     },
-    [extractLocationCoordinates]
+    [extractLocationCoordinates],
   );
 
   const generateTimeSlots = useCallback(
@@ -252,7 +252,7 @@ export function useRestaurant(
         }
 
         console.log(
-          `Generated ${slots.length} time slots from ${openTime} to ${closeTime}`
+          `Generated ${slots.length} time slots from ${openTime} to ${closeTime}`,
         );
         return slots;
       } catch (error) {
@@ -269,7 +269,7 @@ export function useRestaurant(
         ];
       }
     },
-    []
+    [],
   );
 
   // Calculate review summary from reviews data
@@ -281,7 +281,7 @@ export function useRestaurant(
     const totalReviews = reviewsData.length;
     const totalRating = reviewsData.reduce(
       (sum, review) => sum + (review.rating || 0),
-      0
+      0,
     );
     const averageRating = totalRating / totalReviews;
 
@@ -336,7 +336,7 @@ export function useRestaurant(
 
     // Calculate recommendation percentage
     const recommendationsCount = reviewsData.filter(
-      (r) => r.recommend_to_friend
+      (r) => r.recommend_to_friend,
     ).length;
     const recommendationPercentage =
       totalReviews > 0
@@ -364,7 +364,7 @@ export function useRestaurant(
         const baseSlots = generateTimeSlots(
           restaurant.opening_time || "17:00",
           restaurant.closing_time || "23:00",
-          30
+          30,
         );
 
         // Simulate availability check (replace with real API call)
@@ -382,7 +382,7 @@ export function useRestaurant(
         setLoadingSlots(false);
       }
     },
-    [restaurantId, restaurant, generateTimeSlots]
+    [restaurantId, restaurant, generateTimeSlots],
   );
 
   // Main data fetching
@@ -435,7 +435,7 @@ export function useRestaurant(
             full_name,
             avatar_url
           )
-        `
+        `,
         )
         .eq("restaurant_id", restaurantId)
         .order("created_at", { ascending: false })
@@ -555,7 +555,7 @@ export function useRestaurant(
         },
       });
     },
-    [restaurantId, restaurant, router]
+    [restaurantId, restaurant, router],
   );
 
   const navigateToCreateReview = useCallback(() => {

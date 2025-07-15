@@ -10,7 +10,7 @@ export default function SocialLayout() {
     <Stack
       screenOptions={{
         headerShown: false,
-     
+
         headerShadowVisible: false,
       }}
     >
@@ -18,7 +18,7 @@ export default function SocialLayout() {
         name="index"
         options={{
           title: "Social",
-          headerShown:false
+          headerShown: false,
         }}
       />
       <Stack.Screen

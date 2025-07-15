@@ -38,9 +38,8 @@ import { Image } from "@/components/image";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { supabase } from "@/config/supabase";
-import { usePlaylists, Playlist } from "@/hooks/usePlaylists";
+import { usePlaylists, Playlist, PlaylistItem } from "@/hooks/usePlaylists";
 import { usePlaylistItems } from "@/hooks/usePlaylistItems";
-import { PlaylistItem } from "@/hooks/usePlaylists"
 import { useDeletePlaylist } from "@/hooks/useDeletePlaylist";
 
 import { usePlaylistSharing } from "@/hooks/usePlaylistSharing";
@@ -58,13 +57,15 @@ export default function PlaylistDetailScreen() {
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();
   const { id } = useLocalSearchParams<PlaylistParams>();
-  
+
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
-  const [userPermission, setUserPermission] = useState<'view' | 'edit' | null>(null);
+  const [userPermission, setUserPermission] = useState<"view" | "edit" | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
-  
+
   const { updatePlaylist } = usePlaylists();
   const { deletePlaylist } = useDeletePlaylist({
     onSuccess: () => {
@@ -79,29 +80,27 @@ export default function PlaylistDetailScreen() {
     reorderItems,
     handleRefresh,
   } = usePlaylistItems(id);
-  
-  const {
-    collaborators,
-    togglePublicAccess,
-    sharePlaylist,
-    copyShareLink,
-  } = usePlaylistSharing(id);
+
+  const { collaborators, togglePublicAccess, sharePlaylist, copyShareLink } =
+    usePlaylistSharing(id);
 
   // Fetch playlist details and user permission
   const fetchPlaylistDetails = useCallback(async () => {
     try {
       // Fetch playlist details
       const { data: playlistData, error: playlistError } = await supabase
-        .from('restaurant_playlists')
-        .select(`
+        .from("restaurant_playlists")
+        .select(
+          `
           *,
           owner:profiles!restaurant_playlists_user_id_fkey (
             id,
             full_name,
             avatar_url
           )
-        `)
-        .eq('id', id)
+        `,
+        )
+        .eq("id", id)
         .single();
 
       if (playlistError) throw playlistError;
@@ -109,12 +108,13 @@ export default function PlaylistDetailScreen() {
 
       // Check user's collaboration status if not owner
       if (playlistData.user_id !== profile?.id) {
-        const { data: collaborationData, error: collaborationError } = await supabase
-          .from('playlist_collaborators')
-          .select('permission, accepted_at')
-          .eq('playlist_id', id)
-          .eq('user_id', profile?.id)
-          .single();
+        const { data: collaborationData, error: collaborationError } =
+          await supabase
+            .from("playlist_collaborators")
+            .select("permission, accepted_at")
+            .eq("playlist_id", id)
+            .eq("user_id", profile?.id)
+            .single();
 
         if (!collaborationError && collaborationData?.accepted_at) {
           setUserPermission(collaborationData.permission);
@@ -122,11 +122,11 @@ export default function PlaylistDetailScreen() {
           setUserPermission(null);
         }
       } else {
-        setUserPermission('edit'); // Owner has edit permission
+        setUserPermission("edit"); // Owner has edit permission
       }
     } catch (error) {
-      console.error('Error fetching playlist:', error);
-      Alert.alert('Error', 'Failed to load playlist');
+      console.error("Error fetching playlist:", error);
+      Alert.alert("Error", "Failed to load playlist");
       router.back();
     } finally {
       setLoading(false);
@@ -142,12 +142,15 @@ export default function PlaylistDetailScreen() {
     router.back();
   }, [router]);
 
-  const handleRestaurantPress = useCallback((restaurantId: string) => {
-    router.push({
-      pathname: "/restaurant/[id]",
-      params: { id: restaurantId },
-    });
-  }, [router]);
+  const handleRestaurantPress = useCallback(
+    (restaurantId: string) => {
+      router.push({
+        pathname: "/restaurant/[id]",
+        params: { id: restaurantId },
+      });
+    },
+    [router],
+  );
 
   const handleAddRestaurants = useCallback(() => {
     router.push({
@@ -157,19 +160,18 @@ export default function PlaylistDetailScreen() {
   }, [router, id]);
 
   // Playlist actions
-  const handleEditPlaylist = useCallback(async (data: {
-    name: string;
-    description: string;
-    emoji: string;
-  }) => {
-    if (!playlist) return;
+  const handleEditPlaylist = useCallback(
+    async (data: { name: string; description: string; emoji: string }) => {
+      if (!playlist) return;
 
-    const success = await updatePlaylist(playlist.id, data);
-    if (success) {
-      setShowEditModal(false);
-      fetchPlaylistDetails();
-    }
-  }, [playlist, updatePlaylist, fetchPlaylistDetails]);
+      const success = await updatePlaylist(playlist.id, data);
+      if (success) {
+        setShowEditModal(false);
+        fetchPlaylistDetails();
+      }
+    },
+    [playlist, updatePlaylist, fetchPlaylistDetails],
+  );
 
   const handleDeletePlaylist = useCallback(async () => {
     if (!playlist) return;
@@ -186,25 +188,23 @@ export default function PlaylistDetailScreen() {
             await deletePlaylist(playlist.id, playlist.name);
           },
         },
-      ]
+      ],
     );
   }, [playlist, deletePlaylist, router]);
 
   const handleTogglePublic = useCallback(async () => {
     if (!playlist) return;
 
-    const { success, shareCode } = await togglePublicAccess(!playlist.is_public);
+    const { success, shareCode } = await togglePublicAccess(
+      !playlist.is_public,
+    );
     if (success) {
       fetchPlaylistDetails();
       if (!playlist.is_public && shareCode) {
-        Alert.alert(
-          "Playlist is now public!",
-          `Share code: ${shareCode}`,
-          [
-            { text: "Copy Code", onPress: () => copyShareLink(shareCode) },
-            { text: "OK" },
-          ]
-        );
+        Alert.alert("Playlist is now public!", `Share code: ${shareCode}`, [
+          { text: "Copy Code", onPress: () => copyShareLink(shareCode) },
+          { text: "OK" },
+        ]);
       }
     }
   }, [playlist, togglePublicAccess, copyShareLink, fetchPlaylistDetails]);
@@ -222,7 +222,7 @@ export default function PlaylistDetailScreen() {
             text: "Make Public",
             onPress: handleTogglePublic,
           },
-        ]
+        ],
       );
       return;
     }
@@ -233,31 +233,34 @@ export default function PlaylistDetailScreen() {
   }, [playlist, handleTogglePublic, sharePlaylist]);
 
   // Render draggable item
-  const renderItem = useCallback(({ item, drag, isActive }: RenderItemParams<PlaylistItem>) => {
-    const canEdit = userPermission === 'edit';
-    
-    return (
-      <ScaleDecorator>
-        <Pressable
-          onLongPress={canEdit ? drag : undefined}
-          disabled={isActive || !canEdit}
-          className={`mb-3 ${isActive ? "opacity-50" : ""}`}
-        >
-          <RestaurantSearchCard
-            restaurant={item.restaurant}
-            onPress={() => handleRestaurantPress(item.restaurant.id)}
-            variant="compact"
-            showActions={false}
-          />
-          {item.note && (
-            <View className="mt-1 mx-2">
-              <Muted className="text-sm italic">"{item.note}"</Muted>
-            </View>
-          )}
-        </Pressable>
-      </ScaleDecorator>
-    );
-  }, [handleRestaurantPress, userPermission]);
+  const renderItem = useCallback(
+    ({ item, drag, isActive }: RenderItemParams<PlaylistItem>) => {
+      const canEdit = userPermission === "edit";
+
+      return (
+        <ScaleDecorator>
+          <Pressable
+            onLongPress={canEdit ? drag : undefined}
+            disabled={isActive || !canEdit}
+            className={`mb-3 ${isActive ? "opacity-50" : ""}`}
+          >
+            <RestaurantSearchCard
+              restaurant={item.restaurant}
+              onPress={() => handleRestaurantPress(item.restaurant.id)}
+              variant="compact"
+              showActions={false}
+            />
+            {item.note && (
+              <View className="mt-1 mx-2">
+                <Muted className="text-sm italic">"{item.note}"</Muted>
+              </View>
+            )}
+          </Pressable>
+        </ScaleDecorator>
+      );
+    },
+    [handleRestaurantPress, userPermission],
+  );
 
   // Loading state
   if (loading || !playlist) {
@@ -267,8 +270,9 @@ export default function PlaylistDetailScreen() {
   if (!playlist) return null;
 
   const isOwner = playlist.user_id === profile?.id;
-  const canEdit = userPermission === 'edit';
-  const canView = userPermission === 'view' || userPermission === 'edit' || isOwner;
+  const canEdit = userPermission === "edit";
+  const canView =
+    userPermission === "view" || userPermission === "edit" || isOwner;
 
   // If user doesn't have permission to view this playlist
   if (!canView && !playlist.is_public) {
@@ -291,11 +295,14 @@ export default function PlaylistDetailScreen() {
       <View className="bg-white dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
         <View className="flex-row items-center">
           <Pressable onPress={handleBack} className="p-2 -ml-2">
-            <ArrowLeft size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
+            <ArrowLeft
+              size={24}
+              color={colorScheme === "dark" ? "#fff" : "#000"}
+            />
           </Pressable>
-          
+
           <Text className="text-3xl mx-3">{playlist.emoji}</Text>
-          
+
           <View className="flex-1">
             <H3 numberOfLines={1}>{playlist.name}</H3>
             {playlist.description && (
@@ -307,7 +314,10 @@ export default function PlaylistDetailScreen() {
 
           {isOwner && (
             <Pressable onPress={() => setShowEditModal(true)} className="p-2">
-              <Settings size={22} color={colorScheme === "dark" ? "#fff" : "#000"} />
+              <Settings
+                size={22}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+              />
             </Pressable>
           )}
         </View>
@@ -324,21 +334,21 @@ export default function PlaylistDetailScreen() {
               {playlist.is_public ? "Public" : "Private"}
             </Muted>
           </View>
-          
+
           {/* User Permission Indicator */}
           {!isOwner && userPermission && (
             <View className="flex-row items-center">
-              {userPermission === 'edit' ? (
+              {userPermission === "edit" ? (
                 <Edit3 size={14} color="#10b981" className="mr-1" />
               ) : (
                 <Lock size={14} color="#6b7280" className="mr-1" />
               )}
               <Muted className="text-sm">
-                {userPermission === 'edit' ? 'Can edit' : 'View only'}
+                {userPermission === "edit" ? "Can edit" : "View only"}
               </Muted>
             </View>
           )}
-          
+
           {playlist.share_code && (
             <Pressable
               onPress={() => copyShareLink(playlist.share_code!)}
@@ -348,7 +358,7 @@ export default function PlaylistDetailScreen() {
               <Muted className="text-sm">{playlist.share_code}</Muted>
             </Pressable>
           )}
-          
+
           {collaborators.length > 0 && (
             <View className="flex-row items-center">
               <Users size={14} color="#6b7280" className="mr-1" />
@@ -371,17 +381,20 @@ export default function PlaylistDetailScreen() {
               <Text className="text-white text-sm">Add Restaurants</Text>
             </View>
           </Button>
-          
+
           <Button
             size="sm"
             variant="outline"
             onPress={handleShare}
             className="flex-row items-center"
           >
-            <Share2 size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
+            <Share2
+              size={16}
+              color={colorScheme === "dark" ? "#fff" : "#000"}
+            />
             <Text className="text-sm ml-1">Share</Text>
           </Button>
-          
+
           {isOwner && (
             <Button
               size="sm"
@@ -389,7 +402,10 @@ export default function PlaylistDetailScreen() {
               onPress={() => router.push(`/playlist/${id}/collaborators`)}
               className="flex-row items-center"
             >
-              <UserPlus size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
+              <UserPlus
+                size={16}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+              />
               <Text className="text-sm ml-1">Invite</Text>
             </Button>
           )}
@@ -401,10 +417,9 @@ export default function PlaylistDetailScreen() {
         <View className="flex-1 items-center justify-center px-8">
           <H3 className="text-center mb-2">No restaurants yet</H3>
           <Muted className="text-center mb-6">
-            {canEdit 
+            {canEdit
               ? "Start adding your favorite restaurants to this playlist"
-              : "This playlist doesn't have any restaurants yet"
-            }
+              : "This playlist doesn't have any restaurants yet"}
           </Muted>
           {canEdit && (
             <Button onPress={handleAddRestaurants}>
@@ -450,15 +465,10 @@ export default function PlaylistDetailScreen() {
             onPress={handleTogglePublic}
             className="mb-2"
           >
-            <Text>
-              {playlist.is_public ? "Make Private" : "Make Public"}
-            </Text>
+            <Text>{playlist.is_public ? "Make Private" : "Make Public"}</Text>
           </Button>
-          
-          <Button
-            variant="destructive"
-            onPress={handleDeletePlaylist}
-          >
+
+          <Button variant="destructive" onPress={handleDeletePlaylist}>
             <Trash2 size={18} color="#fff" className="mr-2" />
             <Text className="text-white">Delete Playlist</Text>
           </Button>
@@ -466,4 +476,4 @@ export default function PlaylistDetailScreen() {
       )}
     </SafeAreaView>
   );
-};
+}

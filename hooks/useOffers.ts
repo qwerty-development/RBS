@@ -57,7 +57,7 @@ export function useOffers() {
   // State
   const [offers, setOffers] = useState<EnrichedOffer[]>([]);
   const [userOffers, setUserOffers] = useState<Map<string, UserOfferData>>(
-    new Map()
+    new Map(),
   );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -75,15 +75,15 @@ export function useOffers() {
       const claimDate = new Date(claimedAt);
       const offerExpiry = new Date(offerValidUntil);
       const thirtyDaysFromClaim = new Date(
-        claimDate.getTime() + 30 * 24 * 60 * 60 * 1000
+        claimDate.getTime() + 30 * 24 * 60 * 60 * 1000,
       );
 
       // Return whichever is sooner: 30 days from claim or offer expiry
       return new Date(
-        Math.min(thirtyDaysFromClaim.getTime(), offerExpiry.getTime())
+        Math.min(thirtyDaysFromClaim.getTime(), offerExpiry.getTime()),
       );
     },
-    []
+    [],
   );
 
   // Enrich offer with user data
@@ -102,7 +102,7 @@ export function useOffers() {
 
       const expiryDate = calculateExpiryDate(
         userData.claimed_at,
-        offer.valid_until
+        offer.valid_until,
       );
       const now = new Date();
       const isExpired = now > expiryDate;
@@ -110,8 +110,8 @@ export function useOffers() {
       const daysUntilExpiry = Math.max(
         0,
         Math.ceil(
-          (expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)
-        )
+          (expiryDate.getTime() - now.getTime()) / (24 * 60 * 60 * 1000),
+        ),
       );
 
       return {
@@ -127,7 +127,7 @@ export function useOffers() {
         daysUntilExpiry,
       };
     },
-    [calculateExpiryDate]
+    [calculateExpiryDate],
   );
 
   // Fetch all offers
@@ -147,7 +147,7 @@ export function useOffers() {
           `
           *,
           restaurant:restaurants (*)
-        `
+        `,
         )
         .lte("valid_from", now)
         .gte("valid_until", now);
@@ -175,13 +175,13 @@ export function useOffers() {
 
       // Create user offers map
       const userOffersMap = new Map(
-        userOffersData?.map((uo) => [uo.offer_id, uo]) || []
+        userOffersData?.map((uo) => [uo.offer_id, uo]) || [],
       );
       setUserOffers(userOffersMap);
 
       // Enrich offers with user data
       let enrichedOffers = (offersData || []).map((offer) =>
-        enrichOffer(offer, userOffersMap.get(offer.id))
+        enrichOffer(offer, userOffersMap.get(offer.id)),
       );
 
       // Apply category filters
@@ -235,7 +235,7 @@ export function useOffers() {
           const threeDaysFromNow = new Date();
           threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
           return offers.filter(
-            (o) => new Date(o.valid_until) < threeDaysFromNow
+            (o) => new Date(o.valid_until) < threeDaysFromNow,
           );
         case "claimed":
           return offers.filter((o) => o.claimed);
@@ -246,7 +246,7 @@ export function useOffers() {
           return offers;
       }
     },
-    []
+    [],
   );
 
   // Sort offers
@@ -276,7 +276,7 @@ export function useOffers() {
         }
       });
     },
-    []
+    [],
   );
 
   // Claim offer
@@ -327,7 +327,9 @@ export function useOffers() {
 
         setUserOffers((prev) => new Map(prev.set(offerId, newUserOffer)));
         setOffers((prev) =>
-          prev.map((o) => (o.id === offerId ? enrichOffer(o, newUserOffer) : o))
+          prev.map((o) =>
+            o.id === offerId ? enrichOffer(o, newUserOffer) : o,
+          ),
         );
 
         return true;
@@ -336,7 +338,7 @@ export function useOffers() {
         throw err;
       }
     },
-    [profile?.id, offers, enrichOffer, calculateExpiryDate]
+    [profile?.id, offers, enrichOffer, calculateExpiryDate],
   );
 
   // Use offer (mark as used)
@@ -382,8 +384,8 @@ export function useOffers() {
           setUserOffers((prev) => new Map(prev.set(offerId, newUserOffer)));
           setOffers((prev) =>
             prev.map((o) =>
-              o.id === offerId ? enrichOffer(o, newUserOffer) : o
-            )
+              o.id === offerId ? enrichOffer(o, newUserOffer) : o,
+            ),
           );
         }
 
@@ -393,7 +395,7 @@ export function useOffers() {
         throw err;
       }
     },
-    [profile?.id, offers, userOffers, enrichOffer]
+    [profile?.id, offers, userOffers, enrichOffer],
   );
 
   // Get user's claimed offers
@@ -473,7 +475,7 @@ export function useOffers() {
           offer.claimed &&
           !offer.used &&
           offer.expiresAt &&
-          new Date(offer.expiresAt) < new Date()
+          new Date(offer.expiresAt) < new Date(),
       );
 
       // Update local state
@@ -482,8 +484,8 @@ export function useOffers() {
           prev.map((offer) =>
             expiredOffers.some((exp) => exp.id === offer.id)
               ? { ...offer, isExpired: true, canUse: false }
-              : offer
-          )
+              : offer,
+          ),
         );
       }
 

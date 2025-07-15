@@ -31,6 +31,7 @@ import { useAuth } from "@/context/supabase-provider";
 import { supabase } from "@/config/supabase";
 import { usePlaylistSharing } from "@/hooks/usePlaylistSharing";
 import { PlaylistCollaborator } from "@/hooks/usePlaylists";
+import { OptimizedList } from "@/components/ui/optimized-list";
 
 type CollaboratorsParams = {
   id: string;
@@ -47,13 +48,13 @@ export default function PlaylistCollaboratorsScreen() {
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();
   const { id: playlistId } = useLocalSearchParams<CollaboratorsParams>();
-  
+
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
-  
+
   const {
     collaborators,
     pendingInvites,
@@ -68,14 +69,14 @@ export default function PlaylistCollaboratorsScreen() {
   useEffect(() => {
     const checkOwnership = async () => {
       const { data } = await supabase
-        .from('restaurant_playlists')
-        .select('user_id')
-        .eq('id', playlistId)
+        .from("restaurant_playlists")
+        .select("user_id")
+        .eq("id", playlistId)
         .single();
-      
+
       setIsOwner(data?.user_id === profile?.id);
     };
-    
+
     checkOwnership();
   }, [playlistId, profile?.id]);
 
@@ -84,40 +85,43 @@ export default function PlaylistCollaboratorsScreen() {
   }, [fetchCollaborators]);
 
   // Search for users
-  const searchUsers = useCallback(async (query: string) => {
-    if (query.length < 2) {
-      setSearchResults([]);
-      return;
-    }
+  const searchUsers = useCallback(
+    async (query: string) => {
+      if (query.length < 2) {
+        setSearchResults([]);
+        return;
+      }
 
-    setSearchLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .ilike('full_name', `%${query}%`)
-        .neq('id', profile?.id)
-        .limit(10);
+      setSearchLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("id, full_name, avatar_url")
+          .ilike("full_name", `%${query}%`)
+          .neq("id", profile?.id)
+          .limit(10);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Filter out users who are already collaborators
-      const existingUserIds = new Set([
-        ...collaborators.map(c => c.user_id),
-        ...pendingInvites.map(p => p.user_id),
-      ]);
+        // Filter out users who are already collaborators
+        const existingUserIds = new Set([
+          ...collaborators.map((c) => c.user_id),
+          ...pendingInvites.map((p) => p.user_id),
+        ]);
 
-      const filteredResults = (data || []).filter(
-        user => !existingUserIds.has(user.id)
-      );
+        const filteredResults = (data || []).filter(
+          (user) => !existingUserIds.has(user.id),
+        );
 
-      setSearchResults(filteredResults);
-    } catch (error) {
-      console.error('Error searching users:', error);
-    } finally {
-      setSearchLoading(false);
-    }
-  }, [profile?.id, collaborators, pendingInvites]);
+        setSearchResults(filteredResults);
+      } catch (error) {
+        console.error("Error searching users:", error);
+      } finally {
+        setSearchLoading(false);
+      }
+    },
+    [profile?.id, collaborators, pendingInvites],
+  );
 
   // Debounced search
   useEffect(() => {
@@ -131,155 +135,183 @@ export default function PlaylistCollaboratorsScreen() {
   }, [searchQuery, showSearch, searchUsers]);
 
   // Handle invite user
-  const handleInviteUser = useCallback(async (userId: string, permission: 'view' | 'edit' = 'view') => {
-    const success = await inviteCollaborator(userId, permission);
-    if (success) {
-      setShowSearch(false);
-      setSearchQuery("");
-      setSearchResults([]);
-      await fetchCollaborators();
-    }
-  }, [inviteCollaborator, fetchCollaborators]);
+  const handleInviteUser = useCallback(
+    async (userId: string, permission: "view" | "edit" = "view") => {
+      const success = await inviteCollaborator(userId, permission);
+      if (success) {
+        setShowSearch(false);
+        setSearchQuery("");
+        setSearchResults([]);
+        await fetchCollaborators();
+      }
+    },
+    [inviteCollaborator, fetchCollaborators],
+  );
 
   // Handle remove collaborator
-  const handleRemoveCollaborator = useCallback(async (collaboratorId: string, userName: string) => {
-    Alert.alert(
-      "Remove Collaborator",
-      `Are you sure you want to remove ${userName} from this playlist?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            await removeCollaborator(collaboratorId);
+  const handleRemoveCollaborator = useCallback(
+    async (collaboratorId: string, userName: string) => {
+      Alert.alert(
+        "Remove Collaborator",
+        `Are you sure you want to remove ${userName} from this playlist?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Remove",
+            style: "destructive",
+            onPress: async () => {
+              await removeCollaborator(collaboratorId);
+            },
           },
-        },
-      ]
-    );
-  }, [removeCollaborator]);
+        ],
+      );
+    },
+    [removeCollaborator],
+  );
 
   // Handle permission change
-  const handlePermissionChange = useCallback(async (
-    collaboratorId: string,
-    currentPermission: 'view' | 'edit'
-  ) => {
-    const newPermission = currentPermission === 'view' ? 'edit' : 'view';
-    await updateCollaboratorPermission(collaboratorId, newPermission);
-    await fetchCollaborators();
-  }, [updateCollaboratorPermission, fetchCollaborators]);
+  const handlePermissionChange = useCallback(
+    async (collaboratorId: string, currentPermission: "view" | "edit") => {
+      const newPermission = currentPermission === "view" ? "edit" : "view";
+      await updateCollaboratorPermission(collaboratorId, newPermission);
+      await fetchCollaborators();
+    },
+    [updateCollaboratorPermission, fetchCollaborators],
+  );
 
   // Render collaborator item
-  const renderCollaboratorItem = useCallback(({ item }: { item: PlaylistCollaborator }) => {
-    const isPending = !item.accepted_at;
-    
-    return (
-      <View className="flex-row items-center p-4 bg-white dark:bg-gray-800 mb-2 rounded-xl">
-        {/* Avatar */}
-        <View className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 mr-3 overflow-hidden">
-          {item.user?.avatar_url ? (
-            <Image
-              source={{ uri: item.user.avatar_url }}
-              className="w-full h-full"
-            />
-          ) : (
-            <View className="w-full h-full items-center justify-center">
-              <Text className="text-lg font-semibold">
-                {item.user?.full_name?.charAt(0).toUpperCase()}
-              </Text>
-            </View>
-          )}
-        </View>
+  const renderCollaboratorItem = useCallback(
+    ({ item }: { item: PlaylistCollaborator }) => {
+      const isPending = !item.accepted_at;
 
-        {/* User Info */}
-        <View className="flex-1">
-          <Text className="font-semibold">{item.user?.full_name}</Text>
-          <View className="flex-row items-center mt-1">
-            {isPending ? (
-              <Muted className="text-sm">Invitation pending</Muted>
+      return (
+        <View className="flex-row items-center p-4 bg-white dark:bg-gray-800 mb-2 rounded-xl">
+          {/* Avatar */}
+          <View className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 mr-3 overflow-hidden">
+            {item.user?.avatar_url ? (
+              <Image
+                source={{ uri: item.user.avatar_url }}
+                className="w-full h-full"
+              />
             ) : (
-              <>
-                {item.permission === 'edit' ? (
-                  <View className="flex-row items-center">
-                    <Edit3 size={14} color="#6b7280" />
-                    <Muted className="text-sm ml-1">Can edit</Muted>
-                  </View>
-                ) : (
-                  <View className="flex-row items-center">
-                    <Eye size={14} color="#6b7280" />
-                    <Muted className="text-sm ml-1">Can view</Muted>
-                  </View>
-                )}
-              </>
+              <View className="w-full h-full items-center justify-center">
+                <Text className="text-lg font-semibold">
+                  {item.user?.full_name?.charAt(0).toUpperCase()}
+                </Text>
+              </View>
             )}
           </View>
-        </View>
 
-        {/* Actions */}
-        {isOwner && (
-          <View className="flex-row items-center gap-2">
-            {!isPending && (
+          {/* User Info */}
+          <View className="flex-1">
+            <Text className="font-semibold">{item.user?.full_name}</Text>
+            <View className="flex-row items-center mt-1">
+              {isPending ? (
+                <Muted className="text-sm">Invitation pending</Muted>
+              ) : (
+                <>
+                  {item.permission === "edit" ? (
+                    <View className="flex-row items-center">
+                      <Edit3 size={14} color="#6b7280" />
+                      <Muted className="text-sm ml-1">Can edit</Muted>
+                    </View>
+                  ) : (
+                    <View className="flex-row items-center">
+                      <Eye size={14} color="#6b7280" />
+                      <Muted className="text-sm ml-1">Can view</Muted>
+                    </View>
+                  )}
+                </>
+              )}
+            </View>
+          </View>
+
+          {/* Actions */}
+          {isOwner && (
+            <View className="flex-row items-center gap-2">
+              {!isPending && (
+                <Pressable
+                  onPress={() =>
+                    handlePermissionChange(item.id, item.permission)
+                  }
+                  className="p-2"
+                >
+                  <Shield
+                    size={20}
+                    color={colorScheme === "dark" ? "#fff" : "#000"}
+                  />
+                </Pressable>
+              )}
               <Pressable
-                onPress={() => handlePermissionChange(item.id, item.permission)}
+                onPress={() =>
+                  handleRemoveCollaborator(
+                    item.id,
+                    item.user?.full_name || "User",
+                  )
+                }
                 className="p-2"
               >
-                <Shield size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                <Trash2 size={20} color="#dc2626" />
               </Pressable>
-            )}
-            <Pressable
-              onPress={() => handleRemoveCollaborator(item.id, item.user?.full_name || 'User')}
-              className="p-2"
-            >
-              <Trash2 size={20} color="#dc2626" />
-            </Pressable>
-          </View>
-        )}
-      </View>
-    );
-  }, [isOwner, colorScheme, handlePermissionChange, handleRemoveCollaborator]);
-
-  // Render search result item
-  const renderSearchResultItem = useCallback(({ item }: { item: UserSearchResult }) => {
-    return (
-      <Pressable
-        onPress={() => {
-          Alert.alert(
-            "Invite User",
-            `What permission should ${item.full_name} have?`,
-            [
-              { text: "Cancel", style: "cancel" },
-              { text: "View Only", onPress: () => handleInviteUser(item.id, 'view') },
-              { text: "Can Edit", onPress: () => handleInviteUser(item.id, 'edit') },
-            ]
-          );
-        }}
-        className="flex-row items-center p-4 bg-white dark:bg-gray-800 mb-2 rounded-xl active:bg-gray-50 dark:active:bg-gray-700"
-      >
-        {/* Avatar */}
-        <View className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 mr-3 overflow-hidden">
-          {item.avatar_url ? (
-            <Image
-              source={{ uri: item.avatar_url }}
-              className="w-full h-full"
-            />
-          ) : (
-            <View className="w-full h-full items-center justify-center">
-              <Text className="text-lg font-semibold">
-                {item.full_name.charAt(0).toUpperCase()}
-              </Text>
             </View>
           )}
         </View>
+      );
+    },
+    [isOwner, colorScheme, handlePermissionChange, handleRemoveCollaborator],
+  );
 
-        {/* User Info */}
-        <View className="flex-1">
-          <Text className="font-semibold">{item.full_name}</Text>
-        </View>
+  // Render search result item
+  const renderSearchResultItem = useCallback(
+    ({ item }: { item: UserSearchResult }) => {
+      return (
+        <Pressable
+          onPress={() => {
+            Alert.alert(
+              "Invite User",
+              `What permission should ${item.full_name} have?`,
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "View Only",
+                  onPress: () => handleInviteUser(item.id, "view"),
+                },
+                {
+                  text: "Can Edit",
+                  onPress: () => handleInviteUser(item.id, "edit"),
+                },
+              ],
+            );
+          }}
+          className="flex-row items-center p-4 bg-white dark:bg-gray-800 mb-2 rounded-xl active:bg-gray-50 dark:active:bg-gray-700"
+        >
+          {/* Avatar */}
+          <View className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 mr-3 overflow-hidden">
+            {item.avatar_url ? (
+              <Image
+                source={{ uri: item.avatar_url }}
+                className="w-full h-full"
+              />
+            ) : (
+              <View className="w-full h-full items-center justify-center">
+                <Text className="text-lg font-semibold">
+                  {item.full_name.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+            )}
+          </View>
 
-        <UserPlus size={20} color="#6b7280" />
-      </Pressable>
-    );
-  }, [handleInviteUser]);
+          {/* User Info */}
+          <View className="flex-1">
+            <Text className="font-semibold">{item.full_name}</Text>
+          </View>
+
+          <UserPlus size={20} color="#6b7280" />
+        </Pressable>
+      );
+    },
+    [handleInviteUser],
+  );
 
   const allCollaborators = [...collaborators, ...pendingInvites];
 
@@ -290,9 +322,12 @@ export default function PlaylistCollaboratorsScreen() {
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center flex-1">
             <Pressable onPress={() => router.back()} className="p-2 -ml-2">
-              <ArrowLeft size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
+              <ArrowLeft
+                size={24}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+              />
             </Pressable>
-            
+
             <H3 className="ml-2">Collaborators</H3>
           </View>
 
@@ -302,7 +337,12 @@ export default function PlaylistCollaboratorsScreen() {
               onPress={() => setShowSearch(!showSearch)}
               variant={showSearch ? "default" : "outline"}
             >
-              <UserPlus size={16} color={showSearch ? "#fff" : colorScheme === "dark" ? "#fff" : "#000"} />
+              <UserPlus
+                size={16}
+                color={
+                  showSearch ? "#fff" : colorScheme === "dark" ? "#fff" : "#000"
+                }
+              />
               <Text className={showSearch ? "text-white ml-1" : "ml-1"}>
                 Invite
               </Text>
@@ -332,11 +372,14 @@ export default function PlaylistCollaboratorsScreen() {
       {/* Content */}
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#000"} />
+          <ActivityIndicator
+            size="large"
+            color={colorScheme === "dark" ? "#fff" : "#000"}
+          />
         </View>
       ) : showSearch && searchQuery.length >= 2 ? (
         // Search Results
-        <FlatList
+        <OptimizedList
           data={searchResults}
           renderItem={renderSearchResultItem}
           keyExtractor={(item) => item.id}
@@ -350,7 +393,7 @@ export default function PlaylistCollaboratorsScreen() {
         />
       ) : (
         // Collaborators List
-        <FlatList
+        <OptimizedList
           data={allCollaborators}
           renderItem={renderCollaboratorItem}
           keyExtractor={(item) => item.id}
@@ -376,4 +419,4 @@ export default function PlaylistCollaboratorsScreen() {
       )}
     </SafeAreaView>
   );
-};
+}

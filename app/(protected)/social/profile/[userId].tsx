@@ -86,7 +86,7 @@ export default function UserProfileScreen() {
         .from("friends")
         .select("id")
         .or(
-          `and(user_id.eq.${currentUser.id},friend_id.eq.${userId}),and(user_id.eq.${userId},friend_id.eq.${currentUser.id})`
+          `and(user_id.eq.${currentUser.id},friend_id.eq.${userId}),and(user_id.eq.${userId},friend_id.eq.${currentUser.id})`,
         )
         .eq("status", "accepted")
         .single();

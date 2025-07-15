@@ -43,14 +43,14 @@ export function useHomeScreenLogic() {
 
   // Core data states
   const [featuredRestaurants, setFeaturedRestaurants] = useState<Restaurant[]>(
-    []
+    [],
   );
   const [newRestaurants, setNewRestaurants] = useState<Restaurant[]>([]);
   const [topRatedRestaurants, setTopRatedRestaurants] = useState<Restaurant[]>(
-    []
+    [],
   );
   const [trendingRestaurants, setTrendingRestaurants] = useState<Restaurant[]>(
-    []
+    [],
   );
 
   const [nearbyRestaurants, setNearbyRestaurants] = useState<Restaurant[]>([]);
@@ -298,7 +298,7 @@ export function useHomeScreenLogic() {
         console.error("Invalid restaurant ID provided:", restaurantId);
         Alert.alert(
           "Error",
-          "Restaurant information is not available. Please try again."
+          "Restaurant information is not available. Please try again.",
         );
         return;
       }
@@ -312,11 +312,11 @@ export function useHomeScreenLogic() {
         console.error("Navigation error:", error);
         Alert.alert(
           "Error",
-          "Unable to open restaurant details. Please try again."
+          "Unable to open restaurant details. Please try again.",
         );
       }
     },
-    [router]
+    [router],
   );
 
   const handleQuickFilter = useCallback(
@@ -326,7 +326,7 @@ export function useHomeScreenLogic() {
         params: filter.params,
       });
     },
-    [router]
+    [router],
   );
 
   // FIXED: handleCuisinePress now correctly handles cuisineId string parameter
@@ -342,7 +342,7 @@ export function useHomeScreenLogic() {
         console.error("Invalid cuisine ID provided:", cuisineId);
         Alert.alert(
           "Error",
-          "Cuisine information is not available. Please try again."
+          "Cuisine information is not available. Please try again.",
         );
         return;
       }
@@ -361,7 +361,7 @@ export function useHomeScreenLogic() {
         Alert.alert("Error", "Unable to open cuisine page. Please try again.");
       }
     },
-    [router, getCuisineName]
+    [router, getCuisineName],
   );
 
   const getGreeting = useCallback(() => {
@@ -405,7 +405,7 @@ export function useHomeScreenLogic() {
         params,
       });
     },
-    [router]
+    [router],
   );
 
   const handleProfilePress = useCallback(() => {

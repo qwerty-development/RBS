@@ -1,4 +1,3 @@
-
 import React from "react";
 import { View } from "react-native";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,7 +33,11 @@ const PlaylistInvitationSkeletonItem = () => (
   </View>
 );
 
-export const PlaylistInvitationSkeleton = ({ count = 3 }: { count?: number }) => {
+export const PlaylistInvitationSkeleton = ({
+  count = 3,
+}: {
+  count?: number;
+}) => {
   return (
     <View className="p-4">
       {Array.from({ length: count }).map((_, index) => (

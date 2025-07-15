@@ -17,7 +17,8 @@ import { PageHeader } from "@/components/ui/page-header";
 import { BookingCard } from "@/components/booking/BookingCard";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useBookings } from "@/hooks/useBookings";
-import BookingsScreenSkeleton from '@/components/skeletons/BookingsScreenSkeleton';
+import BookingsScreenSkeleton from "@/components/skeletons/BookingsScreenSkeleton";
+import { OptimizedList } from "@/components/ui/optimized-list";
 
 export default function BookingsScreen() {
   const { colorScheme } = useColorScheme();
@@ -40,22 +41,17 @@ export default function BookingsScreen() {
     reviewBooking,
   } = useBookings();
 
-
-
-
-
-
   const currentBookings =
     activeTab === "upcoming" ? bookings.upcoming : bookings.past;
 
-      if (loading) {
+  if (loading) {
     return <BookingsScreenSkeleton />;
   }
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* Header */}
-      <PageHeader 
+      <PageHeader
         title="My Bookings"
         subtitle="Tap any booking for full details and options"
       />
@@ -77,7 +73,7 @@ export default function BookingsScreen() {
       </View>
 
       {/* Content */}
-      <FlatList
+      <OptimizedList
         data={currentBookings}
         renderItem={({ item }) => (
           <BookingCard

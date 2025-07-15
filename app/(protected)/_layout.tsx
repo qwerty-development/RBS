@@ -41,9 +41,7 @@ export default function ProtectedLayout() {
         }}
       >
         <ActivityIndicator size="large" color="#fff" />
-        <Text style={{ color: "#fff", marginTop: 16 }}>
-          Redirecting...
-        </Text>
+        <Text style={{ color: "#fff", marginTop: 16 }}>Redirecting...</Text>
       </View>
     );
   }
@@ -60,10 +58,10 @@ export default function ProtectedLayout() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="modal" options={{ presentation: "modal" }} />
         // In your app/(protected)/_layout.tsx or routing configuration
-<Stack.Screen name="playlist/[id]" />
-<Stack.Screen name="playlist/add-restaurants" />
-<Stack.Screen name="playlist/[id]/collaborators" />
-<Stack.Screen name="playlist/join" />
+        <Stack.Screen name="playlist/[id]" />
+        <Stack.Screen name="playlist/add-restaurants" />
+        <Stack.Screen name="playlist/[id]/collaborators" />
+        <Stack.Screen name="playlist/join" />
       </Stack>
       <GlobalChatTab />
     </View>

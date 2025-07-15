@@ -16,6 +16,7 @@ import { Send, X } from "lucide-react-native";
 import { ourAgent, ChatMessage } from "@/ai/AI_Agent";
 import { RestaurantCard } from "@/components/restaurant/RestaurantCard";
 import { router } from "expo-router";
+import { OptimizedList } from "@/components/ui/optimized-list";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -76,7 +77,7 @@ const MessageBubble = memo(
         {/* Restaurant cards - Horizontal scrollable */}
         {hasRestaurants && (
           <View className="mt-3">
-            <FlatList
+            <OptimizedList
               data={message.restaurants}
               renderItem={renderRestaurantCard}
               keyExtractor={(restaurant, index) =>
@@ -104,7 +105,7 @@ const MessageBubble = memo(
         )}
       </View>
     );
-  }
+  },
 );
 
 const ChatTestScreen = memo(function ChatTestScreen({
@@ -179,14 +180,14 @@ const ChatTestScreen = memo(function ChatTestScreen({
       router.push(`/restaurant/${restaurant.id}`);
       console.log("Restaurant pressed:", restaurant.id);
     },
-    [onClose]
+    [onClose],
   );
 
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 70 : 0}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 70 : 0}
     >
       <View className="flex-1 bg-background">
         <View className="p-4 border-b border-border">
@@ -194,7 +195,8 @@ const ChatTestScreen = memo(function ChatTestScreen({
             <View className="flex-1">
               <H3>DineMate AI Assistant</H3>
               <Text className="text-muted-foreground">
-                Ask me anything about restaurants, dining, or make a reservation!
+                Ask me anything about restaurants, dining, or make a
+                reservation!
               </Text>
             </View>
             {onClose && (

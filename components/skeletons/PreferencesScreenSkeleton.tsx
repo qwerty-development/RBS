@@ -1,14 +1,24 @@
-import React from 'react';
-import { View, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import SkeletonPlaceholder from './SkeletonPlaceholder';
+import React from "react";
+import { View, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import SkeletonPlaceholder from "./SkeletonPlaceholder";
 
 const SectionSkeleton = ({ titleWidth = 150, items = 4, itemWidth = 100 }) => (
   <View style={{ paddingHorizontal: 16, marginTop: 24 }}>
-    <SkeletonPlaceholder width={titleWidth} height={24} borderRadius={4} style={{ marginBottom: 12 }} />
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+    <SkeletonPlaceholder
+      width={titleWidth}
+      height={24}
+      borderRadius={4}
+      style={{ marginBottom: 12 }}
+    />
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
       {Array.from({ length: items }).map((_, index) => (
-        <SkeletonPlaceholder key={index} width={itemWidth} height={36} borderRadius={18} />
+        <SkeletonPlaceholder
+          key={index}
+          width={itemWidth}
+          height={36}
+          borderRadius={18}
+        />
       ))}
     </View>
   </View>
@@ -16,16 +26,21 @@ const SectionSkeleton = ({ titleWidth = 150, items = 4, itemWidth = 100 }) => (
 
 const PreferencesScreenSkeleton = () => {
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#F5F5F5' }} edges={['top']}>
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: "#F5F5F5" }}
+      edges={["top"]}
+    >
       {/* Header */}
-      <View style={{ 
-        padding: 16, 
-        borderBottomWidth: 1, 
-        borderBottomColor: '#E0E0E0', 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'space-between' 
-      }}>
+      <View
+        style={{
+          padding: 16,
+          borderBottomWidth: 1,
+          borderBottomColor: "#E0E0E0",
+          flexDirection: "row",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
         <SkeletonPlaceholder width={32} height={32} borderRadius={16} />
         <SkeletonPlaceholder width={200} height={28} borderRadius={4} />
         <View style={{ width: 32 }} />

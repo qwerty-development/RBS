@@ -118,12 +118,12 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
 
     const message = encodeURIComponent(
       `Hi! I have a booking at ${booking.restaurant.name} on ${new Date(
-        booking.booking_time
+        booking.booking_time,
       ).toLocaleDateString()} at ${new Date(
-        booking.booking_time
+        booking.booking_time,
       ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} for ${
         booking.party_size
-      } people. Confirmation code: ${booking.confirmation_code}${offerText}${loyaltyText}`
+      } people. Confirmation code: ${booking.confirmation_code}${offerText}${loyaltyText}`,
     );
 
     const url = `whatsapp://send?phone=${booking.restaurant.whatsapp_number}&text=${message}`;
@@ -173,9 +173,9 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
       : "";
 
     const shareMessage = `I have a reservation at ${booking.restaurant.name} on ${new Date(
-      booking.booking_time
+      booking.booking_time,
     ).toLocaleDateString()} at ${new Date(
-      booking.booking_time
+      booking.booking_time,
     ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} for ${
       booking.party_size
     } people.${offerText}${pointsText} Confirmation code: ${booking.confirmation_code}`;
@@ -195,7 +195,7 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert(
       "Copied!",
-      `Confirmation code ${booking.confirmation_code} copied to clipboard`
+      `Confirmation code ${booking.confirmation_code} copied to clipboard`,
     );
   };
 

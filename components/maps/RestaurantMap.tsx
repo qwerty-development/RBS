@@ -1,5 +1,11 @@
 // components/ui/restaurant-map.tsx - Fixed flickering and marker issues
-import React, { useRef, useEffect, useState, useMemo, useCallback } from "react";
+import React, {
+  useRef,
+  useEffect,
+  useState,
+  useMemo,
+  useCallback,
+} from "react";
 import { View, Platform, StyleSheet, Dimensions } from "react-native";
 import MapView, {
   Marker,
@@ -130,136 +136,146 @@ const darkMapStyle = [
 ];
 
 // Memoized Restaurant Marker Component to prevent flickering
-const RestaurantMarker = React.memo(({ 
-  restaurant, 
-  onPress 
-}: { 
-  restaurant: Restaurant; 
-  onPress: (id: string) => void;
-}) => {
-  let coords = restaurant.coordinates;
-  
-  // Try staticCoordinates if coordinates is not available
-  if (!coords && restaurant.staticCoordinates) {
-    coords = {
-      latitude: restaurant.staticCoordinates.lat,
-      longitude: restaurant.staticCoordinates.lng,
-    };
-  }
-  
-  // Try extracting from location field if still no coordinates
-  if (!coords && restaurant.location) {
-    coords = LocationService.extractCoordinates(restaurant.location);
-  }
-  
-  if (!coords) {
-    return null;
-  }
+const RestaurantMarker = React.memo(
+  ({
+    restaurant,
+    onPress,
+  }: {
+    restaurant: Restaurant;
+    onPress: (id: string) => void;
+  }) => {
+    let coords = restaurant.coordinates;
 
-  const handlePress = useCallback(() => {
-    onPress(restaurant.id);
-  }, [restaurant.id, onPress]);
+    // Try staticCoordinates if coordinates is not available
+    if (!coords && restaurant.staticCoordinates) {
+      coords = {
+        latitude: restaurant.staticCoordinates.lat,
+        longitude: restaurant.staticCoordinates.lng,
+      };
+    }
 
-  return (
-    <Marker
-      coordinate={coords}
-      onPress={handlePress}
-      anchor={{ x: 0.5, y: 1 }} // Fixed anchor point - center bottom
-      centerOffset={{ x: 0, y: -30 }} // Offset to position properly
-    >
-      {/* Restaurant Image Marker - Fixed container */}
-      <View style={styles.markerWrapper}>
-        <View style={styles.imageMarkerContainer}>
-          <View style={styles.imageMarkerBorder}>
-            {restaurant.main_image_url ? (
-              <Image
-                source={{ uri: restaurant.main_image_url }}
-                style={styles.restaurantImage}
-                contentFit="cover"
-                cachePolicy="memory-disk" // Prevent reloading
-              />
-            ) : (
-              <View style={[styles.restaurantImage, styles.fallbackImageBackground]}>
-                <Utensils size={20} color="white" />
-              </View>
-            )}
-          </View>
-        </View>
-        <View style={styles.imageMarkerTriangle} />
-      </View>
+    // Try extracting from location field if still no coordinates
+    if (!coords && restaurant.location) {
+      coords = LocationService.extractCoordinates(restaurant.location);
+    }
 
-      {/* Enhanced Callout */}
-      <Callout tooltip>
-        <View style={styles.calloutContainer}>
-          <View style={styles.calloutContent}>
-            <View style={styles.calloutHeader}>
-              <Text className="font-bold text-base text-black" numberOfLines={1}>
-                {restaurant.name}
-              </Text>
-              {restaurant.average_rating && (
-                <View className="flex-row items-center gap-1">
-                  <Star size={14} fill="#fbbf24" color="#fbbf24" />
-                  <Text className="text-sm font-semibold text-black">
-                    {restaurant.average_rating.toFixed(1)}
-                  </Text>
+    if (!coords) {
+      return null;
+    }
+
+    const handlePress = useCallback(() => {
+      onPress(restaurant.id);
+    }, [restaurant.id, onPress]);
+
+    return (
+      <Marker
+        coordinate={coords}
+        onPress={handlePress}
+        anchor={{ x: 0.5, y: 1 }} // Fixed anchor point - center bottom
+        centerOffset={{ x: 0, y: -30 }} // Offset to position properly
+      >
+        {/* Restaurant Image Marker - Fixed container */}
+        <View style={styles.markerWrapper}>
+          <View style={styles.imageMarkerContainer}>
+            <View style={styles.imageMarkerBorder}>
+              {restaurant.main_image_url ? (
+                <Image
+                  source={{ uri: restaurant.main_image_url }}
+                  style={styles.restaurantImage}
+                  contentFit="cover"
+                  cachePolicy="memory-disk" // Prevent reloading
+                />
+              ) : (
+                <View
+                  style={[
+                    styles.restaurantImage,
+                    styles.fallbackImageBackground,
+                  ]}
+                >
+                  <Utensils size={20} color="white" />
                 </View>
               )}
             </View>
-            
-            <Text className="text-sm text-gray-600 mb-2" numberOfLines={1}>
-              {restaurant.cuisine_type}
-            </Text>
-
-            <View className="flex-row items-center justify-between">
-              {restaurant.price_range && (
-                <Text className="text-sm font-medium text-black">
-                  {"$".repeat(restaurant.price_range)}
-                </Text>
-              )}
-              
-              {restaurant.distance !== undefined && restaurant.distance !== null && (
-                <Text className="text-sm text-blue-600 font-medium">
-                  {LocationService.formatDistance(restaurant.distance)}
-                </Text>
-              )}
-            </View>
-
-            <Text className="text-xs text-blue-600 mt-3 font-medium text-center">
-              Tap for details →
-            </Text>
           </View>
-          <View style={styles.calloutArrow} />
+          <View style={styles.imageMarkerTriangle} />
         </View>
-      </Callout>
-    </Marker>
-  );
-});
 
-RestaurantMarker.displayName = 'RestaurantMarker';
+        {/* Enhanced Callout */}
+        <Callout tooltip>
+          <View style={styles.calloutContainer}>
+            <View style={styles.calloutContent}>
+              <View style={styles.calloutHeader}>
+                <Text
+                  className="font-bold text-base text-black"
+                  numberOfLines={1}
+                >
+                  {restaurant.name}
+                </Text>
+                {restaurant.average_rating && (
+                  <View className="flex-row items-center gap-1">
+                    <Star size={14} fill="#fbbf24" color="#fbbf24" />
+                    <Text className="text-sm font-semibold text-black">
+                      {restaurant.average_rating.toFixed(1)}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              <Text className="text-sm text-gray-600 mb-2" numberOfLines={1}>
+                {restaurant.cuisine_type}
+              </Text>
+
+              <View className="flex-row items-center justify-between">
+                {restaurant.price_range && (
+                  <Text className="text-sm font-medium text-black">
+                    {"$".repeat(restaurant.price_range)}
+                  </Text>
+                )}
+
+                {restaurant.distance !== undefined &&
+                  restaurant.distance !== null && (
+                    <Text className="text-sm text-blue-600 font-medium">
+                      {LocationService.formatDistance(restaurant.distance)}
+                    </Text>
+                  )}
+              </View>
+
+              <Text className="text-xs text-blue-600 mt-3 font-medium text-center">
+                Tap for details →
+              </Text>
+            </View>
+            <View style={styles.calloutArrow} />
+          </View>
+        </Callout>
+      </Marker>
+    );
+  },
+);
+
+RestaurantMarker.displayName = "RestaurantMarker";
 
 // Memoized User Location Marker
-const UserLocationMarker = React.memo(({ 
-  userLocation 
-}: { 
-  userLocation: { latitude: number; longitude: number };
-}) => {
-  return (
-    <Marker
-      coordinate={userLocation}
-      anchor={{ x: 0.5, y: 0.5 }}
-    >
-      <View style={styles.userMarkerContainer}>
-        <View style={styles.userMarkerOuter}>
-          <View style={styles.userMarkerInner}>
-            <Navigation2 size={16} color="white" fill="white" />
+const UserLocationMarker = React.memo(
+  ({
+    userLocation,
+  }: {
+    userLocation: { latitude: number; longitude: number };
+  }) => {
+    return (
+      <Marker coordinate={userLocation} anchor={{ x: 0.5, y: 0.5 }}>
+        <View style={styles.userMarkerContainer}>
+          <View style={styles.userMarkerOuter}>
+            <View style={styles.userMarkerInner}>
+              <Navigation2 size={16} color="white" fill="white" />
+            </View>
           </View>
         </View>
-      </View>
-    </Marker>
-  );
-});
+      </Marker>
+    );
+  },
+);
 
-UserLocationMarker.displayName = 'UserLocationMarker';
+UserLocationMarker.displayName = "UserLocationMarker";
 
 export function RestaurantMap({
   restaurants,
@@ -274,10 +290,13 @@ export function RestaurantMap({
   const [mapReady, setMapReady] = useState(false);
 
   // Memoize the restaurant press handler to prevent recreating on every render
-  const handleRestaurantPress = useCallback((restaurantId: string) => {
-    console.log(`🍽️ Marker pressed: ${restaurantId}`);
-    onRestaurantPress?.(restaurantId);
-  }, [onRestaurantPress]);
+  const handleRestaurantPress = useCallback(
+    (restaurantId: string) => {
+      console.log(`🍽️ Marker pressed: ${restaurantId}`);
+      onRestaurantPress?.(restaurantId);
+    },
+    [onRestaurantPress],
+  );
 
   // Determine provider based on platform
   const provider: any = Platform.select({
@@ -287,33 +306,37 @@ export function RestaurantMap({
   });
 
   // Memoize the default region to prevent changes
-  const defaultRegion: Region = useMemo(() => initialRegion || {
-    latitude: userLocation?.latitude || 33.8938,
-    longitude: userLocation?.longitude || 35.5018,
-    latitudeDelta: 0.05,
-    longitudeDelta: 0.05,
-  }, [initialRegion, userLocation?.latitude, userLocation?.longitude]);
+  const defaultRegion: Region = useMemo(
+    () =>
+      initialRegion || {
+        latitude: userLocation?.latitude || 33.8938,
+        longitude: userLocation?.longitude || 35.5018,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      },
+    [initialRegion, userLocation?.latitude, userLocation?.longitude],
+  );
 
   // Memoize restaurant markers with stable keys to prevent flickering
   const restaurantMarkers = useMemo(() => {
     console.log(`🗺️ Creating ${restaurants.length} restaurant markers`);
-    
+
     return restaurants
       .map((restaurant) => {
         // Check if restaurant has valid coordinates
         let coords = restaurant.coordinates;
-        
+
         if (!coords && restaurant.staticCoordinates) {
           coords = {
             latitude: restaurant.staticCoordinates.lat,
             longitude: restaurant.staticCoordinates.lng,
           };
         }
-        
+
         if (!coords && restaurant.location) {
           coords = LocationService.extractCoordinates(restaurant.location);
         }
-        
+
         if (!coords) {
           console.log(`❌ No coordinates for restaurant: ${restaurant.name}`);
           return null;
@@ -337,10 +360,7 @@ export function RestaurantMap({
     }
 
     return (
-      <UserLocationMarker
-        key="user-location"
-        userLocation={userLocation}
-      />
+      <UserLocationMarker key="user-location" userLocation={userLocation} />
     );
   }, [userLocation, showUserLocation]);
 
@@ -356,18 +376,18 @@ export function RestaurantMap({
     // Add restaurant coordinates
     restaurants.forEach((restaurant) => {
       let coords = restaurant.coordinates;
-      
+
       if (!coords && restaurant.staticCoordinates) {
         coords = {
           latitude: restaurant.staticCoordinates.lat,
           longitude: restaurant.staticCoordinates.lng,
         };
       }
-      
+
       if (!coords && restaurant.location) {
         coords = LocationService.extractCoordinates(restaurant.location);
       }
-      
+
       if (coords) {
         coordinates.push(coords);
       }
@@ -422,14 +442,26 @@ export function RestaurantMap({
       {/* Map overlay with restaurant count */}
       {userLocation && validMarkerCount > 0 && (
         <View style={styles.overlayContainer}>
-          <View style={[
-            styles.overlay,
-            { backgroundColor: colorScheme === "dark" ? "rgba(0,0,0,0.8)" : "rgba(255,255,255,0.9)" }
-          ]}>
-            <Text className={`text-sm font-medium ${colorScheme === "dark" ? "text-white" : "text-black"}`}>
-              {validMarkerCount} restaurant{validMarkerCount !== 1 ? 's' : ''} on map
+          <View
+            style={[
+              styles.overlay,
+              {
+                backgroundColor:
+                  colorScheme === "dark"
+                    ? "rgba(0,0,0,0.8)"
+                    : "rgba(255,255,255,0.9)",
+              },
+            ]}
+          >
+            <Text
+              className={`text-sm font-medium ${colorScheme === "dark" ? "text-white" : "text-black"}`}
+            >
+              {validMarkerCount} restaurant{validMarkerCount !== 1 ? "s" : ""}{" "}
+              on map
             </Text>
-            <Text className={`text-xs ${colorScheme === "dark" ? "text-gray-300" : "text-gray-600"}`}>
+            <Text
+              className={`text-xs ${colorScheme === "dark" ? "text-gray-300" : "text-gray-600"}`}
+            >
               Tap markers for details
             </Text>
           </View>
@@ -448,20 +480,20 @@ const styles = StyleSheet.create({
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
   },
-  
+
   // Fixed marker wrapper to prevent half-circle issue
   markerWrapper: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  
+
   // Image marker styles - Fixed dimensions and positioning
   imageMarkerContainer: {
     alignItems: "center",
     justifyContent: "center",
   },
   imageMarkerBorder: {
-    width: 50,  // Reduced size for better performance
+    width: 50, // Reduced size for better performance
     height: 50,
     borderRadius: 25,
     backgroundColor: "white",
@@ -475,10 +507,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   restaurantImage: {
-    width: 46,  // Slightly smaller than container
+    width: 46, // Slightly smaller than container
     height: 46,
     borderRadius: 23,
-    overflow: 'hidden', // Ensure image stays within circle
+    overflow: "hidden", // Ensure image stays within circle
   },
   fallbackImageBackground: {
     backgroundColor: "#ef4444",

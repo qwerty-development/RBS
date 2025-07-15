@@ -23,7 +23,7 @@ import { useOffers } from "@/hooks/useOffers";
 import { CUISINE_CATEGORIES } from "@/constants/homeScreenData";
 import { SpecialOffersCarousel } from "@/components/home/SpecialOffersCarousel";
 import { SpecialOfferBannerCarousel } from "@/components/home/SpecialOfferBannerCarousel";
-import HomeScreenSkeleton from '@/components/skeletons/HomeScreenSkeleton';
+import HomeScreenSkeleton from "@/components/skeletons/HomeScreenSkeleton";
 
 // Global ref for scroll to top functionality
 export const homeScrollRef = { current: null as any };
@@ -67,8 +67,6 @@ export default function HomeScreen() {
     extrapolate: "clamp",
   });
 
-
-
   if (loading || offersLoading) {
     return <HomeScreenSkeleton />;
   }
@@ -91,7 +89,7 @@ export default function HomeScreen() {
         }}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
+          { useNativeDriver: true },
         )}
         scrollEventThrottle={16}
         showsVerticalScrollIndicator={false}

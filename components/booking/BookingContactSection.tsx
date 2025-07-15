@@ -50,7 +50,7 @@ export const BookingContactSection: React.FC<BookingContactSectionProps> = ({
       : "";
 
     const message = encodeURIComponent(
-      `Hi! I have a booking at ${restaurant.name}.${offerText}${loyaltyText}`
+      `Hi! I have a booking at ${restaurant.name}.${offerText}${loyaltyText}`,
     );
 
     const url = `whatsapp://send?phone=${restaurant.whatsapp_number}&text=${message}`;

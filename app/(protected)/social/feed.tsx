@@ -32,6 +32,7 @@ import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
+import { OptimizedList } from "@/components/ui/optimized-list";
 
 // Types
 interface Post {
@@ -44,16 +45,16 @@ interface Post {
   restaurant_image: string;
   booking_id: string;
   content: string;
-  images: Array<{
+  images: {
     id: string;
     image_url: string;
     image_order: number;
-  }>;
-  tagged_friends: Array<{
+  }[];
+  tagged_friends: {
     id: string;
     full_name: string;
     avatar_url: string;
-  }>;
+  }[];
   likes_count: number;
   comments_count: number;
   created_at: string;
@@ -151,13 +152,15 @@ const PostCard: React.FC<{
             onMomentumScrollEnd={(e) => {
               const index = Math.round(
                 e.nativeEvent.contentOffset.x /
-                  e.nativeEvent.layoutMeasurement.width
+                  e.nativeEvent.layoutMeasurement.width,
               );
               setImageIndex(index);
             }}
             renderItem={({ item }) => (
               <Pressable
-                onPress={() => router.push(`/(protected)/restaurant/${post.restaurant_id}`)}
+                onPress={() =>
+                  router.push(`/(protected)/restaurant/${post.restaurant_id}`)
+                }
               >
                 <Image
                   source={{ uri: item.image_url }}
@@ -307,8 +310,8 @@ export default function SocialFeedScreen() {
           posts.map((p) =>
             p.id === postId
               ? { ...p, liked_by_user: false, likes_count: p.likes_count - 1 }
-              : p
-          )
+              : p,
+          ),
         );
       } else {
         // Like
@@ -320,8 +323,8 @@ export default function SocialFeedScreen() {
           posts.map((p) =>
             p.id === postId
               ? { ...p, liked_by_user: true, likes_count: p.likes_count + 1 }
-              : p
-          )
+              : p,
+          ),
         );
       }
     } catch (error) {
@@ -358,7 +361,10 @@ export default function SocialFeedScreen() {
         title="Social Feed"
         actions={
           <View className="flex-row items-center gap-3">
-            <Pressable onPress={() => router.push("/(protected)/friends")} className="p-2">
+            <Pressable
+              onPress={() => router.push("/(protected)/friends")}
+              className="p-2"
+            >
               <Users size={24} color="#666" />
             </Pressable>
             <Pressable
@@ -373,7 +379,7 @@ export default function SocialFeedScreen() {
       />
 
       {/* Posts */}
-      <FlatList
+      <OptimizedList
         data={posts}
         renderItem={({ item }) => (
           <PostCard

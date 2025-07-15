@@ -25,7 +25,7 @@ export function useBookings() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [processingBookingId, setProcessingBookingId] = useState<string | null>(
-    null
+    null,
   );
 
   const hasInitialLoad = useRef(false);
@@ -44,7 +44,7 @@ export function useBookings() {
           `
           *,
           restaurant:restaurants (*)
-        `
+        `,
         )
         .eq("user_id", profile.id)
         .in("status", ["pending", "confirmed"])
@@ -60,11 +60,11 @@ export function useBookings() {
           `
           *,
           restaurant:restaurants (*)
-        `
+        `,
         )
         .eq("user_id", profile.id)
         .or(
-          `booking_time.lt.${now},status.in.(completed,cancelled_by_user,declined_by_restaurant,no_show)`
+          `booking_time.lt.${now},status.in.(completed,cancelled_by_user,declined_by_restaurant,no_show)`,
         )
         .order("booking_time", { ascending: false })
         .limit(50);
@@ -92,7 +92,7 @@ export function useBookings() {
         params: { id: bookingId },
       });
     },
-    [router]
+    [router],
   );
 
   const navigateToRestaurant = useCallback(
@@ -102,7 +102,7 @@ export function useBookings() {
         params: { id: restaurantId },
       });
     },
-    [router]
+    [router],
   );
 
   const navigateToSearch = useCallback(() => {
@@ -135,7 +135,7 @@ export function useBookings() {
                 if (error) throw error;
 
                 await Haptics.notificationAsync(
-                  Haptics.NotificationFeedbackType.Success
+                  Haptics.NotificationFeedbackType.Success,
                 );
 
                 fetchBookings();
@@ -148,10 +148,10 @@ export function useBookings() {
               }
             },
           },
-        ]
+        ],
       );
     },
-    [fetchBookings]
+    [fetchBookings],
   );
 
   const rebookRestaurant = useCallback(
@@ -166,7 +166,7 @@ export function useBookings() {
         },
       });
     },
-    [router]
+    [router],
   );
 
   const reviewBooking = useCallback(
@@ -180,7 +180,7 @@ export function useBookings() {
         },
       });
     },
-    [router]
+    [router],
   );
 
   // Refresh Handler

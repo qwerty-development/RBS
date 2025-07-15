@@ -29,91 +29,103 @@ export function useRestaurantSearch({
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
-  
+
   const currentRequestRef = useRef(0);
 
-  const searchRestaurants = useCallback(async (reset = false) => {
-    const requestId = ++currentRequestRef.current;
-    
-    setLoading(true);
-    
-    try {
-      let supabaseQuery = supabase.from("restaurants").select("*", { count: "exact" });
+  const searchRestaurants = useCallback(
+    async (reset = false) => {
+      const requestId = ++currentRequestRef.current;
 
-      // Apply search query
-      if (query.trim()) {
-        supabaseQuery = supabaseQuery.or(
-          `name.ilike.%${query}%,cuisine_type.ilike.%${query}%,address.ilike.%${query}%`
-        );
-      }
+      setLoading(true);
 
-      // Apply filters
-      if (filters.cuisines.length > 0) {
-        supabaseQuery = supabaseQuery.in("cuisine_type", filters.cuisines);
-      }
+      try {
+        let supabaseQuery = supabase
+          .from("restaurants")
+          .select("*", { count: "exact" });
 
-      if (filters.priceRange) {
-        supabaseQuery = supabaseQuery
-          .gte("price_range", filters.priceRange[0])
-          .lte("price_range", filters.priceRange[1]);
-      }
+        // Apply search query
+        if (query.trim()) {
+          supabaseQuery = supabaseQuery.or(
+            `name.ilike.%${query}%,cuisine_type.ilike.%${query}%,address.ilike.%${query}%`,
+          );
+        }
 
-      if (filters.bookingPolicy !== "all") {
-        supabaseQuery = supabaseQuery.eq("booking_policy", filters.bookingPolicy);
-      }
+        // Apply filters
+        if (filters.cuisines.length > 0) {
+          supabaseQuery = supabaseQuery.in("cuisine_type", filters.cuisines);
+        }
 
-      // Apply sorting
-      switch (filters.sortBy) {
-        case "rating":
-          supabaseQuery = supabaseQuery.order("average_rating", { ascending: false });
-          break;
-        case "name":
-          supabaseQuery = supabaseQuery.order("name", { ascending: true });
-          break;
-        default:
+        if (filters.priceRange) {
           supabaseQuery = supabaseQuery
-            .order("featured", { ascending: false })
-            .order("average_rating", { ascending: false });
+            .gte("price_range", filters.priceRange[0])
+            .lte("price_range", filters.priceRange[1]);
+        }
+
+        if (filters.bookingPolicy !== "all") {
+          supabaseQuery = supabaseQuery.eq(
+            "booking_policy",
+            filters.bookingPolicy,
+          );
+        }
+
+        // Apply sorting
+        switch (filters.sortBy) {
+          case "rating":
+            supabaseQuery = supabaseQuery.order("average_rating", {
+              ascending: false,
+            });
+            break;
+          case "name":
+            supabaseQuery = supabaseQuery.order("name", { ascending: true });
+            break;
+          default:
+            supabaseQuery = supabaseQuery
+              .order("featured", { ascending: false })
+              .order("average_rating", { ascending: false });
+        }
+
+        // Pagination
+        const from = reset ? 0 : page * pageSize;
+        const to = from + pageSize - 1;
+        supabaseQuery = supabaseQuery.range(from, to);
+
+        const { data, error, count } = await supabaseQuery;
+
+        // Check if this is still the latest request
+        if (requestId !== currentRequestRef.current) return;
+
+        if (error) throw error;
+
+        if (reset) {
+          setRestaurants(data || []);
+          setPage(1);
+        } else {
+          setRestaurants((prev) => [...prev, ...(data || [])]);
+          setPage((prev) => prev + 1);
+        }
+
+        setHasMore(
+          (data?.length || 0) === pageSize && (count || 0) > from + pageSize,
+        );
+      } catch (error) {
+        console.error("Search error:", error);
+      } finally {
+        if (requestId === currentRequestRef.current) {
+          setLoading(false);
+        }
       }
-
-      // Pagination
-      const from = reset ? 0 : page * pageSize;
-      const to = from + pageSize - 1;
-      supabaseQuery = supabaseQuery.range(from, to);
-
-      const { data, error, count } = await supabaseQuery;
-
-      // Check if this is still the latest request
-      if (requestId !== currentRequestRef.current) return;
-
-      if (error) throw error;
-
-      if (reset) {
-        setRestaurants(data || []);
-        setPage(1);
-      } else {
-        setRestaurants((prev) => [...prev, ...(data || [])]);
-        setPage((prev) => prev + 1);
-      }
-
-      setHasMore((data?.length || 0) === pageSize && (count || 0) > from + pageSize);
-    } catch (error) {
-      console.error("Search error:", error);
-    } finally {
-      if (requestId === currentRequestRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [query, filters, page, pageSize]);
+    },
+    [query, filters, page, pageSize],
+  );
 
   const debouncedSearch = useRef(
-    debounce((reset: boolean) => searchRestaurants(reset), 300)
+    debounce((reset: boolean) => searchRestaurants(reset), 300),
   ).current;
 
   useEffect(() => {
     setPage(0);
     debouncedSearch(true);
-    
+
     return () => {
       debouncedSearch.cancel();
     };

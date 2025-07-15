@@ -69,7 +69,7 @@ export function InviteFriends({
   const [friends, setFriends] = useState<Friend[]>([]);
   const [filteredFriends, setFilteredFriends] = useState<Friend[]>([]);
   const [selectedFriends, setSelectedFriends] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -85,7 +85,7 @@ export function InviteFriends({
   useEffect(() => {
     if (searchQuery) {
       const filtered = friends.filter((friend) =>
-        friend.full_name.toLowerCase().includes(searchQuery.toLowerCase())
+        friend.full_name.toLowerCase().includes(searchQuery.toLowerCase()),
       );
       setFilteredFriends(filtered);
     } else {
@@ -102,7 +102,7 @@ export function InviteFriends({
           `
           *,
           friend:friend_id(id, full_name, avatar_url)
-        `
+        `,
         )
         .eq("user_id", profile?.id);
 
@@ -130,7 +130,7 @@ export function InviteFriends({
         if (newSet.size + existingInvites.length + 1 >= partySize) {
           Alert.alert(
             "Party Size Limit",
-            `You can only invite up to ${partySize - 1 - existingInvites.length} more friends for this booking.`
+            `You can only invite up to ${partySize - 1 - existingInvites.length} more friends for this booking.`,
           );
           return prev;
         }
@@ -145,7 +145,7 @@ export function InviteFriends({
     if (selectedFriends.size === 0) {
       Alert.alert(
         "No Friends Selected",
-        "Please select at least one friend to invite."
+        "Please select at least one friend to invite.",
       );
       return;
     }
@@ -183,7 +183,7 @@ export function InviteFriends({
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert(
         "Invites Sent!",
-        `Successfully invited ${selectedFriends.size} friend${selectedFriends.size > 1 ? "s" : ""}.`
+        `Successfully invited ${selectedFriends.size} friend${selectedFriends.size > 1 ? "s" : ""}.`,
       );
 
       setModalVisible(false);

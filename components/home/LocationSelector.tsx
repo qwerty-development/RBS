@@ -1,6 +1,12 @@
 // components/home/LocationSelector.tsx
 import React, { useState, useCallback } from "react";
-import { View, Pressable, Modal, FlatList, ActivityIndicator } from "react-native";
+import {
+  View,
+  Pressable,
+  Modal,
+  FlatList,
+  ActivityIndicator,
+} from "react-native";
 import { MapPin, Search, Navigation, X, Check } from "lucide-react-native";
 import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -11,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { H3, Muted } from "@/components/ui/typography";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { useColorScheme } from "@/lib/useColorScheme";
+import { OptimizedList } from "../ui/optimized-list";
 
 // Lebanese cities and their popular districts
 const LEBANESE_LOCATIONS = [
@@ -81,14 +88,7 @@ const LEBANESE_LOCATIONS = [
   },
   {
     city: "Bekaa",
-    districts: [
-      "Zahle",
-      "Baalbek",
-      "Chtaura",
-      "Anjar",
-      "Rayak",
-      "Bar Elias",
-    ],
+    districts: ["Zahle", "Baalbek", "Chtaura", "Anjar", "Rayak", "Bar Elias"],
   },
 ];
 
@@ -97,7 +97,10 @@ interface LocationSelectorProps {
   onLocationChange: (location: { city: string; district: string }) => void;
 }
 
-export function LocationSelector({ currentLocation, onLocationChange }: LocationSelectorProps) {
+export function LocationSelector({
+  currentLocation,
+  onLocationChange,
+}: LocationSelectorProps) {
   const { colorScheme } = useColorScheme();
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -107,22 +110,23 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
   // Filter locations based on search
   const filteredLocations = LEBANESE_LOCATIONS.map((location) => ({
     ...location,
-    districts: location.districts.filter((district) =>
-      district.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      location.city.toLowerCase().includes(searchQuery.toLowerCase())
+    districts: location.districts.filter(
+      (district) =>
+        district.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        location.city.toLowerCase().includes(searchQuery.toLowerCase()),
     ),
   })).filter((location) => location.districts.length > 0);
 
   const handleCurrentLocation = useCallback(async () => {
     setGettingLocation(true);
-    
+
     try {
       // Request permission
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         Alert.alert(
           "Location Permission",
-          "Please enable location services to use this feature"
+          "Please enable location services to use this feature",
         );
         return;
       }
@@ -144,8 +148,11 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
       };
 
       // Save to storage
-      await AsyncStorage.setItem("@selected_location", JSON.stringify(newLocation));
-      
+      await AsyncStorage.setItem(
+        "@selected_location",
+        JSON.stringify(newLocation),
+      );
+
       onLocationChange(newLocation);
       setShowModal(false);
     } catch (error) {
@@ -156,17 +163,27 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
     }
   }, [onLocationChange]);
 
-  const handleSelectDistrict = useCallback(async (city: string, district: string) => {
-    const newLocation = { city, district };
-    
-    // Save to storage
-    await AsyncStorage.setItem("@selected_location", JSON.stringify(newLocation));
-    
-    onLocationChange(newLocation);
-    setShowModal(false);
-  }, [onLocationChange]);
+  const handleSelectDistrict = useCallback(
+    async (city: string, district: string) => {
+      const newLocation = { city, district };
 
-  const renderCitySection = ({ item }: { item: typeof LEBANESE_LOCATIONS[0] }) => {
+      // Save to storage
+      await AsyncStorage.setItem(
+        "@selected_location",
+        JSON.stringify(newLocation),
+      );
+
+      onLocationChange(newLocation);
+      setShowModal(false);
+    },
+    [onLocationChange],
+  );
+
+  const renderCitySection = ({
+    item,
+  }: {
+    item: (typeof LEBANESE_LOCATIONS)[0];
+  }) => {
     if (item.districts.length === 0) return null;
 
     return (
@@ -253,7 +270,7 @@ export function LocationSelector({ currentLocation, onLocationChange }: Location
           </View>
 
           {/* Location List */}
-          <FlatList
+          <OptimizedList
             data={filteredLocations}
             renderItem={renderCitySection}
             keyExtractor={(item) => item.city}

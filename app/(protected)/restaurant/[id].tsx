@@ -1,17 +1,8 @@
 // app/(protected)/restaurant/[id].tsx
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { BookOpen, FolderPlus } from "lucide-react-native";
 import {
-  ScrollView,
-  View,
-  Pressable,
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  StatusBar,
-} from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import {
+  BookOpen,
+  FolderPlus,
   ChevronLeft,
   Share,
   Heart,
@@ -27,6 +18,16 @@ import {
   Navigation,
   MessageCircle,
 } from "lucide-react-native";
+import {
+  ScrollView,
+  View,
+  Pressable,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
+  StatusBar,
+} from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import MapView, { Marker } from "react-native-maps";
 import { RestaurantPosts } from "@/components/restaurant/RestaurantPosts";
@@ -42,7 +43,7 @@ import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { RestaurantPlaylistIndicator } from "@/components/restaurant/RestaurantPlaylistIndicator";
-import RestaurantDetailsScreenSkeleton from '@/components/skeletons/RestaurantDetailsScreenSkeleton';
+import RestaurantDetailsScreenSkeleton from "@/components/skeletons/RestaurantDetailsScreenSkeleton";
 
 // Type definitions
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
@@ -86,7 +87,7 @@ const ImageGallery: React.FC<{
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={(event) => {
           const index = Math.round(
-            event.nativeEvent.contentOffset.x / SCREEN_WIDTH
+            event.nativeEvent.contentOffset.x / SCREEN_WIDTH,
           );
           setActiveIndex(index);
         }}
@@ -556,10 +557,10 @@ export default function RestaurantDetailsScreen() {
       Alert.alert(
         "Added to Playlist",
         `${restaurant?.name} has been added to "${playlistName}"`,
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
     },
-    [restaurant?.name]
+    [restaurant?.name],
   );
 
   const allImages = React.useMemo(() => {
@@ -606,8 +607,6 @@ export default function RestaurantDetailsScreen() {
       },
     });
   }, [router, id, restaurant]);
-
-
 
   if (loading) {
     return <RestaurantDetailsScreenSkeleton />;

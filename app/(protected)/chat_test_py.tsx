@@ -17,6 +17,7 @@ import { Send, X, Wifi, WifiOff } from "lucide-react-native";
 import { RestaurantCard } from "@/components/restaurant/RestaurantCard";
 import { router } from "expo-router";
 import { supabase } from "@/config/supabase";
+import { OptimizedList } from "@/components/ui/optimized-list";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -86,7 +87,7 @@ const MessageBubble = memo(
         {/* Restaurant cards - Horizontal scrollable */}
         {hasRestaurants && (
           <View className="mt-3">
-            <FlatList
+            <OptimizedList
               data={message.restaurants}
               renderItem={renderRestaurantCard}
               keyExtractor={(restaurant, index) =>
@@ -114,13 +115,13 @@ const MessageBubble = memo(
         )}
       </View>
     );
-  }
+  },
 );
 
 // Function to communicate with Flask API
 async function sendMessageToFlaskAPI(
   message: string,
-  sessionId?: string
+  sessionId?: string,
 ): Promise<ChatMessage> {
   try {
     const response = await fetch(`${FLASK_API_BASE_URL}/api/chat`, {
@@ -147,8 +148,11 @@ async function sendMessageToFlaskAPI(
     // Fetch restaurant details if restaurant IDs were returned
     let restaurants: any[] = [];
     if (data.restaurants_to_show && data.restaurants_to_show.length > 0) {
-      console.log("Fetching restaurant details for IDs:", data.restaurants_to_show);
-      
+      console.log(
+        "Fetching restaurant details for IDs:",
+        data.restaurants_to_show,
+      );
+
       try {
         const { data: restaurantData, error } = await supabase
           .from("restaurants")
@@ -159,7 +163,7 @@ async function sendMessageToFlaskAPI(
           console.error("Error fetching restaurant details:", error);
         } else {
           // Sort restaurants to match the order from the API (featured first)
-          const restaurantMap = new Map(restaurantData?.map(r => [r.id, r]));
+          const restaurantMap = new Map(restaurantData?.map((r) => [r.id, r]));
           restaurants = data.restaurants_to_show
             .map((id: string) => restaurantMap.get(id))
             .filter(Boolean);
@@ -185,12 +189,12 @@ async function checkFlaskAPIHealth(): Promise<boolean> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
-    
+
     const response = await fetch(`${FLASK_API_BASE_URL}/api/health`, {
       method: "GET",
       signal: controller.signal,
     });
-    
+
     clearTimeout(timeoutId);
     return response.ok;
   } catch (error) {
@@ -220,16 +224,16 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
     const checkHealth = async () => {
       const isHealthy = await checkFlaskAPIHealth();
       setApiConnected(isHealthy);
-      
+
       if (!isHealthy) {
         Alert.alert(
           "Connection Error",
           `Cannot connect to Flask API at ${FLASK_API_BASE_URL}. Please make sure the Flask server is running.`,
-          [{ text: "OK" }]
+          [{ text: "OK" }],
         );
       }
     };
-    
+
     checkHealth();
   }, []);
 
@@ -249,7 +253,7 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
     if (apiConnected === false) {
       Alert.alert(
         "No Connection",
-        "Cannot send message - Flask API is not available. Please check if the server is running."
+        "Cannot send message - Flask API is not available. Please check if the server is running.",
       );
       return;
     }
@@ -276,19 +280,20 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
     } catch (error) {
       console.error("Error in chat:", error);
       setIsLoading(false);
-      
+
       // Check if it's a connection error
-      const isConnectionError = error instanceof Error && 
+      const isConnectionError =
+        error instanceof Error &&
         (error.message.includes("fetch") || error.message.includes("Network"));
-      
+
       setApiConnected(false);
-      
+
       // Add error message to chat
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: isConnectionError 
+          content: isConnectionError
             ? "Sorry, I'm having trouble connecting to the server. Please check if the Flask API is running and try again."
             : "Sorry, I encountered an error. Please try again.",
         },
@@ -306,7 +311,7 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
       router.push(`/restaurant/${restaurant.id}`);
       console.log("Restaurant pressed:", restaurant.id);
     },
-    [onClose]
+    [onClose],
   );
 
   const resetChat = useCallback(async () => {
@@ -321,7 +326,7 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
           session_id: sessionId,
         }),
       });
-      
+
       // Clear local messages
       setMessages([]);
     } catch (error) {
@@ -332,10 +337,10 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
   }, [sessionId, setMessages]);
 
   return (
-    <KeyboardAvoidingView 
-      style={{ flex: 1 }} 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 70 : 0}
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={Platform.OS === "ios" ? 70 : 0}
     >
       <View className="flex-1 bg-background">
         <View className="p-4 border-b border-border">
@@ -349,7 +354,9 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
                   ) : apiConnected === false ? (
                     <WifiOff size={16} color="#ef4444" />
                   ) : (
-                    <Text className="text-xs text-muted-foreground">Checking...</Text>
+                    <Text className="text-xs text-muted-foreground">
+                      Checking...
+                    </Text>
                   )}
                 </View>
               </View>
@@ -358,7 +365,8 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
               </Text>
               {apiConnected === false && (
                 <Text className="text-xs text-red-500 mt-1">
-                  API Disconnected - Check if Flask server is running at {FLASK_API_BASE_URL}
+                  API Disconnected - Check if Flask server is running at{" "}
+                  {FLASK_API_BASE_URL}
                 </Text>
               )}
             </View>
@@ -410,7 +418,8 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
               {apiConnected === false && (
                 <View className="bg-red-100 p-3 rounded-lg mt-4">
                   <Text className="text-sm text-red-700 text-center">
-                    ⚠️ Flask API is not connected. Start the server with: python flask_api.py
+                    ⚠️ Flask API is not connected. Start the server with: python
+                    flask_api.py
                   </Text>
                 </View>
               )}
@@ -445,8 +454,8 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
               blurOnSubmit={false}
               editable={apiConnected !== false}
             />
-            <Button 
-              onPress={handleSend} 
+            <Button
+              onPress={handleSend}
               disabled={isLoading || !input.trim() || apiConnected === false}
             >
               <Send size={20} color="white" />
@@ -458,4 +467,4 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
   );
 });
 
-export default ChatTestPyScreen; 
+export default ChatTestPyScreen;

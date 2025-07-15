@@ -32,7 +32,7 @@ export const RestaurantImageGallery = ({
         showsHorizontalScrollIndicator={false}
         onScroll={(e) => {
           const index = Math.round(
-            e.nativeEvent.contentOffset.x / SCREEN_WIDTH
+            e.nativeEvent.contentOffset.x / SCREEN_WIDTH,
           );
           onImageIndexChange(index);
         }}
@@ -59,8 +59,6 @@ export const RestaurantImageGallery = ({
           />
         ))}
       </View>
-
-
 
       <View className="absolute bottom-5 right-4">
         <View

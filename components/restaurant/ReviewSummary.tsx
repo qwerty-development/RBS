@@ -105,7 +105,7 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
             <View key={rating}>
               {renderRatingBar(
                 rating,
-                reviewSummary.rating_distribution[rating] || 0
+                reviewSummary.rating_distribution[rating] || 0,
               )}
             </View>
           ))}
@@ -121,7 +121,7 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
                 <View className="flex-row items-center gap-1">
                   {renderStars(
                     Math.round(reviewSummary.detailed_ratings?.food_avg || 0),
-                    14
+                    14,
                   )}
                   <Text className="text-xs ml-1">
                     {(reviewSummary.detailed_ratings?.food_avg || 0).toFixed(1)}
@@ -134,13 +134,13 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
                 <View className="flex-row items-center gap-1">
                   {renderStars(
                     Math.round(
-                      reviewSummary.detailed_ratings?.service_avg || 0
+                      reviewSummary.detailed_ratings?.service_avg || 0,
                     ),
-                    14
+                    14,
                   )}
                   <Text className="text-xs ml-1">
                     {(reviewSummary.detailed_ratings?.service_avg || 0).toFixed(
-                      1
+                      1,
                     )}
                   </Text>
                 </View>
@@ -153,9 +153,9 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
                 <View className="flex-row items-center gap-1">
                   {renderStars(
                     Math.round(
-                      reviewSummary.detailed_ratings?.ambiance_avg || 0
+                      reviewSummary.detailed_ratings?.ambiance_avg || 0,
                     ),
-                    14
+                    14,
                   )}
                   <Text className="text-xs ml-1">
                     {(
@@ -170,11 +170,11 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
                 <View className="flex-row items-center gap-1">
                   {renderStars(
                     Math.round(reviewSummary.detailed_ratings?.value_avg || 0),
-                    14
+                    14,
                   )}
                   <Text className="text-xs ml-1">
                     {(reviewSummary.detailed_ratings?.value_avg || 0).toFixed(
-                      1
+                      1,
                     )}
                   </Text>
                 </View>

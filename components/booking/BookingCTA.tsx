@@ -1,8 +1,9 @@
-import React from "react";
-import { View, ActivityIndicator } from "react-native";
+import React, { useState } from "react";
+import { View, ActivityIndicator, Alert } from "react-native";
 import { CheckCircle } from "lucide-react-native";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { useBiometricAuth } from "@/hooks/useBiometricAuth";
 
 interface BookingCTAProps {
   onSubmit: () => void;
@@ -27,15 +28,32 @@ export const BookingCTA: React.FC<BookingCTAProps> = ({
   userTier,
   className = "",
 }) => {
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const { authenticate } = useBiometricAuth();
+
+  const handlePress = async () => {
+    setIsAuthenticating(true);
+    try {
+      const result = await authenticate();
+      if (result.success) {
+        onSubmit();
+      } else {
+        Alert.alert("Authentication Failed", result.error);
+      }
+    } finally {
+      setIsAuthenticating(false);
+    }
+  };
+
   return (
     <View className={`p-4 border-t border-border bg-background ${className}`}>
       <Button
-        onPress={onSubmit}
-        disabled={isDisabled}
+        onPress={handlePress}
+        disabled={isDisabled || isSubmitting || isAuthenticating}
         size="lg"
         className="w-full"
       >
-        {isSubmitting ? (
+        {isSubmitting || isAuthenticating ? (
           <ActivityIndicator size="small" color="white" />
         ) : (
           <>

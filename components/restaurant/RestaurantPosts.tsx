@@ -24,6 +24,7 @@ import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
+import { OptimizedList } from "../ui/optimized-list";
 
 interface RestaurantPost {
   id: string;
@@ -31,15 +32,15 @@ interface RestaurantPost {
   user_name: string;
   user_avatar: string;
   content: string;
-  images: Array<{
+  images: {
     id: string;
     image_url: string;
     image_order: number;
-  }>;
-  tagged_friends: Array<{
+  }[];
+  tagged_friends: {
     id: string;
     full_name: string;
-  }>;
+  }[];
   likes_count: number;
   comments_count: number;
   created_at: string;
@@ -88,7 +89,8 @@ const PostCard: React.FC<{
             showsHorizontalScrollIndicator={false}
             onMomentumScrollEnd={(e) => {
               const index = Math.round(
-                e.nativeEvent.contentOffset.x / e.nativeEvent.layoutMeasurement.width
+                e.nativeEvent.contentOffset.x /
+                  e.nativeEvent.layoutMeasurement.width,
               );
               setImageIndex(index);
             }}
@@ -126,9 +128,7 @@ const PostCard: React.FC<{
             <Muted className="text-xs ml-1">with </Muted>
             {post.tagged_friends.map((friend, index) => (
               <React.Fragment key={friend.id}>
-                <Text className="text-xs text-primary">
-                  {friend.full_name}
-                </Text>
+                <Text className="text-xs text-primary">{friend.full_name}</Text>
                 {index < post.tagged_friends.length - 1 && (
                   <Muted className="text-xs">, </Muted>
                 )}
@@ -168,7 +168,10 @@ const PostCard: React.FC<{
   );
 };
 
-export function RestaurantPosts({ restaurantId, restaurantName }: RestaurantPostsProps) {
+export function RestaurantPosts({
+  restaurantId,
+  restaurantName,
+}: RestaurantPostsProps) {
   const router = useRouter();
   const { profile } = useAuth();
   const { colorScheme } = useColorScheme();
@@ -192,20 +195,21 @@ export function RestaurantPosts({ restaurantId, restaurantName }: RestaurantPost
 
       // Check which posts the user has liked
       if (profile?.id) {
-        const postIds = postsData?.map(p => p.id) || [];
+        const postIds = postsData?.map((p) => p.id) || [];
         const { data: userLikes } = await supabase
           .from("post_likes")
           .select("post_id")
           .eq("user_id", profile.id)
           .in("post_id", postIds);
 
-        const likedPostIds = new Set(userLikes?.map(l => l.post_id) || []);
+        const likedPostIds = new Set(userLikes?.map((l) => l.post_id) || []);
 
         // Format posts with liked status
-        const formattedPosts = postsData?.map(post => ({
-          ...post,
-          liked_by_user: likedPostIds.has(post.id),
-        })) || [];
+        const formattedPosts =
+          postsData?.map((post) => ({
+            ...post,
+            liked_by_user: likedPostIds.has(post.id),
+          })) || [];
 
         setPosts(formattedPosts);
       } else {
@@ -226,7 +230,7 @@ export function RestaurantPosts({ restaurantId, restaurantName }: RestaurantPost
 
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
-    const post = posts.find(p => p.id === postId);
+    const post = posts.find((p) => p.id === postId);
     if (!post) return;
 
     try {
@@ -238,22 +242,26 @@ export function RestaurantPosts({ restaurantId, restaurantName }: RestaurantPost
           .eq("post_id", postId)
           .eq("user_id", profile.id);
 
-        setPosts(posts.map(p => 
-          p.id === postId 
-            ? { ...p, liked_by_user: false, likes_count: p.likes_count - 1 }
-            : p
-        ));
+        setPosts(
+          posts.map((p) =>
+            p.id === postId
+              ? { ...p, liked_by_user: false, likes_count: p.likes_count - 1 }
+              : p,
+          ),
+        );
       } else {
         // Like
         await supabase
           .from("post_likes")
           .insert({ post_id: postId, user_id: profile.id });
 
-        setPosts(posts.map(p => 
-          p.id === postId 
-            ? { ...p, liked_by_user: true, likes_count: p.likes_count + 1 }
-            : p
-        ));
+        setPosts(
+          posts.map((p) =>
+            p.id === postId
+              ? { ...p, liked_by_user: true, likes_count: p.likes_count + 1 }
+              : p,
+          ),
+        );
       }
     } catch (error) {
       console.error("Error toggling like:", error);
@@ -284,7 +292,9 @@ export function RestaurantPosts({ restaurantId, restaurantName }: RestaurantPost
     <View className="bg-background">
       <View className="px-4 py-4">
         <H3>Guest Photos & Reviews</H3>
-        <Muted className="mt-1">See what others are saying about {restaurantName}</Muted>
+        <Muted className="mt-1">
+          See what others are saying about {restaurantName}
+        </Muted>
       </View>
 
       {posts.length === 0 ? (
@@ -295,7 +305,7 @@ export function RestaurantPosts({ restaurantId, restaurantName }: RestaurantPost
           </Text>
         </View>
       ) : (
-        <FlatList
+        <OptimizedList
           data={posts}
           renderItem={({ item }) => (
             <View className="px-4">
@@ -313,4 +323,3 @@ export function RestaurantPosts({ restaurantId, restaurantName }: RestaurantPost
     </View>
   );
 }
-

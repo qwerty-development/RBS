@@ -9,7 +9,7 @@ interface LoadingScreenProps {
 
 export function LoadingScreen({ message }: LoadingScreenProps) {
   const { colorScheme } = useColorScheme();
-  
+
   return (
     <View className="flex-1 items-center justify-center bg-background">
       <ActivityIndicator

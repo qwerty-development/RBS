@@ -16,20 +16,23 @@ export function useLocationWithDistance() {
     try {
       setLoading(true);
       setError(null);
-      
+
       const locationData = await LocationService.getCurrentLocation();
-      console.log("✅ useLocationWithDistance: Got location data:", locationData);
-      
+      console.log(
+        "✅ useLocationWithDistance: Got location data:",
+        locationData,
+      );
+
       setLocation(locationData);
       // Emit location update event
       locationEventEmitter.emit("locationUpdated", locationData);
-      
+
       console.log("📡 useLocationWithDistance: Emitted location update event");
     } catch (err) {
       const errorMessage = "Failed to get location";
       console.error("❌ useLocationWithDistance error:", err);
       setError(errorMessage);
-      
+
       // Set default location as fallback
       const defaultLocation = {
         latitude: 33.8938,
@@ -38,8 +41,10 @@ export function useLocationWithDistance() {
         district: "Central District",
         country: "Lebanon",
       };
-      
-      console.log("🔄 useLocationWithDistance: Using default location as fallback");
+
+      console.log(
+        "🔄 useLocationWithDistance: Using default location as fallback",
+      );
       setLocation(defaultLocation);
       locationEventEmitter.emit("locationUpdated", defaultLocation);
     } finally {
@@ -49,14 +54,19 @@ export function useLocationWithDistance() {
   }, []);
 
   const updateLocation = useCallback(async (newLocation: LocationData) => {
-    console.log("💾 useLocationWithDistance: Updating location to:", newLocation);
-    
+    console.log(
+      "💾 useLocationWithDistance: Updating location to:",
+      newLocation,
+    );
+
     setLocation(newLocation);
     await LocationService.updateLocation(newLocation);
-    
+
     // Emit location update event
     locationEventEmitter.emit("locationUpdated", newLocation);
-    console.log("📡 useLocationWithDistance: Emitted location update for new location");
+    console.log(
+      "📡 useLocationWithDistance: Emitted location update for new location",
+    );
   }, []);
 
   const clearLocation = useCallback(async () => {
@@ -68,7 +78,10 @@ export function useLocationWithDistance() {
   // Subscribe to location updates from other components
   useEffect(() => {
     const handleLocationUpdate = (newLocation: LocationData) => {
-      console.log("📡 useLocationWithDistance: Received location update event:", newLocation);
+      console.log(
+        "📡 useLocationWithDistance: Received location update event:",
+        newLocation,
+      );
       setLocation(newLocation);
     };
 
@@ -91,7 +104,7 @@ export function useLocationWithDistance() {
       location,
       loading,
       error,
-      displayName: LocationService.getLocationDisplayName(location)
+      displayName: LocationService.getLocationDisplayName(location),
     });
   }, [location, loading, error]);
 

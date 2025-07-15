@@ -37,7 +37,7 @@ export const useFavorites = () => {
           `
           *,
           restaurant:restaurants (*)
-        `
+        `,
         )
         .eq("user_id", profile.id)
         .order("created_at", { ascending: false });
@@ -71,7 +71,7 @@ export const useFavorites = () => {
             last_booking: lastBooking?.booking_time,
             total_bookings: count || 0,
           };
-        })
+        }),
       );
 
       setFavorites(enrichedFavorites);
@@ -149,10 +149,10 @@ export const useFavorites = () => {
               }
             },
           },
-        ]
+        ],
       );
     },
-    [fadeAnim, scaleAnim]
+    [fadeAnim, scaleAnim],
   );
 
   const handleRefresh = useCallback(() => {

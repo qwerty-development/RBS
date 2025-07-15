@@ -9,13 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import {
-  ArrowLeft,
-  Search,
-  Check,
-  Plus,
-  Heart,
-} from "lucide-react-native";
+import { ArrowLeft, Search, Check, Plus, Heart } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -30,6 +24,7 @@ import { Database } from "@/types/supabase";
 import { usePlaylistItems } from "@/hooks/usePlaylistItems";
 import { useFavorites } from "@/hooks/useFavorites";
 import { AddRestaurantSkeleton } from "@/components/skeletons/AddRestaurantSkeleton";
+import { OptimizedList } from "@/components/ui/optimized-list";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -42,46 +37,49 @@ export default function AddRestaurantsScreen() {
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();
   const { playlistId } = useLocalSearchParams<AddRestaurantsParams>();
-  
+
   const [searchQuery, setSearchQuery] = useState("");
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedRestaurants, setSelectedRestaurants] = useState<Set<string>>(new Set());
+  const [selectedRestaurants, setSelectedRestaurants] = useState<Set<string>>(
+    new Set(),
+  );
   const [addingRestaurants, setAddingRestaurants] = useState(false);
-  
-  const { addRestaurant, isRestaurantInPlaylist } = usePlaylistItems(playlistId);
+
+  const { addRestaurant, isRestaurantInPlaylist } =
+    usePlaylistItems(playlistId);
   const { favorites } = useFavorites();
 
   // Fetch restaurants (favorites + search)
   const fetchRestaurants = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       let query = supabase
-        .from('restaurants')
-        .select('*')
-        .order('average_rating', { ascending: false });
+        .from("restaurants")
+        .select("*")
+        .order("average_rating", { ascending: false });
 
       if (searchQuery.trim()) {
         query = query.or(
-          `name.ilike.%${searchQuery}%,cuisine_type.ilike.%${searchQuery}%`
+          `name.ilike.%${searchQuery}%,cuisine_type.ilike.%${searchQuery}%`,
         );
       } else {
         // Show favorites first when no search
-        const favoriteIds = favorites.map(f => f.restaurant_id);
+        const favoriteIds = favorites.map((f) => f.restaurant_id);
         if (favoriteIds.length > 0) {
-          query = query.in('id', favoriteIds);
+          query = query.in("id", favoriteIds);
         }
       }
 
       const { data, error } = await query.limit(50);
-      
+
       if (error) throw error;
-      
+
       setRestaurants(data || []);
     } catch (error) {
-      console.error('Error fetching restaurants:', error);
-      Alert.alert('Error', 'Failed to load restaurants');
+      console.error("Error fetching restaurants:", error);
+      Alert.alert("Error", "Failed to load restaurants");
     } finally {
       setLoading(false);
     }
@@ -93,7 +91,7 @@ export default function AddRestaurantsScreen() {
 
   // Toggle restaurant selection
   const toggleRestaurantSelection = useCallback((restaurantId: string) => {
-    setSelectedRestaurants(prev => {
+    setSelectedRestaurants((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(restaurantId)) {
         newSet.delete(restaurantId);
@@ -120,72 +118,84 @@ export default function AddRestaurantsScreen() {
 
       if (successCount > 0) {
         Alert.alert(
-          'Success',
-          `Added ${successCount} restaurant${successCount > 1 ? 's' : ''} to playlist`,
-          [{ text: 'OK', onPress: () => router.back() }]
+          "Success",
+          `Added ${successCount} restaurant${successCount > 1 ? "s" : ""} to playlist`,
+          [{ text: "OK", onPress: () => router.back() }],
         );
       }
     } catch (error) {
-      console.error('Error adding restaurants:', error);
-      Alert.alert('Error', 'Failed to add some restaurants');
+      console.error("Error adding restaurants:", error);
+      Alert.alert("Error", "Failed to add some restaurants");
     } finally {
       setAddingRestaurants(false);
     }
   }, [selectedRestaurants, addRestaurant, router]);
 
   // Render restaurant item
-  const renderRestaurantItem = useCallback(({ item }: { item: Restaurant }) => {
-    const isSelected = selectedRestaurants.has(item.id);
-    const isAlreadyInPlaylist = isRestaurantInPlaylist(item.id);
-    const isFavorite = favorites.some(f => f.restaurant_id === item.id);
+  const renderRestaurantItem = useCallback(
+    ({ item }: { item: Restaurant }) => {
+      const isSelected = selectedRestaurants.has(item.id);
+      const isAlreadyInPlaylist = isRestaurantInPlaylist(item.id);
+      const isFavorite = favorites.some((f) => f.restaurant_id === item.id);
 
-    return (
-      <View className="mb-3 relative">
-        <RestaurantSearchCard
-          restaurant={item}
-          onPress={() => {
-            if (!isAlreadyInPlaylist) {
-              toggleRestaurantSelection(item.id);
+      return (
+        <View className="mb-3 relative">
+          <RestaurantSearchCard
+            restaurant={item}
+            onPress={() => {
+              if (!isAlreadyInPlaylist) {
+                toggleRestaurantSelection(item.id);
+              }
+            }}
+            variant="compact"
+            showActions={false}
+            disabled={isAlreadyInPlaylist}
+            className={
+              isAlreadyInPlaylist
+                ? "opacity-50"
+                : isSelected
+                  ? "border-2 border-primary"
+                  : ""
             }
-          }}
-          variant="compact"
-          showActions={false}
-          disabled={isAlreadyInPlaylist}
-          className={
-            isAlreadyInPlaylist
-              ? "opacity-50"
-              : isSelected
-              ? "border-2 border-primary"
-              : ""
-          }
-        />
-        
-        {/* Selection indicator */}
-        <View className="absolute top-3 right-3">
-          {isAlreadyInPlaylist ? (
-            <View className="bg-gray-500 rounded-full p-1">
-              <Check size={16} color="#fff" />
-            </View>
-          ) : isSelected ? (
-            <View className="bg-primary rounded-full p-1">
-              <Check size={16} color="#fff" />
-            </View>
-          ) : (
-            <View className="bg-gray-200 dark:bg-gray-700 rounded-full p-1">
-              <Plus size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
+          />
+
+          {/* Selection indicator */}
+          <View className="absolute top-3 right-3">
+            {isAlreadyInPlaylist ? (
+              <View className="bg-gray-500 rounded-full p-1">
+                <Check size={16} color="#fff" />
+              </View>
+            ) : isSelected ? (
+              <View className="bg-primary rounded-full p-1">
+                <Check size={16} color="#fff" />
+              </View>
+            ) : (
+              <View className="bg-gray-200 dark:bg-gray-700 rounded-full p-1">
+                <Plus
+                  size={16}
+                  color={colorScheme === "dark" ? "#fff" : "#000"}
+                />
+              </View>
+            )}
+          </View>
+
+          {/* Favorite indicator */}
+          {isFavorite && (
+            <View className="absolute top-3 left-3">
+              <Heart size={16} color="#dc2626" fill="#dc2626" />
             </View>
           )}
         </View>
-
-        {/* Favorite indicator */}
-        {isFavorite && (
-          <View className="absolute top-3 left-3">
-            <Heart size={16} color="#dc2626" fill="#dc2626" />
-          </View>
-        )}
-      </View>
-    );
-  }, [selectedRestaurants, isRestaurantInPlaylist, favorites, toggleRestaurantSelection, colorScheme]);
+      );
+    },
+    [
+      selectedRestaurants,
+      isRestaurantInPlaylist,
+      favorites,
+      toggleRestaurantSelection,
+      colorScheme,
+    ],
+  );
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -194,9 +204,12 @@ export default function AddRestaurantsScreen() {
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center flex-1">
             <Pressable onPress={() => router.back()} className="p-2 -ml-2">
-              <ArrowLeft size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
+              <ArrowLeft
+                size={24}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+              />
             </Pressable>
-            
+
             <H3 className="ml-2">Add to Playlist</H3>
           </View>
 
@@ -244,7 +257,7 @@ export default function AddRestaurantsScreen() {
           </Muted>
         </View>
       ) : (
-        <FlatList
+        <OptimizedList
           data={restaurants}
           renderItem={renderRestaurantItem}
           keyExtractor={(item) => item.id}
@@ -263,4 +276,4 @@ export default function AddRestaurantsScreen() {
       )}
     </SafeAreaView>
   );
-};
+}

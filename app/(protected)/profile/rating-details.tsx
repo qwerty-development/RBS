@@ -9,7 +9,7 @@ import {
   Dimensions,
   Alert,
 } from "react-native";
-import RatingDetailsScreenSkeleton from '@/components/skeletons/RatingDetailsScreenSkeleton';
+import RatingDetailsScreenSkeleton from "@/components/skeletons/RatingDetailsScreenSkeleton";
 import { useRouter } from "expo-router";
 import {
   ChevronLeft,
@@ -90,10 +90,8 @@ const RatingHistoryItem: React.FC<{
 
   return (
     <View className="flex-row items-center py-3 px-4 bg-card rounded-lg mb-2">
-      <View className="mr-3">
-        {getReasonIcon(item.change_reason)}
-      </View>
-      
+      <View className="mr-3">{getReasonIcon(item.change_reason)}</View>
+
       <View className="flex-1">
         <Text className="font-medium text-sm">
           {getReasonText(item.change_reason)}
@@ -117,11 +115,12 @@ const RatingHistoryItem: React.FC<{
               isPositive
                 ? "text-green-600"
                 : isNeutral
-                ? "text-gray-600"
-                : "text-red-600"
+                  ? "text-gray-600"
+                  : "text-red-600"
             }`}
           >
-            {isPositive ? "+" : ""}{ratingChange.toFixed(1)}
+            {isPositive ? "+" : ""}
+            {ratingChange.toFixed(1)}
           </Text>
         </View>
         <Text className="text-xs text-muted-foreground">
@@ -136,15 +135,15 @@ export default function RatingDetailsPage() {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const [refreshing, setRefreshing] = useState(false);
-  
-  const { 
-    stats, 
-    history, 
-    loading, 
-    error, 
+
+  const {
+    stats,
+    history,
+    loading,
+    error,
     refresh,
     refreshRating,
-    currentRating 
+    currentRating,
   } = useUserRating();
 
   const handleRefresh = useCallback(() => {
@@ -165,11 +164,14 @@ export default function RatingDetailsPage() {
               await refreshRating();
               Alert.alert("Success", "Your rating has been updated!");
             } catch (error) {
-              Alert.alert("Error", "Failed to update rating. Please try again.");
+              Alert.alert(
+                "Error",
+                "Failed to update rating. Please try again.",
+              );
             }
           },
         },
-      ]
+      ],
     );
   }, [refreshRating]);
 
@@ -179,7 +181,11 @@ export default function RatingDetailsPage() {
 
     const sortedHistory = [...history].reverse();
     const labels = sortedHistory.map((item, index) => {
-      if (index === 0 || index === sortedHistory.length - 1 || index % 3 === 0) {
+      if (
+        index === 0 ||
+        index === sortedHistory.length - 1 ||
+        index % 3 === 0
+      ) {
         return new Date(item.created_at).toLocaleDateString("en-US", {
           month: "short",
           day: "numeric",
@@ -204,9 +210,9 @@ export default function RatingDetailsPage() {
     backgroundColor: colorScheme === "dark" ? "#1f2937" : "#ffffff",
     backgroundGradientFrom: colorScheme === "dark" ? "#1f2937" : "#ffffff",
     backgroundGradientTo: colorScheme === "dark" ? "#1f2937" : "#ffffff",
-    color: (opacity = 1) => 
-      colorScheme === "dark" 
-        ? `rgba(255, 255, 255, ${opacity})` 
+    color: (opacity = 1) =>
+      colorScheme === "dark"
+        ? `rgba(255, 255, 255, ${opacity})`
         : `rgba(0, 0, 0, ${opacity})`,
     strokeWidth: 2,
     barPercentage: 0.5,
@@ -261,10 +267,12 @@ export default function RatingDetailsPage() {
       >
         {/* Main Rating Display */}
         <View className="items-center py-6 bg-card mx-4 mt-4 rounded-xl">
-          <Text className="text-sm text-muted-foreground mb-2">Your Current Rating</Text>
-          <UserRating 
-            rating={currentRating} 
-            size="lg" 
+          <Text className="text-sm text-muted-foreground mb-2">
+            Your Current Rating
+          </Text>
+          <UserRating
+            rating={currentRating}
+            size="lg"
             showNumber={true}
             className="mb-2"
           />
@@ -284,8 +292,9 @@ export default function RatingDetailsPage() {
                 How Your Rating Works
               </Text>
               <Text className="text-blue-700 text-sm">
-                Your reliability score is based on your booking completion rate, 
-                cancellation history, and no-shows. Recent activity is weighted more heavily.
+                Your reliability score is based on your booking completion rate,
+                cancellation history, and no-shows. Recent activity is weighted
+                more heavily.
               </Text>
             </View>
           </View>
@@ -330,10 +339,12 @@ export default function RatingDetailsPage() {
                 <RatingHistoryItem key={item.id} item={item} />
               ))}
             </View>
-            
+
             {history.length > 10 && (
-              <Pressable 
-                onPress={() => {/* TODO: Show full history */}}
+              <Pressable
+                onPress={() => {
+                  /* TODO: Show full history */
+                }}
                 className="mt-3 p-3 bg-muted rounded-lg items-center"
               >
                 <Text className="text-primary font-medium">
@@ -351,12 +362,10 @@ export default function RatingDetailsPage() {
               No booking history yet
             </Text>
             <Text className="text-center text-sm text-muted-foreground mb-4">
-              Your rating will update as you complete bookings and build your dining history.
+              Your rating will update as you complete bookings and build your
+              dining history.
             </Text>
-            <Button 
-              onPress={() => router.push("/search")}
-              className="mt-2"
-            >
+            <Button onPress={() => router.push("/search")} className="mt-2">
               <Text>Explore Restaurants</Text>
             </Button>
           </View>

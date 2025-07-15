@@ -1,11 +1,6 @@
 import React from "react";
 import { View, Pressable, Linking } from "react-native";
-import {
-  Phone,
-  Instagram,
-  Globe,
-  ChevronRight,
-} from "lucide-react-native";
+import { Phone, Instagram, Globe, ChevronRight } from "lucide-react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { Text } from "@/components/ui/text";
 import { H3 } from "@/components/ui/typography";
@@ -70,7 +65,7 @@ export const ContactSection = ({
           <Pressable
             onPress={() =>
               Linking.openURL(
-                `https://instagram.com/${restaurant.instagram_handle}`
+                `https://instagram.com/${restaurant.instagram_handle}`,
               )
             }
             className="p-4 flex-row items-center justify-between"

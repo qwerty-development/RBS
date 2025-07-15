@@ -42,7 +42,7 @@ import { useBookingDetails } from "@/hooks/useBookingDetails";
 
 // Import constants
 import { BOOKING_STATUS_CONFIG } from "@/constants/bookingConstants";
-import BookingDetailsScreenSkeleton from '@/components/skeletons/BookingDetailsScreenSkeleton';
+import BookingDetailsScreenSkeleton from "@/components/skeletons/BookingDetailsScreenSkeleton";
 
 export default function BookingDetailsScreen() {
   const params = useLocalSearchParams<{ id: string }>();
@@ -119,9 +119,9 @@ export default function BookingDetailsScreen() {
       : "";
 
     const shareMessage = `I have a reservation at ${booking.restaurant.name} on ${new Date(
-      booking.booking_time
+      booking.booking_time,
     ).toLocaleDateString()} at ${new Date(
-      booking.booking_time
+      booking.booking_time,
     ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} for ${
       booking.party_size
     } people.${offerText}${pointsText} Confirmation code: ${booking.confirmation_code}`;
@@ -144,7 +144,7 @@ export default function BookingDetailsScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert(
       "Copied!",
-      `Confirmation code ${booking.confirmation_code} copied to clipboard`
+      `Confirmation code ${booking.confirmation_code} copied to clipboard`,
     );
   };
 
@@ -162,9 +162,7 @@ export default function BookingDetailsScreen() {
     }
   };
 
-
   // Loading state
-
 
   if (!booking) {
     return (
@@ -186,7 +184,7 @@ export default function BookingDetailsScreen() {
   const StatusIcon = statusConfig.icon;
   const bookingDate = new Date(booking.booking_time);
 
-    if (loading) {
+  if (loading) {
     return <BookingDetailsScreenSkeleton />;
   }
 

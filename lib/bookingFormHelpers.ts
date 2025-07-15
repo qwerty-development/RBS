@@ -13,14 +13,14 @@ interface BookingFormData {
  */
 export const createToggleDietaryRestriction = (
   getValues: UseFormGetValues<BookingFormData>,
-  setValue: UseFormSetValue<BookingFormData>
+  setValue: UseFormSetValue<BookingFormData>,
 ) => {
   return (restriction: string) => {
     const current = getValues("dietaryRestrictions");
     if (current.includes(restriction)) {
       setValue(
         "dietaryRestrictions",
-        current.filter((r) => r !== restriction)
+        current.filter((r) => r !== restriction),
       );
     } else {
       setValue("dietaryRestrictions", [...current, restriction]);
@@ -33,14 +33,14 @@ export const createToggleDietaryRestriction = (
  */
 export const createToggleTablePreference = (
   getValues: UseFormGetValues<BookingFormData>,
-  setValue: UseFormSetValue<BookingFormData>
+  setValue: UseFormSetValue<BookingFormData>,
 ) => {
   return (preference: string) => {
     const current = getValues("tablePreferences");
     if (current.includes(preference)) {
       setValue(
         "tablePreferences",
-        current.filter((p) => p !== preference)
+        current.filter((p) => p !== preference),
       );
     } else {
       setValue("tablePreferences", [...current, preference]);
@@ -52,7 +52,7 @@ export const createToggleTablePreference = (
  * Get default form values based on user profile
  */
 export const getDefaultFormValues = (
-  profile: any
+  profile: any,
 ): Partial<BookingFormData> => ({
   specialRequests: "",
   occasion: "none",

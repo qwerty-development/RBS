@@ -48,7 +48,7 @@ export function ProfileSocialStats() {
       const { count: friendsCount } = await supabase
         .from("friends")
         .select("*", { count: "exact", head: true })
-        .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`)
+        .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`);
 
       // Fetch total likes received
       const { data: userPosts } = await supabase
@@ -56,7 +56,7 @@ export function ProfileSocialStats() {
         .select("id")
         .eq("user_id", profile.id);
 
-      const postIds = userPosts?.map(p => p.id) || [];
+      const postIds = userPosts?.map((p) => p.id) || [];
       const { count: likesCount } = await supabase
         .from("post_likes")
         .select("*", { count: "exact", head: true })
@@ -83,7 +83,7 @@ export function ProfileSocialStats() {
 
   const handleStatPress = (stat: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     switch (stat) {
       case "posts":
         router.push("/profile/posts");
@@ -109,7 +109,7 @@ export function ProfileSocialStats() {
   return (
     <View className="bg-card rounded-xl p-4 mb-4">
       <H3 className="mb-4">Social Activity</H3>
-      
+
       <View className="flex-row justify-around">
         <Pressable
           onPress={() => handleStatPress("posts")}

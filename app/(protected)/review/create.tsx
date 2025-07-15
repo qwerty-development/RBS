@@ -14,7 +14,7 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { useReviewCreate } from "@/hooks/useReviewCreate";
 import { REVIEW_TAGS } from "@/constants/reviewConstants";
-import ReviewCreateScreenSkeleton from '@/components/skeletons/ReviewCreateScreenSkeleton';
+import ReviewCreateScreenSkeleton from "@/components/skeletons/ReviewCreateScreenSkeleton";
 
 // Extracted Components
 import { ReviewHeader } from "@/components/review/ReviewHeader";
@@ -61,10 +61,6 @@ export default function ReviewCreateScreen() {
     bookingId: params.bookingId,
     restaurantId: params.restaurantId,
   });
-
-
-
-
 
   // Review steps configuration
   const reviewSteps = [
@@ -149,8 +145,7 @@ export default function ReviewCreateScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
-
-    // Loading state
+  // Loading state
   if (loading) {
     return <ReviewCreateScreenSkeleton />;
   }

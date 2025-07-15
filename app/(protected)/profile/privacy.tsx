@@ -9,7 +9,7 @@ import {
   RefreshControl,
   Switch,
 } from "react-native";
-import PrivacyScreenSkeleton from '@/components/skeletons/PrivacyScreenSkeleton';
+import PrivacyScreenSkeleton from "@/components/skeletons/PrivacyScreenSkeleton";
 import { useRouter } from "expo-router";
 import {
   ArrowLeft,
@@ -44,7 +44,7 @@ interface PrivacySettings {
   push_notifications: boolean;
   location_sharing: boolean;
   activity_sharing: boolean;
-  profile_visibility: 'public' | 'friends' | 'private';
+  profile_visibility: "public" | "friends" | "private";
   data_analytics: boolean;
   third_party_sharing: boolean;
   review_visibility: boolean;
@@ -52,7 +52,7 @@ interface PrivacySettings {
 
 interface DataExportRequest {
   id: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: "pending" | "processing" | "completed" | "failed";
   requested_at: string;
   completed_at?: string;
   download_url?: string;
@@ -70,25 +70,29 @@ const PRIVACY_SECTIONS: PrivacyPolicySection[] = [
   {
     id: "data_collection",
     title: "Data Collection",
-    content: "We collect information you provide directly, usage data, and device information to enhance your dining experience.",
+    content:
+      "We collect information you provide directly, usage data, and device information to enhance your dining experience.",
     lastUpdated: "2024-01-15",
   },
   {
     id: "data_usage",
     title: "How We Use Your Data",
-    content: "Your data helps us personalize recommendations, process bookings, and improve our services.",
+    content:
+      "Your data helps us personalize recommendations, process bookings, and improve our services.",
     lastUpdated: "2024-01-15",
   },
   {
     id: "data_sharing",
     title: "Data Sharing",
-    content: "We share minimal data with restaurant partners and trusted service providers to fulfill your bookings.",
+    content:
+      "We share minimal data with restaurant partners and trusted service providers to fulfill your bookings.",
     lastUpdated: "2024-01-15",
   },
   {
     id: "data_security",
     title: "Data Security",
-    content: "We use industry-standard encryption and security measures to protect your personal information.",
+    content:
+      "We use industry-standard encryption and security measures to protect your personal information.",
     lastUpdated: "2024-01-15",
   },
 ];
@@ -98,7 +102,7 @@ const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {
   push_notifications: true,
   location_sharing: false,
   activity_sharing: true,
-  profile_visibility: 'public',
+  profile_visibility: "public",
   data_analytics: true,
   third_party_sharing: false,
   review_visibility: true,
@@ -111,18 +115,24 @@ export default function PrivacyScreen() {
   const router = useRouter();
 
   // 3.1 Privacy Settings State
-  const [settings, setSettings] = useState<PrivacySettings>(DEFAULT_PRIVACY_SETTINGS);
+  const [settings, setSettings] = useState<PrivacySettings>(
+    DEFAULT_PRIVACY_SETTINGS,
+  );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
 
   // 3.2 Data Management State
-  const [exportRequest, setExportRequest] = useState<DataExportRequest | null>(null);
+  const [exportRequest, setExportRequest] = useState<DataExportRequest | null>(
+    null,
+  );
   const [requestingExport, setRequestingExport] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
 
   // 3.3 UI State
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set(),
+  );
 
   // 4. Privacy Settings Management
   const fetchPrivacySettings = useCallback(async () => {
@@ -135,20 +145,32 @@ export default function PrivacyScreen() {
         .eq("user_id", profile.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error && error.code !== "PGRST116") {
         throw error;
       }
 
       if (data) {
         setSettings({
-          marketing_emails: data.marketing_emails ?? DEFAULT_PRIVACY_SETTINGS.marketing_emails,
-          push_notifications: data.push_notifications ?? DEFAULT_PRIVACY_SETTINGS.push_notifications,
-          location_sharing: data.location_sharing ?? DEFAULT_PRIVACY_SETTINGS.location_sharing,
-          activity_sharing: data.activity_sharing ?? DEFAULT_PRIVACY_SETTINGS.activity_sharing,
-          profile_visibility: data.profile_visibility ?? DEFAULT_PRIVACY_SETTINGS.profile_visibility,
-          data_analytics: data.data_analytics ?? DEFAULT_PRIVACY_SETTINGS.data_analytics,
-          third_party_sharing: data.third_party_sharing ?? DEFAULT_PRIVACY_SETTINGS.third_party_sharing,
-          review_visibility: data.review_visibility ?? DEFAULT_PRIVACY_SETTINGS.review_visibility,
+          marketing_emails:
+            data.marketing_emails ?? DEFAULT_PRIVACY_SETTINGS.marketing_emails,
+          push_notifications:
+            data.push_notifications ??
+            DEFAULT_PRIVACY_SETTINGS.push_notifications,
+          location_sharing:
+            data.location_sharing ?? DEFAULT_PRIVACY_SETTINGS.location_sharing,
+          activity_sharing:
+            data.activity_sharing ?? DEFAULT_PRIVACY_SETTINGS.activity_sharing,
+          profile_visibility:
+            data.profile_visibility ??
+            DEFAULT_PRIVACY_SETTINGS.profile_visibility,
+          data_analytics:
+            data.data_analytics ?? DEFAULT_PRIVACY_SETTINGS.data_analytics,
+          third_party_sharing:
+            data.third_party_sharing ??
+            DEFAULT_PRIVACY_SETTINGS.third_party_sharing,
+          review_visibility:
+            data.review_visibility ??
+            DEFAULT_PRIVACY_SETTINGS.review_visibility,
         });
       }
     } catch (error) {
@@ -161,33 +183,34 @@ export default function PrivacyScreen() {
   }, [profile?.id]);
 
   // 5. Settings Update Handler
-  const updatePrivacySetting = useCallback(async (key: keyof PrivacySettings, value: any) => {
-    if (!profile?.id) return;
+  const updatePrivacySetting = useCallback(
+    async (key: keyof PrivacySettings, value: any) => {
+      if (!profile?.id) return;
 
-    setSaving(true);
-    try {
-      // Update local state immediately for responsiveness
-      setSettings(prev => ({ ...prev, [key]: value }));
+      setSaving(true);
+      try {
+        // Update local state immediately for responsiveness
+        setSettings((prev) => ({ ...prev, [key]: value }));
 
-      // Update in database
-      const { error } = await supabase
-        .from("user_privacy_settings")
-        .upsert({
+        // Update in database
+        const { error } = await supabase.from("user_privacy_settings").upsert({
           user_id: profile.id,
           [key]: value,
           updated_at: new Date().toISOString(),
         });
 
-      if (error) throw error;
-    } catch (error) {
-      // Revert local state on error
-      setSettings(prev => ({ ...prev, [key]: !value }));
-      console.error("Error updating privacy setting:", error);
-      Alert.alert("Error", "Failed to update setting");
-    } finally {
-      setSaving(false);
-    }
-  }, [profile?.id]);
+        if (error) throw error;
+      } catch (error) {
+        // Revert local state on error
+        setSettings((prev) => ({ ...prev, [key]: !value }));
+        console.error("Error updating privacy setting:", error);
+        Alert.alert("Error", "Failed to update setting");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [profile?.id],
+  );
 
   // 6. Data Export Request Handler
   const requestDataExport = useCallback(async () => {
@@ -210,7 +233,7 @@ export default function PrivacyScreen() {
       setExportRequest(data);
       Alert.alert(
         "Export Requested",
-        "Your data export has been requested. You'll receive an email when it's ready for download."
+        "Your data export has been requested. You'll receive an email when it's ready for download.",
       );
     } catch (error) {
       console.error("Error requesting data export:", error);
@@ -237,7 +260,7 @@ export default function PrivacyScreen() {
               // For now, we'll just sign out and show a message
               Alert.alert(
                 "Account Deletion Initiated",
-                "Your account deletion request has been submitted. You'll receive a confirmation email within 24 hours."
+                "Your account deletion request has been submitted. You'll receive a confirmation email within 24 hours.",
               );
               // await signOut();
             } catch (error) {
@@ -248,13 +271,13 @@ export default function PrivacyScreen() {
             }
           },
         },
-      ]
+      ],
     );
   }, []);
 
   // 8. Section Toggle Handler
   const toggleSection = useCallback((sectionId: string) => {
-    setExpandedSections(prev => {
+    setExpandedSections((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(sectionId)) {
         newSet.delete(sectionId);
@@ -304,15 +327,17 @@ export default function PrivacyScreen() {
           <View className="flex-1">
             <Text className="font-medium mb-1">{title}</Text>
             <Muted className="text-sm mb-3">{description}</Muted>
-            
+
             {type === "switch" && (
               <Switch
                 value={value as boolean}
-                onValueChange={(newValue) => updatePrivacySetting(key, newValue)}
+                onValueChange={(newValue) =>
+                  updatePrivacySetting(key, newValue)
+                }
                 disabled={saving}
               />
             )}
-            
+
             {type === "select" && options && (
               <View className="gap-2">
                 {options.map((option) => (
@@ -325,11 +350,18 @@ export default function PrivacyScreen() {
                         : "bg-background border-border"
                     }`}
                   >
-                    <Text className={value === option.value ? "text-primary font-medium" : ""}>
+                    <Text
+                      className={
+                        value === option.value ? "text-primary font-medium" : ""
+                      }
+                    >
                       {option.label}
                     </Text>
                     {value === option.value && (
-                      <CheckCircle size={16} color={colorScheme === "dark" ? "#3b82f6" : "#2563eb"} />
+                      <CheckCircle
+                        size={16}
+                        color={colorScheme === "dark" ? "#3b82f6" : "#2563eb"}
+                      />
                     )}
                   </Pressable>
                 ))}
@@ -351,7 +383,10 @@ export default function PrivacyScreen() {
       {/* 11.1 Header */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
         <Pressable onPress={() => router.back()} className="p-2 -ml-2">
-          <ArrowLeft size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
+          <ArrowLeft
+            size={24}
+            color={colorScheme === "dark" ? "#fff" : "#000"}
+          />
         </Pressable>
         <H2>Privacy & Security</H2>
         <View className="w-10" />
@@ -389,14 +424,16 @@ export default function PrivacyScreen() {
           {renderPrivacySetting({
             key: "location_sharing",
             title: "Location Sharing",
-            description: "Share your location to get personalized restaurant recommendations",
+            description:
+              "Share your location to get personalized restaurant recommendations",
             icon: Globe,
           })}
 
           {renderPrivacySetting({
             key: "activity_sharing",
             title: "Activity Sharing",
-            description: "Allow friends to see your dining activity and check-ins",
+            description:
+              "Allow friends to see your dining activity and check-ins",
             icon: Users,
           })}
 
@@ -417,14 +454,16 @@ export default function PrivacyScreen() {
           {renderPrivacySetting({
             key: "push_notifications",
             title: "Push Notifications",
-            description: "Receive notifications about bookings and special offers",
+            description:
+              "Receive notifications about bookings and special offers",
             icon: Bell,
           })}
 
           {renderPrivacySetting({
             key: "marketing_emails",
             title: "Marketing Emails",
-            description: "Receive promotional emails about new restaurants and offers",
+            description:
+              "Receive promotional emails about new restaurants and offers",
             icon: FileText,
           })}
         </View>
@@ -438,14 +477,16 @@ export default function PrivacyScreen() {
           {renderPrivacySetting({
             key: "data_analytics",
             title: "Analytics",
-            description: "Help us improve the app by sharing anonymous usage data",
+            description:
+              "Help us improve the app by sharing anonymous usage data",
             icon: Database,
           })}
 
           {renderPrivacySetting({
             key: "third_party_sharing",
             title: "Third-Party Sharing",
-            description: "Allow sharing data with restaurant partners for better service",
+            description:
+              "Allow sharing data with restaurant partners for better service",
             icon: ExternalLink,
           })}
         </View>
@@ -474,7 +515,11 @@ export default function PrivacyScreen() {
                   disabled={requestingExport || !!exportRequest}
                 >
                   <Text className="text-sm">
-                    {requestingExport ? "Requesting..." : exportRequest ? "Export Pending" : "Request Export"}
+                    {requestingExport
+                      ? "Requesting..."
+                      : exportRequest
+                        ? "Export Pending"
+                        : "Request Export"}
                   </Text>
                 </Button>
               </View>
@@ -488,7 +533,9 @@ export default function PrivacyScreen() {
                 <Trash2 size={20} color="#ef4444" />
               </View>
               <View className="flex-1">
-                <Text className="font-medium mb-1 text-destructive">Delete Account</Text>
+                <Text className="font-medium mb-1 text-destructive">
+                  Delete Account
+                </Text>
                 <Muted className="text-sm mb-3">
                   Permanently delete your account and all associated data
                 </Muted>
@@ -515,9 +562,12 @@ export default function PrivacyScreen() {
 
           {PRIVACY_SECTIONS.map((section) => {
             const isExpanded = expandedSections.has(section.id);
-            
+
             return (
-              <View key={section.id} className="bg-card mx-4 mb-3 rounded-xl overflow-hidden">
+              <View
+                key={section.id}
+                className="bg-card mx-4 mb-3 rounded-xl overflow-hidden"
+              >
                 <Pressable
                   onPress={() => toggleSection(section.id)}
                   className="p-4 flex-row items-center justify-between"
@@ -525,14 +575,21 @@ export default function PrivacyScreen() {
                   <View className="flex-1">
                     <Text className="font-medium">{section.title}</Text>
                     <Muted className="text-xs mt-1">
-                      Updated {new Date(section.lastUpdated).toLocaleDateString()}
+                      Updated{" "}
+                      {new Date(section.lastUpdated).toLocaleDateString()}
                     </Muted>
                   </View>
-                  <View className={`transform ${isExpanded ? "rotate-180" : "rotate-0"}`}>
-                    <ArrowLeft size={20} color="#666" style={{ transform: [{ rotate: "270deg" }] }} />
+                  <View
+                    className={`transform ${isExpanded ? "rotate-180" : "rotate-0"}`}
+                  >
+                    <ArrowLeft
+                      size={20}
+                      color="#666"
+                      style={{ transform: [{ rotate: "270deg" }] }}
+                    />
                   </View>
                 </Pressable>
-                
+
                 {isExpanded && (
                   <View className="px-4 pb-4 border-t border-border">
                     <P className="text-sm mt-3">{section.content}</P>
@@ -546,7 +603,8 @@ export default function PrivacyScreen() {
         {/* 11.7 Footer */}
         <View className="items-center py-8 px-4">
           <Muted className="text-xs text-center">
-            Your privacy is important to us. We follow industry best practices to protect your data.
+            Your privacy is important to us. We follow industry best practices
+            to protect your data.
           </Muted>
           <Pressable
             onPress={() => {
@@ -555,7 +613,9 @@ export default function PrivacyScreen() {
             }}
             className="mt-2"
           >
-            <Text className="text-primary text-sm">Read Full Privacy Policy</Text>
+            <Text className="text-primary text-sm">
+              Read Full Privacy Policy
+            </Text>
           </Pressable>
         </View>
       </ScrollView>

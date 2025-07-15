@@ -30,6 +30,7 @@ import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
+import { OptimizedList } from "@/components/ui/optimized-list";
 
 interface UserPost {
   id: string;
@@ -37,15 +38,15 @@ interface UserPost {
   restaurant_name: string;
   restaurant_image: string;
   content: string;
-  images: Array<{
+  images: {
     id: string;
     image_url: string;
     image_order: number;
-  }>;
-  tagged_friends: Array<{
+  }[];
+  tagged_friends: {
     id: string;
     full_name: string;
-  }>;
+  }[];
   likes_count: number;
   comments_count: number;
   created_at: string;
@@ -59,18 +60,14 @@ const PostCard: React.FC<{
   const [showMenu, setShowMenu] = useState(false);
 
   const handleDelete = () => {
-    Alert.alert(
-      "Delete Post",
-      "Are you sure you want to delete this post?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => onDelete(post.id),
-        },
-      ]
-    );
+    Alert.alert("Delete Post", "Are you sure you want to delete this post?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: () => onDelete(post.id),
+      },
+    ]);
   };
 
   return (
@@ -92,10 +89,7 @@ const PostCard: React.FC<{
             </Muted>
           </View>
         </View>
-        <Pressable
-          onPress={() => setShowMenu(!showMenu)}
-          className="p-2"
-        >
+        <Pressable onPress={() => setShowMenu(!showMenu)} className="p-2">
           <MoreVertical size={20} color="#666" />
         </Pressable>
       </View>
@@ -125,7 +119,9 @@ const PostCard: React.FC<{
       {/* Content Preview */}
       {post.content && (
         <View className="px-3 py-2">
-          <P className="text-sm" numberOfLines={2}>{post.content}</P>
+          <P className="text-sm" numberOfLines={2}>
+            {post.content}
+          </P>
         </View>
       )}
 
@@ -186,15 +182,12 @@ export default function UserPostsScreen() {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       // Delete post (cascade will handle related records)
-      const { error } = await supabase
-        .from("posts")
-        .delete()
-        .eq("id", postId);
+      const { error } = await supabase.from("posts").delete().eq("id", postId);
 
       if (error) throw error;
 
       // Update local state
-      setPosts(posts.filter(p => p.id !== postId));
+      setPosts(posts.filter((p) => p.id !== postId));
       Alert.alert("Success", "Post deleted successfully");
     } catch (error) {
       console.error("Error deleting post:", error);
@@ -231,7 +224,7 @@ export default function UserPostsScreen() {
       </View>
 
       {/* Posts Grid */}
-      <FlatList
+      <OptimizedList
         data={posts}
         renderItem={({ item }) => (
           <PostCard

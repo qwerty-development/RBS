@@ -30,11 +30,12 @@ import { H1, H2, H3, P, Muted } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { Image } from "@/components/image";
 import { RestaurantSearchCard } from "@/components/search/RestaurantSearchCard";
-import CuisineScreenSkeleton from '@/components/skeletons/CuisineScreenSkeleton';
+import CuisineScreenSkeleton from "@/components/skeletons/CuisineScreenSkeleton";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { supabase } from "@/config/supabase";
 import { Database } from "@/types/supabase";
 import type { Restaurant } from "@/types/search";
+import { OptimizedList } from "@/components/ui/optimized-list";
 
 // Type Definitions
 type DatabaseRestaurant = Database["public"]["Tables"]["restaurants"]["Row"];
@@ -96,7 +97,7 @@ export default function CuisineScreen() {
       // Method 1: Exact match on cuisine_type
       const { data: exactData, error: exactError } = await query.eq(
         "cuisine_type",
-        cuisineId
+        cuisineId,
       );
 
       if (exactError) {
@@ -104,7 +105,7 @@ export default function CuisineScreen() {
       } else if (exactData && exactData.length > 0) {
         restaurantData = exactData;
         console.log(
-          `Found ${restaurantData.length} restaurants with exact cuisine match`
+          `Found ${restaurantData.length} restaurants with exact cuisine match`,
         );
       }
 
@@ -120,7 +121,7 @@ export default function CuisineScreen() {
         } else if (iLikeData && iLikeData.length > 0) {
           restaurantData = iLikeData;
           console.log(
-            `Found ${restaurantData.length} restaurants with case-insensitive match`
+            `Found ${restaurantData.length} restaurants with case-insensitive match`,
           );
         }
       }
@@ -154,11 +155,11 @@ export default function CuisineScreen() {
             (restaurant) =>
               restaurant.tags &&
               restaurant.tags.some((tag: string) =>
-                tag.toLowerCase().includes(cuisineId.toLowerCase())
-              )
+                tag.toLowerCase().includes(cuisineId.toLowerCase()),
+              ),
           );
           console.log(
-            `Found ${restaurantData.length} restaurants with tag containing cuisine`
+            `Found ${restaurantData.length} restaurants with tag containing cuisine`,
           );
         }
       }
@@ -169,14 +170,14 @@ export default function CuisineScreen() {
       // Rating filter
       if (filters.rating > 0) {
         processedRestaurants = processedRestaurants.filter(
-          (restaurant) => (restaurant.average_rating || 0) >= filters.rating
+          (restaurant) => (restaurant.average_rating || 0) >= filters.rating,
         );
       }
 
       // Price range filter
       if (filters.priceRange.length < 4) {
         processedRestaurants = processedRestaurants.filter((restaurant) =>
-          filters.priceRange.includes(restaurant.price_range)
+          filters.priceRange.includes(restaurant.price_range),
         );
       }
 
@@ -212,7 +213,7 @@ export default function CuisineScreen() {
       processedRestaurants.sort(getSortComparator(filters.sortBy));
 
       console.log(
-        `Final result: ${processedRestaurants.length} restaurants for cuisine: ${cuisineId}`
+        `Final result: ${processedRestaurants.length} restaurants for cuisine: ${cuisineId}`,
       );
       setRestaurants(processedRestaurants as DatabaseRestaurant[]);
     } catch (error) {
@@ -252,7 +253,7 @@ export default function CuisineScreen() {
     (restaurant: Restaurant) => {
       router.push(`/(protected)/restaurant/${restaurant.id}`);
     },
-    [router]
+    [router],
   );
 
   const handleToggleFavorite = useCallback(async (restaurantId: string) => {
@@ -334,7 +335,7 @@ export default function CuisineScreen() {
         restaurants.length > 0
           ? Math.round(
               restaurants.reduce((sum, r) => sum + r.price_range, 0) /
-                restaurants.length
+                restaurants.length,
             )
           : 0,
     };
@@ -409,7 +410,7 @@ export default function CuisineScreen() {
       )}
 
       {/* Restaurant List */}
-      <FlatList
+      <OptimizedList
         data={restaurants}
         renderItem={({ item }) => (
           <RestaurantSearchCard

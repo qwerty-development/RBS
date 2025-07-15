@@ -75,14 +75,14 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
   const router = useRouter();
 
   // Determine which props pattern we're using
-  const isSearchScreen = 'item' in props && props.item !== undefined;
-  
+  const isSearchScreen = "item" in props && props.item !== undefined;
+
   // Extract the restaurant data based on props pattern
   const restaurant = isSearchScreen ? props.item : props.restaurant;
-  const variant = isSearchScreen ? "default" : (props.variant || "default");
-  const showActions = isSearchScreen ? true : (props.showActions !== false);
-  const disabled = isSearchScreen ? false : (props.disabled || false);
-  const className = isSearchScreen ? "" : (props.className || "");
+  const variant = isSearchScreen ? "default" : props.variant || "default";
+  const showActions = isSearchScreen ? true : props.showActions !== false;
+  const disabled = isSearchScreen ? false : props.disabled || false;
+  const className = isSearchScreen ? "" : props.className || "";
 
   // Safety check
   if (!restaurant) {
@@ -91,7 +91,7 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
 
   const handleRestaurantPress = () => {
     if (disabled) return;
-    
+
     if (props.onPress) {
       props.onPress();
     } else {
@@ -113,7 +113,9 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
     }
   };
 
-  const isFavorite = isSearchScreen ? props.favorites?.has(restaurant.id) : false;
+  const isFavorite = isSearchScreen
+    ? props.favorites?.has(restaurant.id)
+    : false;
 
   return (
     <Pressable
@@ -123,16 +125,13 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
         "bg-card rounded-lg shadow-sm border border-border overflow-hidden",
         variant === "compact" ? "mb-2" : "mb-4",
         disabled && "opacity-60",
-        className
+        className,
       )}
     >
       <View className="relative">
         <Image
           source={{ uri: restaurant?.main_image_url || "" }}
-          className={cn(
-            "w-full",
-            variant === "compact" ? "h-32" : "h-48"
-          )}
+          className={cn("w-full", variant === "compact" ? "h-32" : "h-48")}
           contentFit="cover"
         />
 
@@ -162,7 +161,9 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
               }`}
             >
               <Text className="text-xs text-white font-medium">
-                {restaurant.booking_policy === "instant" ? "Instant Book" : "Request"}
+                {restaurant.booking_policy === "instant"
+                  ? "Instant Book"
+                  : "Request"}
               </Text>
             </View>
           </View>
@@ -172,11 +173,11 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
       <View className={cn("p-4", variant === "compact" && "p-3")}>
         <View className="flex-row items-start justify-between mb-2">
           <View className="flex-1 mr-3">
-            <Text 
+            <Text
               className={cn(
                 "font-semibold mb-1",
-                variant === "compact" ? "text-base" : "text-lg"
-              )} 
+                variant === "compact" ? "text-base" : "text-lg",
+              )}
               numberOfLines={1}
             >
               {restaurant.name}
@@ -203,42 +204,47 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
 
               <View className="flex-row items-center gap-1">
                 <DollarSign size={14} color="#666" />
-                <Text className="text-sm">{"$".repeat(restaurant.price_range)}</Text>
+                <Text className="text-sm">
+                  {"$".repeat(restaurant.price_range)}
+                </Text>
               </View>
 
               {/* Updated distance display using LocationService */}
-              {restaurant.distance !== undefined && restaurant.distance !== null && (
-                <View className="flex-row items-center gap-1">
-                  <MapPin size={14} color="#666" />
-                  <Text className="text-sm text-muted-foreground">
-                    {LocationService.formatDistance(restaurant.distance)}
-                  </Text>
-                </View>
-              )}
+              {restaurant.distance !== undefined &&
+                restaurant.distance !== null && (
+                  <View className="flex-row items-center gap-1">
+                    <MapPin size={14} color="#666" />
+                    <Text className="text-sm text-muted-foreground">
+                      {LocationService.formatDistance(restaurant.distance)}
+                    </Text>
+                  </View>
+                )}
             </View>
 
             {/* Availability indicator - only show in search screen with booking filters */}
-            {isSearchScreen && typeof restaurant.isAvailable === "boolean" && props.bookingFilters && (
-              <View
-                className={`px-2 py-1 rounded-full self-start mb-2 ${
-                  restaurant.isAvailable
-                    ? "bg-green-100 dark:bg-green-900/20"
-                    : "bg-red-100 dark:bg-red-900/20"
-                }`}
-              >
-                <Text
-                  className={`text-xs font-medium ${
+            {isSearchScreen &&
+              typeof restaurant.isAvailable === "boolean" &&
+              props.bookingFilters && (
+                <View
+                  className={`px-2 py-1 rounded-full self-start mb-2 ${
                     restaurant.isAvailable
-                      ? "text-green-800 dark:text-green-200"
-                      : "text-red-800 dark:text-red-200"
+                      ? "bg-green-100 dark:bg-green-900/20"
+                      : "bg-red-100 dark:bg-red-900/20"
                   }`}
                 >
-                  {restaurant.isAvailable
-                    ? `Available ${props.bookingFilters.time}`
-                    : `Fully booked ${props.bookingFilters.time}`}
-                </Text>
-              </View>
-            )}
+                  <Text
+                    className={`text-xs font-medium ${
+                      restaurant.isAvailable
+                        ? "text-green-800 dark:text-green-200"
+                        : "text-red-800 dark:text-red-200"
+                    }`}
+                  >
+                    {restaurant.isAvailable
+                      ? `Available ${props.bookingFilters.time}`
+                      : `Fully booked ${props.bookingFilters.time}`}
+                  </Text>
+                </View>
+              )}
 
             {restaurant.tags && restaurant.tags.length > 0 && (
               <View className="flex-row flex-wrap gap-1">

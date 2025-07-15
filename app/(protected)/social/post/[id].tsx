@@ -54,16 +54,16 @@ interface PostDetail {
   restaurant_name: string | null;
   restaurant_image: string | null;
   content: string;
-  images: Array<{
+  images: {
     id: string;
     image_url: string;
     image_order: number;
-  }>;
-  tagged_friends: Array<{
+  }[];
+  tagged_friends: {
     id: string;
     full_name: string;
     avatar_url: string;
-  }>;
+  }[];
   likes_count: number;
   comments_count: number;
   created_at: string;
@@ -114,13 +114,15 @@ export default function PostDetailScreen() {
       // Fetch comments
       const { data: commentsData, error: commentsError } = await supabase
         .from("post_comments")
-        .select(`
+        .select(
+          `
           *,
           user:profiles (
             full_name,
             avatar_url
           )
-        `)
+        `,
+        )
         .eq("post_id", postId)
         .order("created_at", { ascending: true });
 
@@ -182,20 +184,22 @@ export default function PostDetailScreen() {
           user_id: profile.id,
           comment: newComment.trim(),
         })
-        .select(`
+        .select(
+          `
           *,
           user:profiles (
             full_name,
             avatar_url
           )
-        `)
+        `,
+        )
         .single();
 
       if (error) throw error;
 
       setComments([...comments, data]);
       setNewComment("");
-      
+
       // Update comment count
       if (post) {
         setPost({
@@ -222,7 +226,7 @@ export default function PostDetailScreen() {
       console.warn("Restaurant ID is null or undefined, cannot navigate");
       return;
     }
-    
+
     router.push(`/restaurant/${post.restaurant_id}`);
   }, [post?.restaurant_id, router]);
 
@@ -274,7 +278,9 @@ export default function PostDetailScreen() {
             className="flex-row items-center p-4"
           >
             <Image
-              source={{ uri: post.user_avatar || "https://via.placeholder.com/50" }}
+              source={{
+                uri: post.user_avatar || "https://via.placeholder.com/50",
+              }}
               className="w-10 h-10 rounded-full mr-3"
             />
             <View className="flex-1">
@@ -339,7 +345,8 @@ export default function PostDetailScreen() {
                 showsHorizontalScrollIndicator={false}
                 onMomentumScrollEnd={(e) => {
                   const index = Math.round(
-                    e.nativeEvent.contentOffset.x / e.nativeEvent.layoutMeasurement.width
+                    e.nativeEvent.contentOffset.x /
+                      e.nativeEvent.layoutMeasurement.width,
                   );
                   setImageIndex(index);
                 }}
@@ -364,10 +371,7 @@ export default function PostDetailScreen() {
 
           {/* Actions */}
           <View className="flex-row items-center gap-6 px-4 py-3 border-y border-border">
-            <Pressable
-              onPress={handleLike}
-              className="flex-row items-center"
-            >
+            <Pressable onPress={handleLike} className="flex-row items-center">
               <Heart
                 size={22}
                 color={post.liked_by_user ? "#ef4444" : "#666"}
@@ -391,7 +395,11 @@ export default function PostDetailScreen() {
                   onPress={() => router.push(`/profile/${comment.user_id}`)}
                 >
                   <Image
-                    source={{ uri: comment.user.avatar_url || "https://via.placeholder.com/40" }}
+                    source={{
+                      uri:
+                        comment.user.avatar_url ||
+                        "https://via.placeholder.com/40",
+                    }}
                     className="w-10 h-10 rounded-full mr-3"
                   />
                 </Pressable>
@@ -431,10 +439,7 @@ export default function PostDetailScreen() {
               {posting ? (
                 <ActivityIndicator size="small" color="white" />
               ) : (
-                <Send
-                  size={20}
-                  color={newComment.trim() ? "white" : "#666"}
-                />
+                <Send size={20} color={newComment.trim() ? "white" : "#666"} />
               )}
             </Pressable>
           </View>

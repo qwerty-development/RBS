@@ -1,17 +1,25 @@
-import React from 'react';
-import { View, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import SkeletonPlaceholder from './SkeletonPlaceholder';
-import RestaurantSearchCardSkeleton from './RestaurantSearchCardSkeleton';
+import React from "react";
+import { View, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import SkeletonPlaceholder from "./SkeletonPlaceholder";
+import RestaurantSearchCardSkeleton from "./RestaurantSearchCardSkeleton";
 
 const CuisineScreenSkeleton = () => {
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* Header */}
       <View className="p-4 flex-row items-center">
-        <SkeletonPlaceholder width={32} height={32} style={{ borderRadius: 16 }} />
+        <SkeletonPlaceholder
+          width={32}
+          height={32}
+          style={{ borderRadius: 16 }}
+        />
         <View className="ml-4">
-          <SkeletonPlaceholder width={150} height={28} style={{ marginBottom: 4 }} />
+          <SkeletonPlaceholder
+            width={150}
+            height={28}
+            style={{ marginBottom: 4 }}
+          />
           <SkeletonPlaceholder width={100} height={20} />
         </View>
       </View>

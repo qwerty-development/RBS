@@ -52,19 +52,15 @@ export function UserRatingBadge({
         "flex-row items-center border rounded-full",
         compact ? "px-2 py-1" : "px-3 py-1.5",
         getBadgeColor(rating),
-        className
+        className,
       )}
     >
-      <Star 
-        size={compact ? 10 : 12} 
-        fill="#FFD700" 
-        color="#FFD700" 
-      />
+      <Star size={compact ? 10 : 12} fill="#FFD700" color="#FFD700" />
       <Text
         className={cn(
           "font-semibold ml-1",
           compact ? "text-xs" : "text-sm",
-          getTextColor(rating)
+          getTextColor(rating),
         )}
       >
         {rating.toFixed(1)}

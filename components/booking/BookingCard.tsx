@@ -213,7 +213,7 @@ export function BookingCard({
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert(
       "Copied!",
-      `Confirmation code ${booking.confirmation_code} copied to clipboard`
+      `Confirmation code ${booking.confirmation_code} copied to clipboard`,
     );
   };
 
@@ -232,7 +232,7 @@ export function BookingCard({
       onPress={handlePress}
       className={cn(
         "bg-card rounded-xl overflow-hidden mb-4 border border-border shadow-sm",
-        className
+        className,
       )}
     >
       {/* Restaurant Header */}

@@ -39,6 +39,7 @@ import {
 import { PlaylistCard } from "@/components/playlists/PlaylistCard";
 import { CreatePlaylistModal } from "@/components/playlists/CreatePlaylistModal";
 import FavoritesScreenSkeleton from "@/components/skeletons/FavoritesScreenSkeleton";
+import { OptimizedList } from "@/components/ui/optimized-list";
 
 // Error boundary component for playlists
 class PlaylistErrorBoundary extends React.Component<
@@ -72,7 +73,7 @@ export default function FavoritesScreen() {
   const { colorScheme } = useColorScheme();
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
   const [activeTab, setActiveTab] = useState<"favorites" | "playlists">(
-    "favorites"
+    "favorites",
   );
   const [playlistError, setPlaylistError] = useState(false);
   const [invitationError, setInvitationError] = useState(false);
@@ -156,7 +157,7 @@ export default function FavoritesScreen() {
         console.error("Navigation error:", error);
       }
     },
-    [router]
+    [router],
   );
 
   const navigateToPlaylist = useCallback(
@@ -170,7 +171,7 @@ export default function FavoritesScreen() {
         console.error("Navigation error:", error);
       }
     },
-    [router]
+    [router],
   );
 
   const navigateToInsights = useCallback(() => {
@@ -236,7 +237,7 @@ export default function FavoritesScreen() {
         const newPlaylist = await createPlaylist(
           data.name,
           data.description,
-          data.emoji
+          data.emoji,
         );
         if (newPlaylist) {
           setShowCreatePlaylist(false);
@@ -247,7 +248,7 @@ export default function FavoritesScreen() {
         setShowCreatePlaylist(false);
       }
     },
-    [createPlaylist, navigateToPlaylist]
+    [createPlaylist, navigateToPlaylist],
   );
 
   // Handle tab switching with error handling
@@ -289,7 +290,7 @@ export default function FavoritesScreen() {
         return null;
       }
     },
-    [navigateToRestaurant, removeFavorite, removingId, fadeAnim, scaleAnim]
+    [navigateToRestaurant, removeFavorite, removingId, fadeAnim, scaleAnim],
   );
 
   // Render section header
@@ -339,7 +340,7 @@ export default function FavoritesScreen() {
         );
       }
     },
-    [navigateToPlaylist]
+    [navigateToPlaylist],
   );
 
   // Playlist header actions component with error handling
@@ -414,7 +415,6 @@ export default function FavoritesScreen() {
 
   // Loading state
 
-
   // Error state for playlists
   if (playlistError && activeTab === "playlists") {
     return (
@@ -433,7 +433,7 @@ export default function FavoritesScreen() {
     );
   }
 
-    if (
+  if (
     loading &&
     (activeTab === "favorites"
       ? (favorites?.length || 0) === 0
@@ -548,7 +548,7 @@ export default function FavoritesScreen() {
           (favorites?.length || 0) === 0 ? (
             <FavoritesEmptyState onDiscoverPress={navigateToSearch} />
           ) : groupBy === "none" ? (
-            <FlatList
+            <OptimizedList
               data={processedFavorites?.[0]?.data || []}
               renderItem={renderGridRow}
               keyExtractor={(item, index) =>
@@ -623,7 +623,7 @@ export default function FavoritesScreen() {
             </View>
           </View>
         ) : (
-          <FlatList
+          <OptimizedList
             data={playlists || []}
             renderItem={renderPlaylistItem}
             keyExtractor={(item) => item?.id || Math.random().toString()}

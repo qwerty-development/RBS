@@ -10,13 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
-import {
-  X,
-  Search,
-  Plus,
-  Check,
-  FolderPlus,
-} from "lucide-react-native";
+import { X, Search, Plus, Check, FolderPlus } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 import { Text } from "@/components/ui/text";
@@ -27,6 +21,7 @@ import { usePlaylists, Playlist } from "@/hooks/usePlaylists";
 import { CreatePlaylistModal } from "./CreatePlaylistModal";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
+import { OptimizedList } from "../ui/optimized-list";
 
 interface AddToPlaylistModalProps {
   visible: boolean;
@@ -46,15 +41,19 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();
   const { playlists, createPlaylist, handleRefresh } = usePlaylists();
-  const [selectedPlaylists, setSelectedPlaylists] = useState<Set<string>>(new Set());
+  const [selectedPlaylists, setSelectedPlaylists] = useState<Set<string>>(
+    new Set(),
+  );
   const [addingToPlaylists, setAddingToPlaylists] = useState(false);
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [playlistStates, setPlaylistStates] = useState<Map<string, boolean>>(new Map());
+  const [playlistStates, setPlaylistStates] = useState<Map<string, boolean>>(
+    new Map(),
+  );
 
   // Filter playlists based on search
-  const filteredPlaylists = playlists.filter(
-    playlist => playlist.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredPlaylists = playlists.filter((playlist) =>
+    playlist.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // Check which playlists already contain this restaurant
@@ -63,22 +62,22 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
 
     const checkPlaylistStates = async () => {
       const states = new Map<string, boolean>();
-      
+
       for (const playlist of playlists) {
         try {
           const { data } = await supabase
-            .from('playlist_items')
-            .select('id')
-            .eq('playlist_id', playlist.id)
-            .eq('restaurant_id', restaurantId)
+            .from("playlist_items")
+            .select("id")
+            .eq("playlist_id", playlist.id)
+            .eq("restaurant_id", restaurantId)
             .single();
-          
+
           states.set(playlist.id, !!data);
         } catch (error) {
           states.set(playlist.id, false);
         }
       }
-      
+
       setPlaylistStates(states);
     };
 
@@ -86,50 +85,55 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
   }, [visible, playlists, restaurantId]);
 
   // Toggle playlist selection
-  const togglePlaylistSelection = useCallback((playlistId: string) => {
-    if (playlistStates.get(playlistId)) return; // Already in playlist
-    
-    setSelectedPlaylists(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(playlistId)) {
-        newSet.delete(playlistId);
-      } else {
-        newSet.add(playlistId);
-      }
-      return newSet;
-    });
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [playlistStates]);
+  const togglePlaylistSelection = useCallback(
+    (playlistId: string) => {
+      if (playlistStates.get(playlistId)) return; // Already in playlist
+
+      setSelectedPlaylists((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(playlistId)) {
+          newSet.delete(playlistId);
+        } else {
+          newSet.add(playlistId);
+        }
+        return newSet;
+      });
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    },
+    [playlistStates],
+  );
 
   // Helper function to add restaurant to a single playlist
-  const addRestaurantToPlaylist = async (playlistId: string, restaurantId: string): Promise<boolean> => {
+  const addRestaurantToPlaylist = async (
+    playlistId: string,
+    restaurantId: string,
+  ): Promise<boolean> => {
     if (!profile?.id) return false;
 
     try {
       // Get current max position
       const { data: maxPosData } = await supabase
-        .from('playlist_items')
-        .select('position')
-        .eq('playlist_id', playlistId)
-        .order('position', { ascending: false })
+        .from("playlist_items")
+        .select("position")
+        .eq("playlist_id", playlistId)
+        .order("position", { ascending: false })
         .limit(1)
         .single();
 
       const nextPosition = (maxPosData?.position ?? -1) + 1;
 
-      const { error } = await supabase
-        .from('playlist_items')
-        .insert({
-          playlist_id: playlistId,
-          restaurant_id: restaurantId,
-          added_by: profile.id,
-          position: nextPosition,
-          note: null
-        });
+      const { error } = await supabase.from("playlist_items").insert({
+        playlist_id: playlistId,
+        restaurant_id: restaurantId,
+        added_by: profile.id,
+        position: nextPosition,
+        note: null,
+      });
 
       if (error) {
-        if (error.code === '23505') { // Unique constraint violation
-          console.log('Restaurant already in playlist');
+        if (error.code === "23505") {
+          // Unique constraint violation
+          console.log("Restaurant already in playlist");
           return false;
         }
         throw error;
@@ -137,7 +141,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
 
       return true;
     } catch (error) {
-      console.error('Error adding restaurant to playlist:', error);
+      console.error("Error adding restaurant to playlist:", error);
       return false;
     }
   };
@@ -155,7 +159,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
         const success = await addRestaurantToPlaylist(playlistId, restaurantId);
         if (success) {
           successCount++;
-          const playlist = playlists.find(p => p.id === playlistId);
+          const playlist = playlists.find((p) => p.id === playlistId);
           if (playlist && !addedPlaylistName) {
             addedPlaylistName = playlist.name;
           }
@@ -163,33 +167,47 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
       }
 
       if (successCount > 0) {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        );
         if (onSuccess) {
-          onSuccess(successCount > 1 ? `${successCount} playlists` : addedPlaylistName);
+          onSuccess(
+            successCount > 1 ? `${successCount} playlists` : addedPlaylistName,
+          );
         }
         onClose();
       }
     } catch (error) {
-      console.error('Error adding to playlists:', error);
+      console.error("Error adding to playlists:", error);
     } finally {
       setAddingToPlaylists(false);
     }
-  }, [selectedPlaylists, restaurantId, playlists, onSuccess, onClose, profile?.id]);
+  }, [
+    selectedPlaylists,
+    restaurantId,
+    playlists,
+    onSuccess,
+    onClose,
+    profile?.id,
+  ]);
 
   // Handle create new playlist
-  const handleCreateNewPlaylist = useCallback(async (data: {
-    name: string;
-    description: string;
-    emoji: string;
-  }) => {
-    const newPlaylist = await createPlaylist(data.name, data.description, data.emoji);
-    if (newPlaylist) {
-      setShowCreatePlaylist(false);
-      // Automatically select the new playlist
-      setSelectedPlaylists(new Set([newPlaylist.id]));
-      await handleRefresh();
-    }
-  }, [createPlaylist, handleRefresh]);
+  const handleCreateNewPlaylist = useCallback(
+    async (data: { name: string; description: string; emoji: string }) => {
+      const newPlaylist = await createPlaylist(
+        data.name,
+        data.description,
+        data.emoji,
+      );
+      if (newPlaylist) {
+        setShowCreatePlaylist(false);
+        // Automatically select the new playlist
+        setSelectedPlaylists(new Set([newPlaylist.id]));
+        await handleRefresh();
+      }
+    },
+    [createPlaylist, handleRefresh],
+  );
 
   // Reset state when modal closes
   useEffect(() => {
@@ -200,56 +218,63 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
   }, [visible]);
 
   // Render playlist item
-  const renderPlaylistItem = useCallback(({ item }: { item: Playlist }) => {
-    const isSelected = selectedPlaylists.has(item.id);
-    const isAlreadyAdded = playlistStates.get(item.id) || false;
+  const renderPlaylistItem = useCallback(
+    ({ item }: { item: Playlist }) => {
+      const isSelected = selectedPlaylists.has(item.id);
+      const isAlreadyAdded = playlistStates.get(item.id) || false;
 
-    return (
-      <Pressable
-        onPress={() => togglePlaylistSelection(item.id)}
-        disabled={isAlreadyAdded}
-        className={`
+      return (
+        <Pressable
+          onPress={() => togglePlaylistSelection(item.id)}
+          disabled={isAlreadyAdded}
+          className={`
           flex-row items-center p-4 mb-2 rounded-xl
-          ${isAlreadyAdded
-            ? "bg-gray-100 dark:bg-gray-800 opacity-50"
-            : isSelected
-            ? "bg-primary/10 border-2 border-primary"
-            : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+          ${
+            isAlreadyAdded
+              ? "bg-gray-100 dark:bg-gray-800 opacity-50"
+              : isSelected
+                ? "bg-primary/10 border-2 border-primary"
+                : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
           }
         `}
-      >
-        <Text className="text-2xl mr-3">{item.emoji}</Text>
-        
-        <View className="flex-1">
-          <Text className="font-semibold text-base">{item.name}</Text>
-          {item.description && (
-            <Muted className="text-sm mt-0.5" numberOfLines={1}>
-              {item.description}
-            </Muted>
-          )}
-          <Muted className="text-xs mt-1">
-            {item.item_count || 0} restaurants
-          </Muted>
-        </View>
+        >
+          <Text className="text-2xl mr-3">{item.emoji}</Text>
 
-        <View className="ml-3">
-          {isAlreadyAdded ? (
-            <View className="bg-gray-500 rounded-full p-1">
-              <Check size={16} color="#fff" />
-            </View>
-          ) : isSelected ? (
-            <View className="bg-primary rounded-full p-1">
-              <Check size={16} color="#fff" />
-            </View>
-          ) : (
-            <View className="bg-gray-200 dark:bg-gray-700 rounded-full p-1">
-              <Plus size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
-            </View>
-          )}
-        </View>
-      </Pressable>
-    );
-  }, [selectedPlaylists, playlistStates, togglePlaylistSelection, colorScheme]);
+          <View className="flex-1">
+            <Text className="font-semibold text-base">{item.name}</Text>
+            {item.description && (
+              <Muted className="text-sm mt-0.5" numberOfLines={1}>
+                {item.description}
+              </Muted>
+            )}
+            <Muted className="text-xs mt-1">
+              {item.item_count || 0} restaurants
+            </Muted>
+          </View>
+
+          <View className="ml-3">
+            {isAlreadyAdded ? (
+              <View className="bg-gray-500 rounded-full p-1">
+                <Check size={16} color="#fff" />
+              </View>
+            ) : isSelected ? (
+              <View className="bg-primary rounded-full p-1">
+                <Check size={16} color="#fff" />
+              </View>
+            ) : (
+              <View className="bg-gray-200 dark:bg-gray-700 rounded-full p-1">
+                <Plus
+                  size={16}
+                  color={colorScheme === "dark" ? "#fff" : "#000"}
+                />
+              </View>
+            )}
+          </View>
+        </Pressable>
+      );
+    },
+    [selectedPlaylists, playlistStates, togglePlaylistSelection, colorScheme],
+  );
 
   return (
     <>
@@ -273,7 +298,10 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                   className="p-2"
                   disabled={addingToPlaylists}
                 >
-                  <X size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                  <X
+                    size={24}
+                    color={colorScheme === "dark" ? "#fff" : "#000"}
+                  />
                 </Pressable>
               </View>
               <Muted className="text-sm mt-1" numberOfLines={1}>
@@ -309,7 +337,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
             </Pressable>
 
             {/* Playlists List */}
-            <FlatList
+            <OptimizedList
               data={filteredPlaylists}
               renderItem={renderPlaylistItem}
               keyExtractor={(item) => item.id}
@@ -334,7 +362,8 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
                     <Text className="text-white">
-                      Add to {selectedPlaylists.size} Playlist{selectedPlaylists.size > 1 ? 's' : ''}
+                      Add to {selectedPlaylists.size} Playlist
+                      {selectedPlaylists.size > 1 ? "s" : ""}
                     </Text>
                   )}
                 </Button>

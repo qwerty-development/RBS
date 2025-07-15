@@ -18,9 +18,9 @@ interface RestaurantPlaylistIndicatorProps {
   restaurantId: string;
 }
 
-export const RestaurantPlaylistIndicator: React.FC<RestaurantPlaylistIndicatorProps> = ({
-  restaurantId,
-}) => {
+export const RestaurantPlaylistIndicator: React.FC<
+  RestaurantPlaylistIndicatorProps
+> = ({ restaurantId }) => {
   const router = useRouter();
   const { profile } = useAuth();
   const [playlists, setPlaylists] = useState<PlaylistInfo[]>([]);
@@ -36,8 +36,9 @@ export const RestaurantPlaylistIndicator: React.FC<RestaurantPlaylistIndicatorPr
     try {
       // Get playlists that contain this restaurant
       const { data, error } = await supabase
-        .from('playlist_items')
-        .select(`
+        .from("playlist_items")
+        .select(
+          `
           playlist:restaurant_playlists (
             id,
             name,
@@ -45,9 +46,10 @@ export const RestaurantPlaylistIndicator: React.FC<RestaurantPlaylistIndicatorPr
             user_id,
             is_public
           )
-        `)
-        .eq('restaurant_id', restaurantId)
-        .order('created_at', { ascending: false });
+        `,
+        )
+        .eq("restaurant_id", restaurantId)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
 
@@ -69,10 +71,10 @@ export const RestaurantPlaylistIndicator: React.FC<RestaurantPlaylistIndicatorPr
 
           // Check if user is a collaborator
           const { data: collab } = await supabase
-            .from('playlist_collaborators')
-            .select('id')
-            .eq('playlist_id', playlist.id)
-            .eq('user_id', profile.id)
+            .from("playlist_collaborators")
+            .select("id")
+            .eq("playlist_id", playlist.id)
+            .eq("user_id", profile.id)
             .single();
 
           if (collab || playlist.is_public) {
@@ -85,12 +87,12 @@ export const RestaurantPlaylistIndicator: React.FC<RestaurantPlaylistIndicatorPr
           }
 
           return null;
-        })
+        }),
       );
 
       setPlaylists(userPlaylists.filter(Boolean) as PlaylistInfo[]);
     } catch (error) {
-      console.error('Error fetching playlists:', error);
+      console.error("Error fetching playlists:", error);
     } finally {
       setLoading(false);
     }
@@ -104,9 +106,9 @@ export const RestaurantPlaylistIndicator: React.FC<RestaurantPlaylistIndicatorPr
         <FolderOpen size={18} color="#6b7280" />
         <Muted className="ml-2 text-sm">In Your Playlists</Muted>
       </View>
-      
-      <ScrollView 
-        horizontal 
+
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         className="-mx-4 px-4"
       >
@@ -127,4 +129,3 @@ export const RestaurantPlaylistIndicator: React.FC<RestaurantPlaylistIndicatorPr
     </View>
   );
 };
-

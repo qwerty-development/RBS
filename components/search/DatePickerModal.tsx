@@ -101,5 +101,5 @@ export const DatePickerModal = React.memo(
         </Pressable>
       </Modal>
     );
-  }
+  },
 );

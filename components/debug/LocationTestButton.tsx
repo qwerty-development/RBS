@@ -10,7 +10,7 @@ export function LocationTestButton() {
 
   const testLocationService = async () => {
     if (testing) return;
-    
+
     setTesting(true);
     console.log("🧪 Starting location service test...");
 
@@ -19,10 +19,11 @@ export function LocationTestButton() {
       console.log("🔐 Testing permissions...");
       const { status } = await Location.getForegroundPermissionsAsync();
       console.log("🔐 Current permission status:", status);
-      
+
       if (status !== "granted") {
         console.log("🔐 Requesting permissions...");
-        const { status: newStatus } = await Location.requestForegroundPermissionsAsync();
+        const { status: newStatus } =
+          await Location.requestForegroundPermissionsAsync();
         console.log("🔐 New permission status:", newStatus);
       }
 
@@ -50,10 +51,9 @@ export function LocationTestButton() {
       Alert.alert(
         "Location Test Results",
         `✅ Location: ${locationData.city}, ${locationData.district}\n` +
-        `📍 Coordinates: ${locationData.latitude.toFixed(4)}, ${locationData.longitude.toFixed(4)}\n` +
-        `🔐 Permission: ${status}`
+          `📍 Coordinates: ${locationData.latitude.toFixed(4)}, ${locationData.longitude.toFixed(4)}\n` +
+          `🔐 Permission: ${status}`,
       );
-
     } catch (error) {
       console.error("❌ Location test failed:", error);
       Alert.alert("Location Test Failed", error.message || "Unknown error");

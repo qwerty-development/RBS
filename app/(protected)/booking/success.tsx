@@ -42,7 +42,7 @@ import {
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
 import { ShareBookingButton } from "@/components/social/ShareBookingButton";
-import BookingSuccessScreenSkeleton from '@/components/skeletons/BookingSuccessScreenSkeleton';
+import BookingSuccessScreenSkeleton from "@/components/skeletons/BookingSuccessScreenSkeleton";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
@@ -550,7 +550,7 @@ export default function BookingSuccessScreen() {
           `
           *,
           restaurant:restaurants (*)
-        `
+        `,
         )
         .eq("id", params.bookingId)
         .single();
@@ -562,7 +562,7 @@ export default function BookingSuccessScreen() {
       if (bookingData.applied_offer_id) {
         console.log(
           "Fetching applied offer details for:",
-          bookingData.applied_offer_id
+          bookingData.applied_offer_id,
         );
 
         // Get the special offer details
@@ -588,7 +588,7 @@ export default function BookingSuccessScreen() {
             bookingData.party_size *
               (bookingData.restaurant.price_range || 2) *
               25 *
-              (offerData.discount_percentage / 100)
+              (offerData.discount_percentage / 100),
           );
 
           setAppliedOfferDetails({
@@ -674,7 +674,7 @@ export default function BookingSuccessScreen() {
   const handleAddToCalendar = useCallback(() => {
     Alert.alert(
       "Add to Calendar",
-      "This feature will open your calendar app to add the booking."
+      "This feature will open your calendar app to add the booking.",
     );
   }, []);
 

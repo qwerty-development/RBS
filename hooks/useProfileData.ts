@@ -99,14 +99,13 @@ export const useProfileData = () => {
         supabase
           .from("friends")
           .select("*", { count: "exact", head: true })
-       .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`)
-        .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`),
-       
+          .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`)
+          .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`),
+
         supabase
           .from("social_connections")
           .select("*", { count: "exact", head: true })
-          .eq("friend_id", profile.id)
-     ,
+          .eq("friend_id", profile.id),
         supabase
           .from("social_connections")
           .select("*", { count: "exact", head: true })
@@ -114,21 +113,21 @@ export const useProfileData = () => {
           .eq("status", "accepted")
           .gte(
             "created_at",
-            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+            new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
           ),
       ]);
       const bookings = bookingsResult.data || [];
       const totalBookings = bookings.length;
       const completedBookings = bookings.filter(
-        (b: any) => b.status === "completed"
+        (b: any) => b.status === "completed",
       ).length;
       const cancelledBookings = bookings.filter(
-        (b: any) => b.status === "cancelled_by_user"
+        (b: any) => b.status === "cancelled_by_user",
       ).length;
       const upcomingBookings = bookings.filter(
         (b: any) =>
           ["pending", "confirmed"].includes(b.status) &&
-          new Date(b.booking_time) > new Date()
+          new Date(b.booking_time) > new Date(),
       ).length;
       const cuisineCounts: Record<string, number> = {};
       bookings.forEach((booking: any) => {
@@ -139,7 +138,7 @@ export const useProfileData = () => {
       });
       const mostVisitedCuisine =
         Object.entries(cuisineCounts).sort(
-          ([, a], [, b]) => (b as number) - (a as number)
+          ([, a], [, b]) => (b as number) - (a as number),
         )[0]?.[0] || "Not available";
       const restaurantCounts: Record<string, { name: string; visits: number }> =
         {};
@@ -155,7 +154,7 @@ export const useProfileData = () => {
         }
       });
       const mostVisitedEntry = Object.entries(restaurantCounts).sort(
-        ([, a], [, b]) => b.visits - a.visits
+        ([, a], [, b]) => b.visits - a.visits,
       )[0];
       const mostVisitedRestaurant = mostVisitedEntry
         ? {
@@ -197,7 +196,7 @@ export const useProfileData = () => {
     if (!permissionResult.granted) {
       Alert.alert(
         "Permission Required",
-        "Please allow access to your photo library to upload a profile picture."
+        "Please allow access to your photo library to upload a profile picture.",
       );
       return;
     }
@@ -243,14 +242,14 @@ export const useProfileData = () => {
       .sort(
         (a: any, b: any) =>
           new Date(b.booking_time).getTime() -
-          new Date(a.booking_time).getTime()
+          new Date(a.booking_time).getTime(),
       );
     if (sortedBookings.length === 0) return 0;
     let streak = 1;
     let currentWeek = getWeekNumber(new Date(sortedBookings[0].booking_time));
     for (let i = 1; i < sortedBookings.length; i++) {
       const bookingWeek = getWeekNumber(
-        new Date(sortedBookings[i].booking_time)
+        new Date(sortedBookings[i].booking_time),
       );
       if (currentWeek - bookingWeek === 1) {
         streak++;
@@ -413,7 +412,7 @@ export const useProfileData = () => {
                 onPress: async () => {
                   try {
                     await Haptics.impactAsync(
-                      Haptics.ImpactFeedbackStyle.Medium
+                      Haptics.ImpactFeedbackStyle.Medium,
                     );
                     await signOut();
                   } catch (error) {

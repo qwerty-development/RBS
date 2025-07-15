@@ -26,8 +26,8 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
 }) => {
   return (
     <View className="bg-background border-b border-border">
-      <ScrollView 
-        horizontal 
+      <ScrollView
+        horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 16 }}
       >
@@ -42,7 +42,9 @@ export const TabNavigation: React.FC<TabNavigationProps> = ({
             >
               <Text
                 className={`font-semibold ${
-                  activeTab === tab.id ? "text-primary" : "text-muted-foreground"
+                  activeTab === tab.id
+                    ? "text-primary"
+                    : "text-muted-foreground"
                 }`}
               >
                 {tab.label}

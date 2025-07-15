@@ -1,8 +1,8 @@
 // hooks/useMenu.ts
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '@/config/supabase';
-import { MenuCategory, MenuItem, MenuFilters } from '@/types/menu';
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { supabase } from "@/config/supabase";
+import { MenuCategory, MenuItem, MenuFilters } from "@/types/menu";
 
 interface UseMenuParams {
   restaurantId: string;
@@ -28,46 +28,47 @@ export function useMenu({ restaurantId }: UseMenuParams): UseMenuReturn {
   const [filters, setFiltersState] = useState<MenuFilters>({
     dietary_tags: [],
     maxPrice: null,
-    searchQuery: '',
+    searchQuery: "",
     showUnavailable: false,
   });
 
   const fetchMenu = useCallback(async () => {
     try {
       setError(null);
-      
+
       // Fetch categories
       const { data: categoriesData, error: categoriesError } = await supabase
-        .from('menu_categories')
-        .select('*')
-        .eq('restaurant_id', restaurantId)
-        .eq('is_active', true)
-        .order('display_order', { ascending: true });
+        .from("menu_categories")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .eq("is_active", true)
+        .order("display_order", { ascending: true });
 
       if (categoriesError) throw categoriesError;
 
       // Fetch menu items
       const { data: itemsData, error: itemsError } = await supabase
-        .from('menu_items')
-        .select('*')
-        .eq('restaurant_id', restaurantId)
-        .order('display_order', { ascending: true });
+        .from("menu_items")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .order("display_order", { ascending: true });
 
       if (itemsError) throw itemsError;
 
       // Group items by category
-      const categoriesWithItems = (categoriesData || []).map(category => ({
+      const categoriesWithItems = (categoriesData || []).map((category) => ({
         ...category,
-        items: (itemsData || []).filter(item => 
-          item.category_id === category.id && 
-          (filters.showUnavailable || item.is_available)
+        items: (itemsData || []).filter(
+          (item) =>
+            item.category_id === category.id &&
+            (filters.showUnavailable || item.is_available),
         ),
       }));
 
       setCategories(categoriesWithItems);
     } catch (err) {
-      console.error('Error fetching menu:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load menu');
+      console.error("Error fetching menu:", err);
+      setError(err instanceof Error ? err.message : "Failed to load menu");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -80,19 +81,21 @@ export function useMenu({ restaurantId }: UseMenuParams): UseMenuReturn {
   }, [fetchMenu]);
 
   const setFilters = useCallback((newFilters: Partial<MenuFilters>) => {
-    setFiltersState(prev => ({ ...prev, ...newFilters }));
+    setFiltersState((prev) => ({ ...prev, ...newFilters }));
   }, []);
 
   // Calculate filtered items
   const filteredItems = useMemo(() => {
-    const allItems = categories.flatMap(cat => cat.items || []);
-    
-    return allItems.filter(item => {
+    const allItems = categories.flatMap((cat) => cat.items || []);
+
+    return allItems.filter((item) => {
       // Search filter
       if (filters.searchQuery) {
         const query = filters.searchQuery.toLowerCase();
-        if (!item.name.toLowerCase().includes(query) && 
-            !item.description?.toLowerCase().includes(query)) {
+        if (
+          !item.name.toLowerCase().includes(query) &&
+          !item.description?.toLowerCase().includes(query)
+        ) {
           return false;
         }
       }
@@ -104,8 +107,8 @@ export function useMenu({ restaurantId }: UseMenuParams): UseMenuReturn {
 
       // Dietary tags filter
       if (filters.dietary_tags.length > 0) {
-        const hasAllTags = filters.dietary_tags.every(tag => 
-          item.dietary_tags.includes(tag)
+        const hasAllTags = filters.dietary_tags.every((tag) =>
+          item.dietary_tags.includes(tag),
         );
         if (!hasAllTags) return false;
       }
@@ -122,8 +125,8 @@ export function useMenu({ restaurantId }: UseMenuParams): UseMenuReturn {
   // Get featured items
   const featuredItems = useMemo(() => {
     return categories
-      .flatMap(cat => cat.items || [])
-      .filter(item => item.is_featured && item.is_available)
+      .flatMap((cat) => cat.items || [])
+      .filter((item) => item.is_featured && item.is_available)
       .slice(0, 6);
   }, [categories]);
 

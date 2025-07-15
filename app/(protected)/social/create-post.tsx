@@ -82,7 +82,8 @@ export default function CreatePostScreen() {
     try {
       const { data, error } = await supabase
         .from("bookings")
-        .select(`
+        .select(
+          `
           *,
           restaurant:restaurants (
             id,
@@ -90,7 +91,8 @@ export default function CreatePostScreen() {
             main_image_url,
             address
           )
-        `)
+        `,
+        )
         .eq("id", bookingId)
         .single();
 
@@ -110,7 +112,8 @@ export default function CreatePostScreen() {
       // Get accepted friendships
       const { data: friendships, error } = await supabase
         .from("friends")
-        .select(`
+        .select(
+          `
           user_id,
           friend_id,
           user:profiles!friends_user_id_fkey (
@@ -123,19 +126,21 @@ export default function CreatePostScreen() {
             full_name,
             avatar_url
           )
-        `)
-        .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`)
+        `,
+        )
+        .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`);
 
       if (error) throw error;
 
       // Format friends list
-      const friendsList = friendships?.map(friendship => {
-        if (friendship.user_id === profile.id) {
-          return friendship.friend;
-        } else {
-          return friendship.user;
-        }
-      }) || [];
+      const friendsList =
+        friendships?.map((friendship) => {
+          if (friendship.user_id === profile.id) {
+            return friendship.friend;
+          } else {
+            return friendship.user;
+          }
+        }) || [];
 
       setFriends(friendsList);
     } catch (error) {
@@ -145,7 +150,7 @@ export default function CreatePostScreen() {
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
+
     if (status !== "granted") {
       Alert.alert("Permission needed", "Please allow access to your photos");
       return;
@@ -159,7 +164,7 @@ export default function CreatePostScreen() {
     });
 
     if (!result.canceled) {
-      const newImages = result.assets.map(asset => ({
+      const newImages = result.assets.map((asset) => ({
         uri: asset.uri,
         base64: asset.base64,
       }));
@@ -169,7 +174,7 @@ export default function CreatePostScreen() {
 
   const takePhoto = async () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
-    
+
     if (status !== "granted") {
       Alert.alert("Permission needed", "Please allow access to your camera");
       return;
@@ -181,10 +186,15 @@ export default function CreatePostScreen() {
     });
 
     if (!result.canceled) {
-      setSelectedImages([...selectedImages, {
-        uri: result.assets[0].uri,
-        base64: result.assets[0].base64,
-      }].slice(0, 5));
+      setSelectedImages(
+        [
+          ...selectedImages,
+          {
+            uri: result.assets[0].uri,
+            base64: result.assets[0].base64,
+          },
+        ].slice(0, 5),
+      );
     }
   };
 
@@ -194,7 +204,7 @@ export default function CreatePostScreen() {
 
   const toggleFriend = (friendId: string) => {
     if (selectedFriends.includes(friendId)) {
-      setSelectedFriends(selectedFriends.filter(id => id !== friendId));
+      setSelectedFriends(selectedFriends.filter((id) => id !== friendId));
     } else {
       setSelectedFriends([...selectedFriends, friendId]);
     }
@@ -203,25 +213,24 @@ export default function CreatePostScreen() {
 
   const uploadImages = async (): Promise<string[]> => {
     const uploadedUrls: string[] = [];
-    
+
     for (const image of selectedImages) {
       const fileName = `post-${Date.now()}-${Math.random()}.jpg`;
       const filePath = `posts/${profile?.id}/${fileName}`;
 
-      const { data, error } = await supabase.storage
-        .from("images")
-        .upload(filePath, 
-          decode(image.base64!), // You'll need to implement base64 decode
-          {
-            contentType: "image/jpeg",
-          }
-        );
+      const { data, error } = await supabase.storage.from("images").upload(
+        filePath,
+        decode(image.base64!), // You'll need to implement base64 decode
+        {
+          contentType: "image/jpeg",
+        },
+      );
 
       if (error) throw error;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("images")
-        .getPublicUrl(filePath);
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("images").getPublicUrl(filePath);
 
       uploadedUrls.push(publicUrl);
     }
@@ -278,7 +287,7 @@ export default function CreatePostScreen() {
 
       // Tag friends
       if (selectedFriends.length > 0) {
-        const tags = selectedFriends.map(friendId => ({
+        const tags = selectedFriends.map((friendId) => ({
           post_id: post.id,
           tagged_user_id: friendId,
         }));
@@ -291,7 +300,7 @@ export default function CreatePostScreen() {
       }
 
       Alert.alert("Success", "Your post has been shared!", [
-        { text: "OK", onPress: () => router.back() }
+        { text: "OK", onPress: () => router.back() },
       ]);
     } catch (error) {
       console.error("Error creating post:", error);
@@ -330,7 +339,9 @@ export default function CreatePostScreen() {
           <H3>Create Post</H3>
           <Button
             onPress={handlePost}
-            disabled={posting || (!content.trim() && selectedImages.length === 0)}
+            disabled={
+              posting || (!content.trim() && selectedImages.length === 0)
+            }
             variant="ghost"
             className="px-4"
           >
@@ -356,7 +367,10 @@ export default function CreatePostScreen() {
                     {bookingDetails.restaurant.name}
                   </Text>
                   <Muted className="text-sm">
-                    {format(new Date(bookingDetails.booking_time), "MMM d, h:mm a")}
+                    {format(
+                      new Date(bookingDetails.booking_time),
+                      "MMM d, h:mm a",
+                    )}
                   </Muted>
                 </View>
               </View>
@@ -439,14 +453,17 @@ export default function CreatePostScreen() {
           {showFriendPicker && (
             <View className="px-4 py-3 border-t border-border">
               <H3 className="mb-3">Tag Friends</H3>
-              {friends.map(friend => (
+              {friends.map((friend) => (
                 <Pressable
                   key={friend.id}
                   onPress={() => toggleFriend(friend.id)}
                   className="flex-row items-center py-2"
                 >
                   <Image
-                    source={{ uri: friend.avatar_url || "https://via.placeholder.com/40" }}
+                    source={{
+                      uri:
+                        friend.avatar_url || "https://via.placeholder.com/40",
+                    }}
                     className="w-10 h-10 rounded-full mr-3"
                   />
                   <Text className="flex-1">{friend.full_name}</Text>

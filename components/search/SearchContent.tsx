@@ -54,8 +54,6 @@ export const SearchContent = React.memo(
     const listRef = useRef<FlatList>(null);
     const { location: userLocation } = useLocationWithDistance();
 
-
-
     if (viewMode === "list") {
       return (
         <FlatList
@@ -111,13 +109,15 @@ export const SearchContent = React.memo(
     }
     return (
       <RestaurantMap
-        restaurants={restaurants.map(restaurant => ({
+        restaurants={restaurants.map((restaurant) => ({
           ...restaurant,
           // Ensure coordinates are in the right format for RestaurantMap
-          coordinates: restaurant.staticCoordinates ? {
-            latitude: restaurant.staticCoordinates.lat,
-            longitude: restaurant.staticCoordinates.lng
-          } : restaurant.coordinates || undefined
+          coordinates: restaurant.staticCoordinates
+            ? {
+                latitude: restaurant.staticCoordinates.lat,
+                longitude: restaurant.staticCoordinates.lng,
+              }
+            : restaurant.coordinates || undefined,
         }))}
         userLocation={userLocation}
         onRestaurantPress={onRestaurantPress}
@@ -126,5 +126,5 @@ export const SearchContent = React.memo(
         style={{ flex: 1 }}
       />
     );
-  }
+  },
 );

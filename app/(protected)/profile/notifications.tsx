@@ -25,9 +25,15 @@ import { Text } from "@/components/ui/text";
 import { H2, H3, P, Muted } from "@/components/ui/typography";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
+import { OptimizedList } from "@/components/ui/optimized-list";
 
 // Mock notification types
-type NotificationType = "booking" | "favorite" | "review" | "loyalty" | "system";
+type NotificationType =
+  | "booking"
+  | "favorite"
+  | "review"
+  | "loyalty"
+  | "system";
 
 interface Notification {
   id: string;
@@ -49,7 +55,8 @@ const mockNotifications: Notification[] = [
     id: "1",
     type: "booking",
     title: "Booking Confirmed",
-    message: "Your reservation at Le Petit Bistro is confirmed for tomorrow at 7:00 PM",
+    message:
+      "Your reservation at Le Petit Bistro is confirmed for tomorrow at 7:00 PM",
     timestamp: "2 hours ago",
     read: false,
     data: {
@@ -61,7 +68,8 @@ const mockNotifications: Notification[] = [
     id: "2",
     type: "loyalty",
     title: "New Reward Available",
-    message: "You've earned 500 loyalty points! Redeem them for a free dessert.",
+    message:
+      "You've earned 500 loyalty points! Redeem them for a free dessert.",
     timestamp: "5 hours ago",
     read: false,
     data: {
@@ -83,7 +91,8 @@ const mockNotifications: Notification[] = [
     id: "4",
     type: "favorite",
     title: "New Menu Items",
-    message: "Your favorite restaurant, Pasta Paradise, has added new dishes to their menu",
+    message:
+      "Your favorite restaurant, Pasta Paradise, has added new dishes to their menu",
     timestamp: "2 days ago",
     read: true,
     data: {
@@ -94,7 +103,8 @@ const mockNotifications: Notification[] = [
     id: "5",
     type: "system",
     title: "App Update",
-    message: "New features are available! Update your app to the latest version.",
+    message:
+      "New features are available! Update your app to the latest version.",
     timestamp: "3 days ago",
     read: true,
   },
@@ -105,7 +115,8 @@ export default function NotificationsScreen() {
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();
 
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] =
+    useState<Notification[]>(mockNotifications);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -127,40 +138,41 @@ export default function NotificationsScreen() {
     setRefreshing(false);
   }, []);
 
-  const handleNotificationPress = useCallback((notification: Notification) => {
-    // Mark as read
-    setNotifications((prev) =>
-      prev.map((n) =>
-        n.id === notification.id ? { ...n, read: true } : n
-      )
-    );
+  const handleNotificationPress = useCallback(
+    (notification: Notification) => {
+      // Mark as read
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n)),
+      );
 
-    // Navigate based on notification type
-    switch (notification.type) {
-      case "booking":
-        if (notification.data?.bookingId) {
-          router.push({
-            pathname: "/bookings",
-            params: { highlightBookingId: notification.data.bookingId }
-          });
-        }
-        break;
-      case "favorite":
-      case "review":
-        if (notification.data?.restaurantId) {
-          router.push({
-            pathname: "/restaurant/[id]",
-            params: { id: notification.data.restaurantId }
-          });
-        }
-        break;
-      case "loyalty":
-        router.push("/profile");
-        break;
-      default:
-        break;
-    }
-  }, [router]);
+      // Navigate based on notification type
+      switch (notification.type) {
+        case "booking":
+          if (notification.data?.bookingId) {
+            router.push({
+              pathname: "/bookings",
+              params: { highlightBookingId: notification.data.bookingId },
+            });
+          }
+          break;
+        case "favorite":
+        case "review":
+          if (notification.data?.restaurantId) {
+            router.push({
+              pathname: "/restaurant/[id]",
+              params: { id: notification.data.restaurantId },
+            });
+          }
+          break;
+        case "loyalty":
+          router.push("/profile");
+          break;
+        default:
+          break;
+      }
+    },
+    [router],
+  );
 
   const getNotificationIcon = (type: NotificationType) => {
     switch (type) {
@@ -234,14 +246,17 @@ export default function NotificationsScreen() {
             onPress={() => router.back()}
             className="mr-3 p-2 rounded-full bg-muted"
           >
-            <ArrowLeft size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+            <ArrowLeft
+              size={20}
+              color={colorScheme === "dark" ? "#fff" : "#000"}
+            />
           </Pressable>
           <H2 className="text-2xl">Notifications</H2>
         </View>
       </View>
 
       {/* Notifications List */}
-      <FlatList
+      <OptimizedList
         data={notifications}
         renderItem={renderNotification}
         keyExtractor={(item) => item.id}
@@ -257,7 +272,9 @@ export default function NotificationsScreen() {
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center p-8">
             <Bell size={48} color="#666" />
-            <Text className="text-lg font-medium mt-4">No notifications yet</Text>
+            <Text className="text-lg font-medium mt-4">
+              No notifications yet
+            </Text>
             <Muted className="text-center mt-2">
               We'll notify you when there's something new
             </Muted>

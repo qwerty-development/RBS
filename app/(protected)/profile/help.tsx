@@ -246,10 +246,8 @@ export default function HelpScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"faq" | "contact" | "tickets">(
-    "faq"
+    "faq",
   );
-
-
 
   // 4. FAQ Search and Filtering
   const searchFAQs = useCallback(
@@ -266,13 +264,13 @@ export default function HelpScreen() {
           (faq) =>
             faq.question.toLowerCase().includes(searchTerm) ||
             faq.answer.toLowerCase().includes(searchTerm) ||
-            faq.tags.some((tag) => tag.toLowerCase().includes(searchTerm))
+            faq.tags.some((tag) => tag.toLowerCase().includes(searchTerm)),
         );
       }
 
       setFilteredFaqs(filtered);
     },
-    [faqs]
+    [faqs],
   );
 
   useEffect(() => {
@@ -299,8 +297,8 @@ export default function HelpScreen() {
         prev.map((faq) =>
           faq.id === faqId
             ? { ...faq, helpful_count: faq.helpful_count + 1 }
-            : faq
-        )
+            : faq,
+        ),
       );
 
       // In a real app, this would update the backend
@@ -338,7 +336,7 @@ export default function HelpScreen() {
       Alert.alert(
         "Ticket Submitted",
         "Your support request has been submitted. We'll get back to you within 24 hours.",
-        [{ text: "OK", onPress: () => setActiveTab("tickets") }]
+        [{ text: "OK", onPress: () => setActiveTab("tickets") }],
       );
     } catch (error) {
       console.error("Error submitting support ticket:", error);
@@ -360,7 +358,7 @@ export default function HelpScreen() {
           break;
         case "whatsapp":
           await Linking.openURL(
-            `whatsapp://send?phone=${method.value.replace(/\D/g, "")}`
+            `whatsapp://send?phone=${method.value.replace(/\D/g, "")}`,
           );
           break;
         case "chat":
@@ -370,7 +368,7 @@ export default function HelpScreen() {
         default:
           Alert.alert(
             "Coming Soon",
-            "This contact method will be available soon"
+            "This contact method will be available soon",
           );
       }
     } catch (error) {

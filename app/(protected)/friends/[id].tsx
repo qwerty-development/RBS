@@ -59,9 +59,13 @@ export default function FriendProfileScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { profile } = useAuth();
   const { colorScheme } = useColorScheme();
-  
-  const [friendProfile, setFriendProfile] = useState<FriendProfile | null>(null);
-  const [friendshipInfo, setFriendshipInfo] = useState<FriendshipInfo | null>(null);
+
+  const [friendProfile, setFriendProfile] = useState<FriendProfile | null>(
+    null,
+  );
+  const [friendshipInfo, setFriendshipInfo] = useState<FriendshipInfo | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
   const [removingFriend, setRemovingFriend] = useState(false);
 
@@ -75,8 +79,9 @@ export default function FriendProfileScreen() {
   const loadFriendProfile = async () => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select(`
+        .from("profiles")
+        .select(
+          `
           id,
           full_name,
           avatar_url,
@@ -91,14 +96,15 @@ export default function FriendProfileScreen() {
           completed_bookings,
           created_at,
           privacy_settings
-        `)
-        .eq('id', id)
+        `,
+        )
+        .eq("id", id)
         .single();
 
       if (error) throw error;
       setFriendProfile(data);
     } catch (error) {
-      console.error('Error loading friend profile:', error);
+      console.error("Error loading friend profile:", error);
       Alert.alert("Error", "Failed to load friend profile");
     } finally {
       setLoading(false);
@@ -109,24 +115,26 @@ export default function FriendProfileScreen() {
     try {
       // Load friendship date
       const { data: friendshipData } = await supabase
-        .from('friends')
-        .select('friendship_date')
-        .or(`and(user_id.eq.${profile?.id},friend_id.eq.${id}),and(user_id.eq.${id},friend_id.eq.${profile?.id})`)
+        .from("friends")
+        .select("friendship_date")
+        .or(
+          `and(user_id.eq.${profile?.id},friend_id.eq.${id}),and(user_id.eq.${id},friend_id.eq.${profile?.id})`,
+        )
         .single();
 
       // Get mutual friends count (simplified - would need proper RPC function)
       const { count: mutualCount } = await supabase
-        .from('friends')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', id);
+        .from("friends")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", id);
 
       setFriendshipInfo({
-        friendship_date: friendshipData?.friendship_date || '',
+        friendship_date: friendshipData?.friendship_date || "",
         mutual_friends_count: mutualCount || 0,
         common_restaurants: 0, // Would need proper calculation
       });
     } catch (error) {
-      console.error('Error loading friendship info:', error);
+      console.error("Error loading friendship info:", error);
     }
   };
 
@@ -143,12 +151,14 @@ export default function FriendProfileScreen() {
             try {
               setRemovingFriend(true);
               const { error } = await supabase
-                .from('friends')
+                .from("friends")
                 .delete()
-                .or(`and(user_id.eq.${profile?.id},friend_id.eq.${id}),and(user_id.eq.${id},friend_id.eq.${profile?.id})`);
+                .or(
+                  `and(user_id.eq.${profile?.id},friend_id.eq.${id}),and(user_id.eq.${id},friend_id.eq.${profile?.id})`,
+                );
 
               if (error) throw error;
-              
+
               Alert.alert("Success", "Friend removed successfully");
               router.back();
             } catch (error: any) {
@@ -158,16 +168,20 @@ export default function FriendProfileScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 
   const getTierColor = (tier: string) => {
     switch (tier?.toLowerCase()) {
-      case 'platinum': return '#e5e7eb';
-      case 'gold': return '#fbbf24';
-      case 'silver': return '#9ca3af';
-      default: return '#6b7280';
+      case "platinum":
+        return "#e5e7eb";
+      case "gold":
+        return "#fbbf24";
+      case "silver":
+        return "#9ca3af";
+      default:
+        return "#6b7280";
     }
   };
 
@@ -198,12 +212,19 @@ export default function FriendProfileScreen() {
       <View className="px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <View className="flex-row items-center justify-between">
           <Pressable onPress={() => router.back()} className="p-2">
-            <ArrowLeft size={24} color={colorScheme === 'dark' ? 'white' : 'black'} />
+            <ArrowLeft
+              size={24}
+              color={colorScheme === "dark" ? "white" : "black"}
+            />
           </Pressable>
-          
+
           <H2>Friend Profile</H2>
-          
-          <Pressable onPress={removeFriend} className="p-2" disabled={removingFriend}>
+
+          <Pressable
+            onPress={removeFriend}
+            className="p-2"
+            disabled={removingFriend}
+          >
             {removingFriend ? (
               <ActivityIndicator size="small" />
             ) : (
@@ -217,14 +238,16 @@ export default function FriendProfileScreen() {
         {/* Profile Header */}
         <View className="bg-white dark:bg-gray-800 p-6 items-center border-b border-gray-200 dark:border-gray-700">
           <Image
-            source={{ 
-              uri: friendProfile.avatar_url || `https://ui-avatars.com/api/?name=${friendProfile.full_name}` 
+            source={{
+              uri:
+                friendProfile.avatar_url ||
+                `https://ui-avatars.com/api/?name=${friendProfile.full_name}`,
             }}
             className="w-24 h-24 rounded-full bg-gray-100 mb-4"
           />
-          
+
           <H2 className="text-center mb-2">{friendProfile.full_name}</H2>
-          
+
           {friendProfile.user_rating && (
             <View className="flex-row items-center mb-2">
               <Star size={16} color="#fbbf24" fill="#fbbf24" />
@@ -252,7 +275,8 @@ export default function FriendProfileScreen() {
               <View className="items-center">
                 <Calendar size={16} color="#6b7280" />
                 <Muted className="text-xs mt-1">
-                  Friends since {new Date(friendshipInfo.friendship_date).getFullYear()}
+                  Friends since{" "}
+                  {new Date(friendshipInfo.friendship_date).getFullYear()}
                 </Muted>
               </View>
               <View className="items-center">
@@ -293,50 +317,54 @@ export default function FriendProfileScreen() {
         {/* Dining Preferences */}
         <View className="bg-white dark:bg-gray-800 m-4 p-4 rounded-2xl">
           <H3 className="mb-4">Dining Preferences</H3>
-          
+
           {/* Favorite Cuisines */}
-          {friendProfile.favorite_cuisines && friendProfile.favorite_cuisines.length > 0 && (
-            <View className="mb-4">
-              <View className="flex-row items-center mb-2">
-                <Utensils size={16} color="#6b7280" />
-                <Text className="ml-2 font-medium">Favorite Cuisines</Text>
+          {friendProfile.favorite_cuisines &&
+            friendProfile.favorite_cuisines.length > 0 && (
+              <View className="mb-4">
+                <View className="flex-row items-center mb-2">
+                  <Utensils size={16} color="#6b7280" />
+                  <Text className="ml-2 font-medium">Favorite Cuisines</Text>
+                </View>
+                <View className="flex-row flex-wrap gap-2">
+                  {friendProfile.favorite_cuisines.map((cuisine, index) => (
+                    <View
+                      key={index}
+                      className="bg-red-100 dark:bg-red-900 px-3 py-1 rounded-full"
+                    >
+                      <Text className="text-red-800 dark:text-red-200 text-sm">
+                        {cuisine}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
               </View>
-              <View className="flex-row flex-wrap gap-2">
-                {friendProfile.favorite_cuisines.map((cuisine, index) => (
-                  <View
-                    key={index}
-                    className="bg-red-100 dark:bg-red-900 px-3 py-1 rounded-full"
-                  >
-                    <Text className="text-red-800 dark:text-red-200 text-sm">
-                      {cuisine}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
+            )}
 
           {/* Dietary Restrictions */}
-          {friendProfile.dietary_restrictions && friendProfile.dietary_restrictions.length > 0 && (
-            <View className="mb-4">
-              <View className="flex-row items-center mb-2">
-                <Shield size={16} color="#6b7280" />
-                <Text className="ml-2 font-medium">Dietary Restrictions</Text>
+          {friendProfile.dietary_restrictions &&
+            friendProfile.dietary_restrictions.length > 0 && (
+              <View className="mb-4">
+                <View className="flex-row items-center mb-2">
+                  <Shield size={16} color="#6b7280" />
+                  <Text className="ml-2 font-medium">Dietary Restrictions</Text>
+                </View>
+                <View className="flex-row flex-wrap gap-2">
+                  {friendProfile.dietary_restrictions.map(
+                    (restriction, index) => (
+                      <View
+                        key={index}
+                        className="bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded-full"
+                      >
+                        <Text className="text-blue-800 dark:text-blue-200 text-sm">
+                          {restriction}
+                        </Text>
+                      </View>
+                    ),
+                  )}
+                </View>
               </View>
-              <View className="flex-row flex-wrap gap-2">
-                {friendProfile.dietary_restrictions.map((restriction, index) => (
-                  <View
-                    key={index}
-                    className="bg-blue-100 dark:bg-blue-900 px-3 py-1 rounded-full"
-                  >
-                    <Text className="text-blue-800 dark:text-blue-200 text-sm">
-                      {restriction}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
+            )}
 
           {/* Allergies */}
           {friendProfile.allergies && friendProfile.allergies.length > 0 && (
@@ -360,17 +388,15 @@ export default function FriendProfileScreen() {
             </View>
           )}
 
-          {!friendProfile.favorite_cuisines?.length && 
-           !friendProfile.dietary_restrictions?.length && 
-           !friendProfile.allergies?.length && (
-            <Muted className="text-center py-4">
-              No dining preferences shared
-            </Muted>
-          )}
+          {!friendProfile.favorite_cuisines?.length &&
+            !friendProfile.dietary_restrictions?.length &&
+            !friendProfile.allergies?.length && (
+              <Muted className="text-center py-4">
+                No dining preferences shared
+              </Muted>
+            )}
         </View>
-
-
       </ScrollView>
     </SafeAreaView>
   );
-} 
+}

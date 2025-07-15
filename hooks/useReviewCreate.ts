@@ -44,7 +44,7 @@ const reviewSchema = z.object({
     .string()
     .min(
       REVIEW_VALIDATION.MIN_COMMENT_LENGTH,
-      `Please write at least ${REVIEW_VALIDATION.MIN_COMMENT_LENGTH} characters`
+      `Please write at least ${REVIEW_VALIDATION.MIN_COMMENT_LENGTH} characters`,
     )
     .max(REVIEW_VALIDATION.MAX_COMMENT_LENGTH, "Review too long"),
   foodRating: z.number().min(1, "Food rating is required").max(5),
@@ -61,7 +61,7 @@ const reviewSchema = z.object({
     .array(z.string())
     .max(
       REVIEW_VALIDATION.MAX_PHOTOS,
-      `Maximum ${REVIEW_VALIDATION.MAX_PHOTOS} photos allowed`
+      `Maximum ${REVIEW_VALIDATION.MAX_PHOTOS} photos allowed`,
     ),
 });
 
@@ -113,7 +113,7 @@ export function useReviewCreate({
     if (!bookingId || !restaurantId) {
       Alert.alert(
         "Error",
-        `Missing required information:\n${!bookingId ? "• Booking ID\n" : ""}${!restaurantId ? "• Restaurant ID" : ""}\n\nPlease ensure you have a completed booking to review.`
+        `Missing required information:\n${!bookingId ? "• Booking ID\n" : ""}${!restaurantId ? "• Restaurant ID" : ""}\n\nPlease ensure you have a completed booking to review.`,
       );
       router.back();
       return;
@@ -153,7 +153,7 @@ export function useReviewCreate({
       Alert.alert(
         "Error",
         "Failed to load booking details. Please try again.",
-        [{ text: "OK", onPress: () => router.back() }]
+        [{ text: "OK", onPress: () => router.back() }],
       );
     } finally {
       setLoading(false);
@@ -174,7 +174,7 @@ export function useReviewCreate({
           if (commentLength >= minLength) {
             points += bonus;
           }
-        }
+        },
       );
 
       // Quality bonuses
@@ -187,7 +187,7 @@ export function useReviewCreate({
 
       // All ratings bonus
       const allRatingsGiven = Object.values(detailedRatings).every(
-        (r) => r > 0
+        (r) => r > 0,
       );
       if (allRatingsGiven) {
         points += REVIEW_POINTS.ALL_RATINGS_BONUS;
@@ -195,7 +195,7 @@ export function useReviewCreate({
 
       return Math.min(points, REVIEW_POINTS.MAX_POINTS);
     },
-    [selectedTags.length, detailedRatings]
+    [selectedTags.length, detailedRatings],
   );
 
   // Award loyalty points
@@ -214,7 +214,7 @@ export function useReviewCreate({
         console.error("Loyalty points award error:", error);
       }
     },
-    []
+    [],
   );
 
   // Submit review
@@ -256,7 +256,7 @@ export function useReviewCreate({
       // Award loyalty points
       const pointsToAward = calculateReviewPoints(
         photos.length,
-        form.getValues("comment")?.length || 0
+        form.getValues("comment")?.length || 0,
       );
       await awardLoyaltyPoints(profile.id, pointsToAward);
 
@@ -270,14 +270,14 @@ export function useReviewCreate({
               router.back();
             },
           },
-        ]
+        ],
       );
     } catch (error) {
       console.error("Review submission error:", error);
       Alert.alert(
         "Submission Failed",
         "Failed to submit your review. Please try again.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
     } finally {
       setSubmitting(false);
@@ -312,7 +312,7 @@ export function useReviewCreate({
           if (!allRated) {
             Alert.alert(
               "Required",
-              "Please rate all aspects before continuing"
+              "Please rate all aspects before continuing",
             );
             return false;
           }
@@ -330,7 +330,7 @@ export function useReviewCreate({
           if (commentLength < REVIEW_VALIDATION.MIN_COMMENT_LENGTH) {
             Alert.alert(
               "Required",
-              `Please write at least ${REVIEW_VALIDATION.MIN_COMMENT_LENGTH} characters in your review`
+              `Please write at least ${REVIEW_VALIDATION.MIN_COMMENT_LENGTH} characters in your review`,
             );
             return false;
           }
@@ -340,7 +340,7 @@ export function useReviewCreate({
           return true;
       }
     },
-    [overallRating, detailedRatings, selectedTags, form]
+    [overallRating, detailedRatings, selectedTags, form],
   );
 
   // Update form values when state changes

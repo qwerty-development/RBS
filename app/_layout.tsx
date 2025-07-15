@@ -1,5 +1,4 @@
-
-import 'react-native-gesture-handler';
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../global.css";
 import { Stack } from "expo-router";
 import { AuthProvider } from "@/context/supabase-provider";
@@ -8,7 +7,7 @@ import { colors } from "@/constants/colors";
 import { LogBox, Alert } from "react-native";
 import { useEffect, useState } from "react";
 import * as Updates from "expo-updates";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 LogBox.ignoreAllLogs();
 
@@ -56,7 +55,7 @@ export default function AppLayout() {
               await Updates.reloadAsync();
             },
           },
-        ]
+        ],
       );
     }
   }, [showUpdateAlert]);
@@ -64,6 +63,7 @@ export default function AppLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
+        <ErrorBoundary>
         <Stack screenOptions={{ headerShown: false, gestureEnabled: false }}>
           <Stack.Screen name="(protected)" />
           <Stack.Screen name="welcome" />
@@ -106,7 +106,9 @@ export default function AppLayout() {
             }}
           />
         </Stack>
+              </ErrorBoundary>
       </AuthProvider>
+
     </GestureHandlerRootView>
   );
 }

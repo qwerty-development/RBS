@@ -42,7 +42,7 @@ export function useUserRating(userId?: string) {
       // Call the database function to get rating stats
       const { data, error: statsError } = await supabase.rpc(
         "get_user_rating_stats",
-        { p_user_id: targetUserId }
+        { p_user_id: targetUserId },
       );
 
       if (statsError) throw statsError;

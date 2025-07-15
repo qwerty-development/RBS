@@ -14,7 +14,7 @@ export function SpecialOfferBannerCarousel({
 }: SpecialOfferBannerCarouselProps) {
   // Filter offers to only show those with banner images (img_url)
   const bannersWithImages = offers.filter(
-    (offer) => offer.img_url && offer.img_url.trim() !== ""
+    (offer) => offer.img_url && offer.img_url.trim() !== "",
   );
 
   // Don't render anything if no banners with images

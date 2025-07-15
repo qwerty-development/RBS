@@ -15,8 +15,10 @@ interface UseRestaurantsOptions {
 
 export function useRestaurants(options: UseRestaurantsOptions = {}) {
   const { location, limit = 10 } = options;
-  
-  const [featuredRestaurants, setFeaturedRestaurants] = useState<Restaurant[]>([]);
+
+  const [featuredRestaurants, setFeaturedRestaurants] = useState<Restaurant[]>(
+    [],
+  );
   const [recentlyBooked, setRecentlyBooked] = useState<Restaurant[]>([]);
   const [specialOffers, setSpecialOffers] = useState<SpecialOffer[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,7 +53,7 @@ export function useRestaurants(options: UseRestaurantsOptions = {}) {
         .limit(5);
 
       if (error) throw error;
-      
+
       // Extract unique restaurants
       const uniqueRestaurants = new Map();
       data?.forEach((booking) => {
@@ -59,7 +61,7 @@ export function useRestaurants(options: UseRestaurantsOptions = {}) {
           uniqueRestaurants.set(booking.restaurant.id, booking.restaurant);
         }
       });
-      
+
       setRecentlyBooked(Array.from(uniqueRestaurants.values()).slice(0, 4));
     } catch (err) {
       console.error("Error fetching recently booked:", err);
@@ -71,10 +73,12 @@ export function useRestaurants(options: UseRestaurantsOptions = {}) {
       const now = new Date().toISOString();
       const { data, error } = await supabase
         .from("special_offers")
-        .select(`
+        .select(
+          `
           *,
           restaurant:restaurants(*)
-        `)
+        `,
+        )
         .lte("valid_from", now)
         .gte("valid_until", now)
         .order("discount_percentage", { ascending: false })
@@ -90,13 +94,13 @@ export function useRestaurants(options: UseRestaurantsOptions = {}) {
   const refetch = useCallback(async () => {
     setLoading(true);
     setError(null);
-    
+
     await Promise.all([
       fetchFeaturedRestaurants(),
       fetchSpecialOffers(),
       // fetchRecentlyBooked would need user ID
     ]);
-    
+
     setLoading(false);
   }, [fetchFeaturedRestaurants, fetchSpecialOffers]);
 

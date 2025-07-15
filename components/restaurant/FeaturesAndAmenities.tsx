@@ -95,7 +95,7 @@ export const FeaturesAndAmenities = ({
                 {FEATURE_ICONS[tag as keyof typeof FEATURE_ICONS] ? (
                   React.createElement(
                     FEATURE_ICONS[tag as keyof typeof FEATURE_ICONS],
-                    { size: 20 }
+                    { size: 20 },
                   )
                 ) : (
                   <Info size={20} />

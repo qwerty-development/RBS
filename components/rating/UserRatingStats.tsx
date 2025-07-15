@@ -1,13 +1,13 @@
 import React from "react";
 import { View, Dimensions } from "react-native";
 import { BarChart } from "react-native-chart-kit";
-import { 
-  CheckCircle, 
-  XCircle, 
-  AlertTriangle, 
+import {
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
   TrendingUp,
   Award,
-  Star
+  Star,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { H3, P } from "@/components/ui/typography";
@@ -77,20 +77,27 @@ export function UserRatingStats({ stats, className }: UserRatingStatsProps) {
   return (
     <View className={cn("bg-card rounded-xl p-4", className)}>
       <H3 className="mb-4">Booking Reliability Score</H3>
-      
+
       {/* Main Rating Display */}
       <View className="items-center mb-6 p-4 bg-muted rounded-lg">
-        <UserRating 
-          rating={stats.current_rating} 
-          size="lg" 
+        <UserRating
+          rating={stats.current_rating}
+          size="lg"
           showNumber={true}
           showLabel={false}
         />
         <Text className="text-lg font-bold mt-2 text-primary">
           {stats.reliability_score}
         </Text>
-        <Text className={cn("text-sm font-medium", getTrendColor(stats.rating_trend))}>
-          {stats.rating_trend === "new" ? "New User" : `${stats.rating_trend} Trend`}
+        <Text
+          className={cn(
+            "text-sm font-medium",
+            getTrendColor(stats.rating_trend),
+          )}
+        >
+          {stats.rating_trend === "new"
+            ? "New User"
+            : `${stats.rating_trend} Trend`}
         </Text>
       </View>
 
@@ -101,7 +108,12 @@ export function UserRatingStats({ stats, className }: UserRatingStatsProps) {
             <CheckCircle size={16} color="#10b981" />
             <Text className="text-sm font-medium">Completion Rate</Text>
           </View>
-          <Text className={cn("text-lg font-bold", getCompletionRateColor(stats.completion_rate))}>
+          <Text
+            className={cn(
+              "text-lg font-bold",
+              getCompletionRateColor(stats.completion_rate),
+            )}
+          >
             {stats.completion_rate.toFixed(1)}%
           </Text>
         </View>
@@ -121,7 +133,7 @@ export function UserRatingStats({ stats, className }: UserRatingStatsProps) {
       {stats.total_bookings > 0 && (
         <View className="mb-4">
           <Text className="font-medium mb-3">Booking History</Text>
-          
+
           <View className="space-y-2">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-2">
@@ -161,16 +173,18 @@ export function UserRatingStats({ stats, className }: UserRatingStatsProps) {
         <View className="mt-4">
           <Text className="font-medium mb-2">Booking Distribution</Text>
           <BarChart
-                      data={chartData}
-                      width={screenWidth - 80}
-                      height={160}
-                      chartConfig={chartConfig}
-                      style={{
-                          marginVertical: 8,
-                          borderRadius: 8,
-                      }}
-                      yAxisSuffix=""
-                      showValuesOnTopOfBars={true} yAxisLabel={""}          />
+            data={chartData}
+            width={screenWidth - 80}
+            height={160}
+            chartConfig={chartConfig}
+            style={{
+              marginVertical: 8,
+              borderRadius: 8,
+            }}
+            yAxisSuffix=""
+            showValuesOnTopOfBars={true}
+            yAxisLabel={""}
+          />
         </View>
       )}
 
@@ -181,10 +195,9 @@ export function UserRatingStats({ stats, className }: UserRatingStatsProps) {
             💡 Tips to Improve Your Rating
           </Text>
           <Text className="text-blue-700 text-sm">
-            • Always show up for confirmed bookings{"\n"}
-            • Cancel bookings at least 24 hours in advance{"\n"}
-            • Communicate with restaurants if plans change{"\n"}
-            • Complete your dining experiences
+            • Always show up for confirmed bookings{"\n"}• Cancel bookings at
+            least 24 hours in advance{"\n"}• Communicate with restaurants if
+            plans change{"\n"}• Complete your dining experiences
           </Text>
         </View>
       )}

@@ -1,8 +1,8 @@
-import React from 'react';
-import { View, ScrollView } from 'react-native';
-import PostCardSkeleton from './PostCardSkeleton';
-import { SafeAreaView } from '../safe-area-view';
-import { PageHeader } from '../ui/page-header';
+import React from "react";
+import { View, ScrollView } from "react-native";
+import PostCardSkeleton from "./PostCardSkeleton";
+import { SafeAreaView } from "../safe-area-view";
+import { PageHeader } from "../ui/page-header";
 
 const SocialFeedScreenSkeleton = () => {
   return (

@@ -12,8 +12,8 @@ interface ReviewsFilterModalProps {
   onSortChange: (sort: string) => void;
   selectedRating: string;
   onRatingChange: (rating: string) => void;
-  filterOptions: Array<{ id: string; label: string }>;
-  ratingFilterOptions: Array<{ id: string; label: string }>;
+  filterOptions: { id: string; label: string }[];
+  ratingFilterOptions: { id: string; label: string }[];
 }
 
 export const ReviewsFilterModal: React.FC<ReviewsFilterModalProps> = ({

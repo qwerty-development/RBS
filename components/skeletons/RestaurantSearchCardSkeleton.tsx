@@ -1,6 +1,6 @@
-import React from 'react';
-import { View } from 'react-native';
-import SkeletonPlaceholder from './SkeletonPlaceholder';
+import React from "react";
+import { View } from "react-native";
+import SkeletonPlaceholder from "./SkeletonPlaceholder";
 
 const RestaurantSearchCardSkeleton = () => {
   return (
@@ -10,9 +10,21 @@ const RestaurantSearchCardSkeleton = () => {
 
       <View className="p-4">
         {/* Title and Address */}
-        <SkeletonPlaceholder width="70%" height={20} style={{ marginBottom: 8 }} />
-        <SkeletonPlaceholder width="50%" height={16} style={{ marginBottom: 8 }} />
-        <SkeletonPlaceholder width="40%" height={16} style={{ marginBottom: 12 }} />
+        <SkeletonPlaceholder
+          width="70%"
+          height={20}
+          style={{ marginBottom: 8 }}
+        />
+        <SkeletonPlaceholder
+          width="50%"
+          height={16}
+          style={{ marginBottom: 8 }}
+        />
+        <SkeletonPlaceholder
+          width="40%"
+          height={16}
+          style={{ marginBottom: 12 }}
+        />
 
         {/* Info Row */}
         <View className="flex-row items-center gap-4 mb-3">
@@ -22,7 +34,11 @@ const RestaurantSearchCardSkeleton = () => {
         </View>
 
         {/* Availability Tag */}
-        <SkeletonPlaceholder width={100} height={24} style={{ borderRadius: 999 }} />
+        <SkeletonPlaceholder
+          width={100}
+          height={24}
+          style={{ borderRadius: 999 }}
+        />
       </View>
     </View>
   );

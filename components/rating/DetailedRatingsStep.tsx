@@ -51,7 +51,7 @@ interface DetailedRatingsStepProps {
   onRatingsChange: (ratings: DetailedRatings) => void;
   onIndividualRatingChange?: (
     category: keyof DetailedRatings,
-    rating: number
+    rating: number,
   ) => void;
 }
 
@@ -62,7 +62,7 @@ export const DetailedRatingsStep: React.FC<DetailedRatingsStepProps> = ({
 }) => {
   const handleRatingChange = (
     category: keyof DetailedRatings,
-    rating: number
+    rating: number,
   ) => {
     const newRatings = { ...ratings, [category]: rating };
     onRatingsChange(newRatings);
