@@ -51,7 +51,7 @@ const ALERT_MESSAGES = {
 // Hook implementation
 export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
   const finalConfig = { ...DEFAULT_CONFIG, ...config };
-  const { isOnline, networkState, addListener, refresh } = useNetwork();
+  const { isOnline, networkState, addListener, refresh, isLoading } = useNetwork();
   
   // Refs to track state and timers
   const previousOnlineRef = useRef(isOnline);
@@ -153,13 +153,30 @@ export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
       }
     });
 
-    // Mark that we've initialized
-    setTimeout(() => {
-      hasShownInitialAlertRef.current = true;
+    // Mark that we've initialized - but wait for loading to finish
+    const initTimer = setTimeout(() => {
+      if (!isLoading) {
+        hasShownInitialAlertRef.current = true;
+      }
     }, 1000);
 
-    return cleanup;
-  }, [addListener, handleOnline, handleOffline, handleQualityChange]);
+    return () => {
+      cleanup();
+      clearTimeout(initTimer);
+    };
+  }, [addListener, handleOnline, handleOffline, handleQualityChange, isLoading]);
+
+  // Update initialization flag when loading completes
+  useEffect(() => {
+    if (!isLoading && !hasShownInitialAlertRef.current) {
+      // Delay a bit more to avoid showing banner immediately after load
+      const timer = setTimeout(() => {
+        hasShownInitialAlertRef.current = true;
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isLoading]);
 
   // Monitor app state changes
   useEffect(() => {
@@ -190,6 +207,7 @@ export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
 
   return {
     isOnline,
+    isLoading,
     networkState,
     connectionQuality: networkState.quality,
   };

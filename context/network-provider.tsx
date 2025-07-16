@@ -9,7 +9,6 @@ import React, {
   PropsWithChildren,
 } from "react";
 import NetInfo, { NetInfoState, NetInfoStateType } from "@react-native-community/netinfo";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Types
 export type ConnectionQuality = "poor" | "fair" | "good" | "excellent" | "unknown";
@@ -30,6 +29,7 @@ export interface NetworkContextType {
   networkState: NetworkState;
   isOnline: boolean;
   isOffline: boolean;
+  isLoading: boolean;
   
   // Actions
   refresh: () => Promise<void>;
@@ -53,6 +53,7 @@ const NetworkContext = createContext<NetworkContextType | null>(null);
 // Provider component
 export function NetworkProvider({ children }: PropsWithChildren) {
   const [networkState, setNetworkState] = useState<NetworkState>(DEFAULT_NETWORK_STATE);
+  const [isLoading, setIsLoading] = useState(true);
   const listenersRef = useRef<Set<(state: NetworkState) => void>>(new Set());
   const lastUpdateRef = useRef<number>(0);
 
@@ -138,8 +139,10 @@ export function NetworkProvider({ children }: PropsWithChildren) {
     try {
       const state = await NetInfo.fetch();
       updateNetworkState(state);
+      setIsLoading(false);
     } catch (error) {
       console.error("[NetworkProvider] Refresh error:", error);
+      setIsLoading(false);
     }
   }, [updateNetworkState]);
 
@@ -159,7 +162,11 @@ export function NetworkProvider({ children }: PropsWithChildren) {
     refresh();
 
     // Subscribe to network changes
-    const unsubscribe = NetInfo.addEventListener(updateNetworkState);
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      updateNetworkState(state);
+      // Set loading to false after first network event
+      setIsLoading(false);
+    });
 
     return () => {
       unsubscribe();
@@ -171,6 +178,7 @@ export function NetworkProvider({ children }: PropsWithChildren) {
     networkState,
     isOnline: networkState.isConnected && networkState.isInternetReachable,
     isOffline: !networkState.isConnected || !networkState.isInternetReachable,
+    isLoading,
     refresh,
     addListener,
   };
@@ -195,11 +203,12 @@ export function useNetwork() {
 
 // Convenience hook for connection status
 export function useConnectionStatus() {
-  const { networkState, isOnline, isOffline } = useNetwork();
+  const { networkState, isOnline, isOffline, isLoading } = useNetwork();
   
   return {
     isOnline,
     isOffline,
+    isLoading,
     isConnected: networkState.isConnected,
     isInternetReachable: networkState.isInternetReachable,
     connectionType: networkState.type,

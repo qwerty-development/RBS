@@ -21,12 +21,18 @@ registerSyncHandlers();
 
 // Network status bar component
 function NetworkStatusBar() {
-  const { isOnline, connectionQuality } = useNetworkMonitor({
+  const { isOnline, connectionQuality, isLoading } = useNetworkMonitor({
     showOfflineAlert: true,
     showOnlineAlert: false,
     alertDelay: 5000,
   });
 
+  // Don't show banner while loading initial network state
+  if (isLoading) {
+    return null;
+  }
+
+  // Don't show banner if online with good connection
   if (isOnline && connectionQuality !== 'poor') {
     return null;
   }
