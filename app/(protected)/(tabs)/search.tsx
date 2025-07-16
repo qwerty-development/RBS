@@ -1,4 +1,4 @@
-// app/(protected)/(tabs)/search.tsx - Updated with debug panel
+// app/(protected)/(tabs)/search.tsx - Updated with collapsible header
 import React, { useState, useCallback } from "react";
 import { View } from "react-native";
 import { Region } from "react-native-maps";
@@ -8,7 +8,7 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { useSearchLogic } from "@/hooks/useSearchLogic";
 import { DEFAULT_MAP_REGION } from "@/constants/searchConstants";
 import { SearchHeader } from "@/components/search/SearchHeader";
-import { SearchResultsHeader } from "@/components/search/SearchResultsHeader";
+import { ViewToggleTabs } from "@/components/search/ViewToggleTabs";
 import { SearchContent } from "@/components/search/SearchContent";
 import { DatePickerModal } from "@/components/search/DatePickerModal";
 import { TimePickerModal } from "@/components/search/TimePickerModal";
@@ -21,13 +21,16 @@ export default function SearchScreen() {
   const { searchState, actions, handlers, computed, location } =
     useSearchLogic();
 
-  // Modal visibility state (local to this component)
+  // Modal visibility state
   const [showGeneralFilters, setShowGeneralFilters] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showPartySizePicker, setShowPartySizePicker] = useState(false);
 
-  // Map region state - initialize with user location if available
+  // Header collapse state
+  const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
+
+  // Map region state
   const [mapRegion, setMapRegion] = useState<Region>(() => {
     if (searchState.userLocation) {
       return {
@@ -43,10 +46,6 @@ export default function SearchScreen() {
   // Update map region when user location changes
   React.useEffect(() => {
     if (searchState.userLocation) {
-      console.log(
-        "🗺️ Search screen: Updating map region with user location:",
-        searchState.userLocation,
-      );
       setMapRegion((prev) => ({
         ...prev,
         latitude: searchState.userLocation!.latitude,
@@ -55,55 +54,66 @@ export default function SearchScreen() {
     }
   }, [searchState.userLocation]);
 
+  // Handle scroll to determine header collapse
+  const handleScroll = useCallback((event: any) => {
+    // Don't handle scroll collapse if in map view (it should stay collapsed)
+    if (searchState.viewMode === "map") return;
+    
+    const scrollY = event.nativeEvent.contentOffset.y;
+    const shouldCollapse = scrollY > 30; // More sensitive threshold for better push feeling
+    
+    if (shouldCollapse !== isHeaderCollapsed) {
+      setIsHeaderCollapsed(shouldCollapse);
+    }
+  }, [isHeaderCollapsed, searchState.viewMode]);
+
+  // Auto-collapse header when switching to map view
+  const handleMapViewSelected = useCallback(() => {
+    setIsHeaderCollapsed(true);
+  }, []);
+
+  // Auto-expand header when switching back to list view
+  const handleViewModeChange = useCallback((mode: ViewMode) => {
+    actions.setViewMode(mode);
+    if (mode === "list") {
+      setIsHeaderCollapsed(false);
+    }
+  }, [actions]);
+
   // Map region change handler
   const handleMapRegionChange = useCallback(
     (region: Region) => {
-      const deltaThreshold = 0.01;
-      if (
-        Math.abs(region.latitude - mapRegion.latitude) > deltaThreshold ||
-        Math.abs(region.longitude - mapRegion.longitude) > deltaThreshold
-      ) {
-        console.log("🗺️ Search screen: Map region changed:", region);
-        setMapRegion(region);
-      }
+      setMapRegion(region);
     },
-    [mapRegion],
+    [],
   );
-
-  // Debug logging
-  React.useEffect(() => {
-    console.log("🔍 Search screen state update:", {
-      restaurantCount: searchState.restaurants.length,
-      userLocation: searchState.userLocation,
-      loading: searchState.loading,
-      viewMode: searchState.viewMode,
-      locationDisplayName: location.displayName,
-    });
-  }, [searchState, location.displayName]);
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+      {/* Collapsible Search Header */}
       <SearchHeader
         searchQuery={searchState.searchQuery}
         bookingFilters={searchState.bookingFilters}
-        viewMode={searchState.viewMode}
         activeFilterCount={computed.activeFilterCount}
         colorScheme={colorScheme}
+        isCollapsed={isHeaderCollapsed}
         onSearchChange={actions.setSearchQuery}
         onShowDatePicker={() => setShowDatePicker(true)}
         onShowTimePicker={() => setShowTimePicker(true)}
         onShowPartySizePicker={() => setShowPartySizePicker(true)}
-        onToggleAvailableOnly={handlers.toggleAvailableOnly}
-        onViewModeChange={actions.setViewMode}
         onShowGeneralFilters={() => setShowGeneralFilters(true)}
       />
 
-      <SearchResultsHeader
+      {/* View Toggle Tabs - Always visible below header */}
+      <ViewToggleTabs
+        viewMode={searchState.viewMode}
+        colorScheme={colorScheme}
+        onViewModeChange={handleViewModeChange}
+        onMapViewSelected={handleMapViewSelected}
         restaurantCount={searchState.restaurants.length}
-        loading={searchState.loading}
-        bookingFilters={searchState.bookingFilters}
       />
 
+      {/* Search Content with Scroll Handling */}
       <SearchContent
         viewMode={searchState.viewMode}
         restaurants={searchState.restaurants}
@@ -119,6 +129,7 @@ export default function SearchScreen() {
         onRefresh={actions.handleRefresh}
         onClearFilters={actions.clearAllFilters}
         onMapRegionChange={handleMapRegionChange}
+        onScroll={handleScroll} // Pass scroll handler
       />
 
       {/* Modals */}
@@ -128,12 +139,14 @@ export default function SearchScreen() {
         onDateSelect={(date) => actions.updateBookingFilters({ date })}
         onClose={() => setShowDatePicker(false)}
       />
+
       <TimePickerModal
         visible={showTimePicker}
         bookingFilters={searchState.bookingFilters}
         onTimeSelect={(time) => actions.updateBookingFilters({ time })}
         onClose={() => setShowTimePicker(false)}
       />
+
       <PartySizePickerModal
         visible={showPartySizePicker}
         bookingFilters={searchState.bookingFilters}
@@ -142,6 +155,7 @@ export default function SearchScreen() {
         }
         onClose={() => setShowPartySizePicker(false)}
       />
+
       <GeneralFiltersModal
         visible={showGeneralFilters}
         generalFilters={searchState.generalFilters}
@@ -151,8 +165,6 @@ export default function SearchScreen() {
         }}
         onClose={() => setShowGeneralFilters(false)}
       />
-
-      {/* Debug info for location in development */}
     </SafeAreaView>
   );
 }

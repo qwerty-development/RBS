@@ -1,21 +1,12 @@
-// components/search/SearchContent.tsx - Updated to use RestaurantMap
-import React, { useRef } from "react";
-import {
-  View,
-  FlatList,
-  ActivityIndicator,
-  RefreshControl,
-} from "react-native";
-import { Region } from "react-native-maps";
+// components/search/SearchContent.tsx - Updated with scroll handling
+import React from "react";
+import { View, FlatList, RefreshControl } from "react-native";
+import MapView, { Region, Marker } from "react-native-maps";
 
-import { Button } from "@/components/ui/button";
+import { Restaurant, BookingFilters, ViewMode } from "@/types/search";
+import { RestaurantSearchCard } from "@/components/search/RestaurantSearchCard";
 import { Text } from "@/components/ui/text";
-import { Muted } from "@/components/ui/typography";
-import { RestaurantSearchCard } from "./RestaurantSearchCard";
-import SearchScreenSkeleton from "../skeletons/SearchScreenSkeleton";
-import { RestaurantMap } from "../maps/RestaurantMap";
-import { useLocationWithDistance } from "@/hooks/useLocationWithDistance";
-import type { Restaurant, ViewMode, BookingFilters } from "@/types/search";
+import { ActivityIndicator } from "react-native";
 
 interface SearchContentProps {
   viewMode: ViewMode;
@@ -24,7 +15,7 @@ interface SearchContentProps {
   loading: boolean;
   refreshing: boolean;
   bookingFilters: BookingFilters;
-  colorScheme: "light" | "dark" | null | undefined;
+  colorScheme: "light" | "dark";
   mapRegion: Region;
   onToggleFavorite: (restaurantId: string) => Promise<void>;
   onDirections: (restaurant: Restaurant) => Promise<void>;
@@ -32,99 +23,126 @@ interface SearchContentProps {
   onRefresh: () => void;
   onClearFilters: () => void;
   onMapRegionChange: (region: Region) => void;
+  onScroll?: (event: any) => void; // New prop for scroll handling
 }
 
-export const SearchContent = React.memo(
-  ({
-    viewMode,
-    restaurants,
-    favorites,
-    loading,
-    refreshing,
-    bookingFilters,
-    colorScheme,
-    mapRegion,
-    onToggleFavorite,
-    onDirections,
-    onRestaurantPress,
-    onRefresh,
-    onClearFilters,
-    onMapRegionChange,
-  }: SearchContentProps) => {
-    const listRef = useRef<FlatList>(null);
-    const { location: userLocation } = useLocationWithDistance();
+export const SearchContent = ({
+  viewMode,
+  restaurants,
+  favorites,
+  loading,
+  refreshing,
+  bookingFilters,
+  colorScheme,
+  mapRegion,
+  onToggleFavorite,
+  onDirections,
+  onRestaurantPress,
+  onRefresh,
+  onClearFilters,
+  onMapRegionChange,
+  onScroll,
+}: SearchContentProps) => {
+  // Render restaurant item for list view
+  const renderRestaurantItem = ({ item }: { item: Restaurant }) => (
+    <RestaurantSearchCard
+      restaurant={item}
+      isFavorite={favorites.has(item.id)}
+      onPress={() => onRestaurantPress(item.id)}
+      onToggleFavorite={() => onToggleFavorite(item.id)}
+      onOpenDirections={() => onDirections(item)}
+    />
+  );
 
-    if (viewMode === "list") {
-      return (
-        <FlatList
-          ref={listRef}
-          data={restaurants}
-          renderItem={({ item }) => (
-            <RestaurantSearchCard
-              item={item}
-              bookingFilters={bookingFilters}
-              favorites={favorites}
-              onToggleFavorite={onToggleFavorite}
-              onDirections={onDirections}
-              onPress={() => onRestaurantPress(item.id)}
-            />
-          )}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={colorScheme === "dark" ? "#fff" : "#000"}
-            />
-          }
-          ListEmptyComponent={
-            <View className="flex-1 items-center justify-center py-20">
-              <Muted>No restaurants found</Muted>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-4"
-                onPress={onClearFilters}
-              >
-                <Text>Clear all filters</Text>
-              </Button>
-            </View>
-          }
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-          initialNumToRender={5}
-          getItemLayout={(data, index) => ({
-            length: 200,
-            offset: 200 * index,
-            index,
-          })}
-        />
-      );
-    }
-    if (loading && restaurants.length === 0) {
-      return <SearchScreenSkeleton />;
-    }
+  // Loading state
+  if (loading && restaurants.length === 0) {
     return (
-      <RestaurantMap
-        restaurants={restaurants.map((restaurant) => ({
-          ...restaurant,
-          // Ensure coordinates are in the right format for RestaurantMap
-          coordinates: restaurant.staticCoordinates
-            ? {
-                latitude: restaurant.staticCoordinates.lat,
-                longitude: restaurant.staticCoordinates.lng,
-              }
-            : restaurant.coordinates || undefined,
-        }))}
-        userLocation={userLocation}
-        onRestaurantPress={onRestaurantPress}
-        showUserLocation={true}
-        initialRegion={mapRegion}
-        style={{ flex: 1 }}
-      />
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#000"} />
+        <Text className="mt-4 text-muted-foreground">Loading restaurants...</Text>
+      </View>
     );
-  },
-);
+  }
+
+  // Empty state
+  if (!loading && restaurants.length === 0) {
+    return (
+      <View className="flex-1 justify-center items-center p-8">
+        <Text className="text-lg font-semibold mb-2">No restaurants found</Text>
+        <Text className="text-muted-foreground text-center mb-4">
+          Try adjusting your search criteria or filters
+        </Text>
+      </View>
+    );
+  }
+
+  // Map view
+  if (viewMode === "map") {
+    return (
+      <View className="flex-1">
+        <MapView
+          style={{ flex: 1 }}
+          region={mapRegion}
+          onRegionChangeComplete={onMapRegionChange}
+          showsUserLocation={true}
+          showsMyLocationButton={true}
+          mapType="standard"
+        >
+          {restaurants.map((restaurant) => {
+            const latitude = restaurant.coordinates?.latitude || 
+                           restaurant.staticCoordinates?.lat || 
+                           33.8938; // Default Beirut latitude
+            const longitude = restaurant.coordinates?.longitude || 
+                            restaurant.staticCoordinates?.lng || 
+                            35.5018; // Default Beirut longitude
+
+            return (
+              <Marker
+                key={restaurant.id}
+                coordinate={{ latitude, longitude }}
+                onPress={() => onRestaurantPress(restaurant.id)}
+                title={restaurant.name}
+                description={restaurant.cuisine_type}
+              />
+            );
+          })}
+        </MapView>
+      </View>
+    );
+  }
+
+  // List view with scroll handling
+  return (
+    <View className="flex-1">
+      <FlatList
+        data={restaurants}
+        renderItem={renderRestaurantItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{
+          paddingTop: 8, // Reduced top padding for better push effect
+          paddingHorizontal: 16,
+          paddingBottom: 100,
+        }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colorScheme === "dark" ? "#fff" : "#000"}
+          />
+        }
+        onScroll={onScroll} // Pass scroll event to parent
+        scrollEventThrottle={16} // Throttle scroll events for better performance
+        getItemLayout={(data, index) => ({
+          length: 120, // Approximate height of RestaurantSearchCard
+          offset: 120 * index,
+          index,
+        })}
+        removeClippedSubviews={true}
+        initialNumToRender={10}
+        maxToRenderPerBatch={5}
+        windowSize={10}
+      />
+    </View>
+  );
+};
