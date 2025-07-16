@@ -39,7 +39,7 @@ export interface NetworkContextType {
   addListener: (callback: (state: NetworkState) => void) => () => void;
 }
 
-// Default state
+// Default state - changed to null values to indicate uninitialized
 const DEFAULT_NETWORK_STATE: NetworkState = {
   isConnected: false,
   isInternetReachable: false,
@@ -58,6 +58,7 @@ export function NetworkProvider({ children }: PropsWithChildren) {
   const [hasInitialized, setHasInitialized] = useState(false);
   const listenersRef = useRef<Set<(state: NetworkState) => void>>(new Set());
   const lastUpdateRef = useRef<number>(0);
+  const initializationRef = useRef<boolean>(false);
 
   // Determine connection quality based on network type
   const getConnectionQuality = useCallback((state: NetInfoState): ConnectionQuality => {
@@ -103,24 +104,19 @@ export function NetworkProvider({ children }: PropsWithChildren) {
 
   // Update network state and notify listeners
   const updateNetworkState = useCallback((state: NetInfoState) => {
-    // Throttle updates to prevent excessive re-renders
-    const now = Date.now();
-    if (now - lastUpdateRef.current < 500) {
-      return;
-    }
-    lastUpdateRef.current = now;
-
     const newState = processNetworkState(state);
     
-    // Mark as initialized and not loading when we get the first real update
-    if (!hasInitialized) {
+    // Mark as initialized on first real update
+    if (!initializationRef.current) {
+      initializationRef.current = true;
       setHasInitialized(true);
       setIsLoading(false);
     }
     
     setNetworkState(prevState => {
-      // Only update if state actually changed
+      // Only update if state actually changed (but always update on first initialization)
       if (
+        initializationRef.current &&
         prevState.isConnected === newState.isConnected &&
         prevState.isInternetReachable === newState.isInternetReachable &&
         prevState.type === newState.type &&
@@ -129,18 +125,20 @@ export function NetworkProvider({ children }: PropsWithChildren) {
         return prevState;
       }
       
-      // Notify listeners
-      listenersRef.current.forEach(listener => {
-        try {
-          listener(newState);
-        } catch (error) {
-          console.error("[NetworkProvider] Listener error:", error);
-        }
-      });
+      // Notify listeners (only after initialization)
+      if (initializationRef.current) {
+        listenersRef.current.forEach(listener => {
+          try {
+            listener(newState);
+          } catch (error) {
+            console.error("[NetworkProvider] Listener error:", error);
+          }
+        });
+      }
       
       return newState;
     });
-  }, [processNetworkState, hasInitialized]);
+  }, [processNetworkState]);
 
   // Manually refresh network state
   const refresh = useCallback(async () => {
@@ -150,11 +148,12 @@ export function NetworkProvider({ children }: PropsWithChildren) {
     } catch (error) {
       console.error("[NetworkProvider] Refresh error:", error);
       // Only set loading to false if we haven't initialized yet
-      if (!hasInitialized) {
+      if (!initializationRef.current) {
         setIsLoading(false);
+        setHasInitialized(true);
       }
     }
-  }, [updateNetworkState, hasInitialized]);
+  }, [updateNetworkState]);
 
   // Add listener for network changes
   const addListener = useCallback((callback: (state: NetworkState) => void) => {
@@ -168,16 +167,39 @@ export function NetworkProvider({ children }: PropsWithChildren) {
 
   // Initialize network monitoring
   useEffect(() => {
-    // Initial fetch
-    refresh();
+    let mounted = true;
+
+    // Initial fetch with immediate execution
+    const initializeNetwork = async () => {
+      try {
+        const state = await NetInfo.fetch();
+        if (mounted) {
+          updateNetworkState(state);
+        }
+      } catch (error) {
+        console.error("[NetworkProvider] Initial fetch error:", error);
+        if (mounted) {
+          setIsLoading(false);
+          setHasInitialized(true);
+        }
+      }
+    };
+
+    // Execute immediately
+    initializeNetwork();
 
     // Subscribe to network changes
-    const unsubscribe = NetInfo.addEventListener(updateNetworkState);
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      if (mounted) {
+        updateNetworkState(state);
+      }
+    });
 
     return () => {
+      mounted = false;
       unsubscribe();
     };
-  }, [refresh, updateNetworkState]);
+  }, [updateNetworkState]);
 
   // Context value
   const value: NetworkContextType = {

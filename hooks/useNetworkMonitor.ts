@@ -1,5 +1,5 @@
 // hooks/useNetworkMonitor.ts
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { Alert, AppState, AppStateStatus } from "react-native";
 import { useNetwork } from "@/context/network-provider";
 
@@ -51,13 +51,13 @@ const ALERT_MESSAGES = {
 // Hook implementation
 export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
   const finalConfig = { ...DEFAULT_CONFIG, ...config };
-  const { isOnline, networkState, addListener, refresh, isLoading } = useNetwork();
+  const { isOnline, networkState, addListener, refresh, isLoading, hasInitialized } = useNetwork();
   
   // Refs to track state and timers
-  const previousOnlineRef = useRef(isOnline);
+  const previousOnlineRef = useRef<boolean | null>(null);
   const previousQualityRef = useRef(networkState.quality);
   const alertTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const hasShownInitialAlertRef = useRef(false);
+  const [canShowAlerts, setCanShowAlerts] = useState(false);
 
   // Show alert with optional delay
   const showAlert = useCallback((
@@ -85,14 +85,14 @@ export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
   const handleOffline = useCallback(() => {
     finalConfig.onOffline();
     
-    if (finalConfig.showOfflineAlert && hasShownInitialAlertRef.current) {
+    if (finalConfig.showOfflineAlert && canShowAlerts) {
       showAlert(
         ALERT_MESSAGES.offline.title,
         ALERT_MESSAGES.offline.message,
         finalConfig.alertDelay
       );
     }
-  }, [finalConfig, showAlert]);
+  }, [finalConfig, showAlert, canShowAlerts]);
 
   // Handle online state
   const handleOnline = useCallback(() => {
@@ -104,14 +104,14 @@ export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
     
     finalConfig.onOnline();
     
-    if (finalConfig.showOnlineAlert && hasShownInitialAlertRef.current) {
+    if (finalConfig.showOnlineAlert && canShowAlerts) {
       showAlert(
         ALERT_MESSAGES.online.title,
         ALERT_MESSAGES.online.message,
         0 // Show immediately
       );
     }
-  }, [finalConfig, showAlert]);
+  }, [finalConfig, showAlert, canShowAlerts]);
 
   // Handle connection quality change
   const handleQualityChange = useCallback((quality: string) => {
@@ -119,7 +119,7 @@ export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
     
     if (
       finalConfig.showSlowConnectionAlert &&
-      hasShownInitialAlertRef.current &&
+      canShowAlerts &&
       (quality === "poor" || quality === "fair") &&
       (previousQualityRef.current === "good" || previousQualityRef.current === "excellent")
     ) {
@@ -129,54 +129,51 @@ export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
         0
       );
     }
-  }, [finalConfig, showAlert]);
+  }, [finalConfig, showAlert, canShowAlerts]);
+
+  // Enable alerts after initialization with delay
+  useEffect(() => {
+    if (hasInitialized && !isLoading) {
+      // Wait a bit longer to ensure network state is stable
+      const timer = setTimeout(() => {
+        setCanShowAlerts(true);
+        // Set the initial previous state after enabling alerts
+        previousOnlineRef.current = isOnline;
+      }, 2000); // 2 second delay after initialization
+      
+      return () => clearTimeout(timer);
+    }
+  }, [hasInitialized, isLoading, isOnline]);
 
   // Monitor network changes
   useEffect(() => {
     const cleanup = addListener((state) => {
       const currentlyOnline = state.isConnected && state.isInternetReachable;
       
-      // Check for online/offline change
-      if (previousOnlineRef.current !== currentlyOnline) {
-        if (currentlyOnline) {
-          handleOnline();
-        } else {
-          handleOffline();
+      // Only process changes if we can show alerts and have a previous state
+      if (canShowAlerts && previousOnlineRef.current !== null) {
+        // Check for online/offline change
+        if (previousOnlineRef.current !== currentlyOnline) {
+          if (currentlyOnline) {
+            handleOnline();
+          } else {
+            handleOffline();
+          }
         }
-        previousOnlineRef.current = currentlyOnline;
+        
+        // Check for quality change
+        if (previousQualityRef.current !== state.quality) {
+          handleQualityChange(state.quality);
+        }
       }
       
-      // Check for quality change
-      if (previousQualityRef.current !== state.quality) {
-        handleQualityChange(state.quality);
-        previousQualityRef.current = state.quality;
-      }
+      // Update refs
+      previousOnlineRef.current = currentlyOnline;
+      previousQualityRef.current = state.quality;
     });
 
-    // Mark that we've initialized - but wait for loading to finish
-    const initTimer = setTimeout(() => {
-      if (!isLoading) {
-        hasShownInitialAlertRef.current = true;
-      }
-    }, 1000);
-
-    return () => {
-      cleanup();
-      clearTimeout(initTimer);
-    };
-  }, [addListener, handleOnline, handleOffline, handleQualityChange, isLoading]);
-
-  // Update initialization flag when loading completes
-  useEffect(() => {
-    if (!isLoading && !hasShownInitialAlertRef.current) {
-      // Delay a bit more to avoid showing banner immediately after load
-      const timer = setTimeout(() => {
-        hasShownInitialAlertRef.current = true;
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading]);
+    return cleanup;
+  }, [addListener, handleOnline, handleOffline, handleQualityChange, canShowAlerts]);
 
   // Monitor app state changes
   useEffect(() => {
@@ -208,6 +205,7 @@ export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
   return {
     isOnline,
     isLoading,
+    hasInitialized,
     networkState,
     connectionQuality: networkState.quality,
   };

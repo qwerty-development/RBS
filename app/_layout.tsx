@@ -12,7 +12,9 @@ import * as Updates from 'expo-updates';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useNetworkMonitor } from '@/hooks/useNetworkMonitor';
 import * as Sentry from '@sentry/react-native';
+
 import React from 'react';
+
 
 
 // Network status bar component
@@ -23,13 +25,28 @@ function NetworkStatusBar() {
     alertDelay: 5000,
   });
 
-  // Don't show banner while loading initial network state or before initialization
-  if (isLoading || !hasInitialized) {
-    return null;
-  }
+  const [showBanner, setShowBanner] = useState(false);
 
-  // Don't show banner if online with good connection
-  if (isOnline && connectionQuality !== 'poor') {
+  // Control banner visibility with proper initialization checks
+  useEffect(() => {
+    // Don't show banner if still loading or not initialized
+    if (isLoading || !hasInitialized) {
+      setShowBanner(false);
+      return;
+    }
+
+    // Add a small delay after initialization to ensure stable state
+    const timer = setTimeout(() => {
+      // Show banner if offline or poor connection
+      const shouldShow = !isOnline || connectionQuality === 'poor';
+      setShowBanner(shouldShow);
+    }, 1000); // 1 second delay after initialization
+
+    return () => clearTimeout(timer);
+  }, [isOnline, connectionQuality, isLoading, hasInitialized]);
+
+  // Don't render anything if banner shouldn't be shown
+  if (!showBanner) {
     return null;
   }
 
@@ -51,7 +68,9 @@ function NetworkStatusBar() {
         zIndex: 9999,
       }}
     >
-      <Text style={{ color: 'white', fontSize: 12 }}>{message}</Text>
+      <Text style={{ color: 'white', fontSize: 12, fontWeight: '500' }}>
+        {message}
+      </Text>
     </View>
   );
 }
@@ -68,7 +87,6 @@ function RootLayoutContent() {
       'Unsupported Server Component type',
       'Warning: TNodeChildrenRenderer',
       'You seem to update props of the "TRenderEngineProvider" component',
-      'VirtualizedLists should never be nested inside plain ScrollViews',
     ]);
   }, []);
 
@@ -147,9 +165,9 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <NetworkProvider>
           <AuthProvider>
-        
+       
               <RootLayoutContent />
-         
+
           </AuthProvider>
         </NetworkProvider>
       </GestureHandlerRootView>
