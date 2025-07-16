@@ -104,6 +104,7 @@ export default function FavoritesScreen() {
         refreshing: false,
         createPlaylist: async () => null,
         handleRefresh: () => {},
+        removePlaylistFromState: () => {}, // fallback
       };
     }
   })();
@@ -114,6 +115,7 @@ export default function FavoritesScreen() {
     refreshing: playlistsRefreshing = false,
     createPlaylist,
     handleRefresh: handlePlaylistsRefresh,
+    removePlaylistFromState, // <-- add this
   } = playlistsHook;
 
   // Invitations hook with error handling
@@ -311,6 +313,11 @@ export default function FavoritesScreen() {
           return null;
         }
 
+        // Optimistic delete handler
+        const handleDelete = (playlistId: string) => {
+          removePlaylistFromState(playlistId); // Optimistically remove from UI
+        };
+
         return (
           <PlaylistErrorBoundary
             fallback={
@@ -324,7 +331,7 @@ export default function FavoritesScreen() {
             <PlaylistCard
               playlist={item}
               onPress={() => navigateToPlaylist(item.id)}
-              onDelete={() => handleRefresh()}
+              onDelete={handleDelete}
               variant="list"
             />
           </PlaylistErrorBoundary>
@@ -340,7 +347,7 @@ export default function FavoritesScreen() {
         );
       }
     },
-    [navigateToPlaylist],
+    [navigateToPlaylist, removePlaylistFromState],
   );
 
   // Playlist header actions component with error handling
