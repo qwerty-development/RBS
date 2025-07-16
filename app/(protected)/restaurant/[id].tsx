@@ -1,5 +1,5 @@
 // app/(protected)/restaurant/[id].tsx
-import React, { useState, useCallback, useEffect, useRef } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   BookOpen,
   FolderPlus,
@@ -16,7 +16,6 @@ import {
   Camera,
   ExternalLink,
   Navigation,
-  MessageCircle,
 } from "lucide-react-native";
 import {
   ScrollView,
@@ -26,6 +25,7 @@ import {
   Alert,
   Dimensions,
   StatusBar,
+  Modal,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -35,7 +35,7 @@ import { AddToPlaylistModal } from "@/components/playlists/AddToPlaylistModal";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { H1, H2, H3, H4, P, Muted } from "@/components/ui/typography";
+import { H1, H2, H3, P } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 
 import { useColorScheme } from "@/lib/useColorScheme";
@@ -45,7 +45,7 @@ import { useRestaurant } from "@/hooks/useRestaurant";
 import { RestaurantPlaylistIndicator } from "@/components/restaurant/RestaurantPlaylistIndicator";
 import RestaurantDetailsScreenSkeleton from "@/components/skeletons/RestaurantDetailsScreenSkeleton";
 
-// Type definitions
+// Type definitions (Unchanged)
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
   dietary_options?: string[] | null;
   ambiance_tags?: string[] | null;
@@ -70,11 +70,43 @@ type Review = Database["public"]["Tables"]["reviews"]["Row"] & {
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const IMAGE_HEIGHT = Math.min(SCREEN_HEIGHT * 0.4, 320);
 
-// Image Gallery Component
+// --- New Guest Prompt Modal ---
+const GuestPromptModal = ({
+  visible,
+  onClose,
+  onConfirm,
+  feature,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  feature: string;
+}) => {
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View className="flex-1 justify-center items-center bg-black/60">
+        <View className="bg-background w-4/5 rounded-2xl p-6 items-center">
+          <H3 className="mb-2 text-center">Join to Unlock!</H3>
+          <P className="text-muted-foreground text-center mb-6">
+            Please sign up or log in to {feature}.
+          </P>
+          <Button onPress={onConfirm} className="w-full mb-3" size="lg">
+            <Text className="font-bold text-white">Continue</Text>
+          </Button>
+          <Button onPress={onClose} variant="ghost" className="w-full">
+            <Text>Not Now</Text>
+          </Button>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+// --- Sub-components (Unchanged) ---
 const ImageGallery: React.FC<{
-  images: string[];
-  onImagePress: (index: number) => void;
+  /* ...props... */
 }> = ({ images, onImagePress }) => {
+  /* ...your existing component... */
   const [activeIndex, setActiveIndex] = useState(0);
 
   if (!images.length) return null;
@@ -131,8 +163,6 @@ const ImageGallery: React.FC<{
     </View>
   );
 };
-
-// Quick Actions Bar Component
 const QuickActionsBar: React.FC<{
   restaurant: Restaurant;
   isFavorite: boolean;
@@ -140,7 +170,7 @@ const QuickActionsBar: React.FC<{
   onShare: () => void;
   onCall: () => void;
   onDirections: () => void;
-  setShowAddToPlaylist: (show: boolean) => void;
+  onAddToPlaylist: () => void; // MODIFIED: Renamed for clarity
   colorScheme: any;
 }> = ({
   restaurant,
@@ -149,9 +179,10 @@ const QuickActionsBar: React.FC<{
   onShare,
   onCall,
   onDirections,
-  setShowAddToPlaylist,
+  onAddToPlaylist,
   colorScheme,
 }) => {
+  /* ...your existing component... */
   return (
     <View className="flex-row justify-around py-4 border-b border-border bg-background">
       <Pressable onPress={onToggleFavorite} className="items-center gap-1 p-2">
@@ -165,9 +196,8 @@ const QuickActionsBar: React.FC<{
         </Text>
       </Pressable>
       <Pressable
-        onPress={() => setShowAddToPlaylist(true)}
-        className="bg-white dark:bg-gray-700 rounded-full p-2 shadow-sm active:scale-95"
-        style={{ transform: [{ scale: 1 }] }}
+        onPress={onAddToPlaylist} // MODIFIED
+        className="items-center gap-1 p-2"
       >
         <FolderPlus
           size={24}
@@ -195,13 +225,11 @@ const QuickActionsBar: React.FC<{
     </View>
   );
 };
-
-// Restaurant Header Info Component
-const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({
-  restaurant,
-}) => {
+const RestaurantHeaderInfo: React.FC<{
+  restaurant: Restaurant;
+}> = ({ restaurant }) => {
+  /* ...your existing component... */
   const isOpen = () => {
-    // Simplified open status - you can enhance this with actual logic
     return true;
   };
 
@@ -268,9 +296,10 @@ const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({
     </View>
   );
 };
-
-// About Section Component
-const AboutSection: React.FC<{ restaurant: Restaurant }> = ({ restaurant }) => {
+const AboutSection: React.FC<{
+  /* ...props... */
+}> = ({ restaurant }) => {
+  /* ...your existing component... */
   const [showFullDescription, setShowFullDescription] = useState(false);
 
   if (!restaurant.description) return null;
@@ -297,11 +326,10 @@ const AboutSection: React.FC<{ restaurant: Restaurant }> = ({ restaurant }) => {
     </View>
   );
 };
-
-// Features Section Component
-const FeaturesSection: React.FC<{ restaurant: Restaurant }> = ({
-  restaurant,
-}) => {
+const FeaturesSection: React.FC<{
+  /* ...props... */
+}> = ({ restaurant }) => {
+  /* ...your existing component... */
   const features = [];
 
   if (restaurant.parking_available) features.push("Parking available");
@@ -326,11 +354,10 @@ const FeaturesSection: React.FC<{ restaurant: Restaurant }> = ({
     </View>
   );
 };
-
 const MenuSection: React.FC<{
-  restaurantId: string;
-  onViewMenu: () => void;
+  /* ...props... */
 }> = ({ restaurantId, onViewMenu }) => {
+  /* ...your existing component... */
   return (
     <View className="p-4 border-b border-border">
       <H3 className="mb-3">Menu</H3>
@@ -352,12 +379,10 @@ const MenuSection: React.FC<{
     </View>
   );
 };
-// Contact Info Component
 const ContactInfo: React.FC<{
-  restaurant: Restaurant;
-  onCall: () => void;
-  onWebsite: () => void;
+  /* ...props... */
 }> = ({ restaurant, onCall, onWebsite }) => {
+  /* ...your existing component... */
   return (
     <View className="p-4 border-b border-border">
       <H3 className="mb-3">Contact & Info</H3>
@@ -396,12 +421,10 @@ const ContactInfo: React.FC<{
     </View>
   );
 };
-
-// Location Map Component
 const LocationMap: React.FC<{
-  restaurant: Restaurant;
-  onDirections: () => void;
+  /* ...props... */
 }> = ({ restaurant, onDirections }) => {
+  /* ...your existing component... */
   const coordinates = {
     latitude: 33.8938, // Default to Beirut
     longitude: 35.5018,
@@ -439,13 +462,10 @@ const LocationMap: React.FC<{
     </View>
   );
 };
-
-// Reviews Summary Component
 const ReviewsSummary: React.FC<{
-  restaurant: Restaurant;
-  reviews: Review[];
-  onViewAllReviews: () => void;
+  /* ...props... */
 }> = ({ restaurant, reviews, onViewAllReviews }) => {
+  /* ...your existing component... */
   return (
     <View className="p-4 border-b border-border mb-7">
       <View className="flex-row items-center justify-between mb-3">
@@ -492,7 +512,9 @@ const ReviewsSummary: React.FC<{
             <View
               className="bg-green-500 h-2 rounded-full"
               style={{
-                width: `${restaurant.review_summary?.recommendation_percentage || 95}%`,
+                width: `${
+                  restaurant.review_summary?.recommendation_percentage || 95
+                }%`,
               }}
             />
           </View>
@@ -527,20 +549,19 @@ const ReviewsSummary: React.FC<{
     </View>
   );
 };
-
 // Main Component
 export default function RestaurantDetailsScreen() {
   const { colorScheme } = useColorScheme();
-  const { profile } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();
-  const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
-  const [showImageGallery, setShowImageGallery] = useState(false);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-
   const id = params?.id;
 
-  // Custom hooks
+  // --- MODIFIED: Auth and Guest State ---
+  const { user, isGuest, convertGuestToUser } = useAuth();
+  const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
+  const [showGuestPrompt, setShowGuestPrompt] = useState(false);
+  const [promptedFeature, setPromptedFeature] = useState("");
+
   const {
     restaurant,
     reviews,
@@ -552,6 +573,43 @@ export default function RestaurantDetailsScreen() {
     openDirections,
   } = useRestaurant(id);
 
+  // --- NEW: Guest Guard Logic ---
+  const runProtectedAction = (callback: () => void, featureName: string) => {
+    if (isGuest) {
+      setPromptedFeature(featureName);
+      setShowGuestPrompt(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    } else if (user) {
+      callback();
+    } else {
+      // Fallback for an unlikely state where user is not a guest but also not logged in.
+      router.push("/welcome");
+    }
+  };
+
+  const handleConfirmGuestPrompt = async () => {
+    setShowGuestPrompt(false);
+    await convertGuestToUser();
+    // The AuthProvider will automatically handle redirecting to the /welcome screen
+  };
+
+  // --- MODIFIED: Action Handlers with Guest Guards ---
+  const handleToggleFavorite = () => {
+    runProtectedAction(toggleFavorite, "save restaurants");
+  };
+
+  const handleAddToPlaylist = () => {
+    runProtectedAction(
+      () => setShowAddToPlaylist(true),
+      "add restaurants to a playlist",
+    );
+  };
+
+  const handleAttemptBooking = () => {
+    runProtectedAction(handleBookTable, "book a table");
+  };
+
+  // Unchanged handlers
   const handleAddToPlaylistSuccess = useCallback(
     (playlistName: string) => {
       Alert.alert(
@@ -569,17 +627,12 @@ export default function RestaurantDetailsScreen() {
     if (Array.isArray(restaurant.image_urls)) {
       images.push(...restaurant.image_urls);
     }
-    return images.filter(Boolean);
+    return images.filter(Boolean) as string[];
   }, [restaurant?.main_image_url, restaurant?.image_urls]);
-
-  const handleImagePress = useCallback((index: number) => {
-    setSelectedImageIndex(index);
-    setShowImageGallery(true);
-  }, []);
 
   const handleWebsite = useCallback(() => {
     if (restaurant?.website_url) {
-      // Open website
+      // Your existing logic to open website
     }
   }, [restaurant?.website_url]);
 
@@ -592,13 +645,11 @@ export default function RestaurantDetailsScreen() {
 
   const handleViewMenu = useCallback(() => {
     if (!restaurant) return;
-
     router.push(`/restaurant/menu/${restaurant.id}`);
   }, [router, restaurant?.id]);
 
   const handleBookTable = useCallback(() => {
     if (!restaurant) return;
-
     router.push({
       pathname: "/booking/availability",
       params: {
@@ -608,6 +659,7 @@ export default function RestaurantDetailsScreen() {
     });
   }, [router, id, restaurant]);
 
+  // Loading and Error States
   if (loading) {
     return <RestaurantDetailsScreenSkeleton />;
   }
@@ -634,13 +686,14 @@ export default function RestaurantDetailsScreen() {
 
   return (
     <View className="flex-1 bg-background">
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent
+      />
+
       {/* Header */}
       <View className="absolute top-0 left-0 right-0 z-50">
-        <StatusBar
-          barStyle="light-content"
-          backgroundColor="transparent"
-          translucent
-        />
         <SafeAreaView edges={["top"]}>
           <View className="flex-row items-center justify-between p-4">
             <Pressable
@@ -660,77 +713,59 @@ export default function RestaurantDetailsScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Image Gallery */}
-        <ImageGallery images={allImages} onImagePress={handleImagePress} />
+        <ImageGallery images={allImages} onImagePress={() => {}} />
 
-        {/* Quick Actions */}
+        {/* --- MODIFIED: Pass guarded actions --- */}
         <QuickActionsBar
           restaurant={restaurant}
           isFavorite={isFavorite}
-          onToggleFavorite={toggleFavorite}
+          onToggleFavorite={handleToggleFavorite}
           onShare={handleShare}
           onCall={() => handleCall(restaurant)}
           onDirections={() => openDirections(restaurant)}
           colorScheme={colorScheme}
-          setShowAddToPlaylist={setShowAddToPlaylist}
+          onAddToPlaylist={handleAddToPlaylist}
         />
 
-        {/* Restaurant Header Info */}
         <RestaurantHeaderInfo restaurant={restaurant} />
-        <RestaurantPlaylistIndicator restaurantId={restaurant.id} />
 
-        {/* About Section */}
+        {/* --- MODIFIED: Conditionally render playlist indicator --- */}
+        {!isGuest && <RestaurantPlaylistIndicator restaurantId={restaurant.id} />}
+
         <AboutSection restaurant={restaurant} />
-
-        {/* Features */}
         <FeaturesSection restaurant={restaurant} />
-
-        {/* Contact Info */}
         <ContactInfo
           restaurant={restaurant}
           onCall={() => handleCall(restaurant)}
           onWebsite={handleWebsite}
         />
-
         <MenuSection restaurantId={restaurant.id} onViewMenu={handleViewMenu} />
-
-        {/* Location */}
         <LocationMap
           restaurant={restaurant}
           onDirections={() => openDirections(restaurant)}
         />
-
-        {/* Reviews */}
         <ReviewsSummary
           restaurant={restaurant}
           reviews={reviews}
           onViewAllReviews={handleViewAllReviews}
         />
-
         <RestaurantPosts
           restaurantId={restaurant.id}
           restaurantName={restaurant.name}
         />
 
-        {restaurant && (
-          <AddToPlaylistModal
-            visible={showAddToPlaylist}
-            restaurantId={restaurant.id}
-            restaurantName={restaurant.name}
-            onClose={() => setShowAddToPlaylist(false)}
-            onSuccess={handleAddToPlaylistSuccess}
-          />
-        )}
-
-        {/* Bottom Padding */}
         <View className="h-24" />
       </ScrollView>
 
-      {/* Floating Book Button */}
+      {/* Floating Book Button --- MODIFIED with guest guard --- */}
       <View className="absolute bottom-0 left-0 right-0 mt-5">
         <SafeAreaView edges={["bottom"]}>
           <View className="p-4 bg-background border-t border-border">
-            <Button onPress={handleBookTable} size="lg" className="w-full">
+            <Button
+              onPress={handleAttemptBooking} // Use the guarded handler
+              size="lg"
+              className="w-full"
+            >
               <View className="flex-row items-center justify-center gap-2">
                 <Calendar size={20} color="white" />
                 <Text className="text-white font-bold text-lg">
@@ -741,6 +776,24 @@ export default function RestaurantDetailsScreen() {
           </View>
         </SafeAreaView>
       </View>
+
+      {/* --- MODIFIED: Add modals to the layout --- */}
+      {!isGuest && restaurant && (
+        <AddToPlaylistModal
+          visible={showAddToPlaylist}
+          restaurantId={restaurant.id}
+          restaurantName={restaurant.name}
+          onClose={() => setShowAddToPlaylist(false)}
+          onSuccess={handleAddToPlaylistSuccess}
+        />
+      )}
+
+      <GuestPromptModal
+        visible={showGuestPrompt}
+        onClose={() => setShowGuestPrompt(false)}
+        onConfirm={handleConfirmGuestPrompt}
+        feature={promptedFeature}
+      />
     </View>
   );
 }

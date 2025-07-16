@@ -1,193 +1,189 @@
 // services/offlineSync.ts
-import { supabase } from '@/config/supabase';
-import { offlineStorage, OfflineAction } from '@/utils/offlineStorage';
-import * as Haptics from 'expo-haptics';
-import { Alert } from 'react-native';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { AppState, AppStateStatus } from "react-native";
+import netInfo from "@react-native-community/netinfo";
+import { EventEmitter } from "@/lib/eventEmitter";
 
-class OfflineSyncService {
+// Types
+export interface OfflineAction<T = any> {
+  id: string;
+  type: string;
+  payload: T;
+  timestamp: number;
+  retries: number;
+  maxRetries: number;
+  lastError?: string;
+}
+
+export interface SyncResult {
+  actionId: string;
+  success: boolean;
+  error?: Error;
+}
+
+export type SyncHandler<T = any> = (action: OfflineAction<T>) => Promise<void>;
+
+interface OfflineSyncManagerConfig {
+  storageKey?: string;
+  maxRetries?: number;
+  retryDelay?: number;
+  retryMultiplier?: number;
+}
+
+const DEFAULT_CONFIG: Required<OfflineSyncManagerConfig> = {
+  storageKey: "@offline_queue",
+  maxRetries: 3,
+  retryDelay: 1000,
+  retryMultiplier: 2,
+};
+
+class OfflineSyncManager extends EventEmitter {
+  private queue: OfflineAction[] = [];
+  private config: Required<OfflineSyncManagerConfig>;
   private syncInProgress = false;
-  private maxRetries = 3;
+  private handlers: Map<string, SyncHandler> = new Map();
+  public isOnline = false;
 
-  async syncOfflineActions(): Promise<{ success: boolean; synced: number; failed: number }> {
-    if (this.syncInProgress) {
-      console.log('[OfflineSync] Sync already in progress');
-      return { success: false, synced: 0, failed: 0 };
+  constructor(config: OfflineSyncManagerConfig = {}) {
+    super();
+    this.config = { ...DEFAULT_CONFIG, ...config };
+    this.init();
+  }
+
+  private async init() {
+    await this.loadQueue();
+    this.isOnline = (await netInfo.fetch()).isInternetReachable ?? false;
+
+    netInfo.addEventListener(state => {
+      const online = state.isConnected && state.isInternetReachable;
+      if (online && !this.isOnline) {
+        this.isOnline = true;
+        this.emit("reconnected");
+        this.sync();
+      } else if (!online) {
+        this.isOnline = false;
+      }
+    });
+
+    AppState.addEventListener("change", this.handleAppStateChange);
+  }
+
+  private handleAppStateChange = (nextAppState: AppStateStatus) => {
+    if (nextAppState === "active" && this.isOnline) {
+      this.sync();
+    }
+  };
+
+  private async loadQueue() {
+    try {
+      const stored = await AsyncStorage.getItem(this.config.storageKey);
+      if (stored) {
+        this.queue = JSON.parse(stored);
+        this.emit("queueChanged", this.queue);
+      }
+    } catch (error) {
+      console.error("[OfflineSyncManager] Failed to load queue:", error);
+    }
+  }
+
+  private async saveQueue() {
+    try {
+      await AsyncStorage.setItem(this.config.storageKey, JSON.stringify(this.queue));
+      this.emit("queueChanged", this.queue);
+    } catch (error) {
+      console.error("[OfflineSyncManager] Failed to save queue:", error);
+    }
+  }
+
+  registerSyncHandler(type: string, handler: SyncHandler) {
+    this.handlers.set(type, handler);
+  }
+
+  async queueAction<T>(type: string, payload: T): Promise<string> {
+    const action: OfflineAction<T> = {
+      id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      type,
+      payload,
+      timestamp: Date.now(),
+      retries: 0,
+      maxRetries: this.config.maxRetries,
+    };
+
+    this.queue.push(action);
+    await this.saveQueue();
+    this.emit("actionQueued", action);
+
+    // Trigger sync if online
+    if (this.isOnline) {
+      this.sync();
+    }
+
+    return action.id;
+  }
+
+  async sync() {
+    if (this.syncInProgress || !this.isOnline || this.queue.length === 0) {
+      return;
     }
 
     this.syncInProgress = true;
-    let syncedCount = 0;
-    let failedCount = 0;
+    this.emit("syncStatusChanged", true);
+    this.emit("syncStart");
 
+    const results: SyncResult[] = [];
+    const processingQueue = [...this.queue];
+
+    for (const action of processingQueue) {
+      const handler = this.handlers.get(action.type);
+      if (handler) {
+        const result = await this.processAction(action, handler);
+        results.push(result);
+      }
+    }
+
+    this.syncInProgress = false;
+    this.emit("syncStatusChanged", false);
+    this.emit("syncComplete", results);
+  }
+
+  private async processAction(action: OfflineAction, handler: SyncHandler): Promise<SyncResult> {
     try {
-      const queue = await offlineStorage.getOfflineQueue();
+      await handler(action);
+      await this.removeAction(action.id);
+      return { actionId: action.id, success: true };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
       
-      if (queue.length === 0) {
-        console.log('[OfflineSync] No offline actions to sync');
-        return { success: true, synced: 0, failed: 0 };
+      if (action.retries < action.maxRetries) {
+        await this.updateAction(action.id, {
+          retries: action.retries + 1,
+          lastError: errorMessage,
+        });
+        return { actionId: action.id, success: false, error: new Error("Action will be retried.") };
+      } else {
+        await this.removeAction(action.id); // Max retries reached
+        return { actionId: action.id, success: false, error: error as Error };
       }
-
-      console.log(`[OfflineSync] Starting sync of ${queue.length} actions`);
-
-      for (const action of queue) {
-        const result = await this.processOfflineAction(action);
-        
-        if (result.success) {
-          await offlineStorage.removeFromOfflineQueue(action.id);
-          syncedCount++;
-        } else {
-          if (action.retryCount >= this.maxRetries) {
-            await offlineStorage.removeFromOfflineQueue(action.id);
-            failedCount++;
-            console.error(`[OfflineSync] Action ${action.id} failed after ${this.maxRetries} retries`);
-          } else {
-            await offlineStorage.updateOfflineQueueAction(action.id, {
-              retryCount: action.retryCount + 1
-            });
-          }
-        }
-      }
-
-      // Haptic feedback on successful sync
-      if (syncedCount > 0) {
-        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      }
-
-      return { success: true, synced: syncedCount, failed: failedCount };
-    } catch (error) {
-      console.error('[OfflineSync] Sync error:', error);
-      return { success: false, synced: syncedCount, failed: failedCount };
-    } finally {
-      this.syncInProgress = false;
     }
   }
 
-  private async processOfflineAction(action: OfflineAction): Promise<{ success: boolean; error?: any }> {
-    try {
-      switch (action.type) {
-        case 'CREATE_BOOKING':
-          return await this.syncCreateBooking(action.payload);
-        
-        case 'UPDATE_BOOKING':
-          return await this.syncUpdateBooking(action.payload);
-        
-        case 'ADD_FAVORITE':
-          return await this.syncAddFavorite(action.payload);
-        
-        case 'REMOVE_FAVORITE':
-          return await this.syncRemoveFavorite(action.payload);
-        
-        case 'UPDATE_PROFILE':
-          return await this.syncUpdateProfile(action.payload);
-        
-        default:
-          console.warn(`[OfflineSync] Unknown action type: ${action.type}`);
-          return { success: false, error: 'Unknown action type' };
-      }
-    } catch (error) {
-      console.error(`[OfflineSync] Error processing action ${action.type}:`, error);
-      return { success: false, error };
-    }
+  private async removeAction(actionId: string) {
+    this.queue = this.queue.filter(a => a.id !== actionId);
+    await this.saveQueue();
   }
 
-  private async syncCreateBooking(payload: any): Promise<{ success: boolean; error?: any }> {
-    const { data, error } = await supabase
-      .from('bookings')
-      .insert(payload)
-      .select()
-      .single();
-
-    if (error) {
-      console.error('[OfflineSync] Create booking error:', error);
-      return { success: false, error };
-    }
-
-    return { success: true };
+  private async updateAction(actionId: string, updates: Partial<OfflineAction>) {
+    this.queue = this.queue.map(a => (a.id === actionId ? { ...a, ...updates } : a));
+    await this.saveQueue();
   }
 
-  private async syncUpdateBooking(payload: any): Promise<{ success: boolean; error?: any }> {
-    const { id, ...updates } = payload;
-    
-    const { error } = await supabase
-      .from('bookings')
-      .update(updates)
-      .eq('id', id);
-
-    if (error) {
-      console.error('[OfflineSync] Update booking error:', error);
-      return { success: false, error };
-    }
-
-    return { success: true };
+  getQueue() {
+    return this.queue;
   }
 
-  private async syncAddFavorite(payload: any): Promise<{ success: boolean; error?: any }> {
-    // Check if favorite already exists (might have been added while offline)
-    const { data: existing } = await supabase
-      .from('favorites')
-      .select('id')
-      .eq('user_id', payload.user_id)
-      .eq('restaurant_id', payload.restaurant_id)
-      .single();
-
-    if (existing) {
-      console.log('[OfflineSync] Favorite already exists, skipping');
-      return { success: true };
-    }
-
-    const { error } = await supabase
-      .from('favorites')
-      .insert(payload);
-
-    if (error) {
-      console.error('[OfflineSync] Add favorite error:', error);
-      return { success: false, error };
-    }
-
-    return { success: true };
-  }
-
-  private async syncRemoveFavorite(payload: any): Promise<{ success: boolean; error?: any }> {
-    const { error } = await supabase
-      .from('favorites')
-      .delete()
-      .eq('user_id', payload.user_id)
-      .eq('restaurant_id', payload.restaurant_id);
-
-    if (error) {
-      console.error('[OfflineSync] Remove favorite error:', error);
-      return { success: false, error };
-    }
-
-    return { success: true };
-  }
-
-  private async syncUpdateProfile(payload: any): Promise<{ success: boolean; error?: any }> {
-    const { id, ...updates } = payload;
-    
-    const { error } = await supabase
-      .from('profiles')
-      .update(updates)
-      .eq('id', id);
-
-    if (error) {
-      console.error('[OfflineSync] Update profile error:', error);
-      return { success: false, error };
-    }
-
-    return { success: true };
-  }
-
-  // Check if there are pending offline actions
-  async hasPendingActions(): Promise<boolean> {
-    const queue = await offlineStorage.getOfflineQueue();
-    return queue.length > 0;
-  }
-
-  // Get count of pending actions
-  async getPendingActionsCount(): Promise<number> {
-    const queue = await offlineStorage.getOfflineQueue();
-    return queue.length;
+  hasPendingActions() {
+    return this.queue.length > 0;
   }
 }
 
-export const offlineSync = new OfflineSyncService();
+export const offlineSync = new OfflineSyncManager();

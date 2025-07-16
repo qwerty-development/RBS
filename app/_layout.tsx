@@ -1,361 +1,155 @@
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import "../global.css";
-import { Stack } from "expo-router";
-import { AuthProvider } from "@/context/supabase-provider";
-import { useColorScheme } from "@/lib/useColorScheme";
-import { colors } from "@/constants/colors";
-import { LogBox, Alert } from "react-native";
-import { useEffect, useState } from "react";
-import * as Updates from "expo-updates";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { NetworkProvider } from "@/context/network-provider";
-import * as Sentry from "@sentry/react-native";
-import { OfflineIndicator } from "@/components/OfflineIndicator";
+import './polyfills'
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import '../global.css';
+import { Stack } from 'expo-router';
+import { AuthProvider } from '@/context/supabase-provider';
+import { NetworkProvider } from '@/context/network-provider';
+import { OfflineSyncProvider } from '@/context/offline-sync-provider';
+import { useColorScheme } from '@/lib/useColorScheme';
+import { colors } from '@/constants/colors';
+import { LogBox, Alert, View, Text } from 'react-native';
+import { useEffect, useState } from 'react';
+import * as Updates from 'expo-updates';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useNetworkMonitor } from '@/hooks/useNetworkMonitor';
+import * as Sentry from '@sentry/react-native';
+import { registerSyncHandlers } from '@/services/syncHandlers';
+import React from 'react';
 
-// Enhanced Sentry configuration
-Sentry.init({
-  // Use environment variable in production, fallback to hardcoded for development
-  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN || 
-    (__DEV__ 
-      ? undefined // Don't send errors in development unless explicitly set
-      : "https://596c39f50e8604dcd468a29a63c1f442@o4509672135065600.ingest.de.sentry.io/4509672139587664"
-    ),
-  
-  // Enhanced context collection
-  sendDefaultPii: true,
-  
-  // Performance monitoring - more aggressive in dev, conservative in production
-  tracesSampleRate: __DEV__ ? 1.0 : 0.1,
-  
-  // Session Replay configuration
-  replaysSessionSampleRate: __DEV__ ? 0.5 : 0.1, // 50% in dev, 10% in production
-  replaysOnErrorSampleRate: 1.0, // Always capture replays on errors
-  
-  // Enhanced integrations
-  integrations: [
-    Sentry.mobileReplayIntegration({
-      // Enhanced replay options
-      maskAllText: false, // Set to true if you handle sensitive data
-      maskAllImages: false,
-    }),
-    Sentry.feedbackIntegration({
-      // Feedback widget configuration
-      showBranding: false,
-      showName: true,
-      showEmail: true,
-    }),
-  ],
+// Register offline sync handlers
+registerSyncHandlers();
 
-  // Better error filtering and processing
-  beforeSend: (event, hint) => {
-    // Sentry console.log statements removed as requested
-    
-    const error = hint.originalException;
-    
-    // Filter out noisy development errors
-    if (__DEV__) {
-      // Network errors during development (common with local services)
-      if (error?.message?.includes("Network request failed")) {
-        console.log("🚫 Filtered: Network error in development");
-        return null;
-      }
-      
-      // React Navigation errors that aren't actionable
-      if (error?.message?.includes("The action") && error?.message?.includes("was not handled")) {
-        console.log("🚫 Filtered: React Navigation error");
-        return null;
-      }
-      
-      // Metro bundler connection errors
-      if (error?.message?.includes("Metro") || error?.message?.includes("bundler")) {
-        console.log("🚫 Filtered: Metro bundler error");
-        return null;
-      }
-    }
-    
-    // Filter out known non-critical errors in production
-    if (!__DEV__) {
-      // Network timeout errors (user can retry)
-      if (error?.message?.includes("timeout") || error?.message?.includes("TIMEOUT")) {
-        return null;
-      }
-      
-      // User cancellation errors (not real errors)
-      if (error?.message?.includes("cancelled") || error?.message?.includes("canceled")) {
-        return null;
-      }
-    }
-    
-    // Add environment context to all errors
-    if (event.tags) {
-      event.tags.environment = __DEV__ ? "development" : "production";
-      event.tags.app_version = "1.0.0"; // Update this with your actual version
-    }
-    
-    return event;
-  },
-  
-  // Enhanced error grouping
-  beforeSendTransaction: (transaction) => {
-    // Don't send development transactions unless explicitly needed
-    if (__DEV__ && transaction.name?.includes("dev")) {
-      return null;
-    }
-    return transaction;
-  },
-  
-  // Initial scope configuration
-  initialScope: {
-    tags: {
-      component: "root_layout",
-      platform: "react-native",
-    },
-    contexts: {
-      app: {
-        name: "Booklet",
-        version: "1.0.0",
-        environment: __DEV__ ? "development" : "production",
-      },
-      device: {
-        simulator: __DEV__,
-      },
-    },
-  },
-  
-  // Enhanced debugging and development features
-  debug: __DEV__, // Verbose logging in development
-  spotlight: __DEV__, // Enable Spotlight in development
-  
-  // Better crash detection
-  enableNativeCrashHandling: true,
-  enableNativeNagger: false, // Disable native debugger warnings
-  
-  // Session and performance tracking
-  enableAutoSessionTracking: true,
-  autoSessionTracking: true,
-  enableUserInteractionTracing: true,
-  enableAppStartTracking: true,
-  
-  // Release tracking
-  release: __DEV__ ? "development" : undefined, // Let EAS handle production releases
-  environment: __DEV__ ? "development" : "production",
-});
+// Network status bar component
+function NetworkStatusBar() {
+  const { isOnline, connectionQuality } = useNetworkMonitor({
+    showOfflineAlert: true,
+    showOnlineAlert: false,
+    alertDelay: 5000,
+  });
 
-LogBox.ignoreAllLogs();
+  if (isOnline && connectionQuality !== 'poor') {
+    return null;
+  }
 
-// Enhanced error boundary with Sentry integration
-function SentryErrorBoundary({ children }: { children: React.ReactNode }) {
+  const backgroundColor = !isOnline ? '#F44336' : '#FF9800';
+  const message = !isOnline
+    ? 'No internet connection'
+    : 'Slow connection detected';
+
   return (
-    <Sentry.ErrorBoundary
-      fallback={({ error, resetError }) => (
-        <ErrorBoundary error={error} resetError={resetError} />
-      )}
-      showDialog={!__DEV__} // Show Sentry user feedback dialog in production
-      dialogOptions={{
-        title: "Something went wrong",
-        subtitle: "Help us improve by reporting this error",
-        subtitle2: "Your feedback helps make the app better.",
-        labelName: "Name (optional)",
-        labelEmail: "Email (optional)", 
-        labelComments: "What happened?",
-        labelSubmit: "Send Report",
-        labelClose: "Close",
+    <View
+      style={{
+        backgroundColor,
+        padding: 8,
+        alignItems: 'center',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 9999,
       }}
     >
-      {children}
-    </Sentry.ErrorBoundary>
+      <Text style={{ color: 'white', fontSize: 12 }}>{message}</Text>
+    </View>
   );
 }
 
-function AppLayout() {
+// Main layout component
+function RootLayoutContent() {
   const { colorScheme } = useColorScheme();
-  const [showUpdateAlert, setShowUpdateAlert] = useState(false);
+  const [updateChecking, setUpdateChecking] = useState(false);
 
-  // Enhanced update checking with Sentry tracking
   useEffect(() => {
-    const checkForUpdates = async () => {
-      try {
-        Sentry.addBreadcrumb({
-          message: "Checking for updates",
-          category: "app.updates",
-          level: "info",
-        });
-
-        const update = await Updates.checkForUpdateAsync();
-        if (update.isAvailable) {
-          console.log("[RootLayout] Update available, downloading...");
-          
-          Sentry.addBreadcrumb({
-            message: "Update available, downloading",
-            category: "app.updates", 
-            level: "info",
-            data: { manifestCreatedAt: update.manifest?.createdAt },
-          });
-
-          const result = await Updates.fetchUpdateAsync();
-
-          if (result.isNew) {
-            Sentry.addBreadcrumb({
-              message: "New update downloaded",
-              category: "app.updates",
-              level: "info",
-            });
-            setShowUpdateAlert(true);
-          }
-        } else {
-          console.log("[RootLayout] No updates available");
-          Sentry.addBreadcrumb({
-            message: "No updates available",
-            category: "app.updates",
-            level: "info",
-          });
-        }
-      } catch (error) {
-        console.error("[RootLayout] Update check error:", error);
-        Sentry.captureException(error, {
-          tags: { operation: "update_check" },
-          level: "warning", // Non-critical error
-        });
-      }
-    };
-
-    checkForUpdates();
+    LogBox.ignoreLogs([
+      'Clerk:',
+      'Clerk has been loaded with development keys',
+      'Unsupported Server Component type',
+      'Warning: TNodeChildrenRenderer',
+      'You seem to update props of the "TRenderEngineProvider" component',
+    ]);
   }, []);
 
   useEffect(() => {
-    if (showUpdateAlert) {
-      Sentry.addBreadcrumb({
-        message: "Showing update alert to user",
-        category: "app.updates",
-        level: "info",
-      });
+    if (__DEV__) return;
 
-      Alert.alert(
-        "Update Available",
-        "A new version has been downloaded. Restart the app to apply the update.",
-        [
-          {
-            text: "Later",
-            style: "cancel",
-            onPress: () => {
-              Sentry.addBreadcrumb({
-                message: "User deferred update",
-                category: "app.updates",
-                level: "info",
-              });
-              setShowUpdateAlert(false);
-            },
-          },
-          {
-            text: "Restart Now",
-            onPress: async () => {
-              Sentry.addBreadcrumb({
-                message: "User accepted update, restarting",
-                category: "app.updates",
-                level: "info",
-              });
-              setShowUpdateAlert(false);
-              
-              try {
-                await Updates.reloadAsync();
-              } catch (error) {
-                Sentry.captureException(error, {
-                  tags: { operation: "update_reload" },
-                  level: "error",
-                });
-                console.error("Failed to reload after update:", error);
-              }
-            },
-          },
-        ],
-      );
+    async function checkForUpdates() {
+      try {
+        setUpdateChecking(true);
+        const update = await Updates.checkForUpdateAsync();
+
+        if (update.isAvailable) {
+          Alert.alert(
+            'Update Available',
+            'A new version of the app is available. Would you like to update now?',
+            [
+              { text: 'Later', style: 'cancel' },
+              {
+                text: 'Update',
+                onPress: async () => {
+                  try {
+                    await Updates.fetchUpdateAsync();
+                    await Updates.reloadAsync();
+                  } catch (error) {
+                    console.error('Failed to update:', error);
+                    Alert.alert(
+                      'Update Failed',
+                      'Failed to download the update. Please try again later.'
+                    );
+                  }
+                },
+              },
+            ]
+          );
+        }
+      } catch (error) {
+        console.error('Update check failed:', error);
+      } finally {
+        setUpdateChecking(false);
+      }
     }
-  }, [showUpdateAlert]);
 
-  // Track app lifecycle events
-  useEffect(() => {
-    Sentry.addBreadcrumb({
-      message: "App layout mounted",
-      category: "app.lifecycle",
-      level: "info",
-      data: {
-        colorScheme,
-        timestamp: new Date().toISOString(),
-      },
-    });
-
-    // Add device/environment context
-    Sentry.setContext("app_state", {
-      colorScheme,
-      development: __DEV__,
-      timestamp: new Date().toISOString(),
-    });
-
-    return () => {
-      Sentry.addBreadcrumb({
-        message: "App layout unmounting",
-        category: "app.lifecycle",
-        level: "info",
-      });
-    };
-  }, [colorScheme]);
+    checkForUpdates();
+    const interval = setInterval(checkForUpdates, 30 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <NetworkProvider>
-        <AuthProvider>
-          <SentryErrorBoundary>
-            <Stack
-              screenOptions={{ headerShown: false, gestureEnabled: false }}
-            >
-              <Stack.Screen name="(protected)" />
-              <Stack.Screen name="welcome" />
-              <Stack.Screen
-                name="sign-up"
-                options={{
-                  presentation: "modal",
-                  headerShown: true,
-                  headerTitle: "Sign Up",
-                  headerStyle: {
-                    backgroundColor:
-                      colorScheme === "dark"
-                        ? colors.dark.background
-                        : colors.light.background,
-                  },
-                  headerTintColor:
-                    colorScheme === "dark"
-                      ? colors.dark.foreground
-                      : colors.light.foreground,
-                  gestureEnabled: true,
-                }}
-              />
-              <Stack.Screen
-                name="sign-in"
-                options={{
-                  presentation: "modal",
-                  headerShown: true,
-                  headerTitle: "Sign In",
-                  headerStyle: {
-                    backgroundColor:
-                      colorScheme === "dark"
-                        ? colors.dark.background
-                        : colors.light.background,
-                  },
-                  headerTintColor:
-                    colorScheme === "dark"
-                      ? colors.dark.foreground
-                      : colors.light.foreground,
-                  gestureEnabled: true,
-                }}
-              />
-            </Stack>
-            <OfflineIndicator />
-          </SentryErrorBoundary>
-        </AuthProvider>
-      </NetworkProvider>
-    </GestureHandlerRootView>
+    <>
+      <NetworkStatusBar />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: {
+            backgroundColor:
+              colorScheme === 'dark'
+                ? colors.dark.background
+                : colors.light.background,
+          },
+        }}
+      />
+    </>
   );
 }
 
-// Export with enhanced Sentry wrapping
-export default Sentry.wrap(AppLayout);
+Sentry.init({
+  dsn: "https://596c39f50e8604dcd468a29a63c1f442@o4509672135065600.ingest.de.sentry.io/4509672139587664",
+  enabled: !__DEV__,
+  debug: __DEV__,
+  environment: __DEV__ ? 'development' : 'production',
+});
+
+export default function RootLayout() {
+  return (
+    <ErrorBoundary>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <NetworkProvider>
+          <AuthProvider>
+            <OfflineSyncProvider>
+              <RootLayoutContent />
+            </OfflineSyncProvider>
+          </AuthProvider>
+        </NetworkProvider>
+      </GestureHandlerRootView>
+    </ErrorBoundary>
+  );
+}

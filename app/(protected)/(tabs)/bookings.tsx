@@ -146,6 +146,14 @@ export default function BookingsScreen() {
                   <Text className="text-sm text-gray-500 dark:text-gray-500">
                     {booking.guest_count} guests • Table {booking.selected_table_id || "TBD"}
                   </Text>
+                  {pendingOfflineChanges.has(booking.id) && (
+                    <View className="flex-row items-center mt-2">
+                      <Feather name="upload-cloud" size={12} color="#F59E0B" />
+                      <Text className="text-xs text-yellow-600 ml-1">
+                        Changes pending sync
+                      </Text>
+                    </View>
+                  )}
                 </View>
 
                 <View className="ml-3">

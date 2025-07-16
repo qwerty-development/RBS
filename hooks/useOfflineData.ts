@@ -95,23 +95,21 @@ export function useOfflineData<T>({
     } finally {
       setLoading(false);
     }
-  }, [key, isOnline, isOffline, fetchOnlineData, cacheData, getCachedData, staleTime, data]);
+  }, [key, isOnline, isOffline, fetchOnlineData, cacheData, getCachedData, staleTime]);
 
   // Initial load
   useEffect(() => {
     loadData();
-  }, []);
+  }, [loadData]);
 
   // Sync when coming back online
   useEffect(() => {
     if (isOnline && !loading) {
       // Check for pending offline actions
-      offlineSync.hasPendingActions().then(hasPending => {
-        if (hasPending) {
-          console.log('[OfflineData] Syncing pending offline actions');
-          offlineSync.syncOfflineActions();
-        }
-      });
+      if (offlineSync.hasPendingActions()) {
+        console.log('[OfflineData] Syncing pending offline actions');
+        offlineSync.sync();
+      }
 
       // Refresh data if it was from cache
       if (isFromCache) {
