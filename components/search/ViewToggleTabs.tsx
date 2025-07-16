@@ -22,12 +22,18 @@ export const ViewToggleTabs = ({
   onMapViewSelected,
 }: ViewToggleTabsProps) => {
   
-  const handleViewModeChange = (mode: ViewMode) => {
+  const handleViewModeChange = React.useCallback((mode: ViewMode) => {
+    // Prevent unnecessary calls if already in the same mode
+    if (mode === viewMode) return;
+    
     onViewModeChange(mode);
     if (mode === "map" && onMapViewSelected) {
-      onMapViewSelected();
+      // Use requestAnimationFrame for smoother transition
+      requestAnimationFrame(() => {
+        onMapViewSelected();
+      });
     }
-  };
+  }, [viewMode, onViewModeChange, onMapViewSelected]);
   return (
     <View className="bg-background border-b border-border">
       <View className="flex-row">
