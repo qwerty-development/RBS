@@ -1,4 +1,4 @@
-// app/(protected)/(tabs)/search.tsx - Updated with collapsible header
+// app/(protected)/(tabs)/search.tsx - Updated with BookingQuickModal
 import React, { useState, useCallback } from "react";
 import { View } from "react-native";
 import { Region } from "react-native-maps";
@@ -10,6 +10,7 @@ import { DEFAULT_MAP_REGION } from "@/constants/searchConstants";
 import { SearchHeader } from "@/components/search/SearchHeader";
 import { ViewToggleTabs } from "@/components/search/ViewToggleTabs";
 import { SearchContent } from "@/components/search/SearchContent";
+import { BookingQuickModal } from "@/components/search/BookingQuickModal";
 import { DatePickerModal } from "@/components/search/DatePickerModal";
 import { TimePickerModal } from "@/components/search/TimePickerModal";
 import { PartySizePickerModal } from "@/components/search/PartySizePickerModal";
@@ -23,6 +24,7 @@ export default function SearchScreen() {
 
   // Modal visibility state
   const [showGeneralFilters, setShowGeneralFilters] = useState(false);
+  const [showBookingModal, setShowBookingModal] = useState(false); // New booking modal
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showPartySizePicker, setShowPartySizePicker] = useState(false);
@@ -54,31 +56,40 @@ export default function SearchScreen() {
     }
   }, [searchState.userLocation]);
 
-  // Handle scroll to determine header collapse
+  // Handle scroll to determine header collapse - optimized for performance
   const handleScroll = useCallback((event: any) => {
     // Don't handle scroll collapse if in map view (it should stay collapsed)
     if (searchState.viewMode === "map") return;
     
     const scrollY = event.nativeEvent.contentOffset.y;
-    const shouldCollapse = scrollY > 30; // More sensitive threshold for better push feeling
+    const shouldCollapse = scrollY > 20; // Even more sensitive threshold
     
+    // Only update if state actually changed to prevent unnecessary re-renders
     if (shouldCollapse !== isHeaderCollapsed) {
       setIsHeaderCollapsed(shouldCollapse);
     }
   }, [isHeaderCollapsed, searchState.viewMode]);
 
-  // Auto-collapse header when switching to map view
+  // Auto-collapse header when switching to map view - with immediate effect
   const handleMapViewSelected = useCallback(() => {
-    setIsHeaderCollapsed(true);
-  }, []);
+    // Use requestAnimationFrame for the smoothest possible transition
+    requestAnimationFrame(() => {
+      if (!isHeaderCollapsed) {
+        setIsHeaderCollapsed(true);
+      }
+    });
+  }, [isHeaderCollapsed]);
 
-  // Auto-expand header when switching back to list view
+  // Auto-expand header when switching back to list view - with immediate effect  
   const handleViewModeChange = useCallback((mode: ViewMode) => {
     actions.setViewMode(mode);
-    if (mode === "list") {
-      setIsHeaderCollapsed(false);
-    }
-  }, [actions]);
+    // Use requestAnimationFrame for smoother state updates
+    requestAnimationFrame(() => {
+      if (mode === "list" && isHeaderCollapsed) {
+        setIsHeaderCollapsed(false);
+      }
+    });
+  }, [actions, isHeaderCollapsed]);
 
   // Map region change handler
   const handleMapRegionChange = useCallback(
@@ -102,6 +113,7 @@ export default function SearchScreen() {
         onShowTimePicker={() => setShowTimePicker(true)}
         onShowPartySizePicker={() => setShowPartySizePicker(true)}
         onShowGeneralFilters={() => setShowGeneralFilters(true)}
+        onShowBookingModal={() => setShowBookingModal(true)}
       />
 
       {/* View Toggle Tabs - Always visible below header */}
@@ -133,6 +145,17 @@ export default function SearchScreen() {
       />
 
       {/* Modals */}
+      <BookingQuickModal
+        visible={showBookingModal}
+        bookingFilters={searchState.bookingFilters}
+        colorScheme={colorScheme}
+        onClose={() => setShowBookingModal(false)}
+        onApply={(filters) => {
+          actions.updateBookingFilters(filters);
+          setShowBookingModal(false);
+        }}
+      />
+
       <DatePickerModal
         visible={showDatePicker}
         bookingFilters={searchState.bookingFilters}

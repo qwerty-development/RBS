@@ -111,7 +111,7 @@ export const SearchContent = ({
     );
   }
 
-  // List view with scroll handling
+  // List view with optimized scroll handling
   return (
     <View className="flex-1">
       <FlatList
@@ -119,7 +119,7 @@ export const SearchContent = ({
         renderItem={renderRestaurantItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
-          paddingTop: 8, // Reduced top padding for better push effect
+          paddingTop: 4, // Minimal top padding for seamless feel
           paddingHorizontal: 16,
           paddingBottom: 100,
         }}
@@ -132,16 +132,21 @@ export const SearchContent = ({
           />
         }
         onScroll={onScroll} // Pass scroll event to parent
-        scrollEventThrottle={16} // Throttle scroll events for better performance
+        scrollEventThrottle={8} // Higher frequency for smoother response
         getItemLayout={(data, index) => ({
           length: 120, // Approximate height of RestaurantSearchCard
           offset: 120 * index,
           index,
         })}
         removeClippedSubviews={true}
-        initialNumToRender={10}
-        maxToRenderPerBatch={5}
-        windowSize={10}
+        initialNumToRender={8} // Reduced for better initial performance
+        maxToRenderPerBatch={3} // Smaller batches for smoother scrolling
+        windowSize={8} // Smaller window size
+        updateCellsBatchingPeriod={30} // Faster batching for smoother experience
+        maintainVisibleContentPosition={{
+          minIndexForVisible: 0,
+          autoscrollToTopThreshold: 100,
+        }}
       />
     </View>
   );

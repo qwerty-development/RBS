@@ -29,6 +29,7 @@ interface SearchHeaderProps {
   onShowTimePicker: () => void;
   onShowPartySizePicker: () => void;
   onShowGeneralFilters: () => void;
+  onShowBookingModal: () => void; // New prop for the booking bubble
 }
 
 export const SearchHeader = ({
@@ -42,45 +43,53 @@ export const SearchHeader = ({
   onShowTimePicker,
   onShowPartySizePicker,
   onShowGeneralFilters,
+  onShowBookingModal,
 }: SearchHeaderProps) => {
-  // Animation for collapsible content
+  // Separate animations for better performance
   const animatedHeight = React.useRef(new Animated.Value(1)).current;
-  const shadowOpacity = React.useRef(new Animated.Value(0)).current;
+  const animatedTransform = React.useRef(new Animated.Value(1)).current;
 
   React.useEffect(() => {
+    // Use parallel animations with native driver when possible
     Animated.parallel([
       Animated.timing(animatedHeight, {
         toValue: isCollapsed ? 0 : 1,
-        duration: 300,
-        useNativeDriver: false,
+        duration: 200, // Faster animation
+        useNativeDriver: false, // Can't use native driver for height
       }),
-      Animated.timing(shadowOpacity, {
-        toValue: isCollapsed ? 0.1 : 0,
-        duration: 300,
-        useNativeDriver: false,
+      Animated.timing(animatedTransform, {
+        toValue: isCollapsed ? 0 : 1,
+        duration: 200, // Faster animation
+        useNativeDriver: true, // Use native driver for better performance
       })
     ]).start();
   }, [isCollapsed]);
 
   return (
-    <Animated.View 
-      className="bg-background border-b border-border"
-      style={{
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: shadowOpacity,
-        shadowRadius: 4,
-        elevation: isCollapsed ? 4 : 0,
-      }}
-    >
+    <View className="bg-background border-b border-border">
       {/* Always visible: Location + Search + Filter */}
       <View className="p-4">
-        {/* Location Header */}
+        {/* Location Header with Booking Bubble */}
         <View className="flex-row items-center justify-between mb-4">
           <LocationDisplay />
-          <Text className="text-xs text-muted-foreground">
-            Tap to change location
-          </Text>
+          
+          {/* Booking Quick Access Bubble */}
+          <Pressable
+            onPress={onShowBookingModal}
+            className="bg-primary/10 border border-primary/20 rounded-full px-3 py-2 flex-row items-center gap-2"
+          >
+            <Users size={14} color={colorScheme === "dark" ? "#3b82f6" : "#2563eb"} />
+            <Text className="text-primary text-sm font-medium">
+              {bookingFilters.partySize} • {" "}
+              {bookingFilters.date.toDateString() === new Date().toDateString()
+                ? "Today"
+                : bookingFilters.date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })}
+              , {bookingFilters.time}
+            </Text>
+          </Pressable>
         </View>
 
         {/* Search Input with Filter Button */}
@@ -117,84 +126,9 @@ export const SearchHeader = ({
       </View>
 
       {/* Collapsible Content: Booking Filters */}
-      <Animated.View
-        style={{
-          height: animatedHeight.interpolate({
-            inputRange: [0, 1],
-            outputRange: [0, 100], // Reduced height since we removed availability toggle
-          }),
-          opacity: animatedHeight,
-          overflow: 'hidden',
-          transform: [{
-            translateY: animatedHeight.interpolate({
-              inputRange: [0, 1],
-              outputRange: [-30, 0], // More pronounced upward push effect
-            })
-          }, {
-            scaleY: animatedHeight.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0.8, 1], // Subtle scale effect for smooth collapse
-            })
-          }]
-        }}
-      >
-        <View className="px-4 pb-4">
-          {/* Prominent booking filters */}
-          <View className="flex-row gap-2 mb-4">
-            {/* Date */}
-            <Pressable
-              onPress={onShowDatePicker}
-              className="flex-1 bg-muted rounded-lg p-3"
-            >
-              <View className="flex-row items-center justify-between">
-                <View>
-                  <Text className="text-xs text-muted-foreground mb-1">Date</Text>
-                  <Text className="font-medium">
-                    {bookingFilters.date.toDateString() ===
-                    new Date().toDateString()
-                      ? "Today"
-                      : bookingFilters.date.toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })}
-                  </Text>
-                </View>
-                <Calendar size={16} color="#666" />
-              </View>
-            </Pressable>
 
-            {/* Time */}
-            <Pressable
-              onPress={onShowTimePicker}
-              className="flex-1 bg-muted rounded-lg p-3"
-            >
-              <View className="flex-row items-center justify-between">
-                <View>
-                  <Text className="text-xs text-muted-foreground mb-1">Time</Text>
-                  <Text className="font-medium">{bookingFilters.time}</Text>
-                </View>
-                <Clock size={16} color="#666" />
-              </View>
-            </Pressable>
-
-            {/* Party Size */}
-            <Pressable
-              onPress={onShowPartySizePicker}
-              className="bg-muted rounded-lg p-3"
-            >
-              <View className="flex-row items-center justify-between">
-                <View>
-                  <Text className="text-xs text-muted-foreground mb-1">People</Text>
-                  <Text className="font-medium">{bookingFilters.partySize}</Text>
-                </View>
-                <Users size={16} color="#666" />
-              </View>
-            </Pressable>
-          </View>
 
 
         </View>
-      </Animated.View>
-    </Animated.View>
   );
 };
