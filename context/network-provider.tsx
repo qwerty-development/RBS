@@ -30,6 +30,7 @@ export interface NetworkContextType {
   isOnline: boolean;
   isOffline: boolean;
   isLoading: boolean;
+  hasInitialized: boolean;
   
   // Actions
   refresh: () => Promise<void>;
@@ -54,6 +55,7 @@ const NetworkContext = createContext<NetworkContextType | null>(null);
 export function NetworkProvider({ children }: PropsWithChildren) {
   const [networkState, setNetworkState] = useState<NetworkState>(DEFAULT_NETWORK_STATE);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasInitialized, setHasInitialized] = useState(false);
   const listenersRef = useRef<Set<(state: NetworkState) => void>>(new Set());
   const lastUpdateRef = useRef<number>(0);
 
@@ -110,6 +112,12 @@ export function NetworkProvider({ children }: PropsWithChildren) {
 
     const newState = processNetworkState(state);
     
+    // Mark as initialized and not loading when we get the first real update
+    if (!hasInitialized) {
+      setHasInitialized(true);
+      setIsLoading(false);
+    }
+    
     setNetworkState(prevState => {
       // Only update if state actually changed
       if (
@@ -132,19 +140,21 @@ export function NetworkProvider({ children }: PropsWithChildren) {
       
       return newState;
     });
-  }, [processNetworkState]);
+  }, [processNetworkState, hasInitialized]);
 
   // Manually refresh network state
   const refresh = useCallback(async () => {
     try {
       const state = await NetInfo.fetch();
       updateNetworkState(state);
-      setIsLoading(false);
     } catch (error) {
       console.error("[NetworkProvider] Refresh error:", error);
-      setIsLoading(false);
+      // Only set loading to false if we haven't initialized yet
+      if (!hasInitialized) {
+        setIsLoading(false);
+      }
     }
-  }, [updateNetworkState]);
+  }, [updateNetworkState, hasInitialized]);
 
   // Add listener for network changes
   const addListener = useCallback((callback: (state: NetworkState) => void) => {
@@ -162,11 +172,7 @@ export function NetworkProvider({ children }: PropsWithChildren) {
     refresh();
 
     // Subscribe to network changes
-    const unsubscribe = NetInfo.addEventListener((state) => {
-      updateNetworkState(state);
-      // Set loading to false after first network event
-      setIsLoading(false);
-    });
+    const unsubscribe = NetInfo.addEventListener(updateNetworkState);
 
     return () => {
       unsubscribe();
@@ -179,6 +185,7 @@ export function NetworkProvider({ children }: PropsWithChildren) {
     isOnline: networkState.isConnected && networkState.isInternetReachable,
     isOffline: !networkState.isConnected || !networkState.isInternetReachable,
     isLoading,
+    hasInitialized,
     refresh,
     addListener,
   };
@@ -203,12 +210,13 @@ export function useNetwork() {
 
 // Convenience hook for connection status
 export function useConnectionStatus() {
-  const { networkState, isOnline, isOffline, isLoading } = useNetwork();
+  const { networkState, isOnline, isOffline, isLoading, hasInitialized } = useNetwork();
   
   return {
     isOnline,
     isOffline,
     isLoading,
+    hasInitialized,
     isConnected: networkState.isConnected,
     isInternetReachable: networkState.isInternetReachable,
     connectionType: networkState.type,

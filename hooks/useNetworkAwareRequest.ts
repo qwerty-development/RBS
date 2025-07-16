@@ -1,7 +1,6 @@
 // hooks/useNetworkRequest.ts
 import { useCallback, useState, useRef } from "react";
 import { useNetwork } from "@/context/network-provider";
-import { useOfflineSync } from "./useOfflineSync";
 
 // Types
 export interface RequestConfig {
@@ -53,11 +52,7 @@ const DEFAULT_CONFIG: Required<RequestConfig> = {
 // Hook implementation
 export function useNetworkRequest<T = any>() {
   const { isOnline, networkState } = useNetwork();
-  const { queueAction, registerSyncHandler } = useOfflineSync<{
-    url: string;
-    options?: RequestInit;
-    config: RequestConfig;
-  }>();
+
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);

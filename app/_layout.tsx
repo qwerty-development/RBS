@@ -4,7 +4,6 @@ import '../global.css';
 import { Stack } from 'expo-router';
 import { AuthProvider } from '@/context/supabase-provider';
 import { NetworkProvider } from '@/context/network-provider';
-import { OfflineSyncProvider } from '@/context/offline-sync-provider';
 import { useColorScheme } from '@/lib/useColorScheme';
 import { colors } from '@/constants/colors';
 import { LogBox, Alert, View, Text } from 'react-native';
@@ -13,22 +12,19 @@ import * as Updates from 'expo-updates';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useNetworkMonitor } from '@/hooks/useNetworkMonitor';
 import * as Sentry from '@sentry/react-native';
-import { registerSyncHandlers } from '@/services/syncHandlers';
 import React from 'react';
 
-// Register offline sync handlers
-registerSyncHandlers();
 
 // Network status bar component
 function NetworkStatusBar() {
-  const { isOnline, connectionQuality, isLoading } = useNetworkMonitor({
+  const { isOnline, connectionQuality, isLoading, hasInitialized } = useNetworkMonitor({
     showOfflineAlert: true,
     showOnlineAlert: false,
     alertDelay: 5000,
   });
 
-  // Don't show banner while loading initial network state
-  if (isLoading) {
+  // Don't show banner while loading initial network state or before initialization
+  if (isLoading || !hasInitialized) {
     return null;
   }
 
@@ -150,9 +146,9 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <NetworkProvider>
           <AuthProvider>
-            <OfflineSyncProvider>
+        
               <RootLayoutContent />
-            </OfflineSyncProvider>
+         
           </AuthProvider>
         </NetworkProvider>
       </GestureHandlerRootView>

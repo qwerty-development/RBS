@@ -1,15 +1,11 @@
-// hooks/useProfileData.ts - Updated with offline support
+
 import { useState, useCallback, useEffect } from "react";
 import { Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
-import { useNetwork } from "@/context/network-provider";
 import { useUserRating } from "@/hooks/useUserRating";
-import { offlineStorage } from "@/utils/offlineStorage";
-import { offlineSync } from "@/services/offlineSync";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const LOYALTY_TIERS = {
   bronze: {
@@ -48,30 +44,8 @@ const LOYALTY_TIERS = {
   },
 };
 
-const PROFILE_STATS_CACHE_KEY = "@profile_stats";
-const PROFILE_STATS_SYNC_KEY = "@profile_stats_sync";
-const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
-
-interface ProfileStats {
-  totalBookings: number;
-  completedBookings: number;
-  cancelledBookings: number;
-  upcomingBookings: number;
-  favoriteRestaurants: number;
-  totalReviews: number;
-  averageSpending: number;
-  mostVisitedCuisine: string;
-  mostVisitedRestaurant: any;
-  diningStreak: number;
-  memberSince: string;
-  totalFriends: number;
-  pendingFriendRequests: number;
-  recentFriendActivity: number;
-}
-
 export const useProfileData = () => {
   const { profile, user, signOut, updateProfile } = useAuth();
-  const { isOnline, isOffline } = useNetwork();
   const {
     stats: ratingStats,
     loading: ratingLoading,
@@ -79,7 +53,7 @@ export const useProfileData = () => {
     refresh: refreshRating,
   } = useUserRating();
 
-  const [stats, setStats] = useState<ProfileStats>({
+  const [stats, setStats] = useState({
     totalBookings: 0,
     completedBookings: 0,
     cancelledBookings: 0,
@@ -95,78 +69,14 @@ export const useProfileData = () => {
     pendingFriendRequests: 0,
     recentFriendActivity: 0,
   });
-  
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
-  const [isFromCache, setIsFromCache] = useState(false);
 
-  // Cache management functions
-  const getCachedStats = useCallback(async (): Promise<ProfileStats | null> => {
-    try {
-      const cachedData = await AsyncStorage.getItem(PROFILE_STATS_CACHE_KEY);
-      const syncTime = await AsyncStorage.getItem(PROFILE_STATS_SYNC_KEY);
-      
-      if (cachedData && syncTime) {
-        const parsedData = JSON.parse(cachedData);
-        const lastSync = parseInt(syncTime);
-        const isStale = Date.now() - lastSync > CACHE_DURATION;
-        
-        if (!isStale || isOffline) {
-          console.log("📱 Using cached profile stats");
-          return parsedData;
-        }
-      }
-      return null;
-    } catch (error) {
-      console.error("Error reading cached profile stats:", error);
-      return null;
-    }
-  }, [isOffline]);
-
-  const cacheStats = useCallback(async (statsData: ProfileStats): Promise<void> => {
-    try {
-      await AsyncStorage.setItem(PROFILE_STATS_CACHE_KEY, JSON.stringify(statsData));
-      await AsyncStorage.setItem(PROFILE_STATS_SYNC_KEY, Date.now().toString());
-      console.log("💾 Profile stats cached for offline use");
-    } catch (error) {
-      console.error("Error caching profile stats:", error);
-    }
-  }, []);
-
-  // Stats fetching with offline support
-  const fetchProfileStats = useCallback(async (forceOnline = false) => {
+  // Stats fetching
+  const fetchProfileStats = useCallback(async () => {
     if (!profile?.id) return;
-
     try {
-      // If offline and not forcing online, try to load from cache
-      if (isOffline && !forceOnline) {
-        console.log("📱 Loading profile stats from cache (offline)");
-        const cachedStats = await getCachedStats();
-        
-        if (cachedStats) {
-          setStats(cachedStats);
-          setIsFromCache(true);
-          return;
-        } else {
-          throw new Error("No cached profile stats available");
-        }
-      }
-
-      // Check if we can use cache first
-      if (!forceOnline) {
-        const cachedStats = await getCachedStats();
-        if (cachedStats) {
-          setStats(cachedStats);
-          setIsFromCache(true);
-          setLoading(false);
-          return;
-        }
-      }
-
-      // Online fetch
-      console.log("🌐 Fetching profile stats from server");
-      
       const [
         bookingsResult,
         favoritesResult,
@@ -192,6 +102,7 @@ export const useProfileData = () => {
           .select("*", { count: "exact", head: true })
           .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`)
           .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`),
+
         supabase
           .from("social_connections")
           .select("*", { count: "exact", head: true })
@@ -206,7 +117,6 @@ export const useProfileData = () => {
             new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
           ),
       ]);
-
       const bookings = bookingsResult.data || [];
       const totalBookings = bookings.length;
       const completedBookings = bookings.filter(
@@ -220,8 +130,6 @@ export const useProfileData = () => {
           ["pending", "confirmed"].includes(b.status) &&
           new Date(b.booking_time) > new Date(),
       ).length;
-
-      // Calculate most visited cuisine
       const cuisineCounts: Record<string, number> = {};
       bookings.forEach((booking: any) => {
         if (booking.restaurant?.cuisine_type) {
@@ -233,9 +141,8 @@ export const useProfileData = () => {
         Object.entries(cuisineCounts).sort(
           ([, a], [, b]) => (b as number) - (a as number),
         )[0]?.[0] || "Not available";
-
-      // Calculate most visited restaurant
-      const restaurantCounts: Record<string, { name: string; visits: number }> = {};
+      const restaurantCounts: Record<string, { name: string; visits: number }> =
+        {};
       bookings.forEach((booking: any) => {
         if (booking.restaurant_id) {
           if (!restaurantCounts[booking.restaurant_id]) {
@@ -257,10 +164,8 @@ export const useProfileData = () => {
             visits: mostVisitedEntry[1].visits,
           }
         : null;
-
       const streakWeeks = calculateDiningStreak(bookings);
-
-      const statsData: ProfileStats = {
+      setStats({
         totalBookings,
         completedBookings,
         cancelledBookings,
@@ -275,43 +180,20 @@ export const useProfileData = () => {
         totalFriends: friendsResult.count || 0,
         pendingFriendRequests: friendRequestsResult.count || 0,
         recentFriendActivity: recentActivityResult.count || 0,
-      };
-
-      setStats(statsData);
-      setIsFromCache(false);
-
-      // Cache for offline use
-      await cacheStats(statsData);
-
+      });
     } catch (error) {
       console.error("Error fetching profile stats:", error);
-      
-      // If error and offline, try cache as fallback
-      if (isOffline) {
-        const cachedStats = await getCachedStats();
-        if (cachedStats) {
-          setStats(cachedStats);
-          setIsFromCache(true);
-          console.log("📱 Using cached profile stats after error");
-          return;
-        }
-      }
-      
-      Alert.alert(
-        "Error", 
-        isOffline 
-          ? "Unable to load profile statistics. Please check your internet connection."
-          : "Failed to load profile statistics"
-      );
+      Alert.alert("Error", "Failed to load profile statistics");
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [profile?.id, isOffline, getCachedStats, cacheStats]);
+  }, [profile?.id]);
 
-  // Avatar upload with offline support
+  // Avatar upload
   const handleAvatarUpload = useCallback(async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permissionResult.granted) {
       Alert.alert(
         "Permission Required",
@@ -319,72 +201,42 @@ export const useProfileData = () => {
       );
       return;
     }
-
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.8,
     });
-
     if (result.canceled || !result.assets[0]) return;
-
     setUploadingAvatar(true);
     try {
       const file = result.assets[0];
-      
-      // If offline, queue the update
-      if (isOffline) {
-        Alert.alert(
-          "Offline Mode",
-          "Your profile picture will be updated when you're back online.",
-        );
-        
-        // You could store the file locally and queue the upload
-        await offlineStorage.addToOfflineQueue({
-          type: 'UPDATE_PROFILE',
-          payload: {
-            id: profile?.id,
-            avatar_url: file.uri, // Store local URI temporarily
-          },
-        });
-        
-        return;
-      }
-
-      // Online upload
       const fileExt = file.uri.split(".").pop();
       const fileName = `${profile?.id}-${Date.now()}.${fileExt}`;
       const filePath = `avatars/${fileName}`;
-
       const response = await fetch(file.uri);
       const blob = await response.blob();
-
       const { error: uploadError } = await supabase.storage
         .from("avatars")
         .upload(filePath, blob, {
           contentType: `image/${fileExt}`,
         });
-
       if (uploadError) throw uploadError;
-
       const { data: publicUrl } = supabase.storage
         .from("avatars")
         .getPublicUrl(filePath);
-
       await updateProfile({ avatar_url: publicUrl.publicUrl });
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       Alert.alert("Success", "Profile picture updated successfully!");
-
     } catch (error) {
       console.error("Error uploading avatar:", error);
       Alert.alert("Error", "Failed to upload profile picture");
     } finally {
       setUploadingAvatar(false);
     }
-  }, [profile?.id, updateProfile, isOffline]);
+  }, [profile?.id, updateProfile]);
 
-  // Dining streak calculation
+  // Dining streak
   const calculateDiningStreak = (bookings: any[]) => {
     const sortedBookings = bookings
       .filter((b: any) => b.status === "completed")
@@ -393,12 +245,9 @@ export const useProfileData = () => {
           new Date(b.booking_time).getTime() -
           new Date(a.booking_time).getTime(),
       );
-
     if (sortedBookings.length === 0) return 0;
-
     let streak = 1;
     let currentWeek = getWeekNumber(new Date(sortedBookings[0].booking_time));
-
     for (let i = 1; i < sortedBookings.length; i++) {
       const bookingWeek = getWeekNumber(
         new Date(sortedBookings[i].booking_time),
@@ -412,7 +261,6 @@ export const useProfileData = () => {
     }
     return streak;
   };
-
   const getWeekNumber = (date: Date) => {
     const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
     const pastDaysOfYear =
@@ -420,17 +268,15 @@ export const useProfileData = () => {
     return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
   };
 
-  // Tier progress calculation
+  // Tier progress
   const calculateTierProgress = () => {
     const currentPoints = profile?.loyalty_points || 0;
     const currentTier = profile?.membership_tier || "bronze";
     const tiers = ["bronze", "silver", "gold", "platinum"] as const;
     const currentIndex = tiers.indexOf(currentTier as any);
-
     if (currentIndex === tiers.length - 1) {
       return { progress: 1, pointsToNext: 0, nextTier: null };
     }
-
     const nextTier = tiers[currentIndex + 1];
     const currentMin =
       LOYALTY_TIERS[currentTier as keyof typeof LOYALTY_TIERS].minPoints;
@@ -438,11 +284,10 @@ export const useProfileData = () => {
       LOYALTY_TIERS[nextTier as keyof typeof LOYALTY_TIERS].minPoints;
     const progress = (currentPoints - currentMin) / (nextMin - currentMin);
     const pointsToNext = nextMin - currentPoints;
-
     return { progress, pointsToNext, nextTier };
   };
 
-  // Menu config with offline awareness
+  // Menu config
   const menuSections = (router: any) => [
     {
       title: "Account",
@@ -453,7 +298,6 @@ export const useProfileData = () => {
           subtitle: "Update your personal information",
           icon: "Edit3",
           onPress: () => router.push("/profile/edit"),
-          disabled: false,
         },
         {
           id: "rating-details",
@@ -463,7 +307,6 @@ export const useProfileData = () => {
             : "View your booking reliability",
           icon: "BarChart3",
           onPress: () => router.push("/profile/rating-details"),
-          disabled: isOffline,
         },
         {
           id: "friends",
@@ -474,7 +317,6 @@ export const useProfileData = () => {
           showBadge: stats.pendingFriendRequests > 0,
           badgeText: stats.pendingFriendRequests.toString(),
           badgeColor: "#dc2626",
-          disabled: isOffline,
         },
         {
           id: "preferences",
@@ -482,7 +324,6 @@ export const useProfileData = () => {
           subtitle: "Allergies, dietary restrictions",
           icon: "Utensils",
           onPress: () => router.push("/profile/preferences"),
-          disabled: false,
         },
         {
           id: "notifications",
@@ -493,7 +334,6 @@ export const useProfileData = () => {
           showBadge: true,
           badgeText: "2",
           badgeColor: "#3b82f6",
-          disabled: false,
         },
       ],
     },
@@ -510,7 +350,6 @@ export const useProfileData = () => {
               pathname: "/profile/loyalty",
               params: { points: profile?.loyalty_points || 0 },
             }),
-          disabled: isOffline,
         },
         {
           id: "offers",
@@ -518,7 +357,6 @@ export const useProfileData = () => {
           subtitle: "Exclusive deals and discounts",
           icon: "Gift",
           onPress: () => router.push("/profile/offers"),
-          disabled: isOffline,
         },
         {
           id: "reviews",
@@ -530,7 +368,6 @@ export const useProfileData = () => {
               pathname: "/profile/reviews",
               params: { id: user?.id },
             }),
-          disabled: isOffline,
         },
         {
           id: "insights",
@@ -538,7 +375,6 @@ export const useProfileData = () => {
           subtitle: "Your dining patterns and statistics",
           icon: "TrendingUp",
           onPress: () => router.push("/profile/insights"),
-          disabled: isOffline,
         },
       ],
     },
@@ -551,7 +387,6 @@ export const useProfileData = () => {
           subtitle: "FAQs and contact support",
           icon: "HelpCircle",
           onPress: () => router.push("/profile/help"),
-          disabled: false,
         },
         {
           id: "privacy",
@@ -559,7 +394,6 @@ export const useProfileData = () => {
           subtitle: "Privacy policy and data settings",
           icon: "Shield",
           onPress: () => router.push("/profile/privacy"),
-          disabled: false,
         },
       ],
     },
@@ -590,40 +424,21 @@ export const useProfileData = () => {
             ]);
           },
           destructive: true,
-          disabled: false,
         },
       ],
     },
   ];
 
-  // Initial load
   useEffect(() => {
     if (profile) {
       fetchProfileStats();
     }
-  }, [profile]);
-
-  // Refresh when coming back online
-  useEffect(() => {
-    if (isOnline && isFromCache) {
-      console.log("🔄 Back online, refreshing profile stats");
-      
-      // Sync any offline actions
-      offlineSync.syncOfflineActions().then(result => {
-        if (result.synced > 0) {
-          fetchProfileStats(true); // Force online refresh
-        }
-      });
-    }
-  }, [isOnline, isFromCache]);
+  }, [profile, fetchProfileStats]);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    Promise.all([
-      fetchProfileStats(!isOffline), // Force online if possible
-      refreshRating()
-    ]);
-  }, [fetchProfileStats, refreshRating, isOffline]);
+    Promise.all([fetchProfileStats(), refreshRating()]);
+  }, [fetchProfileStats, refreshRating]);
 
   return {
     profile,
@@ -635,9 +450,6 @@ export const useProfileData = () => {
     ratingStats,
     ratingLoading,
     currentRating,
-    isFromCache,
-    isOnline,
-    isOffline,
     handleAvatarUpload,
     handleRefresh,
     calculateTierProgress,
