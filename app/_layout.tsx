@@ -68,6 +68,7 @@ function RootLayoutContent() {
       'Unsupported Server Component type',
       'Warning: TNodeChildrenRenderer',
       'You seem to update props of the "TRenderEngineProvider" component',
+      'VirtualizedLists should never be nested inside plain ScrollViews',
     ]);
   }, []);
 
