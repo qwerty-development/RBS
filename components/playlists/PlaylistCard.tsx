@@ -96,8 +96,8 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
             </Muted>
             {playlist?.collaborator_count &&
               playlist.collaborator_count > 0 && (
-                <View className="flex-row items-center">
-                  <Users size={12} color="#6b7280" className="mr-1" />
+                <View className="flex-row items-center gap-1">
+                  <Users size={12} color="#6b7280" />
                   <Muted className="text-xs">
                     {playlist.collaborator_count}
                   </Muted>
@@ -218,8 +218,8 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
           </Muted>
 
           {playlist?.collaborator_count && playlist.collaborator_count > 0 && (
-            <View className="flex-row items-center">
-              <Users size={12} color="#6b7280" className="mr-1" />
+            <View className="flex-row items-center gap-1">
+              <Users size={12} color="#6b7280" />
               <Muted className="text-xs">+{playlist.collaborator_count}</Muted>
             </View>
           )}
