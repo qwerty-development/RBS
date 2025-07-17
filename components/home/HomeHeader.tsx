@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Image } from "@/components/image";
 import { LocationHeader } from "@/components/home/LocationHeader";
 import { useColorScheme } from "@/lib/useColorScheme";
+import { LocationDisplay } from "../search/LocationDisplay";
 
 interface HomeHeaderProps {
   /** User profile data */
@@ -127,14 +128,8 @@ export function HomeHeader({
         </View>
       </Animated.View>
 
-      <View className="-mt-12">
-        <LocationHeader
-          location={location}
-          onLocationPress={onLocationPress}
-          getGreeting={function (): string {
-            throw new Error("Function not implemented.");
-          }}
-        />
+      <View className="-mt-2 px-4 pb-3 pt-1">
+        <LocationDisplay />
       </View>
     </Animated.View>
   );

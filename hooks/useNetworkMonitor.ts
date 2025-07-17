@@ -1,143 +1,212 @@
-
 // hooks/useNetworkMonitor.ts
-import { useEffect, useRef, useCallback } from "react";
-import { Alert } from "react-native";
+import { useEffect, useRef, useCallback, useState } from "react";
+import { Alert, AppState, AppStateStatus } from "react-native";
 import { useNetwork } from "@/context/network-provider";
 
-interface NetworkMonitorOptions {
+// Types
+export interface NetworkMonitorConfig {
+  // Alert configuration
   showOfflineAlert?: boolean;
+  showOnlineAlert?: boolean;
   showSlowConnectionAlert?: boolean;
-  alertThreshold?: number; // ms - how long to wait before showing alert
-  onConnectionLost?: () => void;
-  onConnectionRestored?: () => void;
-  onSlowConnection?: () => void;
-  onConnectionImproved?: () => void;
+  alertDelay?: number; // Delay before showing alerts (ms)
+  
+  // Callbacks
+  onOffline?: () => void;
+  onOnline?: () => void;
+  onConnectionChange?: (quality: string) => void;
+  
+  // Monitoring options
+  checkAppState?: boolean; // Monitor when app comes to foreground
 }
 
-export function useNetworkMonitor(options: NetworkMonitorOptions = {}) {
-  const {
-    showOfflineAlert = true,
-    showSlowConnectionAlert = true,
-    alertThreshold = 3000,
-    onConnectionLost,
-    onConnectionRestored,
-    onSlowConnection,
-    onConnectionImproved,
-  } = options;
+// Default configuration
+const DEFAULT_CONFIG: Required<NetworkMonitorConfig> = {
+  showOfflineAlert: true,
+  showOnlineAlert: true,
+  showSlowConnectionAlert: true,
+  alertDelay: 3000,
+  onOffline: () => {},
+  onOnline: () => {},
+  onConnectionChange: () => {},
+  checkAppState: true,
+};
 
-  const { networkState, isOnline, onNetworkChange } = useNetwork();
-  const previousState = useRef({
-    isOnline: isOnline,
-    isSlowConnection: networkState.isSlowConnection,
-  });
-  const alertTimeoutRef = useRef<NodeJS.Timeout>(null);
+// Alert messages
+const ALERT_MESSAGES = {
+  offline: {
+    title: "No Internet Connection",
+    message: "You're currently offline. Some features may not be available.",
+  },
+  online: {
+    title: "Connection Restored",
+    message: "You're back online!",
+  },
+  slowConnection: {
+    title: "Slow Connection",
+    message: "Your connection is slow. Things may take longer to load.",
+  },
+};
 
-  const showAlert = useCallback((title: string, message: string) => {
-    Alert.alert(title, message, [{ text: "OK" }]);
+// Hook implementation
+export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
+  const finalConfig = { ...DEFAULT_CONFIG, ...config };
+  const { isOnline, networkState, addListener, refresh, isLoading, hasInitialized } = useNetwork();
+  
+  // Refs to track state and timers
+  const previousOnlineRef = useRef<boolean | null>(null);
+  const previousQualityRef = useRef(networkState.quality);
+  const alertTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [canShowAlerts, setCanShowAlerts] = useState(false);
+
+  // Show alert with optional delay
+  const showAlert = useCallback((
+    title: string,
+    message: string,
+    delay: number = 0
+  ) => {
+    // Clear any pending alert
+    if (alertTimerRef.current) {
+      clearTimeout(alertTimerRef.current);
+      alertTimerRef.current = null;
+    }
+
+    if (delay > 0) {
+      alertTimerRef.current = setTimeout(() => {
+        Alert.alert(title, message, [{ text: "OK" }]);
+        alertTimerRef.current = null;
+      }, delay);
+    } else {
+      Alert.alert(title, message, [{ text: "OK" }]);
+    }
   }, []);
 
-  const handleConnectionLost = useCallback(() => {
-    onConnectionLost?.();
+  // Handle offline state
+  const handleOffline = useCallback(() => {
+    finalConfig.onOffline();
     
-    if (showOfflineAlert) {
-      // Clear any pending alert
-      if (alertTimeoutRef.current) {
-        clearTimeout(alertTimeoutRef.current);
-      }
+    if (finalConfig.showOfflineAlert && canShowAlerts) {
+      showAlert(
+        ALERT_MESSAGES.offline.title,
+        ALERT_MESSAGES.offline.message,
+        finalConfig.alertDelay
+      );
+    }
+  }, [finalConfig, showAlert, canShowAlerts]);
+
+  // Handle online state
+  const handleOnline = useCallback(() => {
+    // Clear any pending offline alert
+    if (alertTimerRef.current) {
+      clearTimeout(alertTimerRef.current);
+      alertTimerRef.current = null;
+    }
+    
+    finalConfig.onOnline();
+    
+    if (finalConfig.showOnlineAlert && canShowAlerts) {
+      showAlert(
+        ALERT_MESSAGES.online.title,
+        ALERT_MESSAGES.online.message,
+        0 // Show immediately
+      );
+    }
+  }, [finalConfig, showAlert, canShowAlerts]);
+
+  // Handle connection quality change
+  const handleQualityChange = useCallback((quality: string) => {
+    finalConfig.onConnectionChange(quality);
+    
+    if (
+      finalConfig.showSlowConnectionAlert &&
+      canShowAlerts &&
+      (quality === "poor" || quality === "fair") &&
+      (previousQualityRef.current === "good" || previousQualityRef.current === "excellent")
+    ) {
+      showAlert(
+        ALERT_MESSAGES.slowConnection.title,
+        ALERT_MESSAGES.slowConnection.message,
+        0
+      );
+    }
+  }, [finalConfig, showAlert, canShowAlerts]);
+
+  // Enable alerts after initialization with delay
+  useEffect(() => {
+    if (hasInitialized && !isLoading) {
+      // Wait a bit longer to ensure network state is stable
+      const timer = setTimeout(() => {
+        setCanShowAlerts(true);
+        // Set the initial previous state after enabling alerts
+        previousOnlineRef.current = isOnline;
+      }, 2000); // 2 second delay after initialization
       
-      // Show alert after threshold
-      alertTimeoutRef.current = setTimeout(() => {
-        showAlert(
-          "Connection Lost",
-          "You're currently offline. Some features may not work until connection is restored."
-        );
-      }, alertThreshold);
+      return () => clearTimeout(timer);
     }
-  }, [onConnectionLost, showOfflineAlert, alertThreshold, showAlert]);
-
-  const handleConnectionRestored = useCallback(() => {
-    // Clear pending offline alert
-    if (alertTimeoutRef.current) {
-      clearTimeout(alertTimeoutRef.current);
-    }
-    
-    onConnectionRestored?.();
-    
-    if (showOfflineAlert) {
-      showAlert(
-        "Connection Restored",
-        "You're back online! All features are now available."
-      );
-    }
-  }, [onConnectionRestored, showOfflineAlert, showAlert]);
-
-  const handleSlowConnection = useCallback(() => {
-    onSlowConnection?.();
-    
-    if (showSlowConnectionAlert) {
-      showAlert(
-        "Slow Connection",
-        "Your connection appears to be slow. Some features may take longer to load."
-      );
-    }
-  }, [onSlowConnection, showSlowConnectionAlert, showAlert]);
-
-  const handleConnectionImproved = useCallback(() => {
-    onConnectionImproved?.();
-  }, [onConnectionImproved]);
+  }, [hasInitialized, isLoading, isOnline]);
 
   // Monitor network changes
   useEffect(() => {
-    const cleanup = onNetworkChange((state) => {
-      const currentOnline = state.isConnected === true && state.isInternetReachable === true;
-      const currentSlow = state.isSlowConnection;
+    const cleanup = addListener((state) => {
+      const currentlyOnline = state.isConnected && state.isInternetReachable;
       
-      // Connection state changes
-      if (previousState.current.isOnline !== currentOnline) {
-        if (currentOnline) {
-          handleConnectionRestored();
-        } else {
-          handleConnectionLost();
+      // Only process changes if we can show alerts and have a previous state
+      if (canShowAlerts && previousOnlineRef.current !== null) {
+        // Check for online/offline change
+        if (previousOnlineRef.current !== currentlyOnline) {
+          if (currentlyOnline) {
+            handleOnline();
+          } else {
+            handleOffline();
+          }
+        }
+        
+        // Check for quality change
+        if (previousQualityRef.current !== state.quality) {
+          handleQualityChange(state.quality);
         }
       }
       
-      // Connection quality changes
-      if (previousState.current.isSlowConnection !== currentSlow) {
-        if (currentSlow && currentOnline) {
-          handleSlowConnection();
-        } else if (!currentSlow && currentOnline) {
-          handleConnectionImproved();
-        }
-      }
-      
-      previousState.current = {
-        isOnline: currentOnline,
-        isSlowConnection: currentSlow,
-      };
+      // Update refs
+      previousOnlineRef.current = currentlyOnline;
+      previousQualityRef.current = state.quality;
     });
 
     return cleanup;
-  }, [
-    onNetworkChange,
-    handleConnectionLost,
-    handleConnectionRestored,
-    handleSlowConnection,
-    handleConnectionImproved,
-  ]);
+  }, [addListener, handleOnline, handleOffline, handleQualityChange, canShowAlerts]);
 
-  // Cleanup on unmount
+  // Monitor app state changes
+  useEffect(() => {
+    if (!finalConfig.checkAppState) return;
+
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === "active") {
+        // Refresh network state when app comes to foreground
+        refresh();
+      }
+    };
+
+    const subscription = AppState.addEventListener("change", handleAppStateChange);
+
+    return () => {
+      subscription.remove();
+    };
+  }, [finalConfig.checkAppState, refresh]);
+
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
-      if (alertTimeoutRef.current) {
-        clearTimeout(alertTimeoutRef.current);
+      if (alertTimerRef.current) {
+        clearTimeout(alertTimerRef.current);
       }
     };
   }, []);
 
   return {
     isOnline,
-    isSlowConnection: networkState.isSlowConnection,
-    connectionQuality: networkState.connectionQuality,
-    networkType: networkState.type,
+    isLoading,
+    hasInitialized,
+    networkState,
+    connectionQuality: networkState.quality,
   };
 }

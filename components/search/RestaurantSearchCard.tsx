@@ -123,7 +123,7 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
       disabled={disabled}
       className={cn(
         "bg-card rounded-lg shadow-sm border border-border overflow-hidden",
-        variant === "compact" ? "mb-2" : "mb-4",
+        variant === "compact" ? "mb-2" : "mb-3",
         disabled && "opacity-60",
         className,
       )}
@@ -131,7 +131,7 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
       <View className="relative">
         <Image
           source={{ uri: restaurant?.main_image_url || "" }}
-          className={cn("w-full", variant === "compact" ? "h-32" : "h-48")}
+          className={cn("w-full", variant === "compact" ? "h-40" : "h-60")}
           contentFit="cover"
         />
 
@@ -152,7 +152,7 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
 
         {/* Booking policy badge */}
         {restaurant.booking_policy && (
-          <View className="absolute bottom-3 left-3">
+          <View className="absolute top-3 right-3">
             <View
               className={`px-2 py-1 rounded-full ${
                 restaurant.booking_policy === "instant"
@@ -162,7 +162,7 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
             >
               <Text className="text-xs text-white font-medium">
                 {restaurant.booking_policy === "instant"
-                  ? "Instant Book"
+                  ? "Instant"
                   : "Request"}
               </Text>
             </View>
@@ -170,9 +170,10 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
         )}
       </View>
 
-      <View className={cn("p-4", variant === "compact" && "p-3")}>
-        <View className="flex-row items-start justify-between mb-2">
+      <View className={cn("p-3", variant === "compact" && "p-2")}>
+        <View className="flex-row items-start justify-between mb-1">
           <View className="flex-1 mr-3">
+            
             <Text
               className={cn(
                 "font-semibold mb-1",
@@ -180,44 +181,56 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
               )}
               numberOfLines={1}
             >
-              {restaurant.name}
+              {restaurant.name} 
             </Text>
-            <Text className="text-sm text-muted-foreground mb-1">
-              {restaurant.address}
-            </Text>
-            <Text className="text-muted-foreground mb-2">
+                        <Text className="text-muted-foreground text-sm mb-1">
               {restaurant.cuisine_type}
             </Text>
 
-            <View className="flex-row items-center gap-4 mb-2">
+            <Text className="text-xs text-muted-foreground mb-2">
+              {restaurant.address}
+            </Text>
+
+            {/* Compact row with rating, price, and distance with dot dividers */}
+            <View className="flex-row items-center flex-wrap">
+              {/* Rating */}
               {(restaurant.average_rating || 0) > 0 && (
-                <View className="flex-row items-center gap-1">
-                  <Star size={14} color="#f59e0b" fill="#f59e0b" />
-                  <Text className="text-sm font-medium">
-                    {restaurant.average_rating?.toFixed(1)}
-                  </Text>
-                  <Text className="text-xs text-muted-foreground">
-                    ({restaurant.total_reviews || 0})
-                  </Text>
-                </View>
+                <>
+                  <View className="flex-row items-center">
+                    <Star size={12} color="#f59e0b" fill="#f59e0b" />
+                    <Text className="text-xs font-medium ml-1">
+                      {restaurant.average_rating?.toFixed(1)}
+                    </Text>
+                    <Text className="text-xs text-muted-foreground ml-1">
+                      ({restaurant.total_reviews || 0})
+                    </Text>
+                  </View>
+                  
+                  {/* Dot divider */}
+                  <Text className="text-muted-foreground mx-2 text-xs">•</Text>
+                </>
               )}
 
-              <View className="flex-row items-center gap-1">
-                <DollarSign size={14} color="#666" />
-                <Text className="text-sm">
+              {/* Price */}
+              <View className="flex-row items-center">
+                <DollarSign size={12} color="#666" />
+                <Text className="text-xs ml-1">
                   {"$".repeat(restaurant.price_range)}
                 </Text>
               </View>
 
-              {/* Updated distance display using LocationService */}
+              {/* Distance with dot divider */}
               {restaurant.distance !== undefined &&
                 restaurant.distance !== null && (
-                  <View className="flex-row items-center gap-1">
-                    <MapPin size={14} color="#666" />
-                    <Text className="text-sm text-muted-foreground">
-                      {LocationService.formatDistance(restaurant.distance)}
-                    </Text>
-                  </View>
+                  <>
+                    <Text className="text-muted-foreground mx-2 text-xs">•</Text>
+                    <View className="flex-row items-center">
+                      <MapPin size={12} color="#666" />
+                      <Text className="text-xs text-muted-foreground ml-1">
+                        {LocationService.formatDistance(restaurant.distance)}
+                      </Text>
+                    </View>
+                  </>
                 )}
             </View>
 
@@ -226,7 +239,7 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
               typeof restaurant.isAvailable === "boolean" &&
               props.bookingFilters && (
                 <View
-                  className={`px-2 py-1 rounded-full self-start mb-2 ${
+                  className={`px-2 py-1 rounded-full self-start mt-2 ${
                     restaurant.isAvailable
                       ? "bg-green-100 dark:bg-green-900/20"
                       : "bg-red-100 dark:bg-red-900/20"
@@ -245,56 +258,9 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
                   </Text>
                 </View>
               )}
-
-            {restaurant.tags && restaurant.tags.length > 0 && (
-              <View className="flex-row flex-wrap gap-1">
-                {restaurant.tags.slice(0, 3).map((tag) => (
-                  <View key={tag} className="bg-muted px-2 py-0.5 rounded-full">
-                    <Text className="text-xs">{tag}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
           </View>
         </View>
 
-        {/* Bottom section with opening hours and actions */}
-        {variant !== "compact" && (
-          <View className="border-t border-border pt-2">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-1">
-                <Clock size={14} color="#666" />
-                <Text className="text-xs text-muted-foreground">
-                  {restaurant.opening_time} - {restaurant.closing_time}
-                </Text>
-              </View>
-
-              <View className="flex-row items-center gap-2">
-                <Text
-                  className={`text-xs font-medium ${
-                    restaurant.booking_policy === "instant"
-                      ? "text-green-600"
-                      : "text-orange-600"
-                  }`}
-                >
-                  {restaurant.booking_policy === "instant"
-                    ? "Instant Book"
-                    : "Request to Book"}
-                </Text>
-
-                {isSearchScreen && showActions && (
-                  <Pressable
-                    onPress={handleDirectionsPress}
-                    className="p-1"
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Navigation size={16} color="#3b82f6" />
-                  </Pressable>
-                )}
-              </View>
-            </View>
-          </View>
-        )}
       </View>
     </Pressable>
   );

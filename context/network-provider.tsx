@@ -9,348 +9,218 @@ import React, {
   PropsWithChildren,
 } from "react";
 import NetInfo, { NetInfoState, NetInfoStateType } from "@react-native-community/netinfo";
-import { Platform } from "react-native";
 
 // Types
-type ConnectionQuality = "poor" | "fair" | "good" | "excellent";
+export type ConnectionQuality = "poor" | "fair" | "good" | "excellent" | "unknown";
 
-type NetworkState = {
-  isConnected: boolean | null;
-  isInternetReachable: boolean | null;
+export interface NetworkState {
+  isConnected: boolean;
+  isInternetReachable: boolean;
   type: NetInfoStateType;
-  connectionQuality: ConnectionQuality;
-  isSlowConnection: boolean;
-  effectiveType: string | null;
+  quality: ConnectionQuality;
   details: {
-    strength?: number;
-    ssid?: string;
-    bssid?: string;
-    frequency?: number;
-    ipAddress?: string;
-    subnet?: string;
     cellularGeneration?: string;
-    carrier?: string;
-  } | null;
-};
+    isConnectionExpensive?: boolean;
+  };
+}
 
-type NetworkContextType = {
+export interface NetworkContextType {
+  // State
   networkState: NetworkState;
   isOnline: boolean;
   isOffline: boolean;
+  isLoading: boolean;
+  hasInitialized: boolean;
+  
+  // Actions
   refresh: () => Promise<void>;
-  getConnectionInfo: () => NetworkState;
-  // Connection speed testing
-  testConnectionSpeed: () => Promise<{
-    downloadSpeed: number; // Mbps
-    latency: number; // ms
-    quality: ConnectionQuality;
-  }>;
-  // Network change handlers
-  onNetworkChange: (callback: (state: NetworkState) => void) => () => void;
+  
+  // Listeners
+  addListener: (callback: (state: NetworkState) => void) => () => void;
+}
+
+// Default state - changed to null values to indicate uninitialized
+const DEFAULT_NETWORK_STATE: NetworkState = {
+  isConnected: false,
+  isInternetReachable: false,
+  type: NetInfoStateType.unknown,
+  quality: "unknown",
+  details: {},
 };
 
+// Context
 const NetworkContext = createContext<NetworkContextType | null>(null);
 
-// Connection quality thresholds
-const QUALITY_THRESHOLDS = {
-  excellent: { minSpeed: 10, maxLatency: 50 },
-  good: { minSpeed: 5, maxLatency: 100 },
-  fair: { minSpeed: 1, maxLatency: 200 },
-  poor: { minSpeed: 0, maxLatency: Infinity },
-};
-
-// Speed test configuration
-const SPEED_TEST_CONFIG = {
-  testUrl: "https://httpbin.org/bytes/10240", // 10KB test file for better accuracy
-  timeout: 10000,
-  retries: 2,
-};
-
+// Provider component
 export function NetworkProvider({ children }: PropsWithChildren) {
-  const [networkState, setNetworkState] = useState<NetworkState>({
-    isConnected: null,
-    isInternetReachable: null,
-    type: NetInfoStateType.unknown,
-    connectionQuality: "fair",
-    isSlowConnection: false,
-    effectiveType: null,
-    details: null,
-  });
-
-  // Use ref for listeners to avoid re-renders
+  const [networkState, setNetworkState] = useState<NetworkState>(DEFAULT_NETWORK_STATE);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasInitialized, setHasInitialized] = useState(false);
   const listenersRef = useRef<Set<(state: NetworkState) => void>>(new Set());
-  const speedTestRef = useRef<Promise<any> | null>(null);
+  const lastUpdateRef = useRef<number>(0);
+  const initializationRef = useRef<boolean>(false);
 
-  // Determine connection quality based on type and details
-  const getConnectionQuality = useCallback(
-    (state: NetInfoState): ConnectionQuality => {
-      if (!state.isConnected || !state.isInternetReachable) {
-        return "poor";
-      }
-
-      switch (state.type) {
-        case NetInfoStateType.wifi:
-          if (state.details && 'strength' in state.details && typeof state.details.strength === 'number') {
-            const strength = state.details.strength;
-            if (strength >= -50) return "excellent";
-            if (strength >= -60) return "good";
-            if (strength >= -70) return "fair";
-            return "poor";
-          }
-          return "good"; // Default for WiFi when strength unknown
-
-        case NetInfoStateType.cellular:
-          if (state.details && 'cellularGeneration' in state.details && state.details.cellularGeneration) {
-            switch (state.details.cellularGeneration) {
-              case "5g":
-                return "excellent";
-              case "4g":
-                return "good";
-              case "3g":
-                return "fair";
-              default:
-                return "poor";
-            }
-          }
-          return "fair"; // Default for cellular
-
-        case NetInfoStateType.ethernet:
-          return "excellent";
-
-        case NetInfoStateType.bluetooth:
-          return "poor";
-
-        default:
-          return "fair";
-      }
-    },
-    []
-  );
-
-  // Check if connection is considered slow
-  const isSlowConnection = useCallback((quality: ConnectionQuality): boolean => {
-    return quality === "poor" || quality === "fair";
-  }, []);
-
-  // Update network state from NetInfo
-  const updateNetworkState = useCallback(
-    (state: NetInfoState | null) => {
-      if (!state) {
-        setNetworkState({
-          isConnected: false,
-          isInternetReachable: false,
-          type: NetInfoStateType.unknown,
-          connectionQuality: "poor",
-          isSlowConnection: true,
-          effectiveType: null,
-          details: null,
-        });
-        return;
-      }
-      
-      const quality = getConnectionQuality(state);
-      
-      // Helper function to safely extract details based on connection type
-      const getConnectionDetails = (): NetworkState['details'] => {
-        if (!state.details) return null;
-
-        const baseDetails: NetworkState['details'] = {
-          ipAddress: state.details.ipAddress || undefined,
-          subnet: state.details.subnet || undefined,
-        };
-
-        // Type-specific details
-        switch (state.type) {
-          case NetInfoStateType.wifi:
-            if ('ssid' in state.details) {
-              return {
-                ...baseDetails,
-                ssid: state.details.ssid || undefined,
-                bssid: state.details.bssid || undefined,
-                frequency: state.details.frequency || undefined,
-                strength: typeof state.details.strength === 'number' ? state.details.strength : undefined,
-              };
-            }
-            break;
-            
-          case NetInfoStateType.cellular:
-            if ('cellularGeneration' in state.details) {
-              return {
-                ...baseDetails,
-                cellularGeneration: state.details.cellularGeneration || undefined,
-                carrier: state.details.carrier || undefined,
-              };
-            }
-            break;
-            
-          default:
-            return baseDetails;
-        }
-        
-        return baseDetails;
-      };
-
-      // Get effectiveType equivalent from cellular generation
-      const getEffectiveType = (): string | null => {
-        if (state.type === NetInfoStateType.cellular && 
-            state.details && 
-            'cellularGeneration' in state.details) {
-          return state.details.cellularGeneration || null;
-        }
-        return null;
-      };
-
-      const newNetworkState: NetworkState = {
-        isConnected: state.isConnected,
-        isInternetReachable: state.isInternetReachable,
-        type: state.type,
-        connectionQuality: quality,
-        isSlowConnection: isSlowConnection(quality),
-        effectiveType: getEffectiveType(),
-        details: getConnectionDetails(),
-      };
-
-      setNetworkState(newNetworkState);
-
-      // Notify listeners
-      listenersRef.current.forEach((callback) => callback(newNetworkState));
-    },
-    [getConnectionQuality, isSlowConnection]
-  );
-
-  // Test connection speed
-  const testConnectionSpeed = useCallback(async () => {
-    // Prevent multiple concurrent speed tests
-    if (speedTestRef.current) {
-      return speedTestRef.current;
+  // Determine connection quality based on network type
+  const getConnectionQuality = useCallback((state: NetInfoState): ConnectionQuality => {
+    if (!state.isConnected || !state.isInternetReachable) {
+      return "poor";
     }
 
-    const performSpeedTest = async (): Promise<{
-      downloadSpeed: number;
-      latency: number;
-      quality: ConnectionQuality;
-    }> => {
-      try {
-        const startTime = Date.now();
-        const latencyStart = performance.now();
-
-        const response = await fetch(SPEED_TEST_CONFIG.testUrl, {
-          method: "GET",
-          cache: "no-cache",
-          headers: {
-            "Cache-Control": "no-cache",
-            "Pragma": "no-cache",
-          },
-        });
-
-        const latency = performance.now() - latencyStart;
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const blob = await response.blob();
-        const endTime = Date.now();
-        
-        const duration = (endTime - startTime) / 1000; // seconds
-        const sizeInBits = blob.size * 8; // bits
-        const speedBps = sizeInBits / duration; // bits per second
-        const speedMbps = speedBps / (1024 * 1024); // Mbps
-
-        // Determine quality based on speed and latency
-        let quality: ConnectionQuality = "poor";
-        
-        for (const [qualityLevel, thresholds] of Object.entries(QUALITY_THRESHOLDS)) {
-          if (speedMbps >= thresholds.minSpeed && latency <= thresholds.maxLatency) {
-            quality = qualityLevel as ConnectionQuality;
-            break;
-          }
-        }
-
-        return {
-          downloadSpeed: Math.round(speedMbps * 100) / 100,
-          latency: Math.round(latency),
-          quality,
-        };
-      } catch (error) {
-        console.warn("[NetworkProvider] Speed test failed:", error);
-        return {
-          downloadSpeed: 0,
-          latency: 999,
-          quality: "poor" as ConnectionQuality,
-        };
-      }
-    };
-
-    speedTestRef.current = performSpeedTest();
-    const result = await speedTestRef.current;
-    speedTestRef.current = null;
-
-    return result;
+    switch (state.type) {
+      case NetInfoStateType.wifi:
+      case NetInfoStateType.ethernet:
+        return "excellent";
+      
+      case NetInfoStateType.cellular:
+        const generation = state.details?.cellularGeneration;
+        if (generation === "5g") return "excellent";
+        if (generation === "4g") return "good";
+        if (generation === "3g") return "fair";
+        return "poor";
+      
+      case NetInfoStateType.bluetooth:
+        return "poor";
+      
+      default:
+        return "unknown";
+    }
   }, []);
 
-  // Refresh network state
+  // Process NetInfo state into our format
+  const processNetworkState = useCallback((state: NetInfoState): NetworkState => {
+    const quality = getConnectionQuality(state);
+    
+    return {
+      isConnected: state.isConnected ?? false,
+      isInternetReachable: state.isInternetReachable ?? false,
+      type: state.type,
+      quality,
+      details: {
+        cellularGeneration: state.details?.cellularGeneration,
+        isConnectionExpensive: state.details?.isConnectionExpensive,
+      },
+    };
+  }, [getConnectionQuality]);
+
+  // Update network state and notify listeners
+  const updateNetworkState = useCallback((state: NetInfoState) => {
+    const newState = processNetworkState(state);
+    
+    // Mark as initialized on first real update
+    if (!initializationRef.current) {
+      initializationRef.current = true;
+      setHasInitialized(true);
+      setIsLoading(false);
+    }
+    
+    setNetworkState(prevState => {
+      // Only update if state actually changed (but always update on first initialization)
+      if (
+        initializationRef.current &&
+        prevState.isConnected === newState.isConnected &&
+        prevState.isInternetReachable === newState.isInternetReachable &&
+        prevState.type === newState.type &&
+        prevState.quality === newState.quality
+      ) {
+        return prevState;
+      }
+      
+      // Notify listeners (only after initialization)
+      if (initializationRef.current) {
+        listenersRef.current.forEach(listener => {
+          try {
+            listener(newState);
+          } catch (error) {
+            console.error("[NetworkProvider] Listener error:", error);
+          }
+        });
+      }
+      
+      return newState;
+    });
+  }, [processNetworkState]);
+
+  // Manually refresh network state
   const refresh = useCallback(async () => {
     try {
       const state = await NetInfo.fetch();
       updateNetworkState(state);
     } catch (error) {
-      console.error("[NetworkProvider] Failed to refresh network state:", error);
+      console.error("[NetworkProvider] Refresh error:", error);
+      // Only set loading to false if we haven't initialized yet
+      if (!initializationRef.current) {
+        setIsLoading(false);
+        setHasInitialized(true);
+      }
     }
   }, [updateNetworkState]);
 
-  // Get current connection info
-  const getConnectionInfo = useCallback(() => networkState, [networkState]);
+  // Add listener for network changes
+  const addListener = useCallback((callback: (state: NetworkState) => void) => {
+    listenersRef.current.add(callback);
+    
+    // Return cleanup function
+    return () => {
+      listenersRef.current.delete(callback);
+    };
+  }, []);
 
-  // Network change event handler
-  const onNetworkChange = useCallback(
-    (callback: (state: NetworkState) => void) => {
-      listenersRef.current.add(callback);
-
-      // Return cleanup function
-      return () => {
-        listenersRef.current.delete(callback);
-      };
-    },
-    []
-  );
-
-  // Initialize NetInfo listener
+  // Initialize network monitoring
   useEffect(() => {
-    // Initial fetch
-    NetInfo.fetch().then(updateNetworkState);
+    let mounted = true;
+
+    // Initial fetch with immediate execution
+    const initializeNetwork = async () => {
+      try {
+        const state = await NetInfo.fetch();
+        if (mounted) {
+          updateNetworkState(state);
+        }
+      } catch (error) {
+        console.error("[NetworkProvider] Initial fetch error:", error);
+        if (mounted) {
+          setIsLoading(false);
+          setHasInitialized(true);
+        }
+      }
+    };
+
+    // Execute immediately
+    initializeNetwork();
 
     // Subscribe to network changes
-    const unsubscribe = NetInfo.addEventListener(updateNetworkState);
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      if (mounted) {
+        updateNetworkState(state);
+      }
+    });
 
     return () => {
+      mounted = false;
       unsubscribe();
     };
   }, [updateNetworkState]);
 
-  // Computed values
-  const isOnline = networkState.isConnected === true && networkState.isInternetReachable === true;
-  const isOffline = !isOnline;
-
-  const contextValue: NetworkContextType = {
+  // Context value
+  const value: NetworkContextType = {
     networkState,
-    isOnline,
-    isOffline,
+    isOnline: networkState.isConnected && networkState.isInternetReachable,
+    isOffline: !networkState.isConnected || !networkState.isInternetReachable,
+    isLoading,
+    hasInitialized,
     refresh,
-    getConnectionInfo,
-    testConnectionSpeed,
-    onNetworkChange,
+    addListener,
   };
 
   return (
-    <NetworkContext.Provider value={contextValue}>
+    <NetworkContext.Provider value={value}>
       {children}
     </NetworkContext.Provider>
   );
 }
 
 // Hook to use network context
-export function useNetwork(): NetworkContextType {
+export function useNetwork() {
   const context = useContext(NetworkContext);
   
   if (!context) {
@@ -360,20 +230,18 @@ export function useNetwork(): NetworkContextType {
   return context;
 }
 
-// Convenience hooks
-export function useNetworkState(): NetworkState {
-  const { networkState } = useNetwork();
-  return networkState;
-}
-
+// Convenience hook for connection status
 export function useConnectionStatus() {
-  const { isOnline, isOffline, networkState } = useNetwork();
+  const { networkState, isOnline, isOffline, isLoading, hasInitialized } = useNetwork();
+  
   return {
     isOnline,
     isOffline,
+    isLoading,
+    hasInitialized,
     isConnected: networkState.isConnected,
     isInternetReachable: networkState.isInternetReachable,
-    isSlowConnection: networkState.isSlowConnection,
-    connectionQuality: networkState.connectionQuality,
+    connectionType: networkState.type,
+    connectionQuality: networkState.quality,
   };
 }

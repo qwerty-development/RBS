@@ -1,13 +1,19 @@
 const { withNativeWind } = require("nativewind/metro");
 const { getSentryExpoConfig } = require("@sentry/react-native/metro");
+const path = require("path");
 
 const config = getSentryExpoConfig(__dirname);
 
-// Supabase resolver workaround
+// Enhanced Supabase resolver workaround
 config.resolver = {
   ...config.resolver,
   unstable_conditionNames: ["browser"],
   unstable_enablePackageExports: false,
+  alias: {
+    ...config.resolver?.alias,
+    // Add crypto polyfill if needed
+    crypto: require.resolve("expo-crypto"),
+  },
 };
 
 // Apply NativeWind

@@ -1,7 +1,7 @@
 // components/search/GeneralFiltersModal.tsx
 import React, { useState, useEffect, useCallback } from "react";
 import { View, Modal, Pressable, ScrollView } from "react-native";
-import { X, Star } from "lucide-react-native";
+import { X, Star, Check } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { H3 } from "@/components/ui/typography";
@@ -128,25 +128,35 @@ export const GeneralFiltersModal = React.memo(
         presentationStyle="formSheet"
         onRequestClose={onClose}
       >
-        <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-          <View className="flex-row items-center justify-between p-4 border-b border-border">
-            <H3>More Filters</H3>
-            <Pressable onPress={onClose}>
-              <X size={24} />
-            </Pressable>
+        <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={["top"]}>
+          {/* Header */}
+          <View className="bg-white dark:bg-gray-800 px-6 py-4 shadow-sm">
+            <View className="flex-row items-center justify-between">
+              <H3 className="text-gray-900 dark:text-white">Filters</H3>
+              <Pressable 
+                onPress={onClose}
+                className="p-2 -mr-2 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
+              >
+                <X size={24} className="text-gray-600 dark:text-gray-300" />
+              </Pressable>
+            </View>
           </View>
 
-          <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-            {/* Sort By */}
-            <View className="p-4 border-b border-border">
-              <Text className="font-semibold mb-3">Sort By</Text>
-              <View className="gap-3">
+          <ScrollView 
+            className="flex-1 px-4" 
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingVertical: 16 }}
+          >
+            {/* Sort By Section */}
+            <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 shadow-sm">
+              <Text className="font-semibold text-lg text-gray-900 dark:text-white mb-4">Sort By</Text>
+              <View className="space-y-3">
                 {[
-                  { value: "recommended", label: "Recommended" },
-                  { value: "availability", label: "Best Availability" },
-                  { value: "rating", label: "Highest Rated" },
-                  { value: "distance", label: "Nearest First" },
-                  { value: "name", label: "A-Z" },
+                  { value: "recommended", label: "Recommended", desc: "Best overall matches" },
+                  { value: "availability", label: "Best Availability", desc: "Most open time slots" },
+                  { value: "rating", label: "Highest Rated", desc: "Top customer reviews" },
+                  { value: "distance", label: "Nearest First", desc: "Closest to your location" },
+                  { value: "name", label: "A-Z", desc: "Alphabetical order" },
                 ].map((option) => (
                   <Pressable
                     key={option.value}
@@ -156,53 +166,130 @@ export const GeneralFiltersModal = React.memo(
                         sortBy: option.value as any,
                       }))
                     }
-                    className="flex-row items-center gap-3"
+                    className={`p-3 rounded-lg border-2 ${
+                      tempFilters.sortBy === option.value
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-200 dark:border-gray-600"
+                    }`}
                   >
-                    <View
-                      className={`w-5 h-5 rounded-full border-2 items-center justify-center ${
-                        tempFilters.sortBy === option.value
-                          ? "border-primary bg-primary"
-                          : "border-border"
-                      }`}
-                    >
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-1">
+                        <Text className={`font-medium ${
+                          tempFilters.sortBy === option.value
+                            ? "text-primary"
+                            : "text-gray-900 dark:text-white"
+                        }`}>
+                          {option.label}
+                        </Text>
+                        <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          {option.desc}
+                        </Text>
+                      </View>
                       {tempFilters.sortBy === option.value && (
-                        <View className="w-2 h-2 rounded-full bg-white" />
+                        <Check size={20} className="text-primary" />
                       )}
                     </View>
-                    <Text>{option.label}</Text>
                   </Pressable>
                 ))}
               </View>
             </View>
 
-            {/* Distance Filter */}
-            <DistanceFilter
-              selectedDistance={tempFilters.maxDistance}
-              onDistanceChange={(distance) =>
-                setTempFilters((prev) => ({ ...prev, maxDistance: distance }))
-              }
-            />
+            {/* Distance & Location */}
+            <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 shadow-sm">
+              <DistanceFilter
+                selectedDistance={tempFilters.maxDistance}
+                onDistanceChange={(distance) =>
+                  setTempFilters((prev) => ({ ...prev, maxDistance: distance }))
+                }
+              />
+            </View>
 
-            {/* Cuisines */}
-            <View className="p-4 border-b border-border">
-              <Text className="font-semibold mb-3">Cuisine Types</Text>
+            {/* Price & Rating Row */}
+            <View className="flex-row gap-4 mb-4">
+              {/* Price Range */}
+              <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm">
+                <Text className="font-semibold text-gray-900 dark:text-white mb-3">Price</Text>
+                <View className="flex-row gap-2">
+                  {[1, 2, 3, 4].map((price) => (
+                    <Pressable
+                      key={price}
+                      onPress={() => togglePriceRange(price)}
+                      className={`flex-1 items-center py-3 rounded-lg ${
+                        tempFilters.priceRange.includes(price)
+                          ? "bg-primary"
+                          : "bg-gray-100 dark:bg-gray-700"
+                      }`}
+                    >
+                      <Text
+                        className={`font-bold text-sm ${
+                          tempFilters.priceRange.includes(price)
+                            ? "text-white"
+                            : "text-gray-700 dark:text-gray-300"
+                        }`}
+                      >
+                        {"$".repeat(price)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+
+              {/* Minimum Rating */}
+              <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm">
+                <Text className="font-semibold text-gray-900 dark:text-white mb-3">Rating</Text>
+                <View className="flex-row gap-2">
+                  {[0, 3, 4, 4.5].map((rating) => (
+                    <Pressable
+                      key={rating}
+                      onPress={() =>
+                        setTempFilters((prev) => ({ ...prev, minRating: rating }))
+                      }
+                      className={`flex-1 items-center py-3 rounded-lg ${
+                        tempFilters.minRating === rating
+                          ? "bg-primary"
+                          : "bg-gray-100 dark:bg-gray-700"
+                      }`}
+                    >
+                      <View className="items-center">
+                        {rating > 0 && (
+                          <Star size={12} color="#f59e0b" fill="#f59e0b" />
+                        )}
+                        <Text
+                          className={`text-xs font-medium mt-1 ${
+                            tempFilters.minRating === rating
+                              ? "text-white"
+                              : "text-gray-700 dark:text-gray-300"
+                          }`}
+                        >
+                          {rating === 0 ? "Any" : `${rating}+`}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            </View>
+
+            {/* Cuisine Types */}
+            <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 shadow-sm">
+              <Text className="font-semibold text-lg text-gray-900 dark:text-white mb-4">Cuisine Types</Text>
               <View className="flex-row flex-wrap gap-2">
                 {CUISINE_TYPES.map((cuisine) => (
                   <Pressable
                     key={cuisine}
                     onPress={() => toggleCuisine(cuisine)}
-                    className={`px-3 py-2 rounded-full border ${
+                    className={`px-4 py-2 rounded-full ${
                       tempFilters.cuisines.includes(cuisine)
-                        ? "bg-primary border-primary"
-                        : "bg-background border-border"
+                        ? "bg-primary"
+                        : "bg-gray-100 dark:bg-gray-700"
                     }`}
                   >
                     <Text
-                      className={
+                      className={`text-sm font-medium ${
                         tempFilters.cuisines.includes(cuisine)
-                          ? "text-primary-foreground"
-                          : ""
-                      }
+                          ? "text-white"
+                          : "text-gray-700 dark:text-gray-300"
+                      }`}
                     >
                       {cuisine}
                     </Text>
@@ -211,69 +298,51 @@ export const GeneralFiltersModal = React.memo(
               </View>
             </View>
 
-            {/* Price Range */}
-            <View className="p-4 border-b border-border">
-              <Text className="font-semibold mb-3">Price Range</Text>
-              <View className="flex-row gap-3">
-                {[1, 2, 3, 4].map((price) => (
+            {/* Features & Amenities */}
+            <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 shadow-sm">
+              <Text className="font-semibold text-lg text-gray-900 dark:text-white mb-4">Features & Amenities</Text>
+              <View className="grid grid-cols-2 gap-3">
+                {FEATURES.map((feature) => (
                   <Pressable
-                    key={price}
-                    onPress={() => togglePriceRange(price)}
-                    className={`flex-1 items-center py-3 rounded-lg border ${
-                      tempFilters.priceRange.includes(price)
-                        ? "bg-primary border-primary"
-                        : "bg-background border-border"
+                    key={feature.id}
+                    onPress={() => toggleFeature(feature.id)}
+                    className={`p-3 rounded-lg border-2 flex-row items-center ${
+                      tempFilters.features.includes(feature.id)
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-200 dark:border-gray-600"
                     }`}
                   >
-                    <Text
-                      className={`font-bold ${
-                        tempFilters.priceRange.includes(price)
-                          ? "text-primary-foreground"
-                          : ""
+                    <View
+                      className={`w-5 h-5 rounded border-2 items-center justify-center mr-3 ${
+                        tempFilters.features.includes(feature.id)
+                          ? "border-primary bg-primary"
+                          : "border-gray-300 dark:border-gray-500"
                       }`}
                     >
-                      {"$".repeat(price)}
+                      {tempFilters.features.includes(feature.id) && (
+                        <Check size={12} className="text-white" />
+                      )}
+                    </View>
+                    <Text className={`flex-1 text-sm font-medium ${
+                      tempFilters.features.includes(feature.id)
+                        ? "text-primary"
+                        : "text-gray-700 dark:text-gray-300"
+                    }`}>
+                      {feature.label}
                     </Text>
                   </Pressable>
                 ))}
               </View>
             </View>
 
-            {/* Features & Amenities */}
-            <View className="p-4 border-b border-border">
-              <Text className="font-semibold mb-3">Features & Amenities</Text>
-              <View className="gap-3">
-                {FEATURES.map((feature) => (
-                  <Pressable
-                    key={feature.id}
-                    onPress={() => toggleFeature(feature.id)}
-                    className="flex-row items-center gap-3"
-                  >
-                    <View
-                      className={`w-5 h-5 rounded border-2 items-center justify-center ${
-                        tempFilters.features.includes(feature.id)
-                          ? "border-primary bg-primary"
-                          : "border-border"
-                      }`}
-                    >
-                      {tempFilters.features.includes(feature.id) && (
-                        <Text className="text-white text-xs">✓</Text>
-                      )}
-                    </View>
-                    <Text>{feature.label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-
             {/* Booking Policy */}
-            <View className="p-4 border-b border-border">
-              <Text className="font-semibold mb-3">Booking Type</Text>
-              <View className="gap-3">
+            <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-6 shadow-sm">
+              <Text className="font-semibold text-lg text-gray-900 dark:text-white mb-4">Booking Type</Text>
+              <View className="space-y-3">
                 {[
-                  { value: "all", label: "All restaurants" },
-                  { value: "instant", label: "Instant booking only" },
-                  { value: "request", label: "Request booking only" },
+                  { value: "all", label: "All restaurants", desc: "Show all booking options" },
+                  { value: "instant", label: "Instant booking only", desc: "Book immediately without waiting" },
+                  { value: "request", label: "Request booking only", desc: "Requires restaurant confirmation" },
                 ].map((option) => (
                   <Pressable
                     key={option.value}
@@ -283,54 +352,28 @@ export const GeneralFiltersModal = React.memo(
                         bookingPolicy: option.value as any,
                       }))
                     }
-                    className="flex-row items-center gap-3"
-                  >
-                    <View
-                      className={`w-5 h-5 rounded-full border-2 items-center justify-center ${
-                        tempFilters.bookingPolicy === option.value
-                          ? "border-primary bg-primary"
-                          : "border-border"
-                      }`}
-                    >
-                      {tempFilters.bookingPolicy === option.value && (
-                        <View className="w-2 h-2 rounded-full bg-white" />
-                      )}
-                    </View>
-                    <Text>{option.label}</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </View>
-
-            {/* Minimum Rating */}
-            <View className="p-4">
-              <Text className="font-semibold mb-3">Minimum Rating</Text>
-              <View className="flex-row gap-2">
-                {[0, 3, 4, 4.5].map((rating) => (
-                  <Pressable
-                    key={rating}
-                    onPress={() =>
-                      setTempFilters((prev) => ({ ...prev, minRating: rating }))
-                    }
-                    className={`px-3 py-2 rounded-lg border ${
-                      tempFilters.minRating === rating
-                        ? "bg-primary border-primary"
-                        : "bg-background border-border"
+                    className={`p-3 rounded-lg border-2 ${
+                      tempFilters.bookingPolicy === option.value
+                        ? "border-primary bg-primary/5"
+                        : "border-gray-200 dark:border-gray-600"
                     }`}
                   >
-                    <View className="flex-row items-center gap-1">
-                      {rating > 0 && (
-                        <Star size={14} color="#f59e0b" fill="#f59e0b" />
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-1">
+                        <Text className={`font-medium ${
+                          tempFilters.bookingPolicy === option.value
+                            ? "text-primary"
+                            : "text-gray-900 dark:text-white"
+                        }`}>
+                          {option.label}
+                        </Text>
+                        <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          {option.desc}
+                        </Text>
+                      </View>
+                      {tempFilters.bookingPolicy === option.value && (
+                        <Check size={20} className="text-primary" />
                       )}
-                      <Text
-                        className={`text-sm ${
-                          tempFilters.minRating === rating
-                            ? "text-primary-foreground"
-                            : ""
-                        }`}
-                      >
-                        {rating === 0 ? "Any" : `${rating}+`}
-                      </Text>
                     </View>
                   </Pressable>
                 ))}
@@ -338,22 +381,22 @@ export const GeneralFiltersModal = React.memo(
             </View>
           </ScrollView>
 
-          {/* Bottom buttons */}
-          <View className="p-4 border-t border-border">
+          {/* Bottom Action Buttons */}
+          <View className="bg-white dark:bg-gray-800 px-4 py-4 border-t border-gray-200 dark:border-gray-600">
             <View className="flex-row gap-3">
               <Button
                 variant="outline"
-                className="flex-1"
+                className="flex-1 border-2 border-gray-300 dark:border-gray-600"
                 onPress={clearAllFilters}
               >
-                <Text>Clear All</Text>
+                <Text className="font-semibold text-gray-700 dark:text-gray-300">Clear All</Text>
               </Button>
               <Button
                 variant="default"
-                className="flex-1"
+                className="flex-1 bg-primary"
                 onPress={applyFilters}
               >
-                <Text>Apply Filters</Text>
+                <Text className="font-semibold text-white">Apply Filters</Text>
               </Button>
             </View>
           </View>
