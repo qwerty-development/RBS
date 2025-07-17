@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
 import { PageHeader } from "@/components/ui/page-header";
 import { useColorScheme } from "@/lib/useColorScheme";
-import { useAuth } from "@/context/supabase-provider"; // Import useAuth for guest check
+import { useAuth } from "@/context/supabase-provider";
 import { useFavorites } from "@/hooks/useFavorites";
 import { usePlaylists } from "@/hooks/usePlaylists";
 import { useFavoritesFilters } from "@/hooks/useFavoritesFilters";
@@ -42,7 +42,7 @@ import { CreatePlaylistModal } from "@/components/playlists/CreatePlaylistModal"
 import FavoritesScreenSkeleton from "@/components/skeletons/FavoritesScreenSkeleton";
 import { OptimizedList } from "@/components/ui/optimized-list";
 
-// Error boundary component for playlists (Unchanged)
+// Error boundary component for playlists
 class PlaylistErrorBoundary extends React.Component<
   { children: React.ReactNode; fallback: React.ReactNode },
   { hasError: boolean }
@@ -51,12 +51,15 @@ class PlaylistErrorBoundary extends React.Component<
     super(props);
     this.state = { hasError: false };
   }
+  
   static getDerivedStateFromError(error: any) {
     return { hasError: true };
   }
+  
   componentDidCatch(error: any, errorInfo: any) {
     console.error("Playlist Error:", error, errorInfo);
   }
+  
   render() {
     if (this.state.hasError) {
       return this.props.fallback;
@@ -68,10 +71,9 @@ class PlaylistErrorBoundary extends React.Component<
 export default function FavoritesScreen() {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
-  const { isGuest, convertGuestToUser } = useAuth(); // Get guest state
+  const { isGuest, convertGuestToUser } = useAuth();
 
   // --- Guest View ---
-  // If the user is a guest, show a call-to-action screen.
   if (isGuest) {
     return (
       <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
@@ -117,11 +119,8 @@ export default function FavoritesScreen() {
   }
 
   // --- Authenticated User View ---
-  // The rest of the component logic only runs for authenticated users.
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
-  const [activeTab, setActiveTab] = useState<"favorites" | "playlists">(
-    "favorites",
-  );
+  const [activeTab, setActiveTab] = useState<"favorites" | "playlists">("favorites");
   const [playlistError, setPlaylistError] = useState(false);
   const [invitationError, setInvitationError] = useState(false);
 
@@ -151,15 +150,18 @@ export default function FavoritesScreen() {
         refreshing: false,
         createPlaylist: async () => null,
         handleRefresh: () => {},
+        removePlaylistFromState: () => {},
       };
     }
   })();
+
   const {
     playlists = [],
     loading: playlistsLoading = false,
     refreshing: playlistsRefreshing = false,
     createPlaylist,
     handleRefresh: handlePlaylistsRefresh,
+    removePlaylistFromState,
   } = playlistsHook;
 
   // Invitations hook with error handling
@@ -193,44 +195,75 @@ export default function FavoritesScreen() {
   // Navigation functions
   const navigateToRestaurant = useCallback(
     (restaurantId: string) => {
-      router.push({
-        pathname: "/restaurant/[id]",
-        params: { id: restaurantId },
-      });
+      try {
+        router.push({
+          pathname: "/restaurant/[id]",
+          params: { id: restaurantId },
+        });
+      } catch (error) {
+        console.error('Navigation error:', error);
+      }
     },
     [router],
   );
 
   const navigateToPlaylist = useCallback(
     (playlistId: string) => {
-      router.push({ pathname: "/playlist/[id]", params: { id: playlistId } });
+      try {
+        router.push({ 
+          pathname: "/playlist/[id]", 
+          params: { id: playlistId } 
+        });
+      } catch (error) {
+        console.error('Navigation error:', error);
+      }
     },
     [router],
   );
 
   const navigateToInsights = useCallback(() => {
-    router.push("/profile/insights");
+    try {
+      router.push("/profile/insights");
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   }, [router]);
 
   const navigateToSearch = useCallback(() => {
-    router.push("/search");
+    try {
+      router.push("/search");
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   }, [router]);
 
   const navigateToJoinPlaylist = useCallback(() => {
-    router.push("/playlist/join");
+    try {
+      router.push("/playlist/join");
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   }, [router]);
 
   const navigateToInvitations = useCallback(() => {
-    router.push("/playlist/invitations");
+    try {
+      router.push("/playlist/invitations");
+    } catch (error) {
+      console.error('Navigation error:', error);
+    }
   }, [router]);
 
   // Refresh handler
   const handleRefresh = useCallback(() => {
-    if (activeTab === "favorites") {
-      resetBannerOnRefresh();
-      originalHandleRefresh();
-    } else {
-      handlePlaylistsRefresh?.();
+    try {
+      if (activeTab === "favorites") {
+        resetBannerOnRefresh();
+        originalHandleRefresh();
+      } else {
+        handlePlaylistsRefresh?.();
+      }
+    } catch (error) {
+      console.error('Refresh error:', error);
     }
   }, [
     activeTab,
@@ -242,73 +275,123 @@ export default function FavoritesScreen() {
   // Handle playlist creation
   const handleCreatePlaylist = useCallback(
     async (data: { name: string; description: string; emoji: string }) => {
-      if (!createPlaylist) return;
-      const newPlaylist = await createPlaylist(
-        data.name,
-        data.description,
-        data.emoji,
-      );
-      if (newPlaylist) {
+      try {
+        if (!createPlaylist) {
+          console.error('createPlaylist function not available');
+          return;
+        }
+        
+        const newPlaylist = await createPlaylist(
+          data.name,
+          data.description,
+          data.emoji,
+        );
+        if (newPlaylist) {
+          setShowCreatePlaylist(false);
+          navigateToPlaylist(newPlaylist.id);
+        }
+      } catch (error) {
+        console.error('Create playlist error:', error);
         setShowCreatePlaylist(false);
-        navigateToPlaylist(newPlaylist.id);
       }
     },
     [createPlaylist, navigateToPlaylist],
   );
 
   const handleTabSwitch = useCallback((tab: "favorites" | "playlists") => {
-    setActiveTab(tab);
+    try {
+      setActiveTab(tab);
+    } catch (error) {
+      console.error('Tab switch error:', error);
+    }
   }, []);
 
   useEffect(() => {
-    if (activeTab === "favorites") {
-      fetchFavorites();
+    try {
+      if (activeTab === "favorites") {
+        fetchFavorites();
+      }
+    } catch (error) {
+      console.error('Fetch favorites error:', error);
     }
   }, [activeTab, fetchFavorites]);
 
   // Render functions
   const renderGridRow = useCallback(
-    ({ item }: any) => (
-      <FavoritesGridRow
-        item={item}
-        onPress={navigateToRestaurant}
-        onLongPress={removeFavorite}
-        removingId={removingId}
-        fadeAnim={fadeAnim}
-        scaleAnim={scaleAnim}
-      />
-    ),
+    ({ item }: any) => {
+      try {
+        return (
+          <FavoritesGridRow
+            item={item}
+            onPress={navigateToRestaurant}
+            onLongPress={removeFavorite}
+            removingId={removingId}
+            fadeAnim={fadeAnim}
+            scaleAnim={scaleAnim}
+          />
+        );
+      } catch (error) {
+        console.error('Render grid row error:', error);
+        return null;
+      }
+    },
     [navigateToRestaurant, removeFavorite, removingId, fadeAnim, scaleAnim],
   );
 
   const renderSectionHeader = useCallback(
-    ({ section }: any) => <SectionHeader title={section.title} />,
+    ({ section }: any) => {
+      try {
+        return <SectionHeader title={section.title} />;
+      } catch (error) {
+        console.error('Render section header error:', error);
+        return null;
+      }
+    },
     [],
   );
 
   const renderPlaylistItem = useCallback(
     ({ item }: { item: any }) => {
-      if (!item || !item.id) return null;
-      return (
-        <PlaylistErrorBoundary
-          fallback={
-            <View className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg m-2">
-              <Text className="text-center text-gray-500">
-                Unable to load playlist
-              </Text>
-            </View>
-          }
-        >
-          <PlaylistCard
-            playlist={item}
-            onPress={() => navigateToPlaylist(item.id)}
-            onDelete={() => handleRefresh()}
-            variant="list"
-          />
-        </PlaylistErrorBoundary>
-      );
+      try {
+        if (!item || !item.id) {
+          return null;
+        }
+
+        // Optimistic delete handler
+        const handleDelete = (playlistId: string) => {
+          removePlaylistFromState(playlistId); // Optimistically remove from UI
+        };
+
+        return (
+          <PlaylistErrorBoundary
+            fallback={
+              <View className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg m-2">
+                <Text className="text-center text-gray-500">
+                  Unable to load playlist
+                </Text>
+              </View>
+            }
+          >
+            <PlaylistCard
+              playlist={item}
+              onPress={() => navigateToPlaylist(item.id)}
+              onDelete={handleDelete}
+              variant="list"
+            />
+          </PlaylistErrorBoundary>
+        );
+      } catch (error) {
+        console.error("Render playlist item error:", error);
+        return (
+          <View className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg m-2">
+            <Text className="text-center text-gray-500">
+              Unable to load playlist
+            </Text>
+          </View>
+        );
+      }
     },
-    [navigateToPlaylist, handleRefresh],
+    [navigateToPlaylist, removePlaylistFromState],
   );
 
   const PlaylistHeaderActions = useCallback(
@@ -355,10 +438,8 @@ export default function FavoritesScreen() {
     ],
   );
 
-  const loading =
-    activeTab === "favorites" ? favoritesLoading : playlistsLoading;
-  const refreshing =
-    activeTab === "favorites" ? favoritesRefreshing : playlistsRefreshing;
+  const loading = activeTab === "favorites" ? favoritesLoading : playlistsLoading;
+  const refreshing = activeTab === "favorites" ? favoritesRefreshing : playlistsRefreshing;
 
   // Loading state
   if (

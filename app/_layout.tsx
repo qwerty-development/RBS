@@ -87,6 +87,7 @@ function RootLayoutContent() {
       'Unsupported Server Component type',
       'Warning: TNodeChildrenRenderer',
       'You seem to update props of the "TRenderEngineProvider" component',
+      'Text strings must be rendered within a <Text> component'
     ]);
   }, []);
 

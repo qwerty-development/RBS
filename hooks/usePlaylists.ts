@@ -238,6 +238,14 @@ export const usePlaylists = () => {
     fetchPlaylists();
   }, [fetchPlaylists]);
 
+  // ONLY ADD THIS ONE FUNCTION to your existing usePlaylists hook:
+
+  const removePlaylistFromState = useCallback((playlistId: string) => {
+    setPlaylists(prev => prev.filter(p => p.id !== playlistId));
+  }, []);
+
+  // ... keep all your existing functions (fetchPlaylists, createPlaylist, etc.) ...
+
   return {
     playlists,
     loading,
@@ -246,5 +254,6 @@ export const usePlaylists = () => {
     createPlaylist,
     updatePlaylist,
     handleRefresh,
-  };
-};
+    removePlaylistFromState, // ADD this to your return statement
+  }
+}

@@ -6,6 +6,7 @@ import {
   Alert,
   Platform,
   TouchableOpacity,
+  KeyboardAvoidingView,
 } from "react-native";
 import * as z from "zod";
 import { useState, useEffect } from "react";
@@ -69,6 +70,8 @@ export default function SignIn() {
       setIsEmailLoading(true);
       console.log("🔄 Starting sign-in process...");
       await signIn(data.email, data.password);
+      // Redirect to the protected home/tabs stack after successful sign-in
+      router.replace("/(protected)/(tabs)");
       console.log("✅ Sign-in successful");
       form.reset();
     } catch (error: any) {
@@ -117,6 +120,9 @@ export default function SignIn() {
       } else if (needsProfileUpdate) {
         // Navigate to profile completion if needed
         console.log("Profile needs updating after Apple sign in");
+      } else {
+        // Successful Apple sign-in, navigate to protected home
+        router.replace("/(protected)/(tabs)");
       }
     } catch (err: any) {
       console.error("Apple sign in error:", err);
@@ -145,6 +151,9 @@ export default function SignIn() {
       } else if (needsProfileUpdate) {
         // Navigate to profile completion if needed
         console.log("Profile needs updating after Google sign in");
+      } else {
+        // Successful Google sign-in, navigate to protected home
+        router.replace("/(protected)/(tabs)");
       }
     } catch (err: any) {
       console.error("Google sign in error:", err);
@@ -159,148 +168,154 @@ export default function SignIn() {
 
   return (
     <SafeAreaView className="flex-1 bg-background p-4" edges={["bottom"]}>
-      <View className="flex-1 gap-4 web:m-4">
-        <View>
-          <H1 className="self-start">Welcome Back</H1>
-          <P className="text-muted-foreground mt-2">
-            Sign in to discover and book amazing restaurants
-          </P>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20} // adjust as needed
+      >
+        <View className="flex-1 gap-4 web:m-4">
+          <View>
+            <H1 className="self-start">Welcome Back</H1>
+            <P className="text-muted-foreground mt-2">
+              Sign in to discover and book amazing restaurants
+            </P>
+          </View>
+
+          <Form {...form}>
+            <View className="gap-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormInput
+                    label="Email"
+                    placeholder="Enter your email"
+                    autoCapitalize="none"
+                    autoComplete="email"
+                    autoCorrect={false}
+                    keyboardType="email-address"
+                    {...field}
+                  />
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormInput
+                    label="Password"
+                    placeholder="Enter your password"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    secureTextEntry
+                    {...field}
+                  />
+                )}
+              />
+              <TouchableOpacity
+                onPress={() => router.push("/password-reset")}
+                className="mt-2 self-end"
+              >
+                <Text className="text-primary font-medium">Forgot Password?</Text>
+              </TouchableOpacity>
+            </View>
+          </Form>
         </View>
 
-        <Form {...form}>
-          <View className="gap-4">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormInput
-                  label="Email"
-                  placeholder="Enter your email"
-                  autoCapitalize="none"
-                  autoComplete="email"
-                  autoCorrect={false}
-                  keyboardType="email-address"
-                  {...field}
-                />
+        <View className="gap-4 web:m-4">
+          <Button
+            size="default"
+            variant="default"
+            onPress={form.handleSubmit(onSubmit)}
+            disabled={isEmailLoading || isAppleLoading || isGoogleLoading}
+          >
+            {isEmailLoading ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <Text>Sign In</Text>
+            )}
+          </Button>
+
+          {/* Social Sign In Section */}
+          <View className="items-center">
+            <View className="flex-row items-center w-full mb-4">
+              <View className="flex-1 h-px bg-border/30" />
+              <Text className="mx-4 text-sm text-muted-foreground">
+                or continue with
+              </Text>
+              <View className="flex-1 h-px bg-border/30" />
+            </View>
+
+            <View className="flex-row gap-3 w-full">
+              {/* Apple Sign In Button */}
+              {Platform.OS === "ios" && appleAuthAvailable && (
+                <TouchableOpacity
+                  onPress={handleAppleSignIn}
+                  disabled={isAppleLoading || isEmailLoading || isGoogleLoading}
+                  className="flex-1"
+                >
+                  <View className="bg-foreground rounded-md h-12 items-center justify-center flex-row gap-2">
+                    {isAppleLoading ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={isDark ? "#000" : "#fff"}
+                      />
+                    ) : (
+                      <>
+                        <Ionicons
+                          name="logo-apple"
+                          size={20}
+                          color={isDark ? "#000" : "#fff"}
+                        />
+                        <Text
+                          className={
+                            isDark
+                              ? "text-black font-medium"
+                              : "text-white font-medium"
+                          }
+                        >
+                          Apple
+                        </Text>
+                      </>
+                    )}
+                  </View>
+                </TouchableOpacity>
               )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormInput
-                  label="Password"
-                  placeholder="Enter your password"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  secureTextEntry
-                  {...field}
-                />
-              )}
-            />
-            <TouchableOpacity
-              onPress={() => router.push("/password-reset")}
-              className="mt-2 self-end"
-            >
-              <Text className="text-primary font-medium">Forgot Password?</Text>
-            </TouchableOpacity>
-          </View>
-        </Form>
-      </View>
 
-      <View className="gap-4 web:m-4">
-        <Button
-          size="default"
-          variant="default"
-          onPress={form.handleSubmit(onSubmit)}
-          disabled={isEmailLoading || isAppleLoading || isGoogleLoading}
-        >
-          {isEmailLoading ? (
-            <ActivityIndicator size="small" color="white" />
-          ) : (
-            <Text>Sign In</Text>
-          )}
-        </Button>
-
-        {/* Social Sign In Section */}
-        <View className="items-center">
-          <View className="flex-row items-center w-full mb-4">
-            <View className="flex-1 h-px bg-border/30" />
-            <Text className="mx-4 text-sm text-muted-foreground">
-              or continue with
-            </Text>
-            <View className="flex-1 h-px bg-border/30" />
-          </View>
-
-          <View className="flex-row gap-3 w-full">
-            {/* Apple Sign In Button */}
-            {Platform.OS === "ios" && appleAuthAvailable && (
+              {/* Google Sign In Button */}
               <TouchableOpacity
-                onPress={handleAppleSignIn}
-                disabled={isAppleLoading || isEmailLoading || isGoogleLoading}
+                onPress={handleGoogleSignIn}
+                disabled={isGoogleLoading || isEmailLoading || isAppleLoading}
                 className="flex-1"
               >
-                <View className="bg-foreground rounded-md h-12 items-center justify-center flex-row gap-2">
-                  {isAppleLoading ? (
+                <View className="bg-background border border-border rounded-md h-12 items-center justify-center flex-row gap-2">
+                  {isGoogleLoading ? (
                     <ActivityIndicator
                       size="small"
-                      color={isDark ? "#000" : "#fff"}
+                      color={isDark ? "#fff" : "#000"}
                     />
                   ) : (
                     <>
-                      <Ionicons
-                        name="logo-apple"
-                        size={20}
-                        color={isDark ? "#000" : "#fff"}
-                      />
-                      <Text
-                        className={
-                          isDark
-                            ? "text-black font-medium"
-                            : "text-white font-medium"
-                        }
-                      >
-                        Apple
-                      </Text>
+                      <Ionicons name="logo-google" size={20} color="#EA4335" />
+                      <Text className="text-foreground font-medium">Google</Text>
                     </>
                   )}
                 </View>
               </TouchableOpacity>
-            )}
+            </View>
+          </View>
 
-            {/* Google Sign In Button */}
-            <TouchableOpacity
-              onPress={handleGoogleSignIn}
-              disabled={isGoogleLoading || isEmailLoading || isAppleLoading}
-              className="flex-1"
+          <View className="flex-row items-center gap-2 justify-center mt-2">
+            <Text className="text-muted-foreground">Don't have an account?</Text>
+            <Text
+              className="text-primary font-medium"
+              onPress={() => router.push("/sign-up")}
             >
-              <View className="bg-background border border-border rounded-md h-12 items-center justify-center flex-row gap-2">
-                {isGoogleLoading ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={isDark ? "#fff" : "#000"}
-                  />
-                ) : (
-                  <>
-                    <Ionicons name="logo-google" size={20} color="#EA4335" />
-                    <Text className="text-foreground font-medium">Google</Text>
-                  </>
-                )}
-              </View>
-            </TouchableOpacity>
+              Sign Up
+            </Text>
           </View>
         </View>
-
-        <View className="flex-row items-center gap-2 justify-center mt-2">
-          <Text className="text-muted-foreground">Don't have an account?</Text>
-          <Text
-            className="text-primary font-medium"
-            onPress={() => router.push("/sign-up")}
-          >
-            Sign Up
-          </Text>
-        </View>
-      </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
