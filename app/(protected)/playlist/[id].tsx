@@ -32,7 +32,7 @@ import * as Haptics from "expo-haptics";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { H2, H3, Muted } from "@/components/ui/typography";
+import { H1, H2, H3, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 
 import { useColorScheme } from "@/lib/useColorScheme";
@@ -60,7 +60,7 @@ export default function PlaylistDetailScreen() {
 
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [userPermission, setUserPermission] = useState<"view" | "edit" | null>(
-    null,
+    null
   );
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -98,7 +98,7 @@ export default function PlaylistDetailScreen() {
             full_name,
             avatar_url
           )
-        `,
+        `
         )
         .eq("id", id)
         .single();
@@ -149,7 +149,7 @@ export default function PlaylistDetailScreen() {
         params: { id: restaurantId },
       });
     },
-    [router],
+    [router]
   );
 
   const handleAddRestaurants = useCallback(() => {
@@ -170,7 +170,7 @@ export default function PlaylistDetailScreen() {
         fetchPlaylistDetails();
       }
     },
-    [playlist, updatePlaylist, fetchPlaylistDetails],
+    [playlist, updatePlaylist, fetchPlaylistDetails]
   );
 
   const handleDeletePlaylist = useCallback(async () => {
@@ -188,7 +188,7 @@ export default function PlaylistDetailScreen() {
             await deletePlaylist(playlist.id, playlist.name);
           },
         },
-      ],
+      ]
     );
   }, [playlist, deletePlaylist, router]);
 
@@ -196,7 +196,7 @@ export default function PlaylistDetailScreen() {
     if (!playlist) return;
 
     const { success, shareCode } = await togglePublicAccess(
-      !playlist.is_public,
+      !playlist.is_public
     );
     if (success) {
       fetchPlaylistDetails();
@@ -222,7 +222,7 @@ export default function PlaylistDetailScreen() {
             text: "Make Public",
             onPress: handleTogglePublic,
           },
-        ],
+        ]
       );
       return;
     }
@@ -259,7 +259,7 @@ export default function PlaylistDetailScreen() {
         </ScaleDecorator>
       );
     },
-    [handleRestaurantPress, userPermission],
+    [handleRestaurantPress, userPermission]
   );
 
   // Loading state
@@ -292,80 +292,90 @@ export default function PlaylistDetailScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
-      <View className="bg-white dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-        <View className="flex-row items-center">
-          <Pressable onPress={handleBack} className="p-2 -ml-2">
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
+        <View className="flex-row items-center gap-3">
+          <Pressable
+            onPress={handleBack}
+            className="w-10 h-10 items-center justify-center rounded-full bg-muted"
+          >
             <ArrowLeft
-              size={24}
+              size={20}
               color={colorScheme === "dark" ? "#fff" : "#000"}
             />
           </Pressable>
-
-          <Text className="text-3xl mx-3">{playlist.emoji}</Text>
-
           <View className="flex-1">
-            <H3 numberOfLines={1}>{playlist.name}</H3>
-            {playlist.description && (
-              <Muted className="text-sm" numberOfLines={1}>
-                {playlist.description}
-              </Muted>
-            )}
+            <View className="flex-row items-center gap-2">
+              <Text className="text-3xl">{playlist.emoji}</Text>
+              <H1 className="text-lg flex-1" numberOfLines={1}>
+                {playlist.name}
+              </H1>
+            </View>
+            <Muted>{items.length} restaurants</Muted>
           </View>
-
-          {isOwner && (
-            <Pressable onPress={() => setShowEditModal(true)} className="p-2">
-              <Settings
-                size={22}
-                color={colorScheme === "dark" ? "#fff" : "#000"}
-              />
-            </Pressable>
-          )}
+                  {isOwner && (
+          <Pressable
+            onPress={() => setShowEditModal(true)}
+            className="w-10 h-10 items-center justify-center rounded-full bg-muted"
+          >
+            <Settings
+              size={20}
+              color={colorScheme === "dark" ? "#fff" : "#000"}
+            />
+          </Pressable>
+        )}
         </View>
 
-        {/* Stats and Permission Indicator */}
-        <View className="flex-row items-center mt-3 gap-4">
-          <View className="flex-row items-center">
+
+      </View>
+
+      {/* Stats Bar */}
+      <View className="flex-row items-center justify-between px-4 py-3 bg-muted/30">
+        <View className="flex-row items-center gap-4">
+          <View className="flex-row items-center gap-1">
             {playlist.is_public ? (
-              <Globe size={14} color="#6b7280" className="mr-1" />
+              <Globe size={16} color="#6b7280" />
             ) : (
-              <Lock size={14} color="#6b7280" className="mr-1" />
+              <Lock size={16} color="#6b7280" />
             )}
-            <Muted className="text-sm">
+            <Text className="text-sm font-medium">
               {playlist.is_public ? "Public" : "Private"}
-            </Muted>
+            </Text>
           </View>
 
-          {/* User Permission Indicator */}
           {!isOwner && userPermission && (
-            <View className="flex-row items-center">
+            <View className="flex-row items-center gap-1">
               {userPermission === "edit" ? (
-                <Edit3 size={14} color="#10b981" className="mr-1" />
+                <Edit3 size={16} color="#10b981" />
               ) : (
-                <Lock size={14} color="#6b7280" className="mr-1" />
+                <Lock size={16} color="#6b7280" />
               )}
-              <Muted className="text-sm">
+              <Text className="text-sm font-medium">
                 {userPermission === "edit" ? "Can edit" : "View only"}
-              </Muted>
+              </Text>
             </View>
-          )}
-
-          {playlist.share_code && (
-            <Pressable
-              onPress={() => copyShareLink(playlist.share_code!)}
-              className="flex-row items-center"
-            >
-              <Copy size={14} color="#6b7280" className="mr-1" />
-              <Muted className="text-sm">{playlist.share_code}</Muted>
-            </Pressable>
           )}
 
           {collaborators.length > 0 && (
-            <View className="flex-row items-center">
-              <Users size={14} color="#6b7280" className="mr-1" />
-              <Muted className="text-sm">+{collaborators.length}</Muted>
+            <View className="flex-row items-center gap-1">
+              <Users size={16} color="#6b7280" />
+              <Text className="text-sm font-medium">
+                +{collaborators.length}
+              </Text>
             </View>
           )}
         </View>
+
+        {playlist.share_code && (
+          <Pressable
+            onPress={() => copyShareLink(playlist.share_code!)}
+            className="flex-row items-center gap-1"
+          >
+            <Copy size={16} color="#6b7280" />
+            <Text className="text-sm text-muted-foreground">
+              {playlist.share_code}
+            </Text>
+          </Pressable>
+        )}
       </View>
 
       {/* Actions Bar */}

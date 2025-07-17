@@ -1,13 +1,23 @@
+// app/(protected)/(tabs)/_layout.tsx
 import React from "react";
-import { Tabs } from "expo-router";
-import { Home, Search, Users, Calendar, Heart } from "lucide-react-native";
+import { Tabs, usePathname } from "expo-router";
+import { Home, Search, Users, Calendar, Heart, User } from "lucide-react-native";
+import { View } from "react-native";
 
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
 import { homeScrollRef } from "@/app/(protected)/(tabs)/index";
+import { useAuth } from "@/context/supabase-provider";
 
 export default function TabsLayout() {
   const { colorScheme } = useColorScheme();
+  const { isGuest } = useAuth();
+  const pathname = usePathname();
+
+  // Guest indicator badge component
+  const GuestBadge = () => (
+    <View className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full" />
+  );
 
   return (
     <Tabs
@@ -72,8 +82,11 @@ export default function TabsLayout() {
         name="social"
         options={{
           title: "Social",
-          tabBarIcon: ({ color, size }) => (
-            <Users size={size} color={color} strokeWidth={2} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View>
+              <Users size={size} color={color} strokeWidth={2} />
+              {isGuest && focused && <GuestBadge />}
+            </View>
           ),
         }}
       />
@@ -81,8 +94,11 @@ export default function TabsLayout() {
         name="bookings"
         options={{
           title: "Bookings",
-          tabBarIcon: ({ color, size }) => (
-            <Calendar size={size} color={color} strokeWidth={2} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View>
+              <Calendar size={size} color={color} strokeWidth={2} />
+              {isGuest && focused && <GuestBadge />}
+            </View>
           ),
         }}
       />
@@ -90,8 +106,11 @@ export default function TabsLayout() {
         name="favorites"
         options={{
           title: "Favorites",
-          tabBarIcon: ({ color, size }) => (
-            <Heart size={size} color={color} strokeWidth={2} />
+          tabBarIcon: ({ color, size, focused }) => (
+            <View>
+              <Heart size={size} color={color} strokeWidth={2} />
+              {isGuest && focused && <GuestBadge />}
+            </View>
           ),
         }}
       />

@@ -1,3 +1,4 @@
+// app/welcome.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -21,11 +22,12 @@ import { useAuth } from "@/context/supabase-provider";
 export default function WelcomeScreen() {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
-  const { appleSignIn, googleSignIn } = useAuth();
+  const { appleSignIn, googleSignIn, continueAsGuest } = useAuth();
   const isDark = colorScheme === "dark";
 
   const [isAppleLoading, setIsAppleLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isGuestLoading, setIsGuestLoading] = useState(false);
   const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
 
   const appIcon =
@@ -101,97 +103,134 @@ export default function WelcomeScreen() {
     }
   };
 
+  // Handle Continue as Guest
+  const handleContinueAsGuest = async () => {
+    try {
+      setIsGuestLoading(true);
+      await continueAsGuest();
+      // Navigation handled by AuthContext
+    } catch (err: any) {
+      console.error("Guest mode error:", err);
+      Alert.alert(
+        "Error",
+        "Failed to continue as guest. Please try again.",
+      );
+    } finally {
+      setIsGuestLoading(false);
+    }
+  };
+
   return (
     <SafeAreaView className="flex flex-1 bg-background p-4">
       <View className="flex flex-1 items-center justify-center gap-y-4 web:m-4">
-        <Image source={appIcon} className="w-16 h-16 rounded-xl" />
+        <Image source={appIcon} className="w-20 h-20 rounded-xl" />
         <H1 className="text-center">Welcome to Booklet</H1>
-        <Muted className="text-center">
-          Discover and book amazing restaurants in Lebanon with just a few taps
+        <Muted className="text-center max-w-sm">
+          Discover and book the best restaurants in Lebanon. Join thousands of food lovers.
         </Muted>
       </View>
-      <View className="flex flex-col gap-y-4 web:m-4">
-        {/* Quick Sign In Options */}
-        <View className="gap-3 mb-4">
-          {Platform.OS === "ios" && appleAuthAvailable && (
-            <TouchableOpacity
-              onPress={handleAppleSignIn}
-              disabled={isAppleLoading || isGoogleLoading}
-            >
-              <View className="bg-foreground rounded-md h-14 items-center justify-center flex-row gap-2">
-                {isAppleLoading ? (
-                  <ActivityIndicator
-                    size="small"
-                    color={isDark ? "#000" : "#fff"}
-                  />
-                ) : (
-                  <>
-                    <Ionicons
-                      name="logo-apple"
-                      size={24}
-                      color={isDark ? "#000" : "#fff"}
-                    />
-                    <Text
-                      className={`${isDark ? "text-black" : "text-white"} font-semibold text-base`}
-                    >
-                      Continue with Apple
-                    </Text>
-                  </>
-                )}
-              </View>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            onPress={handleGoogleSignIn}
-            disabled={isGoogleLoading || isAppleLoading}
-          >
-            <View className="bg-background border-2 border-border rounded-md h-14 items-center justify-center flex-row gap-2">
-              {isGoogleLoading ? (
-                <ActivityIndicator
-                  size="small"
-                  color={isDark ? "#fff" : "#000"}
-                />
-              ) : (
-                <>
-                  <Ionicons name="logo-google" size={24} color="#EA4335" />
-                  <Text className="text-foreground font-semibold text-base">
-                    Continue with Google
-                  </Text>
-                </>
-              )}
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        {/* Divider */}
-        <View className="flex-row items-center mb-2">
-          <View className="flex-1 h-px bg-border/30" />
-          <Text className="mx-4 text-sm text-muted-foreground">or</Text>
-          <View className="flex-1 h-px bg-border/30" />
-        </View>
-
-        {/* Email Options */}
+      <View className="flex flex-col gap-y-3 web:m-4">
+        {/* Email Sign Up/In */}
         <Button
           size="default"
           variant="default"
-          onPress={() => {
-            router.push("/sign-up");
-          }}
-          disabled={isAppleLoading || isGoogleLoading}
+          onPress={() => router.push("/sign-up")}
+          disabled={isAppleLoading || isGoogleLoading || isGuestLoading}
         >
           <Text>Sign Up with Email</Text>
         </Button>
+        
         <Button
           size="default"
           variant="secondary"
-          onPress={() => {
-            router.push("/sign-in");
-          }}
-          disabled={isAppleLoading || isGoogleLoading}
+          onPress={() => router.push("/sign-in")}
+          disabled={isAppleLoading || isGoogleLoading || isGuestLoading}
         >
           <Text>Sign In with Email</Text>
         </Button>
+
+        {/* Divider */}
+        <View className="flex-row items-center my-2">
+          <View className="flex-1 h-[1px] bg-border" />
+          <Muted className="mx-4">or</Muted>
+          <View className="flex-1 h-[1px] bg-border" />
+        </View>
+
+        {/* Social Logins */}
+        {Platform.OS === "ios" && appleAuthAvailable && (
+          <TouchableOpacity
+            onPress={handleAppleSignIn}
+            disabled={isAppleLoading || isGoogleLoading || isGuestLoading}
+            className={`flex-row items-center justify-center p-3.5 rounded-lg ${
+              isDark ? "bg-white" : "bg-black"
+            } ${isAppleLoading ? "opacity-50" : ""}`}
+          >
+            {isAppleLoading ? (
+              <ActivityIndicator size="small" color={isDark ? "#000" : "#fff"} />
+            ) : (
+              <>
+                <Ionicons
+                  name="logo-apple"
+                  size={20}
+                  color={isDark ? "#000" : "#fff"}
+                />
+                <Text
+                  className={`ml-2 font-medium ${
+                    isDark ? "text-black" : "text-white"
+                  }`}
+                >
+                  Continue with Apple
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          onPress={handleGoogleSignIn}
+          disabled={isAppleLoading || isGoogleLoading || isGuestLoading}
+          className={`flex-row items-center justify-center p-3.5 rounded-lg border border-border bg-background ${
+            isGoogleLoading ? "opacity-50" : ""
+          }`}
+        >
+          {isGoogleLoading ? (
+            <ActivityIndicator size="small" />
+          ) : (
+            <>
+              <Ionicons name="logo-google" size={20} color="#4285F4" />
+              <Text className="ml-2 font-medium">Continue with Google</Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        {/* Guest Option */}
+        <TouchableOpacity
+          onPress={handleContinueAsGuest}
+          disabled={isAppleLoading || isGoogleLoading || isGuestLoading}
+          className="mt-2"
+        >
+          <View className="flex-row items-center justify-center p-3.5">
+            {isGuestLoading ? (
+              <ActivityIndicator size="small" />
+            ) : (
+              <>
+                <Ionicons 
+                  name="eye-outline" 
+                  size={20} 
+                  color={isDark ? "#9ca3af" : "#6b7280"}
+                />
+                <Text className="ml-2 text-muted-foreground">
+                  Continue as Guest
+                </Text>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+
+        {/* Terms */}
+        <Muted className="text-center text-xs mt-4">
+          By continuing, you agree to our Terms of Service and Privacy Policy
+        </Muted>
       </View>
     </SafeAreaView>
   );

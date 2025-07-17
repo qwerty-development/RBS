@@ -361,7 +361,7 @@ export default function CuisineScreen() {
             />
           </Pressable>
           <View>
-            <H1 className="text-lg">{cuisineName || cuisineId}</H1>
+            <H1 className="text-lg"> {cuisineName || cuisineId}</H1>
             <Muted>{stats.total} restaurants found</Muted>
           </View>
         </View>

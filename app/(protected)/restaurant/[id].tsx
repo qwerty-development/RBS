@@ -16,6 +16,11 @@ import {
   Camera,
   ExternalLink,
   Navigation,
+  Edit3,
+  Car,
+  Utensils,
+  Leaf,
+  TreePine,
 } from "lucide-react-native";
 import {
   ScrollView,
@@ -32,20 +37,26 @@ import * as Haptics from "expo-haptics";
 import MapView, { Marker } from "react-native-maps";
 import { RestaurantPosts } from "@/components/restaurant/RestaurantPosts";
 import { AddToPlaylistModal } from "@/components/playlists/AddToPlaylistModal";
+import { GuestPromptModal } from "@/components/guest/GuestPromptModal";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { H1, H2, H3, P } from "@/components/ui/typography";
+import { H1, H2, H3, P, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
+import {
+  postgisToAddress,
+  parsePostGISGeometry,
+} from "../../../lib/locationConverter";
 
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
-import { Database } from "@/types/supabase";
 import { useRestaurant } from "@/hooks/useRestaurant";
+import { useGuestGuard } from "@/hooks/useGuestGuard";
 import { RestaurantPlaylistIndicator } from "@/components/restaurant/RestaurantPlaylistIndicator";
 import RestaurantDetailsScreenSkeleton from "@/components/skeletons/RestaurantDetailsScreenSkeleton";
+import { Database } from "@/types/supabase";
 
-// Type definitions (Unchanged)
+// Type definitions
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
   dietary_options?: string[] | null;
   ambiance_tags?: string[] | null;
@@ -67,46 +78,64 @@ type Review = Database["public"]["Tables"]["reviews"]["Row"] & {
   };
 };
 
+type Coordinates = {
+  latitude: number;
+  longitude: number;
+};
+
+// Custom hook for restaurant location
+const useRestaurantLocation = (postgisGeometry: string | null) => {
+  const [address, setAddress] = useState<string>("Loading...");
+  const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  useEffect(() => {
+    if (postgisGeometry) {
+      setIsLoading(true);
+
+      // First get coordinates for map
+      try {
+        const coords = parsePostGISGeometry(postgisGeometry);
+
+        if (coords && !isNaN(coords.latitude) && !isNaN(coords.longitude)) {
+          const coordinatesObj = {
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+          };
+          setCoordinates(coordinatesObj);
+        }
+      } catch (error) {
+        console.error("Error parsing coordinates:", error);
+      }
+
+      // Then get readable address
+      postgisToAddress(postgisGeometry)
+        .then((result) => {
+          setAddress(result);
+          setIsLoading(false);
+        })
+        .catch((error) => {
+          console.error("Address error:", error);
+          setAddress("Location unavailable");
+          setIsLoading(false);
+        });
+    } else {
+      setAddress("No location data");
+      setIsLoading(false);
+    }
+  }, [postgisGeometry]);
+
+  return { address, coordinates, isLoading };
+};
+
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const IMAGE_HEIGHT = Math.min(SCREEN_HEIGHT * 0.4, 320);
 
-// --- New Guest Prompt Modal ---
-const GuestPromptModal = ({
-  visible,
-  onClose,
-  onConfirm,
-  feature,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  feature: string;
-}) => {
-  return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View className="flex-1 justify-center items-center bg-black/60">
-        <View className="bg-background w-4/5 rounded-2xl p-6 items-center">
-          <H3 className="mb-2 text-center">Join to Unlock!</H3>
-          <P className="text-muted-foreground text-center mb-6">
-            Please sign up or log in to {feature}.
-          </P>
-          <Button onPress={onConfirm} className="w-full mb-3" size="lg">
-            <Text className="font-bold text-white">Continue</Text>
-          </Button>
-          <Button onPress={onClose} variant="ghost" className="w-full">
-            <Text>Not Now</Text>
-          </Button>
-        </View>
-      </View>
-    </Modal>
-  );
-};
-
-// --- Sub-components (Unchanged) ---
+// Image Gallery Component
 const ImageGallery: React.FC<{
-  /* ...props... */
+  images: string[];
+  onImagePress: (index: number) => void;
 }> = ({ images, onImagePress }) => {
-  /* ...your existing component... */
   const [activeIndex, setActiveIndex] = useState(0);
 
   if (!images.length) return null;
@@ -119,7 +148,7 @@ const ImageGallery: React.FC<{
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={(event) => {
           const index = Math.round(
-            event.nativeEvent.contentOffset.x / SCREEN_WIDTH,
+            event.nativeEvent.contentOffset.x / SCREEN_WIDTH
           );
           setActiveIndex(index);
         }}
@@ -163,6 +192,8 @@ const ImageGallery: React.FC<{
     </View>
   );
 };
+
+// Quick Actions Bar
 const QuickActionsBar: React.FC<{
   restaurant: Restaurant;
   isFavorite: boolean;
@@ -170,7 +201,7 @@ const QuickActionsBar: React.FC<{
   onShare: () => void;
   onCall: () => void;
   onDirections: () => void;
-  onAddToPlaylist: () => void; // MODIFIED: Renamed for clarity
+  onAddToPlaylist: () => void;
   colorScheme: any;
 }> = ({
   restaurant,
@@ -182,7 +213,6 @@ const QuickActionsBar: React.FC<{
   onAddToPlaylist,
   colorScheme,
 }) => {
-  /* ...your existing component... */
   return (
     <View className="flex-row justify-around py-4 border-b border-border bg-background">
       <Pressable onPress={onToggleFavorite} className="items-center gap-1 p-2">
@@ -195,10 +225,7 @@ const QuickActionsBar: React.FC<{
           {isFavorite ? "Saved" : "Save"}
         </Text>
       </Pressable>
-      <Pressable
-        onPress={onAddToPlaylist} // MODIFIED
-        className="items-center gap-1 p-2"
-      >
+      <Pressable onPress={onAddToPlaylist} className="items-center gap-1 p-2">
         <FolderPlus
           size={24}
           color={colorScheme === "dark" ? "#fff" : "#000"}
@@ -217,20 +244,33 @@ const QuickActionsBar: React.FC<{
           <Text className="text-xs text-muted-foreground">Call</Text>
         </Pressable>
       )}
-
-      <Pressable onPress={onDirections} className="items-center gap-1 p-2">
-        <Navigation size={24} color="#666" />
-        <Text className="text-xs text-muted-foreground">Directions</Text>
-      </Pressable>
     </View>
   );
 };
-const RestaurantHeaderInfo: React.FC<{
-  restaurant: Restaurant;
-}> = ({ restaurant }) => {
-  /* ...your existing component... */
+
+// Restaurant Header Info
+const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({
+  restaurant,
+}) => {
+  const { address, isLoading } = useRestaurantLocation(restaurant.location);
+
   const isOpen = () => {
-    return true;
+    const now = new Date();
+    const currentTime = now.getHours() * 100 + now.getMinutes();
+    
+    if (restaurant.opening_time && restaurant.closing_time) {
+      const openTime = parseInt(restaurant.opening_time.replace(':', ''));
+      const closeTime = parseInt(restaurant.closing_time.replace(':', ''));
+      
+      if (closeTime < openTime) {
+        // Crosses midnight
+        return currentTime >= openTime || currentTime <= closeTime;
+      } else {
+        return currentTime >= openTime && currentTime <= closeTime;
+      }
+    }
+    
+    return true; // Default to open if no hours specified
   };
 
   return (
@@ -239,7 +279,7 @@ const RestaurantHeaderInfo: React.FC<{
         <View className="flex-1">
           <H1 className="text-2xl font-bold mb-1">{restaurant.name}</H1>
           <Text className="text-muted-foreground">
-            {restaurant.cuisine_type}
+            {restaurant.cuisine_type} • {"$".repeat(restaurant.price_range || 2)}          
           </Text>
         </View>
 
@@ -270,18 +310,12 @@ const RestaurantHeaderInfo: React.FC<{
       </View>
 
       <View className="flex-row items-center gap-4 mb-3">
-        <View className="flex-row items-center gap-1">
+        <View className="flex-row items-center gap-1 flex-1">
           <MapPin size={14} color="#666" />
           <Text className="text-sm text-muted-foreground" numberOfLines={1}>
-            {restaurant.location}
+            {isLoading ? "Loading location..." : address}
           </Text>
         </View>
-
-        <Text className="text-muted-foreground">•</Text>
-
-        <Text className="text-sm text-muted-foreground">
-          {"$".repeat(restaurant.price_range || 2)}
-        </Text>
       </View>
 
       {restaurant.ambiance_tags && restaurant.ambiance_tags.length > 0 && (
@@ -296,29 +330,28 @@ const RestaurantHeaderInfo: React.FC<{
     </View>
   );
 };
-const AboutSection: React.FC<{
-  /* ...props... */
-}> = ({ restaurant }) => {
-  /* ...your existing component... */
+
+// About Section
+const AboutSection: React.FC<{ restaurant: Restaurant }> = ({ restaurant }) => {
   const [showFullDescription, setShowFullDescription] = useState(false);
 
   if (!restaurant.description) return null;
 
-  const shouldTruncate = restaurant.description.length > 150;
+  const shouldTruncate = restaurant.description.length > 120;
   const displayText =
     shouldTruncate && !showFullDescription
-      ? restaurant.description.substring(0, 150) + "..."
+      ? restaurant.description.substring(0, 120) + "..."
       : restaurant.description;
 
   return (
-    <View className="p-4 border-b border-border">
-      <H3 className="mb-3">About</H3>
-      <Text className="text-muted-foreground leading-6 mb-2">
+    <View className="px-4 py-3 border-b border-border/50">
+      <Text className="text-base font-semibold mb-2 text-foreground">About</Text>
+      <Text className="text-sm text-muted-foreground leading-5 mb-1">
         {displayText}
       </Text>
       {shouldTruncate && (
         <Pressable onPress={() => setShowFullDescription(!showFullDescription)}>
-          <Text className="text-primary font-medium">
+          <Text className="text-primary text-sm font-medium">
             {showFullDescription ? "Show less" : "Read more"}
           </Text>
         </Pressable>
@@ -326,169 +359,232 @@ const AboutSection: React.FC<{
     </View>
   );
 };
-const FeaturesSection: React.FC<{
-  /* ...props... */
-}> = ({ restaurant }) => {
-  /* ...your existing component... */
+
+// Features Section
+const FeaturesSection: React.FC<{ restaurant: Restaurant }> = ({
+  restaurant,
+}) => {
   const features = [];
 
-  if (restaurant.parking_available) features.push("Parking available");
-  if (restaurant.outdoor_seating) features.push("Outdoor seating");
+  if (restaurant.parking_available) features.push({ icon: Car, text: "Parking" });
+  if (restaurant.outdoor_seating) features.push({ icon: TreePine, text: "Outdoor seating" });
   if (restaurant.dietary_options?.includes("vegetarian"))
-    features.push("Vegetarian options");
+    features.push({ icon: Leaf, text: "Vegetarian" });
   if (restaurant.dietary_options?.includes("vegan"))
-    features.push("Vegan options");
+    features.push({ icon: Leaf, text: "Vegan" });
 
   if (features.length === 0) return null;
 
   return (
-    <View className="p-4 border-b border-border">
-      <H3 className="mb-3">Features</H3>
+    <View className="px-4 py-3 border-b border-border/50">
+      <Text className="text-base font-semibold mb-3 text-foreground">Features</Text>
       <View className="flex-row flex-wrap gap-2">
-        {features.map((feature, index) => (
-          <View key={index} className="bg-primary/10 px-3 py-2 rounded-lg">
-            <Text className="text-primary text-sm font-medium">{feature}</Text>
-          </View>
-        ))}
+        {features.map((feature, index) => {
+          const IconComponent = feature.icon;
+          return (
+            <View key={index} className="flex-row items-center bg-muted/30 px-3 py-2 rounded-full">
+              <IconComponent size={14} color="#666" />
+              <Text className="text-sm text-muted-foreground ml-1.5">{feature.text}</Text>
+            </View>
+          );
+        })}
       </View>
     </View>
   );
 };
-const MenuSection: React.FC<{
-  /* ...props... */
-}> = ({ restaurantId, onViewMenu }) => {
-  /* ...your existing component... */
+
+// Menu Section
+const MenuSection: React.FC<{ onViewMenu: () => void }> = ({ onViewMenu }) => {
   return (
-    <View className="p-4 border-b border-border">
-      <H3 className="mb-3">Menu</H3>
+    <View className="px-4 py-3 border-b border-border/50">
+      <Text className="text-base font-semibold mb-3 text-foreground">Menu</Text>
       <Pressable
         onPress={onViewMenu}
-        className="bg-primary/10 p-4 rounded-lg flex-row items-center justify-between"
+        className="flex-row items-center justify-between p-3 border border-border rounded-xl"
       >
         <View className="flex-row items-center gap-3">
-          <BookOpen size={24} className="text-primary" />
+          <View className="w-10 h-10 bg-primary/10 rounded-full items-center justify-center">
+            <BookOpen size={18} color="#3b82f6" />
+          </View>
           <View>
-            <Text className="font-semibold text-foreground">Browse Menu</Text>
-            <Text className="text-sm text-muted-foreground">
-              View dishes, prices, and dietary options
+            <Text className="text-sm font-medium text-foreground">Browse Menu</Text>
+            <Text className="text-xs text-muted-foreground">
+              View dishes & prices
             </Text>
           </View>
         </View>
-        <ChevronRight size={20} className="text-muted-foreground" />
+        <ChevronRight size={18} color="#666" />
       </Pressable>
     </View>
   );
 };
+
+// Contact Info
 const ContactInfo: React.FC<{
-  /* ...props... */
+  restaurant: Restaurant;
+  onCall: () => void;
+  onWebsite: () => void;
 }> = ({ restaurant, onCall, onWebsite }) => {
-  /* ...your existing component... */
   return (
-    <View className="p-4 border-b border-border">
-      <H3 className="mb-3">Contact & Info</H3>
+    <View className="px-4 py-3 border-b border-border/50">
+      <Text className="text-base font-semibold mb-3 text-foreground">Contact</Text>
+      
+      <View className="gap-2">
+        {restaurant.phone_number && (
+          <Pressable
+            onPress={onCall}
+            className="flex-row items-center gap-3 p-3 rounded-xl border border-border"
+          >
+            <View className="w-8 h-8 bg-blue-50 rounded-full items-center justify-center">
+              <Phone size={16} color="#3b82f6" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-medium text-foreground">Call</Text>
+              <Text className="text-xs text-muted-foreground">
+                {restaurant.phone_number}
+              </Text>
+            </View>
+            <ChevronRight size={16} color="#666" />
+          </Pressable>
+        )}
 
-      {restaurant.phone_number && (
-        <Pressable
-          onPress={onCall}
-          className="flex-row items-center gap-3 p-3 rounded-lg bg-muted/30 mb-3"
-        >
-          <Phone size={20} color="#3b82f6" />
-          <View className="flex-1">
-            <Text className="font-medium">Call restaurant</Text>
-            <Text className="text-sm text-muted-foreground">
-              {restaurant.phone_number}
-            </Text>
-          </View>
-          <ChevronRight size={20} color="#666" />
-        </Pressable>
-      )}
-
-      {restaurant.website_url && (
-        <Pressable
-          onPress={onWebsite}
-          className="flex-row items-center gap-3 p-3 rounded-lg bg-muted/30"
-        >
-          <Globe size={20} color="#3b82f6" />
-          <View className="flex-1">
-            <Text className="font-medium">Visit website</Text>
-            <Text className="text-sm text-muted-foreground">
-              View menu and more info
-            </Text>
-          </View>
-          <ExternalLink size={16} color="#666" />
-        </Pressable>
-      )}
+        {restaurant.website_url && (
+          <Pressable
+            onPress={onWebsite}
+            className="flex-row items-center gap-3 p-3 rounded-xl border border-border"
+          >
+            <View className="w-8 h-8 bg-blue-50 rounded-full items-center justify-center">
+              <Globe size={16} color="#3b82f6" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-medium text-foreground">Website</Text>
+              <Text className="text-xs text-muted-foreground">
+                View online menu
+              </Text>
+            </View>
+            <ExternalLink size={14} color="#666" />
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 };
+
+// Location Map
 const LocationMap: React.FC<{
-  /* ...props... */
+  restaurant: Restaurant;
+  onDirections: () => void;
 }> = ({ restaurant, onDirections }) => {
-  /* ...your existing component... */
-  const coordinates = {
-    latitude: 33.8938, // Default to Beirut
+  const { address, coordinates, isLoading } = useRestaurantLocation(
+    restaurant.location
+  );
+  const [mapReady, setMapReady] = useState(false);
+
+  // Default coordinates for Beirut
+  const defaultCoordinates: Coordinates = {
+    latitude: 33.8938,
     longitude: 35.5018,
   };
 
+  // Use parsed coordinates if available and valid, otherwise use default
+  const mapCoordinates =
+    coordinates &&
+    !isNaN(coordinates.latitude) &&
+    !isNaN(coordinates.longitude) &&
+    coordinates.latitude !== 0 &&
+    coordinates.longitude !== 0
+      ? coordinates
+      : defaultCoordinates;
+
+  const mapRegion = {
+    latitude: mapCoordinates.latitude,
+    longitude: mapCoordinates.longitude,
+    latitudeDelta: 0.01,
+    longitudeDelta: 0.01,
+  };
+
   return (
-    <View className="p-4 border-b border-border">
+    <View className="px-4 py-3 border-b border-border/50">
       <View className="flex-row items-center justify-between mb-3">
-        <H3>Location</H3>
+        <Text className="text-base font-semibold text-foreground">Location</Text>
         <Pressable
           onPress={onDirections}
-          className="flex-row items-center gap-1"
+          className="flex-row items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-full"
         >
-          <Text className="text-primary font-medium">Directions</Text>
-          <Navigation size={16} color="#3b82f6" />
+          <Navigation size={14} color="#3b82f6" />
+          <Text className="text-primary text-sm font-medium">Directions</Text>
         </Pressable>
       </View>
 
-      <View className="rounded-lg overflow-hidden h-48 mb-3">
+      <View className="rounded-xl overflow-hidden h-40 mb-2 bg-gray-100 border border-border/50">
         <MapView
           style={{ flex: 1 }}
-          initialRegion={{
-            ...coordinates,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }}
+          initialRegion={mapRegion}
+          region={mapRegion}
           scrollEnabled={false}
           zoomEnabled={false}
+          rotateEnabled={false}
+          pitchEnabled={false}
+          onMapReady={() => setMapReady(true)}
         >
-          <Marker coordinate={coordinates} />
+          <Marker
+            coordinate={mapCoordinates}
+            title={restaurant.name}
+            description={address !== "Loading..." ? address : undefined}
+          />
         </MapView>
       </View>
 
-      <Text className="text-muted-foreground">{restaurant.location}</Text>
+      <View className="flex-row items-center gap-2">
+        <MapPin size={14} color="#666" />
+        <Text className="text-sm text-muted-foreground flex-1">
+          {isLoading ? "Loading location..." : address}
+        </Text>
+      </View>
     </View>
   );
 };
-const ReviewsSummary: React.FC<{
-  /* ...props... */
-}> = ({ restaurant, reviews, onViewAllReviews }) => {
-  /* ...your existing component... */
+
+// Reviews Summary
+interface ReviewsSummaryProps {
+  restaurant: Restaurant;
+  reviews: Review[];
+  onViewAllReviews: () => void;
+  onWriteReview: () => void;
+}
+
+const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
+  restaurant,
+  reviews,
+  onViewAllReviews,
+  onWriteReview,
+}) => {
   return (
-    <View className="p-4 border-b border-border mb-7">
+    <View className="px-4 py-3 border-b border-border/50 mb-4">
       <View className="flex-row items-center justify-between mb-3">
-        <H3>Reviews</H3>
+        <Text className="text-base font-semibold text-foreground">
+          Reviews ({restaurant.total_reviews || 0})
+        </Text>
         <Pressable
           onPress={onViewAllReviews}
           className="flex-row items-center gap-1"
         >
-          <Text className="text-primary font-medium">See all</Text>
-          <ChevronRight size={16} color="#3b82f6" />
+          <Text className="text-primary text-sm font-medium">See all</Text>
+          <ChevronRight size={14} color="#3b82f6" />
         </Pressable>
       </View>
 
-      <View className="flex-row items-center gap-4 mb-4">
+      {/* Rating Overview */}
+      <View className="flex-row items-center gap-4 mb-4 p-3 bg-muted/20 rounded-xl">
         <View className="items-center">
-          <Text className="text-3xl font-bold">
+          <Text className="text-2xl font-bold text-foreground">
             {restaurant.average_rating?.toFixed(1) || "4.5"}
           </Text>
-          <View className="flex-row">
+          <View className="flex-row mb-1">
             {[1, 2, 3, 4, 5].map((star) => (
               <Star
                 key={star}
-                size={16}
+                size={14}
                 color="#f59e0b"
                 fill={
                   star <= (restaurant.average_rating || 4.5)
@@ -498,19 +594,18 @@ const ReviewsSummary: React.FC<{
               />
             ))}
           </View>
-          <Text className="text-sm text-muted-foreground">
+          <Text className="text-xs text-muted-foreground">
             {restaurant.total_reviews || 0} reviews
           </Text>
         </View>
 
         <View className="flex-1">
-          <Text className="text-sm text-muted-foreground mb-1">
-            {restaurant.review_summary?.recommendation_percentage || 95}% would
-            recommend
+          <Text className="text-xs text-muted-foreground mb-1">
+            {restaurant.review_summary?.recommendation_percentage || 95}% recommend
           </Text>
-          <View className="bg-muted rounded-full h-2">
+          <View className="bg-border rounded-full h-1.5">
             <View
-              className="bg-green-500 h-2 rounded-full"
+              className="bg-green-500 h-1.5 rounded-full"
               style={{
                 width: `${
                   restaurant.review_summary?.recommendation_percentage || 95
@@ -521,34 +616,54 @@ const ReviewsSummary: React.FC<{
         </View>
       </View>
 
-      {reviews.slice(0, 2).map((review) => (
-        <View key={review.id} className="mb-3 last:mb-0">
-          <View className="flex-row items-center gap-2 mb-1">
-            <View className="w-8 h-8 rounded-full bg-primary/20 items-center justify-center">
-              <Text className="text-sm font-medium text-primary">
-                {review.user.full_name.charAt(0)}
-              </Text>
-            </View>
-            <Text className="font-medium">{review.user.full_name}</Text>
-            <View className="flex-row">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  size={12}
-                  color="#f59e0b"
-                  fill={star <= review.overall_rating ? "#f59e0b" : "none"}
-                />
-              ))}
-            </View>
-          </View>
-          <Text className="text-sm text-muted-foreground" numberOfLines={2}>
-            {review.comment}
+      {/* Write a Review Button */}
+      <Button variant="outline" onPress={onWriteReview} className="mb-4">
+        <View className="flex-row items-center">
+          <Edit3 size={16} color="#3b82f6" />
+          <Text className="font-semibold text-primary ml-2">
+            Write a Review
           </Text>
         </View>
-      ))}
+      </Button>
+
+      {/* Recent Reviews */}
+      {reviews.length > 0 ? (
+        reviews.slice(0, 2).map((review) => (
+          <View key={review.id} className="mb-3 last:mb-0 p-3 bg-muted/10 rounded-xl">
+            <View className="flex-row items-center gap-2 mb-2">
+              <View className="w-7 h-7 rounded-full bg-primary/20 items-center justify-center">
+                <Text className="text-xs font-medium text-primary">
+                  {review.user.full_name.charAt(0)}
+                </Text>
+              </View>
+              <Text className="text-sm font-medium text-foreground">
+                {review.user.full_name}
+              </Text>
+              <View className="flex-row ml-auto">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    size={12}
+                    color="#f59e0b"
+                    fill={star <= review.overall_rating ? "#f59e0b" : "none"}
+                  />
+                ))}
+              </View>
+            </View>
+            <Text className="text-sm text-muted-foreground" numberOfLines={2}>
+              {review.comment}
+            </Text>
+          </View>
+        ))
+      ) : (
+        <View className="items-center py-4">
+          <Muted>Be the first to review this restaurant!</Muted>
+        </View>
+      )}
     </View>
   );
 };
+
 // Main Component
 export default function RestaurantDetailsScreen() {
   const { colorScheme } = useColorScheme();
@@ -556,12 +671,20 @@ export default function RestaurantDetailsScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const id = params?.id;
 
-  // --- MODIFIED: Auth and Guest State ---
-  const { user, isGuest, convertGuestToUser } = useAuth();
+  // State for non-protected UI elements
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
-  const [showGuestPrompt, setShowGuestPrompt] = useState(false);
-  const [promptedFeature, setPromptedFeature] = useState("");
 
+  // Guest Guard Hook
+  const {
+    isGuest,
+    showGuestPrompt,
+    promptedFeature,
+    runProtectedAction,
+    handleClosePrompt,
+    handleSignUpFromPrompt,
+  } = useGuestGuard();
+
+  // Restaurant data hook
   const {
     restaurant,
     reviews,
@@ -573,53 +696,48 @@ export default function RestaurantDetailsScreen() {
     openDirections,
   } = useRestaurant(id);
 
-  // --- NEW: Guest Guard Logic ---
-  const runProtectedAction = (callback: () => void, featureName: string) => {
-    if (isGuest) {
-      setPromptedFeature(featureName);
-      setShowGuestPrompt(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    } else if (user) {
-      callback();
-    } else {
-      // Fallback for an unlikely state where user is not a guest but also not logged in.
-      router.push("/welcome");
-    }
-  };
-
-  const handleConfirmGuestPrompt = async () => {
-    setShowGuestPrompt(false);
-    await convertGuestToUser();
-    // The AuthProvider will automatically handle redirecting to the /welcome screen
-  };
-
-  // --- MODIFIED: Action Handlers with Guest Guards ---
-  const handleToggleFavorite = () => {
+  // Action Handlers with Guest Guard
+  const handleToggleFavorite = useCallback(() => {
     runProtectedAction(toggleFavorite, "save restaurants");
-  };
+  }, [runProtectedAction, toggleFavorite]);
 
-  const handleAddToPlaylist = () => {
+  const handleAddToPlaylist = useCallback(() => {
     runProtectedAction(
       () => setShowAddToPlaylist(true),
-      "add restaurants to a playlist",
+      "add restaurants to a playlist"
     );
-  };
+  }, [runProtectedAction]);
 
-  const handleAttemptBooking = () => {
+  const handleWriteReview = useCallback(() => {
+    if (!restaurant) return;
+    runProtectedAction(
+      () => router.push(`/restaurant/${restaurant.id}/write-review`),
+      "write a review"
+    );
+  }, [runProtectedAction, router, restaurant]);
+
+  const handleBookTable = useCallback(() => {
+    if (!restaurant) return;
+    router.push({
+      pathname: "/booking/availability",
+      params: {
+        restaurantId: id!,
+        restaurantName: restaurant.name,
+      },
+    });
+  }, [router, id, restaurant]);
+
+  const handleAttemptBooking = useCallback(() => {
     runProtectedAction(handleBookTable, "book a table");
-  };
+  }, [runProtectedAction, handleBookTable]);
 
-  // Unchanged handlers
-  const handleAddToPlaylistSuccess = useCallback(
-    (playlistName: string) => {
-      Alert.alert(
-        "Added to Playlist",
-        `${restaurant?.name} has been added to "${playlistName}"`,
-        [{ text: "OK" }],
-      );
-    },
-    [restaurant?.name],
-  );
+  const handleAddToPlaylistSuccess = useCallback((playlistName: string) => {
+    Alert.alert(
+      "Added to Playlist",
+      `${restaurant?.name} has been added to "${playlistName}"`,
+      [{ text: "OK" }]
+    );
+  }, [restaurant?.name]);
 
   const allImages = React.useMemo(() => {
     if (!restaurant) return [];
@@ -628,11 +746,11 @@ export default function RestaurantDetailsScreen() {
       images.push(...restaurant.image_urls);
     }
     return images.filter(Boolean) as string[];
-  }, [restaurant?.main_image_url, restaurant?.image_urls]);
+  }, [restaurant]);
 
   const handleWebsite = useCallback(() => {
     if (restaurant?.website_url) {
-      // Your existing logic to open website
+      // Logic to open website
     }
   }, [restaurant?.website_url]);
 
@@ -647,17 +765,6 @@ export default function RestaurantDetailsScreen() {
     if (!restaurant) return;
     router.push(`/restaurant/menu/${restaurant.id}`);
   }, [router, restaurant?.id]);
-
-  const handleBookTable = useCallback(() => {
-    if (!restaurant) return;
-    router.push({
-      pathname: "/booking/availability",
-      params: {
-        restaurantId: id!,
-        restaurantName: restaurant.name,
-      },
-    });
-  }, [router, id, restaurant]);
 
   // Loading and Error States
   if (loading) {
@@ -695,27 +802,23 @@ export default function RestaurantDetailsScreen() {
       {/* Header */}
       <View className="absolute top-0 left-0 right-0 z-50">
         <SafeAreaView edges={["top"]}>
-          <View className="flex-row items-center justify-between p-4">
+          <View className="p-4">
             <Pressable
               onPress={() => router.back()}
               className="w-10 h-10 bg-black/50 rounded-full items-center justify-center"
             >
               <ChevronLeft size={24} color="white" />
             </Pressable>
-            <Pressable
-              onPress={handleShare}
-              className="w-10 h-10 bg-black/50 rounded-full items-center justify-center"
-            >
-              <Share size={20} color="white" />
-            </Pressable>
           </View>
         </SafeAreaView>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled={true}
+      >
         <ImageGallery images={allImages} onImagePress={() => {}} />
 
-        {/* --- MODIFIED: Pass guarded actions --- */}
         <QuickActionsBar
           restaurant={restaurant}
           isFavorite={isFavorite}
@@ -729,7 +832,6 @@ export default function RestaurantDetailsScreen() {
 
         <RestaurantHeaderInfo restaurant={restaurant} />
 
-        {/* --- MODIFIED: Conditionally render playlist indicator --- */}
         {!isGuest && <RestaurantPlaylistIndicator restaurantId={restaurant.id} />}
 
         <AboutSection restaurant={restaurant} />
@@ -739,7 +841,7 @@ export default function RestaurantDetailsScreen() {
           onCall={() => handleCall(restaurant)}
           onWebsite={handleWebsite}
         />
-        <MenuSection restaurantId={restaurant.id} onViewMenu={handleViewMenu} />
+        <MenuSection onViewMenu={handleViewMenu} />
         <LocationMap
           restaurant={restaurant}
           onDirections={() => openDirections(restaurant)}
@@ -748,6 +850,7 @@ export default function RestaurantDetailsScreen() {
           restaurant={restaurant}
           reviews={reviews}
           onViewAllReviews={handleViewAllReviews}
+          onWriteReview={handleWriteReview}
         />
         <RestaurantPosts
           restaurantId={restaurant.id}
@@ -757,15 +860,11 @@ export default function RestaurantDetailsScreen() {
         <View className="h-24" />
       </ScrollView>
 
-      {/* Floating Book Button --- MODIFIED with guest guard --- */}
+      {/* Floating Book Button */}
       <View className="absolute bottom-0 left-0 right-0 mt-5">
         <SafeAreaView edges={["bottom"]}>
           <View className="p-4 bg-background border-t border-border">
-            <Button
-              onPress={handleAttemptBooking} // Use the guarded handler
-              size="lg"
-              className="w-full"
-            >
+            <Button onPress={handleAttemptBooking} size="lg" className="w-full">
               <View className="flex-row items-center justify-center gap-2">
                 <Calendar size={20} color="white" />
                 <Text className="text-white font-bold text-lg">
@@ -777,7 +876,7 @@ export default function RestaurantDetailsScreen() {
         </SafeAreaView>
       </View>
 
-      {/* --- MODIFIED: Add modals to the layout --- */}
+      {/* Modals */}
       {!isGuest && restaurant && (
         <AddToPlaylistModal
           visible={showAddToPlaylist}
@@ -790,9 +889,9 @@ export default function RestaurantDetailsScreen() {
 
       <GuestPromptModal
         visible={showGuestPrompt}
-        onClose={() => setShowGuestPrompt(false)}
-        onConfirm={handleConfirmGuestPrompt}
-        feature={promptedFeature}
+        onClose={handleClosePrompt}
+        onSignUp={handleSignUpFromPrompt}
+        featureName={promptedFeature}
       />
     </View>
   );

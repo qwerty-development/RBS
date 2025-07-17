@@ -337,6 +337,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
             </Pressable>
 
             {/* Playlists List */}
+            <View className="p-4">
             <OptimizedList
               data={filteredPlaylists}
               renderItem={renderPlaylistItem}
@@ -349,6 +350,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                 </View>
               }
             />
+            </View>
 
             {/* Footer Actions */}
             {selectedPlaylists.size > 0 && (

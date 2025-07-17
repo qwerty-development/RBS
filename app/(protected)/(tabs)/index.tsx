@@ -1,31 +1,34 @@
+// app/(protected)/(tabs)/index.tsx
 import React, { useRef, useState } from "react";
 import {
   Animated,
   View,
   RefreshControl,
-  ActivityIndicator,
   FlatList,
-  SafeAreaView,
   ScrollView,
-  Button,
+  Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { UserPlus } from "lucide-react-native";
+
 import { useColorScheme } from "@/lib/useColorScheme";
-import { Muted } from "@/components/ui/typography";
+import { Text } from "@/components/ui/text";
 import { RestaurantCard } from "@/components/restaurant/RestaurantCard";
-import { SpecialOfferCard } from "@/components/home/SpecialOfferCard";
 import { CuisineCategory } from "@/components/home/CuisineCategory";
 import { SectionHeader } from "@/components/ui/section-header";
 import { LoyaltyWidget } from "@/components/home/LoyaltyWidget";
-import { LocationHeader } from "@/components/home/LocationHeader";
 import { HomeHeader } from "@/components/home/HomeHeader";
+import { SpecialOfferBannerCarousel } from "@/components/home/SpecialOfferBannerCarousel";
+import { Button } from "@/components/ui/button";
+
 import { useHomeScreenLogic } from "@/hooks/useHomeScreenLogic";
 import { useOffers } from "@/hooks/useOffers";
-import { CUISINE_CATEGORIES } from "@/constants/homeScreenData";
-import { SpecialOffersCarousel } from "@/components/home/SpecialOffersCarousel";
-import { SpecialOfferBannerCarousel } from "@/components/home/SpecialOfferBannerCarousel";
-import HomeScreenSkeleton from "@/components/skeletons/HomeScreenSkeleton";
+import { useAuth } from "@/context/supabase-provider";
+import { useGuestGuard } from "@/hooks/useGuestGuard";
 
+import { GuestPromptModal } from "@/components/guest/GuestPromptModal";
+import { CUISINE_CATEGORIES } from "@/constants/homeScreenData";
+import HomeScreenSkeleton from "@/components/skeletons/HomeScreenSkeleton";
 
 // Global ref for scroll to top functionality
 export const homeScrollRef = { current: null as any };
@@ -34,6 +37,17 @@ export default function HomeScreen() {
   const { colorScheme } = useColorScheme();
   const router = useRouter();
 
+  // --- Guest & Auth Hooks ---
+  const { isGuest, convertGuestToUser } = useAuth();
+  const {
+    showGuestPrompt,
+    promptedFeature,
+    runProtectedAction,
+    handleClosePrompt,
+    handleSignUpFromPrompt,
+  } = useGuestGuard();
+
+  // --- Data & Logic Hooks ---
   const {
     featuredRestaurants,
     newRestaurants,
@@ -53,6 +67,7 @@ export default function HomeScreen() {
 
   const { offers: specialOffers, loading: offersLoading } = useOffers();
 
+  // --- Animation State ---
   const scrollY = useRef(new Animated.Value(0)).current;
   const [totalHeaderHeight, setTotalHeaderHeight] = useState(0);
   const [collapsibleHeaderHeight, setCollapsibleHeaderHeight] = useState(0);
@@ -69,6 +84,17 @@ export default function HomeScreen() {
     extrapolate: "clamp",
   });
 
+  // --- Protected Action Handlers ---
+  const handleToggleFavorite = (restaurantId: string) => {
+    runProtectedAction(() => {
+      // Your actual logic to toggle the favorite status would go here.
+      // For now, we'll just log it.
+      console.log(`Toggling favorite for restaurant: ${restaurantId}`);
+      // e.g., call a function from a `useFavorites` hook
+    }, "save your favorite restaurants");
+  };
+
+  // --- Loading State ---
   if (loading || offersLoading) {
     return <HomeScreenSkeleton />;
   }
@@ -77,12 +103,14 @@ export default function HomeScreen() {
     <View className="flex-1 bg-background">
       <HomeHeader
         profile={profile}
+        isGuest={isGuest} // Pass guest status
         location={location}
         headerTranslateY={headerTranslateY}
         greetingOpacity={greetingOpacity}
         setTotalHeaderHeight={setTotalHeaderHeight}
         setCollapsibleHeaderHeight={setCollapsibleHeaderHeight}
         onLocationPress={handleLocationPress}
+        onProfilePress={isGuest ? convertGuestToUser : handleProfilePress}
       />
 
       <Animated.ScrollView
@@ -106,6 +134,25 @@ export default function HomeScreen() {
       >
         <View style={{ height: totalHeaderHeight }} />
 
+        {/* Guest Banner */}
+        {isGuest && (
+          <View className="mx-4 my-4 bg-primary/10 rounded-lg p-4">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1">
+                <Text className="font-semibold text-primary">
+                  Welcome to Booklet!
+                </Text>
+                <Text className="text-sm text-muted-foreground mt-1">
+                  Sign up to unlock exclusive features
+                </Text>
+              </View>
+              <Button size="sm" onPress={convertGuestToUser} className="ml-3">
+                <Text className="text-white text-xs font-bold">Sign Up</Text>
+              </Button>
+            </View>
+          </View>
+        )}
+
         <View className="mb-6 mt-4">
           <ScrollView
             horizontal
@@ -124,32 +171,7 @@ export default function HomeScreen() {
           </ScrollView>
         </View>
 
-        {/* Special Offer Banners - Large banners for offers with custom images */}
         <SpecialOfferBannerCarousel offers={specialOffers} />
-
-        {/* {specialOffers.length > 0 && (
-          <View className="mb-6">
-            <SectionHeader
-              title="Special Offers"
-              subtitle="Limited time deals"
-              actionLabel="View All"
-              onAction={() => router.push("/offers")}
-            />
-
-            <SpecialOffersCarousel
-              offers={specialOffers}
-              onPress={(offer) => {
-                router.push({
-                  pathname: "/restaurant/[id]",
-                  params: {
-                    id: offer.restaurant.id,
-                    highlightOfferId: offer.id,
-                  },
-                });
-              }}
-            />
-          </View>
-        )} */}
 
         {featuredRestaurants.length > 0 && (
           <View className="mb-6">
@@ -167,6 +189,7 @@ export default function HomeScreen() {
                   item={item}
                   variant="featured"
                   onPress={handleRestaurantPress}
+                  onToggleFavorite={() => handleToggleFavorite(item.id)}
                 />
               )}
               keyExtractor={(item) => item.id}
@@ -192,6 +215,7 @@ export default function HomeScreen() {
                   item={item}
                   variant="compact"
                   onPress={handleRestaurantPress}
+                  onToggleFavorite={() => handleToggleFavorite(item.id)}
                 />
               )}
               keyExtractor={(item) => item.id}
@@ -217,6 +241,7 @@ export default function HomeScreen() {
                   item={item}
                   variant="compact"
                   onPress={handleRestaurantPress}
+                  onToggleFavorite={() => handleToggleFavorite(item.id)}
                 />
               )}
               keyExtractor={(item) => item.id}
@@ -226,13 +251,24 @@ export default function HomeScreen() {
           </View>
         )}
 
-        <LoyaltyWidget
-          loyaltyPoints={profile?.loyalty_points || 0}
-          onPress={handleProfilePress}
-          colorScheme={colorScheme}
-        />
+        {/* Only show loyalty widget for signed-in users */}
+        {!isGuest && (
+          <LoyaltyWidget
+            loyaltyPoints={profile?.loyalty_points || 0}
+            onPress={handleProfilePress}
+            colorScheme={colorScheme}
+          />
+        )}
         <View className="h-4" />
       </Animated.ScrollView>
+
+      {/* Guest Prompt Modal */}
+      <GuestPromptModal
+        visible={showGuestPrompt}
+        onClose={handleClosePrompt}
+        onSignUp={handleSignUpFromPrompt}
+        featureName={promptedFeature}
+      />
     </View>
   );
 }
