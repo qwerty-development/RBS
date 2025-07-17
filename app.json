@@ -133,6 +133,7 @@
           "color": "#ffffff"
         }
       ],
+      "expo-calendar",
       "expo-web-browser",
       [
         "@sentry/react-native/expo",

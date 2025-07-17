@@ -9,7 +9,7 @@ import {
   Platform,
 } from "react-native";
 import {
-  Calendar,
+  Calendar as CalendarIcon,
   Clock,
   Users,
   CheckCircle,
@@ -22,9 +22,11 @@ import {
   Star,
   Copy,
   MapPin,
+  CalendarPlus,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
+import * as Calendar from "expo-calendar";
 
 import { Image } from "@/components/image";
 import { Text } from "@/components/ui/text";
@@ -110,6 +112,17 @@ const extractLocationCoordinates = (location: any) => {
   }
 
   return null;
+};
+
+// Utility function to get default calendar
+const getDefaultCalendar = async () => {
+  const { status } = await Calendar.requestCalendarPermissionsAsync();
+  if (status !== 'granted') {
+    throw new Error('Calendar permission not granted');
+  }
+
+  const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+  return calendars.find(cal => cal.source.name === 'Default') || calendars[0];
 };
 
 export function BookingCard({
@@ -217,6 +230,94 @@ export function BookingCard({
     );
   };
 
+  const handleAddToCalendar = async (e: any) => {
+    e.stopPropagation();
+    
+    try {
+      const startDate = new Date(booking.booking_time);
+      const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000); // Assume 2 hours duration
+      
+      const title = `Dinner at ${booking.restaurant.name}`;
+      const notes = `
+Table for ${booking.party_size} ${booking.party_size === 1 ? 'person' : 'people'}
+Restaurant: ${booking.restaurant.name}
+Confirmation Code: ${booking.confirmation_code}
+${booking.occasion ? `Occasion: ${booking.occasion}` : ''}
+${booking.special_requests ? `Special Requests: ${booking.special_requests}` : ''}
+      `.trim();
+      
+      const location = booking.restaurant.address || booking.restaurant.name;
+      
+      // Show options to user
+      Alert.alert(
+        "Add to Calendar",
+        "Choose how you'd like to add this booking to your calendar:",
+        [
+          {
+            text: "Device Calendar",
+            onPress: async () => {
+              try {
+                const defaultCalendar = await getDefaultCalendar();
+                const eventId = await Calendar.createEventAsync(defaultCalendar.id, {
+                  title,
+                  notes,
+                  location,
+                  startDate,
+                  endDate,
+                  timeZone: 'UTC',
+                  alarms: [
+                    { relativeOffset: -60 }, // 1 hour before
+                    { relativeOffset: -30 }, // 30 minutes before
+                  ],
+                });
+                
+                await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                Alert.alert("Success!", "Booking added to your device calendar");
+              } catch (error) {
+                console.error('Error adding to device calendar:', error);
+                Alert.alert("Error", "Unable to add to device calendar");
+              }
+            }
+          },
+          {
+            text: "Google Calendar",
+            onPress: async () => {
+              // Format dates for Google Calendar URL
+              const formatDateForGoogle = (date: Date) => {
+                return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+              };
+              
+              const startDateString = formatDateForGoogle(startDate);
+              const endDateString = formatDateForGoogle(endDate);
+              
+              const googleCalendarUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${startDateString}/${endDateString}&details=${encodeURIComponent(notes)}&location=${encodeURIComponent(location)}`;
+              
+              try {
+                const canOpen = await Linking.canOpenURL(googleCalendarUrl);
+                if (canOpen) {
+                  await Linking.openURL(googleCalendarUrl);
+                  await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                } else {
+                  Alert.alert("Error", "Unable to open Google Calendar");
+                }
+              } catch (error) {
+                Alert.alert("Error", "Unable to open Google Calendar");
+              }
+            }
+          },
+          {
+            text: "Cancel",
+            style: "cancel"
+          }
+        ]
+      );
+      
+    } catch (error) {
+      console.error('Error in calendar handler:', error);
+      Alert.alert("Error", "Unable to add to calendar");
+    }
+  };
+
   const handleReview = (e: any) => {
     e.stopPropagation();
     onReview?.(booking);
@@ -280,7 +381,7 @@ export function BookingCard({
         <View className="bg-muted/50 rounded-lg p-3 mb-3">
           <View className="flex-row justify-between items-center mb-2">
             <View className="flex-row items-center gap-2">
-              <Calendar size={16} color="#666" />
+              <CalendarIcon size={16} color="#666" />
               <Text className="font-medium text-sm">
                 {isToday
                   ? "Today"
@@ -343,7 +444,22 @@ export function BookingCard({
 
         {/* Quick Action Buttons */}
         {showQuickActions && (
-          <View className="flex-row gap-2">
+          <View className="flex-row gap-2 flex-wrap">
+            {/* Add to Calendar button for upcoming confirmed bookings */}
+            {!isPast && (booking.status === "confirmed" || booking.status === "pending") && (
+              <Button
+                size="sm"
+                variant="outline"
+                onPress={handleAddToCalendar}
+                className="flex-1 min-w-[100px]"
+              >
+                <View className="flex-row items-center gap-1">
+                  <CalendarPlus size={14} color="#3b82f6" />
+                  <Text className="text-xs">Add to Calendar</Text>
+                </View>
+              </Button>
+            )}
+
             {/* Quick Actions for Upcoming Bookings */}
             {!isPast && booking.status === "confirmed" && (
               <>
@@ -351,7 +467,7 @@ export function BookingCard({
                   size="sm"
                   variant="outline"
                   onPress={handleDirections}
-                  className="flex-1"
+                  className="flex-1 min-w-[100px]"
                 >
                   <View className="flex-row items-center gap-1">
                     <Navigation size={14} color="#3b82f6" />
@@ -364,7 +480,7 @@ export function BookingCard({
                     size="sm"
                     variant="outline"
                     onPress={handleQuickCall}
-                    className="flex-1"
+                    className="flex-1 min-w-[100px]"
                   >
                     <View className="flex-row items-center gap-1">
                       <Phone size={14} color="#10b981" />
@@ -378,7 +494,7 @@ export function BookingCard({
                   variant="destructive"
                   onPress={handleCancelBooking}
                   disabled={isProcessing}
-                  className="flex-1"
+                  className="flex-1 min-w-[100px]"
                 >
                   {isProcessing ? (
                     <ActivityIndicator size="small" color="#fff" />
@@ -399,7 +515,7 @@ export function BookingCard({
                 variant="destructive"
                 onPress={handleCancelBooking}
                 disabled={isProcessing}
-                className="w-full"
+                className="flex-1"
               >
                 {isProcessing ? (
                   <ActivityIndicator size="small" color="#fff" />
@@ -437,7 +553,7 @@ export function BookingCard({
                     className="flex-1"
                   >
                     <View className="flex-row items-center gap-1">
-                      <Calendar size={14} color="#000" />
+                      <CalendarIcon size={14} color="#000" />
                       <Text className="text-xs">Book Again</Text>
                     </View>
                   </Button>
