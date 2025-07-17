@@ -1,35 +1,71 @@
-// app/(protected)/(tabs)/search.tsx - Updated with BookingQuickModal
+// app/(protected)/(tabs)/search.tsx
 import React, { useState, useCallback } from "react";
-import { View } from "react-native";
+import { View, Modal } from "react-native";
 import { Region } from "react-native-maps";
+import * as Haptics from "expo-haptics";
 
 import { SafeAreaView } from "@/components/safe-area-view";
+import { useAuth } from "@/context/supabase-provider"; // Import useAuth
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useSearchLogic } from "@/hooks/useSearchLogic";
 import { DEFAULT_MAP_REGION } from "@/constants/searchConstants";
 import { SearchHeader } from "@/components/search/SearchHeader";
-import { ViewToggleTabs } from "@/components/search/ViewToggleTabs";
+import { ViewToggleTabs, ViewMode } from "@/components/search/ViewToggleTabs";
 import { SearchContent } from "@/components/search/SearchContent";
 import { BookingQuickModal } from "@/components/search/BookingQuickModal";
 import { DatePickerModal } from "@/components/search/DatePickerModal";
 import { TimePickerModal } from "@/components/search/TimePickerModal";
 import { PartySizePickerModal } from "@/components/search/PartySizePickerModal";
 import { GeneralFiltersModal } from "@/components/search/GeneralFiltersModal";
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
+import { H3, P } from "@/components/ui/typography";
+
+// --- New Guest Prompt Modal ---
+// This modal appears when a guest tries to perform a protected action.
+const GuestPromptModal = ({
+  visible,
+  onClose,
+  onConfirm,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+}) => {
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View className="flex-1 justify-center items-center bg-black/60">
+        <View className="bg-background w-4/5 rounded-2xl p-6 items-center">
+          <H3 className="mb-2 text-center">Save Your Finds</H3>
+          <P className="text-muted-foreground text-center mb-6">
+            Please sign up or log in to save restaurants to your favorites.
+          </P>
+          <Button onPress={onConfirm} className="w-full mb-3" size="lg">
+            <Text className="font-bold text-white">Continue</Text>
+          </Button>
+          <Button onPress={onClose} variant="ghost" className="w-full">
+            <Text>Not Now</Text>
+          </Button>
+        </View>
+      </View>
+    </Modal>
+  );
+};
 
 export default function SearchScreen() {
   const { colorScheme } = useColorScheme();
+  const { searchState, actions, handlers, computed } = useSearchLogic();
 
-  const { searchState, actions, handlers, computed, location } =
-    useSearchLogic();
+  // --- MODIFIED: Auth and Guest State ---
+  const { user, isGuest, convertGuestToUser } = useAuth();
+  const [showGuestPrompt, setShowGuestPrompt] = useState(false);
 
-  // Modal visibility state
+  // Other modal visibility states
   const [showGeneralFilters, setShowGeneralFilters] = useState(false);
-  const [showBookingModal, setShowBookingModal] = useState(false); // New booking modal
+  const [showBookingModal, setShowBookingModal] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [showPartySizePicker, setShowPartySizePicker] = useState(false);
-
-  // Header collapse state
   const [isHeaderCollapsed, setIsHeaderCollapsed] = useState(false);
 
   // Map region state
@@ -56,23 +92,45 @@ export default function SearchScreen() {
     }
   }, [searchState.userLocation]);
 
-  // Handle scroll to determine header collapse - optimized for performance
-  const handleScroll = useCallback((event: any) => {
-    // Don't handle scroll collapse if in map view (it should stay collapsed)
-    if (searchState.viewMode === "map") return;
-    
-    const scrollY = event.nativeEvent.contentOffset.y;
-    const shouldCollapse = scrollY > 20; // Even more sensitive threshold
-    
-    // Only update if state actually changed to prevent unnecessary re-renders
-    if (shouldCollapse !== isHeaderCollapsed) {
-      setIsHeaderCollapsed(shouldCollapse);
+  // --- NEW: Guest Guard Logic ---
+  // This function wraps actions that are not available to guests.
+  const runProtectedAction = (callback: () => void) => {
+    if (isGuest) {
+      // If user is a guest, show the prompt instead of running the action.
+      setShowGuestPrompt(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    } else if (user) {
+      // If user is logged in, run the action.
+      callback();
     }
-  }, [isHeaderCollapsed, searchState.viewMode]);
+  };
 
-  // Auto-collapse header when switching to map view - with immediate effect
+  // --- NEW: Handler for the guest prompt's confirm button ---
+  const handleConfirmGuestPrompt = async () => {
+    setShowGuestPrompt(false);
+    await convertGuestToUser();
+    // The AuthProvider will automatically handle navigation to the welcome screen.
+  };
+
+  // --- MODIFIED: The favorite action is now wrapped by the guest guard ---
+  const handleToggleFavoriteProtected = (restaurantId: string) => {
+    runProtectedAction(() => actions.toggleFavorite(restaurantId));
+  };
+
+  // Unchanged handlers
+  const handleScroll = useCallback(
+    (event: any) => {
+      if (searchState.viewMode === "map") return;
+      const scrollY = event.nativeEvent.contentOffset.y;
+      const shouldCollapse = scrollY > 20;
+      if (shouldCollapse !== isHeaderCollapsed) {
+        setIsHeaderCollapsed(shouldCollapse);
+      }
+    },
+    [isHeaderCollapsed, searchState.viewMode],
+  );
+
   const handleMapViewSelected = useCallback(() => {
-    // Use requestAnimationFrame for the smoothest possible transition
     requestAnimationFrame(() => {
       if (!isHeaderCollapsed) {
         setIsHeaderCollapsed(true);
@@ -80,28 +138,24 @@ export default function SearchScreen() {
     });
   }, [isHeaderCollapsed]);
 
-  // Auto-expand header when switching back to list view - with immediate effect  
-  const handleViewModeChange = useCallback((mode: ViewMode) => {
-    actions.setViewMode(mode);
-    // Use requestAnimationFrame for smoother state updates
-    requestAnimationFrame(() => {
-      if (mode === "list" && isHeaderCollapsed) {
-        setIsHeaderCollapsed(false);
-      }
-    });
-  }, [actions, isHeaderCollapsed]);
-
-  // Map region change handler
-  const handleMapRegionChange = useCallback(
-    (region: Region) => {
-      setMapRegion(region);
+  const handleViewModeChange = useCallback(
+    (mode: ViewMode) => {
+      actions.setViewMode(mode);
+      requestAnimationFrame(() => {
+        if (mode === "list" && isHeaderCollapsed) {
+          setIsHeaderCollapsed(false);
+        }
+      });
     },
-    [],
+    [actions, isHeaderCollapsed],
   );
+
+  const handleMapRegionChange = useCallback((region: Region) => {
+    setMapRegion(region);
+  }, []);
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      {/* Collapsible Search Header */}
       <SearchHeader
         searchQuery={searchState.searchQuery}
         bookingFilters={searchState.bookingFilters}
@@ -116,7 +170,6 @@ export default function SearchScreen() {
         onShowBookingModal={() => setShowBookingModal(true)}
       />
 
-      {/* View Toggle Tabs - Always visible below header */}
       <ViewToggleTabs
         viewMode={searchState.viewMode}
         colorScheme={colorScheme}
@@ -125,7 +178,6 @@ export default function SearchScreen() {
         restaurantCount={searchState.restaurants.length}
       />
 
-      {/* Search Content with Scroll Handling */}
       <SearchContent
         viewMode={searchState.viewMode}
         restaurants={searchState.restaurants}
@@ -135,13 +187,13 @@ export default function SearchScreen() {
         bookingFilters={searchState.bookingFilters}
         colorScheme={colorScheme}
         mapRegion={mapRegion}
-        onToggleFavorite={actions.toggleFavorite}
+        onToggleFavorite={handleToggleFavoriteProtected} // MODIFIED: Use the protected handler
         onDirections={handlers.openDirections}
         onRestaurantPress={handlers.handleRestaurantPress}
         onRefresh={actions.handleRefresh}
         onClearFilters={actions.clearAllFilters}
         onMapRegionChange={handleMapRegionChange}
-        onScroll={handleScroll} // Pass scroll handler
+        onScroll={handleScroll}
       />
 
       {/* Modals */}
@@ -187,6 +239,13 @@ export default function SearchScreen() {
           setShowGeneralFilters(false);
         }}
         onClose={() => setShowGeneralFilters(false)}
+      />
+
+      {/* --- NEW: Guest prompt modal is added to the layout --- */}
+      <GuestPromptModal
+        visible={showGuestPrompt}
+        onClose={() => setShowGuestPrompt(false)}
+        onConfirm={handleConfirmGuestPrompt}
       />
     </SafeAreaView>
   );

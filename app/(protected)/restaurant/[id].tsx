@@ -16,6 +16,7 @@ import {
   Camera,
   ExternalLink,
   Navigation,
+  Edit3,
   Car,
   Utensils,
   Leaf,
@@ -36,10 +37,11 @@ import * as Haptics from "expo-haptics";
 import MapView, { Marker } from "react-native-maps";
 import { RestaurantPosts } from "@/components/restaurant/RestaurantPosts";
 import { AddToPlaylistModal } from "@/components/playlists/AddToPlaylistModal";
+import { GuestPromptModal } from "@/components/guest/GuestPromptModal";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { H1, H2, H3, P } from "@/components/ui/typography";
+import { H1, H2, H3, P, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 import {
   postgisToAddress,
@@ -48,10 +50,11 @@ import {
 
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
-import { Database } from "@/types/supabase";
 import { useRestaurant } from "@/hooks/useRestaurant";
+import { useGuestGuard } from "@/hooks/useGuestGuard";
 import { RestaurantPlaylistIndicator } from "@/components/restaurant/RestaurantPlaylistIndicator";
 import RestaurantDetailsScreenSkeleton from "@/components/skeletons/RestaurantDetailsScreenSkeleton";
+import { Database } from "@/types/supabase";
 
 // Type definitions
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
@@ -127,33 +130,6 @@ const useRestaurantLocation = (postgisGeometry: string | null) => {
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const IMAGE_HEIGHT = Math.min(SCREEN_HEIGHT * 0.4, 320);
-
-// Guest Prompt Modal
-const GuestPromptModal: React.FC<{
-  visible: boolean;
-  onClose: () => void;
-  onConfirm: () => void;
-  feature: string;
-}> = ({ visible, onClose, onConfirm, feature }) => {
-  return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View className="flex-1 justify-center items-center bg-black/60">
-        <View className="bg-background w-4/5 rounded-2xl p-6 items-center">
-          <H3 className="mb-2 text-center">Join to Unlock!</H3>
-          <P className="text-muted-foreground text-center mb-6">
-            Please sign up or log in to {feature}.
-          </P>
-          <Button onPress={onConfirm} className="w-full mb-3" size="lg">
-            <Text className="font-bold text-white">Continue</Text>
-          </Button>
-          <Button onPress={onClose} variant="ghost" className="w-full">
-            <Text>Not Now</Text>
-          </Button>
-        </View>
-      </View>
-    </Modal>
-  );
-};
 
 // Image Gallery Component
 const ImageGallery: React.FC<{
@@ -279,7 +255,22 @@ const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({
   const { address, isLoading } = useRestaurantLocation(restaurant.location);
 
   const isOpen = () => {
-    return true;
+    const now = new Date();
+    const currentTime = now.getHours() * 100 + now.getMinutes();
+    
+    if (restaurant.opening_time && restaurant.closing_time) {
+      const openTime = parseInt(restaurant.opening_time.replace(':', ''));
+      const closeTime = parseInt(restaurant.closing_time.replace(':', ''));
+      
+      if (closeTime < openTime) {
+        // Crosses midnight
+        return currentTime >= openTime || currentTime <= closeTime;
+      } else {
+        return currentTime >= openTime && currentTime <= closeTime;
+      }
+    }
+    
+    return true; // Default to open if no hours specified
   };
 
   return (
@@ -290,7 +281,6 @@ const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({
           <Text className="text-muted-foreground">
             {restaurant.cuisine_type} • {"$".repeat(restaurant.price_range || 2)}          
           </Text>
-          
         </View>
 
         <View className="items-end">
@@ -341,7 +331,7 @@ const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({
   );
 };
 
-// About Section - Redesigned
+// About Section
 const AboutSection: React.FC<{ restaurant: Restaurant }> = ({ restaurant }) => {
   const [showFullDescription, setShowFullDescription] = useState(false);
 
@@ -370,7 +360,7 @@ const AboutSection: React.FC<{ restaurant: Restaurant }> = ({ restaurant }) => {
   );
 };
 
-// Features Section - Redesigned
+// Features Section
 const FeaturesSection: React.FC<{ restaurant: Restaurant }> = ({
   restaurant,
 }) => {
@@ -403,7 +393,7 @@ const FeaturesSection: React.FC<{ restaurant: Restaurant }> = ({
   );
 };
 
-// Menu Section - Redesigned
+// Menu Section
 const MenuSection: React.FC<{ onViewMenu: () => void }> = ({ onViewMenu }) => {
   return (
     <View className="px-4 py-3 border-b border-border/50">
@@ -429,7 +419,7 @@ const MenuSection: React.FC<{ onViewMenu: () => void }> = ({ onViewMenu }) => {
   );
 };
 
-// Contact Info - Redesigned
+// Contact Info
 const ContactInfo: React.FC<{
   restaurant: Restaurant;
   onCall: () => void;
@@ -480,7 +470,7 @@ const ContactInfo: React.FC<{
   );
 };
 
-// Location Map - Redesigned
+// Location Map
 const LocationMap: React.FC<{
   restaurant: Restaurant;
   onDirections: () => void;
@@ -555,16 +545,26 @@ const LocationMap: React.FC<{
   );
 };
 
-// Reviews Summary - Redesigned
-const ReviewsSummary: React.FC<{
+// Reviews Summary
+interface ReviewsSummaryProps {
   restaurant: Restaurant;
   reviews: Review[];
   onViewAllReviews: () => void;
-}> = ({ restaurant, reviews, onViewAllReviews }) => {
+  onWriteReview: () => void;
+}
+
+const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
+  restaurant,
+  reviews,
+  onViewAllReviews,
+  onWriteReview,
+}) => {
   return (
     <View className="px-4 py-3 border-b border-border/50 mb-4">
       <View className="flex-row items-center justify-between mb-3">
-        <Text className="text-base font-semibold text-foreground">Reviews</Text>
+        <Text className="text-base font-semibold text-foreground">
+          Reviews ({restaurant.total_reviews || 0})
+        </Text>
         <Pressable
           onPress={onViewAllReviews}
           className="flex-row items-center gap-1"
@@ -616,32 +616,50 @@ const ReviewsSummary: React.FC<{
         </View>
       </View>
 
-      {/* Recent Reviews */}
-      {reviews.slice(0, 2).map((review) => (
-        <View key={review.id} className="mb-3 last:mb-0 p-3 bg-muted/10 rounded-xl">
-          <View className="flex-row items-center gap-2 mb-2">
-            <View className="w-7 h-7 rounded-full bg-primary/20 items-center justify-center">
-              <Text className="text-xs font-medium text-primary">
-                {review.user.full_name.charAt(0)}
-              </Text>
-            </View>
-            <Text className="text-sm font-medium text-foreground">{review.user.full_name}</Text>
-            <View className="flex-row ml-auto">
-              {[1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  size={12}
-                  color="#f59e0b"
-                  fill={star <= review.overall_rating ? "#f59e0b" : "none"}
-                />
-              ))}
-            </View>
-          </View>
-          <Text className="text-sm text-muted-foreground" numberOfLines={2}>
-            {review.comment}
+      {/* Write a Review Button */}
+      <Button variant="outline" onPress={onWriteReview} className="mb-4">
+        <View className="flex-row items-center">
+          <Edit3 size={16} color="#3b82f6" />
+          <Text className="font-semibold text-primary ml-2">
+            Write a Review
           </Text>
         </View>
-      ))}
+      </Button>
+
+      {/* Recent Reviews */}
+      {reviews.length > 0 ? (
+        reviews.slice(0, 2).map((review) => (
+          <View key={review.id} className="mb-3 last:mb-0 p-3 bg-muted/10 rounded-xl">
+            <View className="flex-row items-center gap-2 mb-2">
+              <View className="w-7 h-7 rounded-full bg-primary/20 items-center justify-center">
+                <Text className="text-xs font-medium text-primary">
+                  {review.user.full_name.charAt(0)}
+                </Text>
+              </View>
+              <Text className="text-sm font-medium text-foreground">
+                {review.user.full_name}
+              </Text>
+              <View className="flex-row ml-auto">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    size={12}
+                    color="#f59e0b"
+                    fill={star <= review.overall_rating ? "#f59e0b" : "none"}
+                  />
+                ))}
+              </View>
+            </View>
+            <Text className="text-sm text-muted-foreground" numberOfLines={2}>
+              {review.comment}
+            </Text>
+          </View>
+        ))
+      ) : (
+        <View className="items-center py-4">
+          <Muted>Be the first to review this restaurant!</Muted>
+        </View>
+      )}
     </View>
   );
 };
@@ -653,11 +671,20 @@ export default function RestaurantDetailsScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const id = params?.id;
 
-  const { user, isGuest, convertGuestToUser } = useAuth();
+  // State for non-protected UI elements
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
-  const [showGuestPrompt, setShowGuestPrompt] = useState(false);
-  const [promptedFeature, setPromptedFeature] = useState("");
 
+  // Guest Guard Hook
+  const {
+    isGuest,
+    showGuestPrompt,
+    promptedFeature,
+    runProtectedAction,
+    handleClosePrompt,
+    handleSignUpFromPrompt,
+  } = useGuestGuard();
+
+  // Restaurant data hook
   const {
     restaurant,
     reviews,
@@ -669,48 +696,48 @@ export default function RestaurantDetailsScreen() {
     openDirections,
   } = useRestaurant(id);
 
-  const runProtectedAction = (callback: () => void, featureName: string) => {
-    if (isGuest) {
-      setPromptedFeature(featureName);
-      setShowGuestPrompt(true);
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-    } else if (user) {
-      callback();
-    } else {
-      router.push("/welcome");
-    }
-  };
-
-  const handleConfirmGuestPrompt = async () => {
-    setShowGuestPrompt(false);
-    await convertGuestToUser();
-  };
-
-  const handleToggleFavorite = () => {
+  // Action Handlers with Guest Guard
+  const handleToggleFavorite = useCallback(() => {
     runProtectedAction(toggleFavorite, "save restaurants");
-  };
+  }, [runProtectedAction, toggleFavorite]);
 
-  const handleAddToPlaylist = () => {
+  const handleAddToPlaylist = useCallback(() => {
     runProtectedAction(
       () => setShowAddToPlaylist(true),
       "add restaurants to a playlist"
     );
-  };
+  }, [runProtectedAction]);
 
-  const handleAttemptBooking = () => {
+  const handleWriteReview = useCallback(() => {
+    if (!restaurant) return;
+    runProtectedAction(
+      () => router.push(`/restaurant/${restaurant.id}/write-review`),
+      "write a review"
+    );
+  }, [runProtectedAction, router, restaurant]);
+
+  const handleBookTable = useCallback(() => {
+    if (!restaurant) return;
+    router.push({
+      pathname: "/booking/availability",
+      params: {
+        restaurantId: id!,
+        restaurantName: restaurant.name,
+      },
+    });
+  }, [router, id, restaurant]);
+
+  const handleAttemptBooking = useCallback(() => {
     runProtectedAction(handleBookTable, "book a table");
-  };
+  }, [runProtectedAction, handleBookTable]);
 
-  const handleAddToPlaylistSuccess = useCallback(
-    (playlistName: string) => {
-      Alert.alert(
-        "Added to Playlist",
-        `${restaurant?.name} has been added to "${playlistName}"`,
-        [{ text: "OK" }]
-      );
-    },
-    [restaurant?.name]
-  );
+  const handleAddToPlaylistSuccess = useCallback((playlistName: string) => {
+    Alert.alert(
+      "Added to Playlist",
+      `${restaurant?.name} has been added to "${playlistName}"`,
+      [{ text: "OK" }]
+    );
+  }, [restaurant?.name]);
 
   const allImages = React.useMemo(() => {
     if (!restaurant) return [];
@@ -719,11 +746,11 @@ export default function RestaurantDetailsScreen() {
       images.push(...restaurant.image_urls);
     }
     return images.filter(Boolean) as string[];
-  }, [restaurant?.main_image_url, restaurant?.image_urls]);
+  }, [restaurant]);
 
   const handleWebsite = useCallback(() => {
     if (restaurant?.website_url) {
-      // Your existing logic to open website
+      // Logic to open website
     }
   }, [restaurant?.website_url]);
 
@@ -738,17 +765,6 @@ export default function RestaurantDetailsScreen() {
     if (!restaurant) return;
     router.push(`/restaurant/menu/${restaurant.id}`);
   }, [router, restaurant?.id]);
-
-  const handleBookTable = useCallback(() => {
-    if (!restaurant) return;
-    router.push({
-      pathname: "/booking/availability",
-      params: {
-        restaurantId: id!,
-        restaurantName: restaurant.name,
-      },
-    });
-  }, [router, id, restaurant]);
 
   // Loading and Error States
   if (loading) {
@@ -816,6 +832,8 @@ export default function RestaurantDetailsScreen() {
 
         <RestaurantHeaderInfo restaurant={restaurant} />
 
+        {!isGuest && <RestaurantPlaylistIndicator restaurantId={restaurant.id} />}
+
         <AboutSection restaurant={restaurant} />
         <FeaturesSection restaurant={restaurant} />
         <ContactInfo
@@ -832,6 +850,7 @@ export default function RestaurantDetailsScreen() {
           restaurant={restaurant}
           reviews={reviews}
           onViewAllReviews={handleViewAllReviews}
+          onWriteReview={handleWriteReview}
         />
         <RestaurantPosts
           restaurantId={restaurant.id}
@@ -870,9 +889,9 @@ export default function RestaurantDetailsScreen() {
 
       <GuestPromptModal
         visible={showGuestPrompt}
-        onClose={() => setShowGuestPrompt(false)}
-        onConfirm={handleConfirmGuestPrompt}
-        feature={promptedFeature}
+        onClose={handleClosePrompt}
+        onSignUp={handleSignUpFromPrompt}
+        featureName={promptedFeature}
       />
     </View>
   );

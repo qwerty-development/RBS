@@ -35,6 +35,8 @@ import {
   QrCode,
   CalendarDays,
   X,
+  Lock, // Added for guest view
+  UserPlus, // Added for guest view
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { Calendar } from "react-native-calendars";
@@ -64,7 +66,7 @@ interface TimeSlot {
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// Party Size Selector Component
+// --- PartySizeSelector Component ---
 const PartySizeSelector: React.FC<{
   partySize: number;
   onPartySizeChange: (size: number) => void;
@@ -146,7 +148,7 @@ const PartySizeSelector: React.FC<{
   );
 };
 
-// Date Selector Component
+// --- Date Selector Component ---
 const DateSelector: React.FC<{
   selectedDate: Date;
   onDateChange: (date: Date) => void;
@@ -433,7 +435,7 @@ const DateSelector: React.FC<{
   );
 };
 
-// Time Slots Component
+// --- Time Slots Component ---
 const TimeSlots: React.FC<{
   availableSlots: TimeSlot[];
   selectedTime: string;
@@ -536,7 +538,7 @@ const TimeSlots: React.FC<{
   );
 };
 
-// ENHANCED: Preselected Offer Preview Component
+// --- Preselected Offer Preview Component ---
 const PreselectedOfferPreview: React.FC<{
   offerTitle: string;
   offerDiscount: number;
@@ -589,7 +591,7 @@ const PreselectedOfferPreview: React.FC<{
   );
 };
 
-// Loyalty Preview Component
+// --- Loyalty Preview Component ---
 const LoyaltyPreview: React.FC<{
   earnablePoints: number;
   userTier: string;
@@ -630,7 +632,7 @@ const LoyaltyPreview: React.FC<{
   );
 };
 
-// Regular Offers Preview Component
+// --- Regular Offers Preview Component ---
 const OffersPreview: React.FC<{
   availableOffers: any[];
   onViewOffers: () => void;
@@ -669,12 +671,12 @@ const OffersPreview: React.FC<{
   );
 };
 
+// --- Main Component ---
 export default function AvailabilitySelectionScreen() {
   const { colorScheme } = useColorScheme();
-  const { profile } = useAuth();
   const router = useRouter();
+  const { profile, isGuest, convertGuestToUser } = useAuth();
 
-  // ENHANCED: Get offer parameters from navigation
   const params = useLocalSearchParams<{
     restaurantId: string;
     restaurantName?: string;
@@ -684,12 +686,59 @@ export default function AvailabilitySelectionScreen() {
     redemptionCode?: string;
   }>();
 
-  // State management
+  // --- Guest View ---
+  if (isGuest) {
+    return (
+      <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+        <View className="flex-row items-center px-4 py-4 border-b border-border">
+          <Pressable onPress={() => router.back()} className="p-2 -ml-2">
+            <ChevronLeft size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
+          </Pressable>
+          <View className="flex-1 mx-4">
+            <H3 className="text-center font-semibold">Book a Table</H3>
+            <Muted className="text-sm text-center">{params.restaurantName}</Muted>
+          </View>
+           <View className="w-10" />
+        </View>
+
+        <View className="flex-1 items-center justify-center px-6 text-center">
+          <View className="w-24 h-24 rounded-full bg-primary/10 items-center justify-center mb-6">
+            <Lock size={48} className="text-primary" />
+          </View>
+          <H2 className="text-center mb-3">Sign Up to Book</H2>
+          <P className="text-center text-muted-foreground mb-8">
+            Create a free account to make reservations at {params.restaurantName}{" "}
+            and thousands of other restaurants. It only takes a minute!
+          </P>
+
+          <View className="w-full max-w-sm gap-4">
+            <Button onPress={convertGuestToUser} size="lg">
+              <UserPlus size={20} color="#fff" />
+              <Text className="ml-2 font-bold text-white">
+                Sign Up & Continue Booking
+              </Text>
+            </Button>
+            <Button onPress={() => router.back()} size="lg" variant="outline">
+              <Text>Back to Restaurant</Text>
+            </Button>
+          </View>
+          
+          {params.offerDiscount && (
+            <View className="mt-6 bg-green-500/10 rounded-lg px-4 py-3 w-full max-w-sm">
+              <Text className="text-sm text-center text-green-600 dark:text-green-400 font-medium">
+                Your {params.offerDiscount}% discount will be saved for when you sign up!
+              </Text>
+            </View>
+          )}
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // --- Authenticated User Logic & State ---
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [selectedTime, setSelectedTime] = useState("");
   const [partySize, setPartySize] = useState(2);
-
-  // ENHANCED: Track preselected offer
   const [preselectedOffer, setPreselectedOffer] = useState<{
     id: string;
     title: string;
@@ -697,30 +746,17 @@ export default function AvailabilitySelectionScreen() {
     redemptionCode: string;
   } | null>(null);
 
-  // Custom hooks
   const {
     restaurant,
     availableSlots,
     loadingSlots,
     fetchAvailableSlots,
-    generateTimeSlots,
   } = useRestaurant(params.restaurantId);
-
-  const {
-    userPoints = 0,
-    userTier = "bronze",
-    calculateBookingPoints,
-  } = useLoyalty() || {};
+  const { userPoints = 0, userTier = "bronze", calculateBookingPoints } = useLoyalty() || {};
   const { offers = [] } = useOffers() || {};
 
-  // ENHANCED: Initialize preselected offer from params
   useEffect(() => {
-    if (
-      params.preselectedOfferId &&
-      params.offerTitle &&
-      params.offerDiscount &&
-      params.redemptionCode
-    ) {
+    if (params.preselectedOfferId && params.offerTitle && params.offerDiscount && params.redemptionCode) {
       setPreselectedOffer({
         id: params.preselectedOfferId,
         title: params.offerTitle,
@@ -728,54 +764,40 @@ export default function AvailabilitySelectionScreen() {
         redemptionCode: params.redemptionCode,
       });
     }
-  }, [
-    params.preselectedOfferId,
-    params.offerTitle,
-    params.offerDiscount,
-    params.redemptionCode,
-  ]);
+  }, [params.preselectedOfferId, params.offerTitle, params.offerDiscount, params.redemptionCode]);
 
-  // Fetch available slots when date or party size changes
   useEffect(() => {
     if (restaurant && fetchAvailableSlots) {
       fetchAvailableSlots(selectedDate, partySize);
     }
   }, [selectedDate, partySize, restaurant, fetchAvailableSlots]);
 
-  // Computed values
   const earnablePoints = useMemo(() => {
     if (!restaurant || !calculateBookingPoints) return 0;
     return calculateBookingPoints(partySize, restaurant.price_range || 2);
   }, [calculateBookingPoints, partySize, restaurant]);
 
-  // Get available offers (excluding preselected one)
   const availableOffers = useMemo(() => {
     return offers.filter(
-      (offer) =>
+      (offer: any) =>
         offer &&
         offer.restaurant_id === params.restaurantId &&
         !offer.usedAt &&
         new Date(offer.expiresAt || offer.valid_until) > new Date() &&
-        offer.id !== preselectedOffer?.id, // Exclude preselected offer
+        offer.id !== preselectedOffer?.id,
     );
   }, [offers, params.restaurantId, preselectedOffer]);
 
-  // Event handlers
   const handleDateChange = useCallback((date: Date) => {
     setSelectedDate(date);
-    setSelectedTime(""); // Reset time when date changes
+    setSelectedTime("");
   }, []);
 
-  // ENHANCED: Continue booking with preselected offer
   const handleContinueBooking = useCallback(() => {
     if (!selectedTime || !restaurant) {
-      Alert.alert(
-        "Please select a time",
-        "You need to select an available time slot to continue.",
-      );
+      Alert.alert("Please select a time", "You need to select an available time slot to continue.");
       return;
     }
-
     const navigationParams: any = {
       restaurantId: params.restaurantId,
       restaurantName: restaurant.name,
@@ -784,67 +806,36 @@ export default function AvailabilitySelectionScreen() {
       partySize: partySize.toString(),
       earnablePoints: earnablePoints.toString(),
     };
-
-    // Include preselected offer if available
     if (preselectedOffer) {
       navigationParams.offerId = preselectedOffer.id;
       navigationParams.offerTitle = preselectedOffer.title;
       navigationParams.offerDiscount = preselectedOffer.discount.toString();
       navigationParams.redemptionCode = preselectedOffer.redemptionCode;
     }
-
-    router.push({
-      pathname: "/booking/create",
-      params: navigationParams,
-    });
-  }, [
-    selectedTime,
-    restaurant,
-    router,
-    params.restaurantId,
-    selectedDate,
-    partySize,
-    earnablePoints,
-    preselectedOffer,
-  ]);
-
+    router.push({ pathname: "/booking/create", params: navigationParams });
+  }, [selectedTime, restaurant, router, selectedDate, partySize, earnablePoints, preselectedOffer]);
+  
   const handleViewOffers = useCallback(() => {
     router.push({
       pathname: "/offers",
-      params: {
-        restaurantId: params.restaurantId,
-        returnTo: "availability",
-      },
+      params: { restaurantId: params.restaurantId, returnTo: "availability" },
     });
   }, [router, params.restaurantId]);
 
-  // ENHANCED: Remove preselected offer
   const handleRemovePreselectedOffer = useCallback(() => {
-    Alert.alert(
-      "Remove Offer",
-      "Are you sure you want to remove this offer from your booking?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: () => {
-            setPreselectedOffer(null);
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          },
-        },
-      ],
-    );
+    Alert.alert("Remove Offer", "Are you sure you want to remove this offer from your booking?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Remove", style: "destructive", onPress: () => { setPreselectedOffer(null); Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light); } },
+    ]);
   }, []);
 
-  // Loading state
   if (!restaurant) {
     return <AvailabilityScreenSkeleton />;
   }
 
+  // --- Authenticated User View ---
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
-      {/* Header */}
       <View className="flex-row items-center px-4 py-3 border-b border-border">
         <Pressable onPress={() => router.back()} className="p-2 -ml-2">
           <ChevronLeft size={24} />
@@ -855,151 +846,42 @@ export default function AvailabilitySelectionScreen() {
         </View>
         <View className="w-10" />
       </View>
-
-      {/* Restaurant Info Card */}
       <View className="mx-4 mt-4 p-4 bg-card rounded-xl border border-border">
         <View className="flex-row gap-3">
-          <Image
-            source={{ uri: restaurant.main_image_url }}
-            className="w-16 h-16 rounded-lg"
-            contentFit="cover"
-          />
+          <Image source={{ uri: restaurant.main_image_url }} className="w-16 h-16 rounded-lg" contentFit="cover" />
           <View className="flex-1">
             <H3 className="mb-1">{restaurant.name}</H3>
             <View className="flex-row items-center gap-2 mb-1">
               <Star size={14} color="#f59e0b" fill="#f59e0b" />
-              <Text className="text-sm font-medium">
-                {restaurant.average_rating?.toFixed(1) || "4.5"}
-              </Text>
+              <Text className="text-sm font-medium">{restaurant.average_rating?.toFixed(1) || "4.5"}</Text>
               <Text className="text-sm text-muted-foreground">•</Text>
-              <Text className="text-sm text-muted-foreground">
-                {restaurant.cuisine_type}
-              </Text>
+              <Text className="text-sm text-muted-foreground">{restaurant.cuisine_type}</Text>
             </View>
             <View className="flex-row items-center gap-1">
               <MapPin size={12} color="#666" />
-              <Text className="text-xs text-muted-foreground" numberOfLines={1}>
-                {restaurant.address}
-              </Text>
+              <Text className="text-xs text-muted-foreground" numberOfLines={1}>{restaurant.address}</Text>
             </View>
           </View>
         </View>
       </View>
-
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         <View className="p-4 gap-4">
-          {/* ENHANCED: Preselected Offer Preview */}
-          {preselectedOffer && (
-            <PreselectedOfferPreview
-              offerTitle={preselectedOffer.title}
-              offerDiscount={preselectedOffer.discount}
-              redemptionCode={preselectedOffer.redemptionCode}
-              onRemove={handleRemovePreselectedOffer}
-            />
-          )}
-
-          {/* Party Size Selector */}
-          <PartySizeSelector
-            partySize={partySize}
-            onPartySizeChange={setPartySize}
-            maxPartySize={12}
-          />
-
-          {/* Date Selector */}
-          <DateSelector
-            selectedDate={selectedDate}
-            onDateChange={handleDateChange}
-            maxDaysAhead={restaurant.booking_window_days || 30}
-          />
-
-          {/* Time Slots */}
-          <TimeSlots
-            availableSlots={availableSlots || []}
-            selectedTime={selectedTime}
-            onTimeChange={setSelectedTime}
-            loading={loadingSlots || false}
-          />
-
-          {/* Loyalty Preview */}
-          {profile && (
-            <LoyaltyPreview
-              earnablePoints={earnablePoints}
-              userTier={userTier}
-              userPoints={userPoints}
-            />
-          )}
-
-          {/* Other Offers Preview (only show if no preselected offer) */}
-          {!preselectedOffer && (
-            <OffersPreview
-              availableOffers={availableOffers}
-              onViewOffers={handleViewOffers}
-            />
-          )}
-
-          {/* Booking Policies */}
-          <View className="bg-muted/30 rounded-xl p-4">
-            <Text className="font-semibold mb-2">Booking Information</Text>
-            <View className="gap-2">
-              <Text className="text-sm text-muted-foreground">
-                •{" "}
-                {restaurant.booking_policy === "instant"
-                  ? "Instant confirmation"
-                  : "Confirmation within 2 hours"}
-              </Text>
-              {restaurant.cancellation_window_hours && (
-                <Text className="text-sm text-muted-foreground">
-                  • Free cancellation up to{" "}
-                  {restaurant.cancellation_window_hours} hours before
-                </Text>
-              )}
-              <Text className="text-sm text-muted-foreground">
-                • Please arrive on time to keep your reservation
-              </Text>
-              {preselectedOffer && (
-                <Text className="text-sm text-green-600 dark:text-green-400">
-                  • Your {preselectedOffer.discount}% discount will be applied
-                  automatically
-                </Text>
-              )}
-            </View>
-          </View>
+          {preselectedOffer && <PreselectedOfferPreview offerTitle={preselectedOffer.title} offerDiscount={preselectedOffer.discount} redemptionCode={preselectedOffer.redemptionCode} onRemove={handleRemovePreselectedOffer} />}
+          <PartySizeSelector partySize={partySize} onPartySizeChange={setPartySize} maxPartySize={12} />
+          <DateSelector selectedDate={selectedDate} onDateChange={handleDateChange} maxDaysAhead={restaurant.booking_window_days || 30} />
+          <TimeSlots availableSlots={availableSlots || []} selectedTime={selectedTime} onTimeChange={setSelectedTime} loading={loadingSlots || false} />
+          {profile && <LoyaltyPreview earnablePoints={earnablePoints} userTier={userTier} userPoints={userPoints} />}
+          {!preselectedOffer && <OffersPreview availableOffers={availableOffers} onViewOffers={handleViewOffers} />}
+          <View className="bg-muted/30 rounded-xl p-4"><Text className="font-semibold mb-2">Booking Information</Text><View className="gap-2"><Text className="text-sm text-muted-foreground">• {restaurant.booking_policy === "instant" ? "Instant confirmation" : "Confirmation within 2 hours"}</Text>{restaurant.cancellation_window_hours && <Text className="text-sm text-muted-foreground">• Free cancellation up to {restaurant.cancellation_window_hours} hours before</Text>}<Text className="text-sm text-muted-foreground">• Please arrive on time to keep your reservation</Text>{preselectedOffer && <Text className="text-sm text-green-600 dark:text-green-400">• Your {preselectedOffer.discount}% discount will be applied automatically</Text>}</View></View>
         </View>
       </ScrollView>
-
-      {/* ENHANCED: Bottom CTA with offer info */}
       <View className="p-4 border-t border-border bg-background">
         <View className="flex-row items-center justify-between mb-3">
           <View>
-            <Text className="font-semibold">
-              {selectedDate.toLocaleDateString("en-US", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              })}
-              {selectedTime && ` at ${selectedTime}`}
-            </Text>
-            <View className="flex-row items-center gap-2">
-              <Text className="text-sm text-muted-foreground">
-                Party of {partySize} • Earn {earnablePoints} points
-              </Text>
-              {preselectedOffer && (
-                <>
-                  <Text className="text-sm text-muted-foreground">•</Text>
-                  <Text className="text-sm font-medium text-green-600 dark:text-green-400">
-                    {preselectedOffer.discount}% OFF applied
-                  </Text>
-                </>
-              )}
-            </View>
+            <Text className="font-semibold">{selectedDate.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}{selectedTime && ` at ${selectedTime}`}</Text>
+            <View className="flex-row items-center gap-2"><Text className="text-sm text-muted-foreground">Party of {partySize} • Earn {earnablePoints} points</Text>{preselectedOffer && <><Text className="text-sm text-muted-foreground">•</Text><Text className="text-sm font-medium text-green-600 dark:text-green-400">{preselectedOffer.discount}% OFF applied</Text></>}</View>
           </View>
-          <Button
-            onPress={handleContinueBooking}
-            disabled={!selectedTime}
-            className="px-6"
-          >
-            <Text className="text-white font-bold">Continue</Text>
-          </Button>
+          <Button onPress={handleContinueBooking} disabled={!selectedTime} className="px-6"><Text className="text-white font-bold">Continue</Text></Button>
         </View>
       </View>
     </SafeAreaView>

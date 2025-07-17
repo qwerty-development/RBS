@@ -15,13 +15,14 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as WebBrowser from "expo-web-browser";
 import { makeRedirectUri } from "expo-auth-session";
 import * as Linking from "expo-linking";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+const GUEST_MODE_KEY = "guest-mode-active";
 
 // Add this at the top of your AuthContent component
 WebBrowser.maybeCompleteAuthSession();
 // Prevent auto hide initially
 SplashScreen.preventAutoHideAsync().catch(console.warn);
-
-
 
 // Profile type definition
 type Profile = {
@@ -49,6 +50,7 @@ type AuthState = {
 	session: Session | null;
 	user: User | null;
 	profile: Profile | null;
+	isGuest: boolean; // NEW: Guest state
 	signUp: (email: string, password: string, fullName: string, phoneNumber?: string) => Promise<void>;
 	signIn: (email: string, password: string) => Promise<void>;
 	signOut: () => Promise<void>;
@@ -56,6 +58,8 @@ type AuthState = {
 	refreshProfile: () => Promise<void>;
 	appleSignIn: () => Promise<{ error?: Error; needsProfileUpdate?: boolean }>;
 	googleSignIn: () => Promise<{ error?: Error; needsProfileUpdate?: boolean }>;
+	continueAsGuest: () => void; // NEW: Guest function
+	convertGuestToUser: () => void; // NEW: Convert guest to user function
 };
 
 export const AuthContext = createContext<AuthState>({
@@ -63,6 +67,7 @@ export const AuthContext = createContext<AuthState>({
 	session: null,
 	user: null,
 	profile: null,
+	isGuest: false,
 	signUp: async () => {},
 	signIn: async () => {},
 	signOut: async () => {},
@@ -70,6 +75,8 @@ export const AuthContext = createContext<AuthState>({
 	refreshProfile: async () => {},
 	appleSignIn: async () => ({}),
 	googleSignIn: async () => ({}),
+	continueAsGuest: () => {},
+	convertGuestToUser: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -79,6 +86,7 @@ function AuthContent({ children }: PropsWithChildren) {
 	const [session, setSession] = useState<Session | null>(null);
 	const [user, setUser] = useState<User | null>(null);
 	const [profile, setProfile] = useState<Profile | null>(null);
+	const [isGuest, setIsGuest] = useState(false); // NEW: Guest state
 	
 	const router = useRouter();
 	const initializationAttempted = useRef(false);
@@ -92,6 +100,34 @@ function AuthContent({ children }: PropsWithChildren) {
 	});
 
 	console.log('🎯 OAuth Redirect URI:', redirectUri);
+
+	// NEW: Continue as guest function
+	const continueAsGuest = useCallback(async () => {
+		console.log('👻 Continuing as guest...');
+		try {
+			await AsyncStorage.setItem(GUEST_MODE_KEY, 'true');
+			setIsGuest(true);
+			setSession(null);
+			setUser(null);
+			setProfile(null);
+			// Navigate to main app
+			router.replace("/(protected)/(tabs)");
+		} catch (error) {
+			console.error("Failed to save guest mode status", error);
+		}
+	}, [router]);
+
+	// NEW: Convert guest to user (redirect to welcome)
+	const convertGuestToUser = useCallback(async () => {
+		console.log('🔄 Converting guest to user...');
+		try {
+			await AsyncStorage.removeItem(GUEST_MODE_KEY);
+			setIsGuest(false);
+			router.replace("/welcome");
+		} catch (error) {
+			console.error("Failed to clear guest mode status", error);
+		}
+	}, [router]);
 
 	// Fetch user profile with enhanced error handling
 	const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
@@ -191,6 +227,9 @@ function AuthContent({ children }: PropsWithChildren) {
 		try {
 			console.log('🔄 Starting sign-up process for:', email);
 			
+			// Clear guest mode when signing up
+			setIsGuest(false);
+			
 			const { data: authData, error: authError } = await supabase.auth.signUp({
 				email,
 				password,
@@ -252,6 +291,9 @@ function AuthContent({ children }: PropsWithChildren) {
 		try {
 			console.log('🔄 Starting sign-in process for:', email);
 			
+			// Clear guest mode when signing in
+			setIsGuest(false);
+			
 			const { data, error } = await supabase.auth.signInWithPassword({
 				email,
 				password,
@@ -272,6 +314,10 @@ function AuthContent({ children }: PropsWithChildren) {
 	const signOut = useCallback(async () => {
 		try {
 			console.log('🔄 Starting sign-out process...');
+			
+			// Clear guest mode
+			await AsyncStorage.removeItem(GUEST_MODE_KEY);
+			setIsGuest(false);
 			
 			const { error } = await supabase.auth.signOut();
 			if (error) {
@@ -332,6 +378,9 @@ function AuthContent({ children }: PropsWithChildren) {
 	// Apple Sign In implementation
 	const appleSignIn = useCallback(async () => {
 		try {
+			// Clear guest mode
+			setIsGuest(false);
+			
 			// Check if Apple Authentication is available on this device
 			if (Platform.OS !== 'ios') {
 				return { error: new Error('Apple authentication is only available on iOS devices') };
@@ -392,224 +441,258 @@ function AuthContent({ children }: PropsWithChildren) {
 		}
 	}, [processOAuthUser]);
 
-const googleSignIn = useCallback(async () => {
-  try {
-    console.log('🚀 Starting Google sign in');
-    
-    // Create the redirect URI - use expo-auth-session format
-    const redirectUrl = makeRedirectUri({
-      scheme: 'qwerty-booklet',
-      preferLocalhost: false,
-      isTripleSlashed: true,
-      native: 'qwerty-booklet://google'
-    });
-    
-    console.log('🎯 Using redirect URL:', redirectUrl);
+	// Google Sign In implementation (keeping your existing implementation)
+	const googleSignIn = useCallback(async () => {
+		try {
+			// Clear guest mode
+			setIsGuest(false);
+			
+			console.log('🚀 Starting Google sign in');
+			
+			// Create the redirect URI - use expo-auth-session format
+			const redirectUrl = makeRedirectUri({
+				scheme: 'qwerty-booklet',
+				preferLocalhost: false,
+				isTripleSlashed: true,
+				native: 'qwerty-booklet://google'
+			});
+			
+			console.log('🎯 Using redirect URL:', redirectUrl);
 
-    // Step 1: Start OAuth flow
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: redirectUrl,
-        skipBrowserRedirect: true,
-        queryParams: {
-          prompt: 'select_account consent', 
-          access_type: 'offline',
-          include_granted_scopes: 'true',
-        },
-      },
-    });
+			// Step 1: Start OAuth flow
+			const { data, error } = await supabase.auth.signInWithOAuth({
+				provider: 'google',
+				options: {
+					redirectTo: redirectUrl,
+					skipBrowserRedirect: true,
+					queryParams: {
+						prompt: 'select_account consent', 
+						access_type: 'offline',
+						include_granted_scopes: 'true',
+					},
+				},
+			});
 
-    if (error || !data?.url) {
-      console.error('❌ Error initiating Google OAuth:', error);
-      return { error: error || new Error('No OAuth URL received') };
-    }
+			if (error || !data?.url) {
+				console.error('❌ Error initiating Google OAuth:', error);
+				return { error: error || new Error('No OAuth URL received') };
+			}
 
-    console.log('🌐 Opening Google auth session');
-    
-    // Step 2: Set up a URL listener BEFORE opening the browser
-    let urlSubscription: any;
-    const urlPromise = new Promise<string>((resolve, reject) => {
-      // Listen for the redirect
-      urlSubscription = Linking.addEventListener('url', (event) => {
-        console.log('🔗 Received URL:', event.url);
-        if (event.url.includes('google') || event.url.includes('#access_token') || event.url.includes('code=')) {
-          resolve(event.url);
-        }
-      });
-      
-      // Set a timeout
-      setTimeout(() => reject(new Error('OAuth timeout')), 120000); // 2 minutes
-    });
+			console.log('🌐 Opening Google auth session');
+			
+			// Step 2: Set up a URL listener BEFORE opening the browser
+			let urlSubscription: any;
+			const urlPromise = new Promise<string>((resolve, reject) => {
+				// Listen for the redirect
+				urlSubscription = Linking.addEventListener('url', (event) => {
+					console.log('🔗 Received URL:', event.url);
+					if (event.url.includes('google') || event.url.includes('#access_token') || event.url.includes('code=')) {
+						resolve(event.url);
+					}
+				});
+				
+				// Set a timeout
+				setTimeout(() => reject(new Error('OAuth timeout')), 120000); // 2 minutes
+			});
 
-    // Step 3: Open the browser
-    const browserPromise = WebBrowser.openAuthSessionAsync(
-      data.url,
-      redirectUrl,
-      {
-        showInRecents: false,
-        createTask: false,
-        preferEphemeralSession: false, // Changed to false to allow account selection
-      }
-    );
+			// Step 3: Open the browser
+			const browserPromise = WebBrowser.openAuthSessionAsync(
+				data.url,
+				redirectUrl,
+				{
+					showInRecents: false,
+					createTask: false,
+					preferEphemeralSession: false, // Changed to false to allow account selection
+				}
+			);
 
-    // Step 4: Wait for either the browser to close or URL to be received
-    try {
-      const result = await Promise.race([
-        browserPromise,
-        urlPromise.then(url => ({ type: 'success' as const, url }))
-      ]);
+			// Step 4: Wait for either the browser to close or URL to be received
+			try {
+				const result = await Promise.race([
+					browserPromise,
+					urlPromise.then(url => ({ type: 'success' as const, url }))
+				]);
 
-      console.log('📱 Auth result:', result);
+				console.log('📱 Auth result:', result);
 
-      // Clean up the URL listener
-      if (urlSubscription) {
-        urlSubscription.remove();
-      }
+				// Clean up the URL listener
+				if (urlSubscription) {
+					urlSubscription.remove();
+				}
 
-      if (result.type === 'success' && result.url) {
-        console.log('✅ OAuth callback received');
-        
-        // Step 5: Parse the callback URL
-        const url = new URL(result.url);
-        
-        // Extract parameters from hash or query
-        let params = new URLSearchParams();
-        if (url.hash) {
-          params = new URLSearchParams(url.hash.substring(1));
-        } else if (url.search) {
-          params = new URLSearchParams(url.search);
-        }
-        
-        const access_token = params.get('access_token');
-        const refresh_token = params.get('refresh_token');
-        const code = params.get('code');
-        const error_description = params.get('error_description');
-        
-        if (error_description) {
-          console.error('❌ OAuth error:', error_description);
-          return { error: new Error(error_description) };
-        }
-        
-        // Step 6: Handle code exchange
-        if (code && !access_token) {
-          console.log('🔄 Exchanging code for session');
-          
-          const { data: sessionData, error: sessionError } = 
-            await supabase.auth.exchangeCodeForSession(code);
-          
-          if (sessionError) {
-            console.error('❌ Code exchange error:', sessionError);
-            return { error: sessionError };
-          }
-          
-          if (sessionData?.session) {
-            console.log('🎉 Session established via code exchange');
-            // Session will be handled by onAuthStateChange
-            return {};
-          }
-        }
-        
-        // Step 7: Handle direct token
-        if (access_token) {
-          console.log('✅ Access token found, setting session');
-          
-          const { data: sessionData, error: sessionError } = 
-            await supabase.auth.setSession({
-              access_token,
-              refresh_token: refresh_token || '',
-            });
+				if (result.type === 'success' && result.url) {
+					console.log('✅ OAuth callback received');
+					
+					// Step 5: Parse the callback URL
+					const url = new URL(result.url);
+					
+					// Extract parameters from hash or query
+					let params = new URLSearchParams();
+					if (url.hash) {
+						params = new URLSearchParams(url.hash.substring(1));
+					} else if (url.search) {
+						params = new URLSearchParams(url.search);
+					}
+					
+					const access_token = params.get('access_token');
+					const refresh_token = params.get('refresh_token');
+					const code = params.get('code');
+					const error_description = params.get('error_description');
+					
+					if (error_description) {
+						console.error('❌ OAuth error:', error_description);
+						return { error: new Error(error_description) };
+					}
+					
+					// Step 6: Handle code exchange
+					if (code && !access_token) {
+						console.log('🔄 Exchanging code for session');
+						
+						const { data: sessionData, error: sessionError } = 
+							await supabase.auth.exchangeCodeForSession(code);
+						
+						if (sessionError) {
+							console.error('❌ Code exchange error:', sessionError);
+							return { error: sessionError };
+						}
+						
+						if (sessionData?.session) {
+							console.log('🎉 Session established via code exchange');
+							// Process OAuth user profile
+							const userProfile = await processOAuthUser(sessionData.session);
+							if (userProfile) {
+								setProfile(userProfile);
+								// Check if profile needs additional info
+								const needsUpdate = !userProfile.phone_number;
+								return { needsProfileUpdate: needsUpdate };
+							}
+							return {};
+						}
+					}
+					
+					// Step 7: Handle direct token
+					if (access_token) {
+						console.log('✅ Access token found, setting session');
+						
+						const { data: sessionData, error: sessionError } = 
+							await supabase.auth.setSession({
+								access_token,
+								refresh_token: refresh_token || '',
+							});
 
-          if (sessionError) {
-            console.error('❌ Session creation failed:', sessionError);
-            return { error: sessionError };
-          }
+						if (sessionError) {
+							console.error('❌ Session creation failed:', sessionError);
+							return { error: sessionError };
+						}
 
-          if (sessionData?.session) {
-            console.log('🎉 Session established via tokens');
-            // Session will be handled by onAuthStateChange
-            return {};
-          }
-        }
-        
-        // Step 8: Final fallback check
-        console.log('🔄 Checking for session via getSession');
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Wait a bit
-        
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        
-        if (currentSession) {
-          console.log('✅ Session found via getSession');
-          return {};
-        }
-        
-        console.error('❌ No session established after OAuth');
-        return { error: new Error('Failed to establish session') };
-        
-      } else if (result.type === 'cancel') {
-        console.log('👤 User canceled Google sign-in');
-        return {};
-      } else {
-        console.error('❌ OAuth flow failed');
-        return { error: new Error('OAuth flow failed') };
-      }
-      
-    } catch (timeoutError) {
-      // Clean up listener if timeout
-      if (urlSubscription) {
-        urlSubscription.remove();
-      }
-      console.error('⏱️ OAuth timeout:', timeoutError);
-      
-      // Check if session was created anyway
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        console.log('✅ Session found despite timeout');
-        return {};
-      }
-      
-      return { error: new Error('OAuth timeout') };
-    }
-    
-  } catch (error) {
-    console.error('💥 Google sign in error:', error);
-    return { error: error as Error };
-  }
-}, []);
+						if (sessionData?.session) {
+							console.log('🎉 Session established via tokens');
+							// Process OAuth user profile
+							const userProfile = await processOAuthUser(sessionData.session);
+							if (userProfile) {
+								setProfile(userProfile);
+								// Check if profile needs additional info
+								const needsUpdate = !userProfile.phone_number;
+								return { needsProfileUpdate: needsUpdate };
+							}
+							return {};
+						}
+					}
+					
+					// Step 8: Final fallback check
+					console.log('🔄 Checking for session via getSession');
+					await new Promise(resolve => setTimeout(resolve, 1000)); // Wait a bit
+					
+					const { data: { session: currentSession } } = await supabase.auth.getSession();
+					
+					if (currentSession) {
+						console.log('✅ Session found via getSession');
+						// Process OAuth user profile
+						const userProfile = await processOAuthUser(currentSession);
+						if (userProfile) {
+							setProfile(userProfile);
+							// Check if profile needs additional info
+							const needsUpdate = !userProfile.phone_number;
+							return { needsProfileUpdate: needsUpdate };
+						}
+						return {};
+					}
+					
+					console.error('❌ No session established after OAuth');
+					return { error: new Error('Failed to establish session') };
+					
+				} else if (result.type === 'cancel') {
+					console.log('👤 User canceled Google sign-in');
+					return {};
+				} else {
+					console.error('❌ OAuth flow failed');
+					return { error: new Error('OAuth flow failed') };
+				}
+				
+			} catch (timeoutError) {
+				// Clean up listener if timeout
+				if (urlSubscription) {
+					urlSubscription.remove();
+				}
+				console.error('⏱️ OAuth timeout:', timeoutError);
+				
+				// Check if session was created anyway
+				const { data: { session } } = await supabase.auth.getSession();
+				if (session) {
+					console.log('✅ Session found despite timeout');
+					// Process OAuth user profile
+					const userProfile = await processOAuthUser(session);
+					if (userProfile) {
+						setProfile(userProfile);
+						// Check if profile needs additional info
+						const needsUpdate = !userProfile.phone_number;
+						return { needsProfileUpdate: needsUpdate };
+					}
+					return {};
+				}
+				
+				return { error: new Error('OAuth timeout') };
+			}
+			
+		} catch (error) {
+			console.error('💥 Google sign in error:', error);
+			return { error: error as Error };
+		}
+	}, [processOAuthUser]);
 
-// Make sure you have this in your AuthContent component
-useEffect(() => {
-  // Listen for incoming URLs when app resumes
-  const handleUrl = (url: string) => {
-    console.log('🔗 App opened with URL:', url);
-    
-    // Check if it's an OAuth callback
-    if (url.includes('#access_token') || url.includes('code=')) {
-      console.log('🔄 Processing OAuth callback');
-      
-      // Supabase should handle this automatically
-      // Just check for session after a short delay
-      setTimeout(async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          console.log('✅ Session established from URL');
-        }
-      }, 500);
-    }
-  };
+	// Listen for URL callbacks
+	useEffect(() => {
+		// Listen for incoming URLs when app resumes
+		const handleUrl = (url: string) => {
+			console.log('🔗 App opened with URL:', url);
+			
+			// Check if it's an OAuth callback
+			if (url.includes('#access_token') || url.includes('code=')) {
+				console.log('🔄 Processing OAuth callback');
+				
+				// Supabase should handle this automatically
+				// Just check for session after a short delay
+				setTimeout(async () => {
+					const { data: { session } } = await supabase.auth.getSession();
+					if (session) {
+						console.log('✅ Session established from URL');
+					}
+				}, 500);
+			}
+		};
 
-  // Get initial URL
-  Linking.getInitialURL().then((url) => {
-    if (url) handleUrl(url);
-  });
+		// Get initial URL
+		Linking.getInitialURL().then((url) => {
+			if (url) handleUrl(url);
+		});
 
-  // Listen for URL changes
-  const subscription = Linking.addEventListener('url', (event) => {
-    handleUrl(event.url);
-  });
+		// Listen for URL changes
+		const subscription = Linking.addEventListener('url', (event) => {
+			handleUrl(event.url);
+		});
 
-  return () => subscription.remove();
-}, []);
+		return () => subscription.remove();
+	}, []);
 
 	// Initialize auth state - RUNS ONLY ONCE
 	useEffect(() => {
@@ -628,8 +711,16 @@ useEffect(() => {
 					console.log('✅ Session found during initialization');
 					setSession(session);
 					setUser(session.user);
+					setIsGuest(false);
 				} else {
-					console.log('ℹ️ No session found during initialization');
+					// Check for guest mode
+					const guestModeActive = await AsyncStorage.getItem(GUEST_MODE_KEY);
+					if (guestModeActive === 'true') {
+						console.log('👻 Guest mode active from storage');
+						setIsGuest(true);
+					} else {
+						console.log('ℹ️ No session found during initialization');
+					}
 				}
 			} catch (error) {
 				console.error('❌ Error initializing auth:', error);
@@ -649,10 +740,12 @@ useEffect(() => {
 				if (session) {
 					setSession(session);
 					setUser(session.user);
+					setIsGuest(false);
 				} else {
 					setSession(null);
 					setUser(null);
 					setProfile(null);
+					// Don't set guest mode here - only via explicit action
 				}
 			} catch (error) {
 				console.error('❌ Error handling auth state change:', error);
@@ -666,7 +759,7 @@ useEffect(() => {
 
 	// Fetch profile when user changes
 	useEffect(() => {
-		if (user && !profile) {
+		if (user && !profile && !isGuest) {
 			console.log('🔄 User found, fetching profile...');
 			fetchProfile(user.id)
 				.then(profileData => {
@@ -681,7 +774,7 @@ useEffect(() => {
 					console.error('❌ Failed to fetch profile:', error);
 				});
 		}
-	}, [user?.id, profile, fetchProfile]);
+	}, [user?.id, profile, fetchProfile, isGuest]);
 
 	// Handle navigation
 	useEffect(() => {
@@ -689,7 +782,7 @@ useEffect(() => {
 
 		const navigate = async () => {
 			try {
-				console.log('🔄 Handling navigation...', { hasSession: !!session });
+				console.log('🔄 Handling navigation...', { hasSession: !!session, isGuest });
 				
 				// Hide splash screen only once
 				if (!splashHidden.current) {
@@ -698,18 +791,18 @@ useEffect(() => {
 					console.log('✅ Splash screen hidden');
 				}
 				
-				// Simple navigation based on session
-				if (session) {
-					console.log('✅ Session exists, navigating to protected area');
+				// Simple navigation based on session or guest mode
+				if (session || isGuest) {
+					console.log('✅ Session exists or guest mode, navigating to protected area');
 					router.replace("/(protected)/(tabs)");
 				} else {
-					console.log('ℹ️ No session, navigating to welcome');
+					console.log('ℹ️ No session and not guest, navigating to welcome');
 					router.replace("/welcome");
 				}
 			} catch (error) {
 				console.error('❌ Navigation error:', error);
 				// Fallback navigation
-				if (session) {
+				if (session || isGuest) {
 					router.replace("/(protected)/(tabs)");
 				} else {
 					router.replace("/welcome");
@@ -721,7 +814,7 @@ useEffect(() => {
 		const timeout = setTimeout(navigate, 200);
 		
 		return () => clearTimeout(timeout);
-	}, [initialized, session, router]);
+	}, [initialized, session, isGuest, router]);
 
 	// Show loading screen while initializing
 	if (!initialized) {
@@ -745,6 +838,7 @@ useEffect(() => {
 				session,
 				user,
 				profile,
+				isGuest,
 				signUp,
 				signIn,
 				signOut,
@@ -752,6 +846,8 @@ useEffect(() => {
 				refreshProfile,
 				appleSignIn,
 				googleSignIn,
+				continueAsGuest,
+				convertGuestToUser,
 			}}
 		>
 			{children}

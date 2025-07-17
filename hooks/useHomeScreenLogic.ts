@@ -385,10 +385,10 @@ export function useHomeScreenLogic() {
   }, [loadLocation]);
 
   useEffect(() => {
-    if (location && profile) {
+    if (location) {
       loadAllData();
     }
-  }, [location, profile, loadAllData]);
+  }, [location, loadAllData]);
 
   useEffect(() => {
     checkForLocationUpdates();

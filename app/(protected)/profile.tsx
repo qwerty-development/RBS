@@ -32,6 +32,8 @@ import {
   Award,
   Bot,
   KeyRound,
+  User, // Added for guest view
+  Heart, // Added for guest view
 } from "lucide-react-native";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -45,7 +47,6 @@ import { useAuth } from "@/context/supabase-provider";
 import { useUserRating } from "@/hooks/useUserRating";
 import ProfileScreenSkeleton from "@/components/skeletons/ProfileScreenSkeleton";
 
-// Add index signature for iconMap
 const iconMap: { [key: string]: any } = {
   Edit3,
   BarChart3,
@@ -67,6 +68,8 @@ const iconMap: { [key: string]: any } = {
   Award,
   Bot,
   KeyRound,
+  User,
+  Heart,
 };
 
 interface MenuItem {
@@ -84,9 +87,75 @@ interface MenuItem {
 export default function ProfileScreen() {
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-  const { profile, signOut, loading: authLoading } = useAuth();
-  const userRating = useUserRating();
+  const {
+    profile,
+    signOut,
+    loading: authLoading,
+    isGuest,
+    convertGuestToUser,
+  } = useAuth();
 
+  // --- Guest View ---
+  // If the user is a guest, display a call-to-action screen.
+  if (isGuest) {
+    return (
+      <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+        <View className="p-4">
+          <H2>Profile</H2>
+        </View>
+
+        <View className="flex-1 items-center justify-center px-6 -mt-10">
+          <View className="w-24 h-24 rounded-full bg-primary/10 items-center justify-center mb-6">
+            <User size={48} className="text-primary" />
+          </View>
+
+          <H2 className="text-center mb-2">Create Your Profile</H2>
+          <P className="text-center text-muted-foreground mb-8">
+            Sign up to unlock personalized recommendations, save your favorites,
+            earn loyalty points, and much more!
+          </P>
+
+          <View className="w-full max-w-sm">
+            <Button onPress={convertGuestToUser} size="lg">
+              <UserPlus size={20} color="#fff" />
+              <Text className="ml-2 font-bold text-white">Sign Up Now</Text>
+            </Button>
+
+            <View className="mt-8 gap-4">
+              <View className="flex-row items-center">
+                <Heart size={20} className="text-red-500" />
+                <Text className="ml-3 flex-1 text-muted-foreground">
+                  Save your favorite restaurants
+                </Text>
+              </View>
+              <View className="flex-row items-center">
+                <Trophy size={20} className="text-yellow-500" />
+                <Text className="ml-3 flex-1 text-muted-foreground">
+                  Earn loyalty points & rewards
+                </Text>
+              </View>
+              <View className="flex-row items-center">
+                <Clock size={20} className="text-blue-500" />
+                <Text className="ml-3 flex-1 text-muted-foreground">
+                  Quick & easy reservations
+                </Text>
+              </View>
+              <View className="flex-row items-center">
+                <Bell size={20} className="text-green-500" />
+                <Text className="ml-3 flex-1 text-muted-foreground">
+                  Get exclusive offers & updates
+                </Text>
+              </View>
+            </View>
+          </View>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // --- Authenticated User View ---
+  // The rest of the logic is for authenticated users.
+  const userRating = useUserRating();
   const [refreshing, setRefreshing] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
@@ -136,7 +205,6 @@ export default function ProfileScreen() {
         const { error: uploadError } = await supabase.storage
           .from("avatars")
           .upload(filePath, formData);
-
         if (uploadError) throw uploadError;
 
         const {
@@ -147,7 +215,6 @@ export default function ProfileScreen() {
           .from("profiles")
           .update({ avatar_url: publicUrl })
           .eq("id", profile?.id);
-
         if (updateError) throw updateError;
 
         await Haptics.notificationAsync(
@@ -269,7 +336,6 @@ export default function ProfileScreen() {
 
   const renderMenuItem = (item: MenuItem) => {
     const IconComponent = iconMap[item.icon];
-
     return (
       <Pressable
         key={item.id}
@@ -308,24 +374,16 @@ export default function ProfileScreen() {
               <Muted className="text-sm mt-0.5">{item.subtitle}</Muted>
             )}
           </View>
-          {item.showBadge && item.badgeText && (
-            <View
-              className="px-2 py-1 rounded-full mr-2"
-              style={{ backgroundColor: item.badgeColor || "#ef4444" }}
-            >
-              <Text className="text-white text-xs font-medium">
-                {item.badgeText}
-              </Text>
-            </View>
-          )}
         </View>
         {!item.destructive && <ChevronRight size={20} color="#666" />}
       </Pressable>
     );
   };
+
   if (authLoading || userRating.loading) {
     return <ProfileScreenSkeleton />;
   }
+
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView
@@ -338,7 +396,6 @@ export default function ProfileScreen() {
           />
         }
       >
-        {/* Header */}
         <View className="items-center py-8 px-4 bg-card border-b border-border">
           <Pressable onPress={pickImage} disabled={uploadingAvatar}>
             <View className="relative">
@@ -367,25 +424,20 @@ export default function ProfileScreen() {
               </View>
             </View>
           </Pressable>
-
           <H2 className="mt-4 text-center">
             {profile?.full_name || "Loading..."}
           </H2>
-
-          {/* Rating Display */}
           <View className="flex-row items-center mt-3 px-3 py-1.5 bg-yellow-100 dark:bg-yellow-900/30 rounded-full">
             <Star size={16} color="#f59e0b" fill="#f59e0b" />
             <Text className="ml-1 font-medium text-yellow-700 dark:text-yellow-300">
               {userRating.currentRating.toFixed(1)} Rating
             </Text>
           </View>
-
           <Text className="text-center mt-2 text-sm text-muted-foreground">
             {profile?.loyalty_points || 0} loyalty points
           </Text>
         </View>
 
-        {/* Menu Sections */}
         {menuSections.map((section) => (
           <View key={section.title} className="mt-6">
             <H3 className="px-4 mb-3 text-lg font-semibold">{section.title}</H3>
@@ -394,7 +446,6 @@ export default function ProfileScreen() {
             </View>
           </View>
         ))}
-
         <View className="h-8" />
       </ScrollView>
     </SafeAreaView>

@@ -10,6 +10,8 @@ import { LocationDisplay } from "../search/LocationDisplay";
 interface HomeHeaderProps {
   /** User profile data */
   profile: any;
+  /** Whether user is a guest */
+  isGuest: boolean;
   /** Current location */
   location: any;
   /** Header translate Y animation value */
@@ -22,16 +24,20 @@ interface HomeHeaderProps {
   setCollapsibleHeaderHeight: (height: number) => void;
   /** Location press handler */
   onLocationPress: () => void;
+  /** Profile press handler */
+  onProfilePress: () => void;
 }
 
 export function HomeHeader({
   profile,
+  isGuest,
   location,
   headerTranslateY,
   greetingOpacity,
   setTotalHeaderHeight,
   setCollapsibleHeaderHeight,
   onLocationPress,
+  onProfilePress,
 }: HomeHeaderProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();

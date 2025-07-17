@@ -1,3 +1,4 @@
+// app/(protected)/_layout.tsx
 import React from "react";
 import { Stack } from "expo-router";
 import { useAuth } from "@/context/supabase-provider";
@@ -10,7 +11,7 @@ export const unstable_settings = {
 };
 
 export default function ProtectedLayout() {
-  const { initialized, session } = useAuth();
+  const { initialized, session, isGuest } = useAuth();
 
   // Show loading while auth is initializing
   if (!initialized) {
@@ -29,9 +30,8 @@ export default function ProtectedLayout() {
     );
   }
 
-  // If no session, show loading while AuthProvider handles navigation
-  // DON'T redirect here - trust the AuthProvider to handle navigation
-  if (!session) {
+  // Allow access if user has session OR is a guest
+  if (!session && !isGuest) {
     return (
       <View
         style={{
@@ -60,13 +60,18 @@ export default function ProtectedLayout() {
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="modal" options={{ presentation: "modal" }} />
-        // In your app/(protected)/_layout.tsx or routing configuration
         <Stack.Screen name="playlist/[id]" />
         <Stack.Screen name="playlist/add-restaurants" />
         <Stack.Screen name="playlist/[id]/collaborators" />
         <Stack.Screen name="playlist/join" />
+        <Stack.Screen name="restaurant/[id]" />
+        <Stack.Screen name="booking/availability" />
+        <Stack.Screen name="cuisine/[cuisineId]" />
+        <Stack.Screen name="profile/loyalty" />
+        <Stack.Screen name="profile/insights" />
+        <Stack.Screen name="profile/notifications" />
       </Stack>
-      <GlobalChatTab />
+      {!isGuest && <GlobalChatTab />}
     </View>
   );
 }

@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   Alert,
+  Modal,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -17,11 +18,11 @@ import {
   Camera,
   Plus,
   Users,
-  Search,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { format } from "date-fns";
 
+import { useAuth } from "@/context/supabase-provider";
 import { SafeAreaView } from "@/components/safe-area-view";
 import SocialFeedScreenSkeleton from "@/components/skeletons/SocialFeedScreenSkeleton";
 import { Text } from "@/components/ui/text";
@@ -31,10 +32,41 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
-import { useAuth } from "@/context/supabase-provider";
 import { OptimizedList } from "@/components/ui/optimized-list";
 
-// Types
+// --- New Guest Prompt Modal ---
+const GuestPromptModal = ({
+  visible,
+  onClose,
+  onConfirm,
+  feature,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  feature: string;
+}) => {
+  return (
+    <Modal visible={visible} transparent animationType="fade">
+      <View className="flex-1 justify-center items-center bg-black/60">
+        <View className="bg-background w-4/5 rounded-2xl p-6 items-center">
+          <H3 className="mb-2 text-center">Join the Conversation</H3>
+          <P className="text-muted-foreground text-center mb-6">
+            Please sign up or log in to {feature}.
+          </P>
+          <Button onPress={onConfirm} className="w-full mb-3" size="lg">
+            <Text className="font-bold text-white">Continue</Text>
+          </Button>
+          <Button onPress={onClose} variant="ghost" className="w-full">
+            <Text>Not Now</Text>
+          </Button>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+// Types (Unchanged)
 interface Post {
   id: string;
   user_id: string;
@@ -51,7 +83,7 @@ interface Post {
     image_order: number;
   }[];
   tagged_friends: {
-    id: string;
+    id:string;
     full_name: string;
     avatar_url: string;
   }[];
@@ -61,23 +93,25 @@ interface Post {
   liked_by_user?: boolean;
 }
 
-// Post Component
+// Post Component -- MODIFIED to accept isGuest prop
 const PostCard: React.FC<{
   post: Post;
+  isGuest: boolean;
   onLike: (postId: string) => void;
   onComment: (postId: string) => void;
   onShare: (post: Post) => void;
-}> = ({ post, onLike, onComment, onShare }) => {
+}> = ({ post, isGuest, onLike, onComment, onShare }) => {
   const router = useRouter();
-  const { colorScheme } = useColorScheme();
   const [imageIndex, setImageIndex] = useState(0);
 
   return (
     <View className="bg-card mb-2 border-b border-border">
       {/* Header */}
       <Pressable
-        onPress={() => router.push(`/social/profile/${post.user_id}`)}
+        // Guests cannot navigate to user profiles
+        onPress={() => !isGuest && router.push(`/social/profile/${post.user_id}`)}
         className="flex-row items-center p-4"
+        disabled={isGuest}
       >
         <Image
           source={{ uri: post.user_avatar || "https://via.placeholder.com/50" }}
@@ -110,14 +144,13 @@ const PostCard: React.FC<{
         </Pressable>
       </Pressable>
 
-      {/* Content */}
+      {/* Content, Images, etc. (Unchanged) */}
       {post.content && (
         <View className="px-4 pb-3">
           <P>{post.content}</P>
         </View>
       )}
 
-      {/* Tagged Friends */}
       {post.tagged_friends.length > 0 && (
         <View className="px-4 pb-3">
           <View className="flex-row items-center flex-wrap">
@@ -126,7 +159,8 @@ const PostCard: React.FC<{
             {post.tagged_friends.map((friend, index) => (
               <React.Fragment key={friend.id}>
                 <Pressable
-                  onPress={() => router.push(`/social/profile/${friend.id}`)}
+                  onPress={() => !isGuest && router.push(`/social/profile/${friend.id}`)}
+                  disabled={isGuest}
                 >
                   <Text className="text-sm text-primary">
                     {friend.full_name}
@@ -141,7 +175,6 @@ const PostCard: React.FC<{
         </View>
       )}
 
-      {/* Images */}
       {post.images.length > 0 && (
         <View className="mb-3">
           <FlatList
@@ -219,67 +252,87 @@ const PostCard: React.FC<{
 
 export default function SocialFeedScreen() {
   const router = useRouter();
-  const { profile } = useAuth();
-  const { colorScheme } = useColorScheme();
+  const { profile, isGuest, convertGuestToUser } = useAuth();
 
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [showGuestPrompt, setShowGuestPrompt] = useState(false);
+  const [promptedFeature, setPromptedFeature] = useState("");
 
+  // --- NEW: Guest Guard Logic ---
+  const runProtectedAction = (callback: () => void, featureName: string) => {
+    if (isGuest) {
+      setPromptedFeature(featureName);
+      setShowGuestPrompt(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    } else if (profile) {
+      callback();
+    }
+  };
+
+  const handleConfirmGuestPrompt = async () => {
+    setShowGuestPrompt(false);
+    await convertGuestToUser();
+  };
+
+  // --- MODIFIED: fetchPosts now handles both guests and authenticated users ---
   const fetchPosts = useCallback(async () => {
-    if (!profile?.id) return;
-
     try {
-      // First, get all accepted friends
-      const { data: friendships, error: friendsError } = await supabase
-        .from("friends")
-        .select("user_id, friend_id")
-        .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`);
+      if (isGuest) {
+        // --- Guest Path: Fetch latest public posts ---
+        const { data: postsData, error: postsError } = await supabase
+          .from("posts_with_details") // Ensure this view is publicly readable
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(20);
 
-      if (friendsError) throw friendsError;
+        if (postsError) throw postsError;
+        // For guests, `liked_by_user` is always false
+        const formattedPosts =
+          postsData?.map((post) => ({ ...post, liked_by_user: false })) || [];
+        setPosts(formattedPosts);
+      } else if (profile?.id) {
+        // --- Authenticated Path: Fetch posts from user and friends ---
+        const { data: friendships, error: friendsError } = await supabase
+          .from("friends")
+          .select("user_id, friend_id")
+          .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`);
 
-      // Extract friend IDs
-      const friendIds =
-        friendships?.reduce((acc: string[], friendship) => {
-          if (friendship.user_id === profile.id) {
-            acc.push(friendship.friend_id);
-          } else {
-            acc.push(friendship.user_id);
-          }
-          return acc;
-        }, []) || [];
+        if (friendsError) throw friendsError;
 
-      // Include user's own posts
-      friendIds.push(profile.id);
+        const friendIds =
+          friendships?.reduce((acc: string[], friendship) => {
+            if (friendship.user_id === profile.id) acc.push(friendship.friend_id);
+            else acc.push(friendship.user_id);
+            return acc;
+          }, []) || [];
+        friendIds.push(profile.id);
 
-      // Fetch posts from friends and user
-      const { data: postsData, error: postsError } = await supabase
-        .from("posts_with_details")
-        .select("*")
-        .in("user_id", friendIds)
-        .order("created_at", { ascending: false })
-        .limit(50);
+        const { data: postsData, error: postsError } = await supabase
+          .from("posts_with_details")
+          .select("*")
+          .in("user_id", friendIds)
+          .order("created_at", { ascending: false })
+          .limit(50);
 
-      if (postsError) throw postsError;
+        if (postsError) throw postsError;
 
-      // Check which posts the user has liked
-      const postIds = postsData?.map((p) => p.id) || [];
-      const { data: userLikes } = await supabase
-        .from("post_likes")
-        .select("post_id")
-        .eq("user_id", profile.id)
-        .in("post_id", postIds);
+        const postIds = postsData?.map((p) => p.id) || [];
+        const { data: userLikes } = await supabase
+          .from("post_likes")
+          .select("post_id")
+          .eq("user_id", profile.id)
+          .in("post_id", postIds);
 
-      const likedPostIds = new Set(userLikes?.map((l) => l.post_id) || []);
-
-      // Format posts with liked status
-      const formattedPosts =
-        postsData?.map((post) => ({
-          ...post,
-          liked_by_user: likedPostIds.has(post.id),
-        })) || [];
-
-      setPosts(formattedPosts);
+        const likedPostIds = new Set(userLikes?.map((l) => l.post_id) || []);
+        const formattedPosts =
+          postsData?.map((post) => ({
+            ...post,
+            liked_by_user: likedPostIds.has(post.id),
+          })) || [];
+        setPosts(formattedPosts);
+      }
     } catch (error) {
       console.error("Error fetching posts:", error);
       Alert.alert("Error", "Failed to load posts");
@@ -287,57 +340,47 @@ export default function SocialFeedScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [profile?.id]);
+  }, [profile?.id, isGuest]);
 
-  const handleLike = async (postId: string) => {
-    if (!profile?.id) return;
-
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-
-    const post = posts.find((p) => p.id === postId);
-    if (!post) return;
-
-    try {
-      if (post.liked_by_user) {
-        // Unlike
-        await supabase
-          .from("post_likes")
-          .delete()
-          .eq("post_id", postId)
-          .eq("user_id", profile.id);
-
-        setPosts(
-          posts.map((p) =>
-            p.id === postId
-              ? { ...p, liked_by_user: false, likes_count: p.likes_count - 1 }
-              : p,
-          ),
-        );
-      } else {
-        // Like
-        await supabase
-          .from("post_likes")
-          .insert({ post_id: postId, user_id: profile.id });
-
-        setPosts(
-          posts.map((p) =>
-            p.id === postId
-              ? { ...p, liked_by_user: true, likes_count: p.likes_count + 1 }
-              : p,
-          ),
-        );
+  // --- MODIFIED: Guarded Actions ---
+  const handleLike = (postId: string) => {
+    runProtectedAction(async () => {
+      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      const post = posts.find((p) => p.id === postId);
+      if (!post) return;
+      try {
+        if (post.liked_by_user) {
+          await supabase.from("post_likes").delete().match({ post_id: postId, user_id: profile!.id });
+          setPosts(posts.map((p) => (p.id === postId ? { ...p, liked_by_user: false, likes_count: p.likes_count - 1 } : p)));
+        } else {
+          await supabase.from("post_likes").insert({ post_id: postId, user_id: profile!.id });
+          setPosts(posts.map((p) => (p.id === postId ? { ...p, liked_by_user: true, likes_count: p.likes_count + 1 } : p)));
+        }
+      } catch (error) {
+        console.error("Error toggling like:", error);
       }
-    } catch (error) {
-      console.error("Error toggling like:", error);
-    }
+    }, "like posts");
   };
 
   const handleComment = (postId: string) => {
-    router.push(`/(protected)/social/post/${postId}`);
+    runProtectedAction(() => {
+      router.push(`/(protected)/social/post/${postId}`);
+    }, "comment on posts");
+  };
+  
+  const handleFindFriends = () => {
+    runProtectedAction(() => {
+      router.push("/(protected)/friends");
+    }, "find friends");
   };
 
-  const handleShare = async (post: Post) => {
-    // Implement share functionality
+  const handleCreatePost = () => {
+    runProtectedAction(() => {
+      router.push("/social/create-post");
+    }, "create posts");
+  };
+
+  const handleShare = (post: Post) => {
     Alert.alert("Share", "Share functionality coming soon!");
   };
 
@@ -356,21 +399,15 @@ export default function SocialFeedScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      {/* Header */}
+      {/* Header -- MODIFIED with guarded actions */}
       <PageHeader
         title="Social Feed"
         actions={
           <View className="flex-row items-center gap-3">
-            <Pressable
-              onPress={() => router.push("/(protected)/friends")}
-              className="p-2"
-            >
+            <Pressable onPress={handleFindFriends} className="p-2">
               <Users size={24} color="#666" />
             </Pressable>
-            <Pressable
-              onPress={() => router.push("/social/create-post")}
-              className="p-2"
-            >
+            <Pressable onPress={handleCreatePost} className="p-2">
               <Plus size={24} color="#666" />
             </Pressable>
           </View>
@@ -378,12 +415,12 @@ export default function SocialFeedScreen() {
         className="border-b border-border"
       />
 
-      {/* Posts */}
       <OptimizedList
         data={posts}
         renderItem={({ item }) => (
           <PostCard
             post={item}
+            isGuest={isGuest}
             onLike={handleLike}
             onComment={handleComment}
             onShare={handleShare}
@@ -396,19 +433,30 @@ export default function SocialFeedScreen() {
         ListEmptyComponent={
           <View className="flex-1 items-center justify-center py-20">
             <Camera size={48} color="#666" />
-            <H3 className="mt-4">No posts yet</H3>
+            <H3 className="mt-4">
+              {isGuest ? "Welcome to the Feed!" : "No Posts Yet"}
+            </H3>
             <Muted className="mt-2 text-center px-8">
-              Connect with friends and share your dining experiences
+              {isGuest
+                ? "Sign up to connect with friends and share your experiences."
+                : "Connect with friends to see their posts here."}
             </Muted>
-            <Button
-              onPress={() => router.push("/(protected)/friends")}
-              variant="default"
-              className="mt-6"
-            >
-              <Text>Find Friends</Text>
+            <Button onPress={handleFindFriends} variant="default" className="mt-6">
+              <Text>
+                {isGuest ? "Sign Up to Find Friends" : "Find Friends"}
+              </Text>
             </Button>
           </View>
         }
+        contentContainerStyle={{ flexGrow: 1 }}
+      />
+      
+      {/* MODIFIED: Add GuestPromptModal to the layout */}
+      <GuestPromptModal
+        visible={showGuestPrompt}
+        onClose={() => setShowGuestPrompt(false)}
+        onConfirm={handleConfirmGuestPrompt}
+        feature={promptedFeature}
       />
     </SafeAreaView>
   );
