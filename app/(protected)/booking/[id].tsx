@@ -35,6 +35,7 @@ import {
   BookingContactSection,
   BookingSpecialRequests,
   AppliedOfferCard,
+  BookingTableInfo,
 } from "@/components/booking";
 
 // Import custom hook
@@ -57,6 +58,7 @@ export default function BookingDetailsScreen() {
     hasReview,
     loyaltyActivity,
     appliedOfferDetails,
+    assignedTables,
     isUpcoming,
     isToday,
     isTomorrow,
@@ -300,7 +302,6 @@ export default function BookingDetailsScreen() {
             </View>
           </View>
 
-          {/* Confirmation Code */}
           <View className="bg-card border border-border rounded-lg p-4">
             <Text className="font-medium mb-2">Confirmation Code</Text>
             <Pressable
@@ -317,6 +318,13 @@ export default function BookingDetailsScreen() {
             </Text>
           </View>
         </View>
+
+        {/* Table Assignment */}
+        <BookingTableInfo
+          tables={assignedTables}
+          partySize={booking.party_size}
+          loading={loading}
+        />
 
         {/* Special Requests */}
         <BookingSpecialRequests booking={booking} />

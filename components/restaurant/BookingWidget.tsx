@@ -1,18 +1,13 @@
-import React from "react";
+import React, { useEffect, useCallback } from "react";
 import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import * as Haptics from "expo-haptics";
 import { Text } from "@/components/ui/text";
 import { H3 } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { Database } from "@/types/supabase";
+import { TimeSlot } from "@/lib/AvailabilityService";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
-
-type TimeSlot = {
-  time: string;
-  available: boolean;
-  availableCapacity: number;
-};
 
 interface BookingWidgetProps {
   restaurant: Restaurant;
@@ -25,6 +20,7 @@ interface BookingWidgetProps {
   onTimeChange: (time: string) => void;
   onPartySizeChange: (size: number) => void;
   onBooking: () => void;
+  fetchAvailableSlots: (date: Date, partySize: number) => Promise<void>; // CRITICAL: Added
 }
 
 export const BookingWidget = ({
@@ -38,7 +34,39 @@ export const BookingWidget = ({
   onTimeChange,
   onPartySizeChange,
   onBooking,
+  fetchAvailableSlots, // CRITICAL: Added
 }: BookingWidgetProps) => {
+  const selectedSlot = availableSlots.find(slot => slot.time === selectedTime);
+
+  // CRITICAL FIX: Actually fetch availability when params change
+  useEffect(() => {
+    if (restaurant && selectedDate && partySize) {
+      console.log('Fetching availability for:', { 
+        date: selectedDate.toISOString(), 
+        partySize 
+      });
+      fetchAvailableSlots(selectedDate, partySize);
+    }
+  }, [restaurant, selectedDate, partySize, fetchAvailableSlots]);
+
+  // Handle date change with availability refresh
+  const handleDateChange = useCallback((date: Date) => {
+    onDateChange(date);
+    // Clear selected time when date changes
+    if (selectedTime) {
+      onTimeChange('');
+    }
+  }, [onDateChange, onTimeChange, selectedTime]);
+
+  // Handle party size change with availability refresh
+  const handlePartySizeChange = useCallback((size: number) => {
+    onPartySizeChange(size);
+    // Clear selected time when party size changes
+    if (selectedTime) {
+      onTimeChange('');
+    }
+  }, [onPartySizeChange, onTimeChange, selectedTime]);
+
   return (
     <View className="mx-4 mb-6 p-4 bg-card rounded-xl shadow-sm">
       <H3 className="mb-4">Make a Reservation</H3>
@@ -54,14 +82,13 @@ export const BookingWidget = ({
           {Array.from({ length: 14 }, (_, i) => {
             const date = new Date();
             date.setDate(date.getDate() + i);
-            const isSelected =
-              date.toDateString() === selectedDate.toDateString();
+            const isSelected = date.toDateString() === selectedDate.toDateString();
             const isToday = date.toDateString() === new Date().toDateString();
 
             return (
               <Pressable
                 key={i}
-                onPress={() => onDateChange(date)}
+                onPress={() => handleDateChange(date)}
                 className={`px-4 py-3 rounded-lg mr-2 min-w-[70px] ${
                   isSelected ? "bg-primary" : "bg-muted"
                 }`}
@@ -73,9 +100,7 @@ export const BookingWidget = ({
                 >
                   {isToday
                     ? "Today"
-                    : date.toLocaleDateString("en-US", {
-                        weekday: "short",
-                      })}
+                    : date.toLocaleDateString("en-US", { weekday: "short" })}
                 </Text>
                 <Text
                   className={`text-center text-lg font-bold ${
@@ -86,9 +111,7 @@ export const BookingWidget = ({
                 </Text>
                 <Text
                   className={`text-center text-xs ${
-                    isSelected
-                      ? "text-primary-foreground/80"
-                      : "text-muted-foreground"
+                    isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
                   }`}
                 >
                   {date.toLocaleDateString("en-US", { month: "short" })}
@@ -106,7 +129,7 @@ export const BookingWidget = ({
           {[1, 2, 3, 4, 5, 6, 7, 8].map((size) => (
             <Pressable
               key={size}
-              onPress={() => onPartySizeChange(size)}
+              onPress={() => handlePartySizeChange(size)}
               className={`flex-1 py-2 rounded-lg ${
                 partySize === size ? "bg-primary" : "bg-muted"
               }`}
@@ -135,7 +158,7 @@ export const BookingWidget = ({
           <View className="flex-row items-center justify-center py-4">
             <ActivityIndicator size="small" />
             <Text className="ml-2 text-muted-foreground">
-              Loading availability...
+              Checking real-time availability...
             </Text>
           </View>
         ) : (
@@ -173,36 +196,41 @@ export const BookingWidget = ({
                 >
                   {slot.time}
                 </Text>
-                {slot.available &&
-                  slot.availableCapacity < 5 &&
-                  slot.availableCapacity > 0 && (
-                    <Text className="text-xs text-orange-600 text-center mt-1">
-                      {slot.availableCapacity} left
-                    </Text>
-                  )}
+                {slot.requiresCombination && (
+                  <Text className="text-xs text-center text-orange-600 mt-1">
+                    Combined
+                  </Text>
+                )}
               </Pressable>
             ))}
             {availableSlots.length === 0 && (
               <Text className="text-muted-foreground text-center w-full py-4">
-                No availability for this date
+                No availability for this date and party size
               </Text>
             )}
           </View>
         )}
       </View>
 
-      {/* Selected Time Confirmation */}
-      {selectedTime && (
-        <View className="mb-2 p-2 bg-green-100 dark:bg-green-900/20 rounded">
-          <Text className="text-xs text-green-800 dark:text-green-200">
+      {/* Selected Time & Table Info */}
+      {selectedTime && selectedSlot && (
+        <View className="mb-2 p-3 bg-green-100 dark:bg-green-900/20 rounded">
+          <Text className="text-sm text-green-800 dark:text-green-200 font-medium">
             Selected: {selectedTime}
           </Text>
+          {selectedSlot.tables && selectedSlot.tables.length > 0 && (
+            <Text className="text-xs text-green-700 dark:text-green-300 mt-1">
+              {selectedSlot.requiresCombination
+                ? `Tables ${selectedSlot.tables.map(t => t.table_number).join(' + ')} (Combined for your party)`
+                : `Table ${selectedSlot.tables[0].table_number} • ${selectedSlot.tables[0].table_type}`}
+            </Text>
+          )}
         </View>
       )}
 
       {/* Booking Button */}
       <Button onPress={onBooking} disabled={!selectedTime} className="w-full">
-        <Text>
+        <Text className="font-semibold">
           {restaurant.booking_policy === "instant"
             ? "Book Now"
             : "Request Booking"}

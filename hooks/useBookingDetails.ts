@@ -1,3 +1,4 @@
+// hooks/useBookingDetails.ts
 import { useState, useCallback, useEffect } from "react";
 import { Alert } from "react-native";
 import * as Haptics from "expo-haptics";
@@ -9,6 +10,13 @@ import { Database } from "@/types/supabase";
 
 type Booking = Database["public"]["Tables"]["bookings"]["Row"] & {
   restaurant: Database["public"]["Tables"]["restaurants"]["Row"];
+};
+
+type TableInfo = {
+  id: string;
+  table_number: string;
+  table_type: string;
+  capacity: number;
 };
 
 type AppliedOfferDetails = {
@@ -46,8 +54,9 @@ export const useBookingDetails = (bookingId: string) => {
     useState<LoyaltyActivity | null>(null);
   const [appliedOfferDetails, setAppliedOfferDetails] =
     useState<AppliedOfferDetails | null>(null);
+  const [assignedTables, setAssignedTables] = useState<TableInfo[]>([]);
 
-  // Enhanced fetch booking details with comprehensive offer data
+  // Enhanced fetch booking details with table information
   const fetchBookingDetails = useCallback(async () => {
     if (!bookingId) return;
 
@@ -59,7 +68,7 @@ export const useBookingDetails = (bookingId: string) => {
           `
           *,
           restaurant:restaurants (*)
-        `,
+        `
         )
         .eq("id", bookingId)
         .single();
@@ -71,6 +80,28 @@ export const useBookingDetails = (bookingId: string) => {
       }
 
       setBooking(bookingData);
+
+      // NEW: Fetch assigned tables
+      const { data: tablesData, error: tablesError } = await supabase
+        .from("booking_tables")
+        .select(
+          `
+          table:restaurant_tables (
+            id,
+            table_number,
+            table_type,
+            capacity
+          )
+        `
+        )
+        .eq("booking_id", bookingId);
+
+      if (!tablesError && tablesData) {
+        const tables = tablesData
+          .map((bt) => bt.table)
+          .filter((t): t is TableInfo => t !== null);
+        setAssignedTables(tables);
+      }
 
       // Check if review exists for completed bookings
       if (bookingData.status === "completed") {
@@ -99,7 +130,7 @@ export const useBookingDetails = (bookingId: string) => {
           }
         } catch (loyaltyError) {
           console.log(
-            "Loyalty activities table not available or no data found",
+            "Loyalty activities table not available or no data found"
           );
         }
       }
@@ -108,7 +139,7 @@ export const useBookingDetails = (bookingId: string) => {
       if (bookingData.applied_offer_id) {
         console.log(
           "Fetching applied offer details for offer ID:",
-          bookingData.applied_offer_id,
+          bookingData.applied_offer_id
         );
 
         try {
@@ -142,7 +173,7 @@ export const useBookingDetails = (bookingId: string) => {
             const estimatedSavings = Math.round(
               bookingData.party_size *
                 ((bookingData.restaurant.price_range || 2) * 30) *
-                (specialOfferData.discount_percentage / 100),
+                (specialOfferData.discount_percentage / 100)
             );
 
             const offerDetails: AppliedOfferDetails = {
@@ -226,7 +257,7 @@ export const useBookingDetails = (bookingId: string) => {
               }
 
               await Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success,
+                Haptics.NotificationFeedbackType.Success
               );
 
               // Refresh booking data
@@ -236,7 +267,7 @@ export const useBookingDetails = (bookingId: string) => {
                 "Success",
                 appliedOfferDetails
                   ? "Your booking has been cancelled and your offer has been restored."
-                  : "Your booking has been cancelled",
+                  : "Your booking has been cancelled"
               );
             } catch (error) {
               console.error("Error cancelling booking:", error);
@@ -246,7 +277,7 @@ export const useBookingDetails = (bookingId: string) => {
             }
           },
         },
-      ],
+      ]
     );
   }, [booking, fetchBookingDetails, appliedOfferDetails]);
 
@@ -297,6 +328,7 @@ export const useBookingDetails = (bookingId: string) => {
     hasReview,
     loyaltyActivity,
     appliedOfferDetails,
+    assignedTables,
     isUpcoming: isUpcoming(),
     isToday: isToday(),
     isTomorrow: isTomorrow(),

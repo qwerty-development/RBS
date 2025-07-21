@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from "react";
+// hooks/useBookingCreate.ts
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Alert } from "react-native";
 import * as Haptics from "expo-haptics";
@@ -11,6 +12,10 @@ import {
   isValidTime,
   TierType,
 } from "@/lib/bookingUtils";
+import {
+  calculateBookingWindow,
+  validateTableAssignment,
+} from "@/lib/tableManagementUtils";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -50,10 +55,12 @@ interface BookingCreateParams {
   earnablePoints?: string;
   offerId?: string;
   preselectedOfferId?: string;
+  tableIds?: string;
+  requiresCombination?: string;
 }
 
 export function useBookingCreate() {
-  const params = useLocalSearchParams<BookingCreateParams>();
+  const params = useLocalSearchParams<any>();
   const { profile } = useAuth();
   const router = useRouter();
 
@@ -61,38 +68,69 @@ export function useBookingCreate() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [selectedOfferUserId, setSelectedOfferUserId] = useState<string | null>(
-    null,
-  );
-  const [availableOffers, setAvailableOffers] = useState<
-    UserOfferWithDetails[]
-  >([]);
+  const [selectedOfferUserId, setSelectedOfferUserId] = useState<string | null>(null);
+  const [availableOffers, setAvailableOffers] = useState<UserOfferWithDetails[]>([]);
   const [invitedFriends, setInvitedFriends] = useState<string[]>([]);
+  const [turnTime, setTurnTime] = useState<number>(120);
+  const [lastFormData, setLastFormData] = useState<BookingFormData | null>(null);
 
-  // Parse and validate parameters
+  // Parse and validate parameters with better error handling
   const restaurantId = params.restaurantId;
   const rawDate = params.date;
   const rawTime = params.time;
   const rawPartySize = params.partySize;
   const rawEarnablePoints = params.earnablePoints;
   const preselectedOfferId = params.offerId || params.preselectedOfferId;
+  
+  // Enhanced table information parsing with validation
+  const selectedTableIds = useMemo(() => {
+    if (!params.tableIds) return [];
+    
+    try {
+      const parsed = JSON.parse(params.tableIds);
+      if (!Array.isArray(parsed)) {
+        console.error("Table IDs must be an array");
+        return [];
+      }
+      
+      // Validate that all elements are strings/numbers
+      const validated = parsed.filter(id => 
+        typeof id === 'string' || typeof id === 'number'
+      );
+      
+      if (validated.length !== parsed.length) {
+        console.warn("Some table IDs were invalid and filtered out");
+      }
+      
+      return validated;
+    } catch (e) {
+      console.error("Error parsing table IDs:", e);
+      return [];
+    }
+  }, [params.tableIds]);
+
+  const requiresCombination = params.requiresCombination === "true";
 
   // User data
   const userPoints = profile?.loyalty_points || 0;
   const userTier = (profile?.membership_tier as TierType) || "bronze";
 
-  // Parsed booking details
-  const bookingDate = parseDate(rawDate);
-  const bookingTime = isValidTime(rawTime) ? rawTime! : "19:00";
-  const partySize = rawPartySize
-    ? Math.max(1, parseInt(rawPartySize, 10)) || 2
-    : 2;
-  const earnablePoints = rawEarnablePoints
-    ? Math.max(0, parseInt(rawEarnablePoints, 10)) || 0
-    : 0;
-  const totalPartySize = partySize + invitedFriends.length;
+  // Parsed booking details with memoization
+  const bookingDate = useMemo(() => parseDate(rawDate), [rawDate]);
+  const bookingTime = useMemo(() => 
+    isValidTime(rawTime) ? rawTime! : "19:00", [rawTime]
+  );
+  const partySize = useMemo(() => 
+    rawPartySize ? Math.max(1, parseInt(rawPartySize, 10)) || 2 : 2, 
+    [rawPartySize]
+  );
+  const earnablePoints = useMemo(() => 
+    rawEarnablePoints ? Math.max(0, parseInt(rawEarnablePoints, 10)) || 0 : 0,
+    [rawEarnablePoints]
+  );
+  
 
-  // Parameter validation
+  // Enhanced parameter validation
   useEffect(() => {
     if (!restaurantId) {
       Alert.alert("Error", "Restaurant ID is required");
@@ -111,9 +149,166 @@ export function useBookingCreate() {
       router.back();
       return;
     }
-  }, [restaurantId, rawDate, rawTime, router]);
 
-  // Data fetching
+    // Validate table selection logic
+    if (requiresCombination && selectedTableIds.length < 2) {
+      Alert.alert("Error", "Table combination requires at least 2 tables");
+      router.back();
+      return;
+    }
+  }, [restaurantId, rawDate, rawTime, requiresCombination, selectedTableIds.length, router]);
+
+  // Enhanced error handler for booking submission
+  const handleBookingError = useCallback((error: any) => {
+    console.error("Error creating booking:", error);
+    
+    const errorCode = error.code;
+    const errorMessage = error.message || '';
+    
+    // Handle specific database errors
+    if (errorCode === '23505') {
+      Alert.alert(
+        "Booking Conflict",
+        "A booking already exists for this time. Please refresh and try again.",
+        [{ text: "OK", onPress: () => router.back() }]
+      );
+    } else if (errorCode === 'P0001') {
+      if (errorMessage.includes('no longer available')) {
+        Alert.alert(
+          "Table No Longer Available",
+          "Sorry, the selected time slot was just booked by another customer. Please select a different time.",
+          [{ text: "OK", onPress: () => router.back() }]
+        );
+      } else if (errorMessage.includes('not all selected tables can be combined')) {
+        Alert.alert(
+          "Invalid Table Selection",
+          "The selected tables cannot be combined. Please try a different time slot.",
+          [{ text: "OK" }]
+        );
+      } else if (errorMessage.includes('do not have enough capacity')) {
+        Alert.alert(
+          "Insufficient Capacity",
+          "The selected tables don't have enough seats for your party size. Please select a different time.",
+          [{ text: "OK" }]
+        );
+      } else if (errorMessage.includes('generate unique confirmation code')) {
+        Alert.alert(
+          "System Error",
+          "Unable to generate booking confirmation. Please try again.",
+          [{ text: "OK" }]
+        );
+      } else {
+        Alert.alert("Booking Error", errorMessage);
+      }
+    } else if (errorCode === '23503') {
+      Alert.alert(
+        "Invalid Selection",
+        "Some of the selected options are no longer valid. Please refresh and try again.",
+        [{ text: "OK", onPress: () => router.back() }]
+      );
+    } else if (errorCode === '22P02') {
+      Alert.alert(
+        "Invalid Data",
+        "Some of the booking information is invalid. Please check your selections.",
+        [{ text: "OK" }]
+      );
+    } else if (error.name === 'AbortError') {
+      Alert.alert(
+        "Request Timeout",
+        "The booking request took too long. Please check your connection and try again.",
+        [{ text: "OK" }]
+      );
+    } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+      Alert.alert(
+        "Connection Error",
+        "Unable to connect to the server. Please check your internet connection and try again.",
+        [{ text: "OK" }]
+      );
+    } else {
+      Alert.alert(
+        "Booking Failed",
+        "An unexpected error occurred while creating your booking. Please try again later.",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Retry", onPress: () => lastFormData && submitBooking(lastFormData) }
+        ]
+      );
+    }
+  }, [router, lastFormData]);
+
+  // Helper functions for post-booking operations
+  const handleFriendInvitations = useCallback(async (bookingId: string, friendIds: string[]) => {
+    if (!profile?.id || !restaurant) return;
+    
+    const invites = friendIds.map((friendId) => ({
+      booking_id: bookingId,
+      from_user_id: profile.id,
+      to_user_id: friendId,
+      message: `Join me at ${restaurant.name} on ${bookingDate.toLocaleDateString()} at ${bookingTime}!`,
+    }));
+
+    const { error } = await supabase.from("booking_invites").insert(invites);
+    
+    if (error) throw error;
+
+    await supabase.from("booking_attendees").insert({
+      booking_id: bookingId,
+      user_id: profile.id,
+      status: "confirmed",
+      is_organizer: true,
+    });
+  }, [profile, restaurant, bookingDate, bookingTime]);
+
+  const markOfferAsUsed = useCallback(async (offerUserId: string, bookingId: string) => {
+    if (!profile?.id) return;
+    
+    const { error } = await supabase
+      .from("user_offers")
+      .update({ 
+        used_at: new Date().toISOString(),
+        booking_id: bookingId 
+      })
+      .eq("id", offerUserId)
+      .eq("user_id", profile.id);
+
+    if (error) throw error;
+  }, [profile]);
+
+  const awardLoyaltyPoints = useCallback(async (userId: string, points: number) => {
+    const { error } = await supabase.rpc("award_loyalty_points", {
+      p_user_id: userId,
+      p_points: points,
+    });
+
+    if (error) throw error;
+  }, []);
+
+  const createSuccessParams = useCallback((booking: any, selectedOffer: any) => ({
+    bookingId: booking.id,
+    restaurantName: restaurant?.name || '',
+    confirmationCode: booking.confirmation_code,
+    earnedPoints: earnablePoints.toString(),
+    appliedOffer: selectedOffer ? "true" : "false",
+    invitedFriends: invitedFriends.length.toString(),
+    isGroupBooking: invitedFriends.length > 0 ? "true" : "false",
+    userTier,
+    tableInfo: requiresCombination ? "combined" : "single",
+    ...(selectedOffer && {
+      offerTitle: selectedOffer.special_offer.title,
+      offerDiscount: selectedOffer.special_offer.discount_percentage.toString(),
+    }),
+  }), [restaurant, earnablePoints, invitedFriends.length, userTier, requiresCombination]);
+
+  // Enhanced data fetching with optimized dependencies
+
+  const basePartySize = rawPartySize
+    ? Math.max(1, parseInt(rawPartySize, 10)) || 2
+    : 2;
+
+  // Calculate total party size (will update when friends are invited)
+  const totalPartySize = basePartySize + invitedFriends.length;
+
+  // Data fetching - use basePartySize for initial turn time calculation
   const fetchData = useCallback(async () => {
     try {
       // Fetch restaurant
@@ -125,6 +320,15 @@ export function useBookingCreate() {
 
       if (restaurantError) throw restaurantError;
       setRestaurant(restaurantData);
+
+      // Use basePartySize for initial turn time calculation
+      const bookingWindow = await calculateBookingWindow(
+        restaurantId,
+        bookingDate,
+        bookingTime,
+        basePartySize // FIX: Use base party size, not total
+      );
+      setTurnTime(bookingWindow.turnTimeMinutes);
 
       // Fetch user's available offers
       if (profile?.id) {
@@ -149,29 +353,30 @@ export function useBookingCreate() {
                 minimum_party_size,
                 terms_conditions
               )
-            `,
+            `
             )
             .eq("user_id", profile.id)
             .is("used_at", null)
-            .gte("expires_at", new Date().toISOString());
+            .gte("expires_at", new Date().toISOString())
+            .gte("special_offer.valid_until", new Date().toISOString());
 
           if (!offersError && userOffersData) {
             const restaurantOffers = userOffersData
               .filter(
-                (offer) => offer.special_offer?.restaurant_id === restaurantId,
+                (offer) => offer.special_offer?.restaurant_id === restaurantId
               )
               .filter((offer) => offer.special_offer !== null)
               .map((offer) => ({
                 ...offer,
                 special_offer: offer.special_offer!,
-              })) as UserOfferWithDetails[];
+              })) as unknown as UserOfferWithDetails[];
 
             setAvailableOffers(restaurantOffers);
 
             // Auto-select preselected offer
             if (preselectedOfferId) {
               const matchingUserOffer = restaurantOffers.find(
-                (offer) => offer.special_offer.id === preselectedOfferId,
+                (offer) => offer.special_offer.id === preselectedOfferId
               );
               if (matchingUserOffer) {
                 setSelectedOfferUserId(matchingUserOffer.id);
@@ -190,155 +395,117 @@ export function useBookingCreate() {
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, preselectedOfferId, profile]);
+  }, [restaurantId, preselectedOfferId, profile, bookingDate, bookingTime, basePartySize]);
 
-  // Booking submission
+
   const submitBooking = useCallback(
     async (formData: BookingFormData) => {
       if (!restaurant || !profile?.id) return;
 
       setSubmitting(true);
+      setLastFormData(formData);
 
       try {
-        // Validate booking time
-        if (
-          !isValidDate(bookingDate.toISOString()) ||
-          !isValidTime(bookingTime)
-        ) {
-          throw new Error("Invalid booking date or time");
-        }
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000);
 
+        // Build booking date/time
         const bookingDateTime = new Date(bookingDate);
         const [hours, minutes] = bookingTime.split(":").map(Number);
-
-        if (
-          isNaN(hours) ||
-          isNaN(minutes) ||
-          hours < 0 ||
-          hours > 23 ||
-          minutes < 0 ||
-          minutes > 59
-        ) {
+        
+        if (isNaN(hours) || isNaN(minutes)) {
           throw new Error("Invalid booking time format");
         }
-
+        
         bookingDateTime.setHours(hours, minutes, 0, 0);
-
-        if (bookingDateTime <= new Date()) {
-          throw new Error("Booking time must be in the future");
-        }
 
         // Get selected offer
         const selectedOffer = selectedOfferUserId
           ? availableOffers.find((offer) => offer.id === selectedOfferUserId)
           : null;
 
-        // Create booking
-        const bookingData = {
-          user_id: profile.id,
-          restaurant_id: restaurant.id,
-          booking_time: bookingDateTime.toISOString(),
-          party_size: totalPartySize,
-          status:
-            restaurant.booking_policy === "instant" ? "confirmed" : "pending",
-          special_requests: formData.specialRequests,
-          occasion: formData.occasion !== "none" ? formData.occasion : null,
-          dietary_notes: formData.dietaryRestrictions,
-          table_preferences: formData.tablePreferences,
-          confirmation_code: `BK${Date.now().toString().slice(-8).toUpperCase()}`,
-          is_group_booking: invitedFriends.length > 0,
-          organizer_id: invitedFriends.length > 0 ? profile.id : null,
-          attendees: totalPartySize,
-          applied_offer_id: selectedOffer?.special_offer.id || null,
-        };
-
-        const { data: booking, error: bookingError } = await supabase
-          .from("bookings")
-          .insert(bookingData)
-          .select()
-          .single();
-
-        if (bookingError) throw bookingError;
-
-        // Handle friend invitations
-        if (invitedFriends.length > 0) {
-          try {
-            const invites = invitedFriends.map((friendId) => ({
-              booking_id: booking.id,
-              from_user_id: profile.id,
-              to_user_id: friendId,
-              message: `Join me at ${restaurant.name} on ${bookingDateTime.toLocaleDateString()} at ${bookingTime}!`,
-            }));
-
-            await supabase.from("booking_invites").insert(invites);
-            await supabase.from("booking_attendees").insert({
-              booking_id: booking.id,
-              user_id: profile.id,
-              status: "confirmed",
-              is_organizer: true,
-            });
-          } catch (friendError) {
-            console.error("Failed to handle friend invitations:", friendError);
+        // REMOVED redundant table validation - database function handles it atomically
+        
+        // Create booking with abort signal
+        const { data: bookingResult, error: bookingError } = await supabase.rpc(
+          'create_booking_with_tables',
+          {
+            p_user_id: profile.id,
+            p_restaurant_id: restaurant.id,
+            p_booking_time: bookingDateTime.toISOString(),
+            p_party_size: totalPartySize, // Use total party size including friends
+            p_table_ids: selectedTableIds.length > 0 ? selectedTableIds : [],
+            p_turn_time: turnTime,
+            p_special_requests: formData.specialRequests || null,
+            p_occasion: formData.occasion !== "none" ? formData.occasion : null,
+            p_dietary_notes: formData.dietaryRestrictions.length > 0 ? formData.dietaryRestrictions : null,
+            p_table_preferences: formData.tablePreferences.length > 0 ? formData.tablePreferences : null,
+            p_is_group_booking: invitedFriends.length > 0,
+            p_applied_offer_id: selectedOffer?.special_offer.id || null,
           }
+        );
+
+        clearTimeout(timeoutId);
+
+        if (bookingError) {
+          throw bookingError;
+        }
+
+        if (!bookingResult?.booking) {
+          throw new Error('No booking data returned');
+        }
+
+        const booking = bookingResult.booking;
+
+        // Handle post-booking operations with error recovery
+        const postBookingPromises = [];
+
+        // Friend invitations
+        if (invitedFriends.length > 0) {
+          postBookingPromises.push(
+            handleFriendInvitations(booking.id, invitedFriends).catch(err => {
+              console.error("Failed to send friend invitations:", err);
+              // Don't fail the booking for this
+            })
+        );
         }
 
         // Mark offer as used
         if (selectedOfferUserId && selectedOffer) {
-          try {
-            await supabase
-              .from("user_offers")
-              .update({ used_at: new Date().toISOString() })
-              .eq("id", selectedOfferUserId)
-              .eq("user_id", profile.id);
-          } catch (offerError) {
-            console.error("Failed to mark offer as used:", offerError);
-          }
+          postBookingPromises.push(
+            markOfferAsUsed(selectedOfferUserId, booking.id).catch(err => {
+              console.error("Failed to mark offer as used:", err);
+              // Don't fail the booking for this
+            })
+          );
         }
 
         // Award loyalty points
         if (earnablePoints > 0) {
-          try {
-            await supabase.rpc("award_loyalty_points", {
-              p_user_id: profile.id,
-              p_points: earnablePoints,
-            });
-          } catch (pointsError) {
-            console.error("Failed to award loyalty points:", pointsError);
-          }
+          postBookingPromises.push(
+            awardLoyaltyPoints(profile.id, earnablePoints).catch(err => {
+              console.error("Failed to award loyalty points:", err);
+              // Don't fail the booking for this
+            })
+          );
         }
+
+        // Wait for all post-booking operations
+        await Promise.allSettled(postBookingPromises);
 
         // Success haptic feedback
         await Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Success,
+          Haptics.NotificationFeedbackType.Success
         );
 
         // Navigate to success
-        const successParams = {
-          bookingId: booking.id,
-          restaurantName: restaurant.name,
-          confirmationCode: booking.confirmation_code,
-          earnedPoints: earnablePoints.toString(),
-          appliedOffer: selectedOffer ? "true" : "false",
-          invitedFriends: invitedFriends.length.toString(),
-          isGroupBooking: invitedFriends.length > 0 ? "true" : "false",
-          userTier,
-          ...(selectedOffer && {
-            offerTitle: selectedOffer.special_offer.title,
-            offerDiscount:
-              selectedOffer.special_offer.discount_percentage.toString(),
-          }),
-        };
-
         router.replace({
           pathname: "/booking/success",
-          params: successParams,
+          params: createSuccessParams(booking, selectedOffer),
         });
+
       } catch (error: any) {
-        console.error("Error creating booking:", error);
-        Alert.alert(
-          "Booking Failed",
-          error.message || "Failed to create booking. Please try again.",
-        );
+        handleBookingError(error);
       } finally {
         setSubmitting(false);
       }
@@ -355,8 +522,13 @@ export function useBookingCreate() {
       earnablePoints,
       userTier,
       invitedFriends,
-    ],
+      turnTime,
+      selectedTableIds,
+      requiresCombination,
+      handleBookingError,
+    ]
   );
+
 
   // Friend invitation handlers
   const handleInvitesSent = useCallback((friendIds: string[]) => {
@@ -369,9 +541,12 @@ export function useBookingCreate() {
   }, [fetchData]);
 
   // Get selected offer details
-  const selectedOffer = selectedOfferUserId
-    ? availableOffers.find((offer) => offer.id === selectedOfferUserId)
-    : null;
+  const selectedOffer = useMemo(() => 
+    selectedOfferUserId
+      ? availableOffers.find((offer) => offer.id === selectedOfferUserId)
+      : null,
+    [selectedOfferUserId, availableOffers]
+  );
 
   return {
     // State
@@ -394,6 +569,11 @@ export function useBookingCreate() {
     partySize,
     totalPartySize,
     earnablePoints,
+    turnTime,
+
+    // Table information
+    selectedTableIds,
+    requiresCombination,
 
     // Actions
     submitBooking,

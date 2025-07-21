@@ -6,6 +6,7 @@ import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
+import { AvailabilityService, TimeSlot } from "@/lib/AvailabilityService";
 
 // Core Types
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
@@ -34,21 +35,7 @@ type Review = Database["public"]["Tables"]["reviews"]["Row"] & {
     full_name: string;
     avatar_url?: string | null;
   };
-  food_rating?: number;
-  service_rating?: number;
-  ambiance_rating?: number;
-  value_rating?: number;
-  recommend_to_friend?: boolean;
-  visit_again?: boolean;
-  tags?: string[];
-  photos?: string[];
 };
-
-interface TimeSlot {
-  time: string;
-  available: boolean;
-  availableCapacity: number;
-}
 
 interface LocationCoordinate {
   latitude: number;
@@ -71,12 +58,12 @@ interface UseRestaurantReturn {
   handleBooking: (
     selectedDate: Date,
     selectedTime: string,
-    partySize: number,
+    partySize: number
   ) => void;
   navigateToCreateReview: () => void;
   refresh: () => Promise<void>;
 
-  // Helper functions (from useRestaurantHelpers)
+  // Helper functions
   extractLocationCoordinates: (location: any) => LocationCoordinate | null;
   isRestaurantOpen: (restaurant: Restaurant) => boolean;
   getDistanceText: (distance: number) => string;
@@ -86,13 +73,13 @@ interface UseRestaurantReturn {
   generateTimeSlots: (
     openTime: string,
     closeTime: string,
-    intervalMinutes?: number,
+    intervalMinutes?: number
   ) => { time: string }[];
   fetchAvailableSlots: (date: Date, partySize: number) => Promise<void>;
 }
 
 export function useRestaurant(
-  restaurantId: string | undefined,
+  restaurantId: string | undefined
 ): UseRestaurantReturn {
   const router = useRouter();
   const { profile } = useAuth();
@@ -104,6 +91,19 @@ export function useRestaurant(
   const [loading, setLoading] = useState(true);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  useEffect(() => {
+    return () => {
+      // Clean up on unmount
+      setLastAvailabilityParams(null);
+      setAvailableSlots([]);
+      setRestaurant(null);
+      setReviews([]);
+      setLoading(true);
+    };
+  }, []);
+
+  // Initialize availability service
+  const availabilityService = useMemo(() => AvailabilityService.getInstance(), []);
 
   // Helper Functions (merged from useRestaurantHelpers)
   const extractLocationCoordinates = useCallback(
@@ -139,7 +139,7 @@ export function useRestaurant(
       console.warn("Unable to parse location:", location);
       return null;
     },
-    [],
+    []
   );
 
   const isRestaurantOpen = useCallback((restaurant: Restaurant): boolean => {
@@ -172,10 +172,10 @@ export function useRestaurant(
   const handleWhatsApp = useCallback((restaurant: Restaurant) => {
     if (!restaurant?.whatsapp_number) return;
     const message = encodeURIComponent(
-      `Hi! I'd like to inquire about making a reservation at ${restaurant.name}.`,
+      `Hi! I'd like to inquire about making a reservation at ${restaurant.name}.`
     );
     Linking.openURL(
-      `whatsapp://send?phone=${restaurant.whatsapp_number}&text=${message}`,
+      `whatsapp://send?phone=${restaurant.whatsapp_number}&text=${message}`
     );
   }, []);
 
@@ -214,7 +214,7 @@ export function useRestaurant(
         });
       }
     },
-    [extractLocationCoordinates],
+    [extractLocationCoordinates]
   );
 
   const generateTimeSlots = useCallback(
@@ -252,7 +252,7 @@ export function useRestaurant(
         }
 
         console.log(
-          `Generated ${slots.length} time slots from ${openTime} to ${closeTime}`,
+          `Generated ${slots.length} time slots from ${openTime} to ${closeTime}`
         );
         return slots;
       } catch (error) {
@@ -269,7 +269,7 @@ export function useRestaurant(
         ];
       }
     },
-    [],
+    []
   );
 
   // Calculate review summary from reviews data
@@ -281,7 +281,7 @@ export function useRestaurant(
     const totalReviews = reviewsData.length;
     const totalRating = reviewsData.reduce(
       (sum, review) => sum + (review.rating || 0),
-      0,
+      0
     );
     const averageRating = totalRating / totalReviews;
 
@@ -336,7 +336,7 @@ export function useRestaurant(
 
     // Calculate recommendation percentage
     const recommendationsCount = reviewsData.filter(
-      (r) => r.recommend_to_friend,
+      (r) => r.recommend_to_friend
     ).length;
     const recommendationPercentage =
       totalReviews > 0
@@ -352,37 +352,39 @@ export function useRestaurant(
     };
   }, []);
 
-  // Fetch available time slots
+  // Store last used values for real-time refresh
+  const [lastAvailabilityParams, setLastAvailabilityParams] = useState<{
+    date: Date;
+    partySize: number;
+  } | null>(null);
+
+  // NEW: Fetch available time slots using the new availability service
   const fetchAvailableSlots = useCallback(
     async (date: Date, partySize: number) => {
       if (!restaurantId || !restaurant) return;
 
       setLoadingSlots(true);
+      // Store params for real-time refresh
+      setLastAvailabilityParams({ date, partySize });
 
       try {
-        // Generate base time slots from restaurant hours
-        const baseSlots = generateTimeSlots(
-          restaurant.opening_time || "17:00",
-          restaurant.closing_time || "23:00",
-          30,
+        const slots = await availabilityService.getAvailableSlots(
+          restaurantId,
+          date,
+          partySize,
+          profile?.id
         );
 
-        // Simulate availability check (replace with real API call)
-        const availabilityData = baseSlots.map((slot) => ({
-          time: slot.time,
-          available: Math.random() > 0.3, // Random availability for demo
-          availableCapacity: Math.floor(Math.random() * 8) + 2,
-        }));
-
-        setAvailableSlots(availabilityData);
+        setAvailableSlots(slots);
       } catch (error) {
         console.error("Error fetching available slots:", error);
         Alert.alert("Error", "Failed to load available time slots");
+        setAvailableSlots([]);
       } finally {
         setLoadingSlots(false);
       }
     },
-    [restaurantId, restaurant, generateTimeSlots],
+    [restaurantId, restaurant, availabilityService, profile?.id]
   );
 
   // Main data fetching
@@ -435,7 +437,7 @@ export function useRestaurant(
             full_name,
             avatar_url
           )
-        `,
+        `
         )
         .eq("restaurant_id", restaurantId)
         .order("created_at", { ascending: false })
@@ -544,6 +546,9 @@ export function useRestaurant(
         return;
       }
 
+      // Find the selected slot to get table information
+      const selectedSlot = availableSlots.find(slot => slot.time === selectedTime);
+
       router.push({
         pathname: "/booking/create",
         params: {
@@ -552,10 +557,13 @@ export function useRestaurant(
           date: selectedDate.toISOString(),
           time: selectedTime,
           partySize: partySize.toString(),
+          // NEW: Pass table information if available
+          tableIds: selectedSlot?.tables ? JSON.stringify(selectedSlot.tables.map(t => t.id)) : undefined,
+          requiresCombination: selectedSlot?.requiresCombination ? "true" : "false",
         },
       });
     },
-    [restaurantId, restaurant, router],
+    [restaurantId, restaurant, router, availableSlots]
   );
 
   const navigateToCreateReview = useCallback(() => {
@@ -574,6 +582,36 @@ export function useRestaurant(
   useEffect(() => {
     fetchRestaurantDetails();
   }, [fetchRestaurantDetails]);
+
+  // Subscribe to real-time updates
+  useEffect(() => {
+    if (!restaurantId) return;
+
+    const channel = supabase
+      .channel(`restaurant:${restaurantId}:availability`)
+      .on('postgres_changes', 
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'bookings',
+          filter: `restaurant_id=eq.${restaurantId}`
+        },
+        () => {
+          // Refresh available slots when a booking is made/cancelled
+          if (lastAvailabilityParams) {
+            fetchAvailableSlots(
+              lastAvailabilityParams.date,
+              lastAvailabilityParams.partySize
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [restaurantId, lastAvailabilityParams, fetchAvailableSlots]);
 
   return {
     // Data
