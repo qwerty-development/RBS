@@ -33,9 +33,10 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "expo": "^53.0.19",
+    "expo": "^53.0.20",
     "expo-apple-authentication": "~7.2.4",
     "expo-auth-session": "~6.2.1",
+    "expo-calendar": "~14.1.4",
     "expo-clipboard": "~7.1.4",
     "expo-constants": "~17.1.6",
     "expo-contacts": "~14.2.5",
@@ -85,8 +86,7 @@
     "tailwind-merge": "^3.2.0",
     "tailwindcss": "~3.4.17",
     "use-debounce": "^10.0.5",
-    "zod": "^3.24.3",
-    "expo-calendar": "~14.1.4"
+    "zod": "^3.24.3"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",
