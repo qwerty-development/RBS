@@ -156,7 +156,7 @@ export default function SignIn() {
         router.replace("/(protected)/(tabs)");
       }
     } catch (err: any) {
-      console.error("Google sign in error:", err);
+      console.error("Google sign in       error:", err);
       Alert.alert(
         "Sign In Error",
         err.message || "Failed to sign in with Google.",
