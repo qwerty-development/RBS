@@ -35,8 +35,8 @@ import {
   BookingContactSection,
   BookingSpecialRequests,
   AppliedOfferCard,
-  BookingTableInfo,
 } from "@/components/booking";
+import { BookingTableInfo } from "@/components/booking/BookingTableInfo";
 
 // Import custom hook
 import { useBookingDetails } from "@/hooks/useBookingDetails";
