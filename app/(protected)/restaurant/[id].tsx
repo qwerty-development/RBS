@@ -21,6 +21,9 @@ import {
   Utensils,
   Leaf,
   TreePine,
+  CheckCircle,
+  Send,
+  Timer,
 } from "lucide-react-native";
 import {
   ScrollView,
@@ -864,14 +867,52 @@ export default function RestaurantDetailsScreen() {
       <View className="absolute bottom-0 left-0 right-0 mt-5">
         <SafeAreaView edges={["bottom"]}>
           <View className="p-4 bg-background border-t border-border">
+            {/* Booking Policy Info */}
+            {restaurant.booking_policy === "request" && (
+              <View className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 mb-3">
+                <View className="flex-row items-center gap-2">
+                  <Timer size={16} color="#f97316" />
+                  <View className="flex-1">
+                    <Text className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                      Request Booking Restaurant
+                    </Text>
+                    <Text className="text-xs text-orange-700 dark:text-orange-300">
+                      Submit a request • Response within 2 hours
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
             <Button onPress={handleAttemptBooking} size="lg" className="w-full">
               <View className="flex-row items-center justify-center gap-2">
-                <Calendar size={20} color="white" />
-                <Text className="text-white font-bold text-lg">
-                  Book a Table
-                </Text>
+                {restaurant.booking_policy === "request" ? (
+                  <>
+                    <Send size={20} color="white" />
+                    <Text className="text-white font-bold text-lg">
+                      Request a Table
+                    </Text>
+                  </>
+                ) : (
+                  <>
+                    <Calendar size={20} color="white" />
+                    <Text className="text-white font-bold text-lg">
+                      Book a Table
+                    </Text>
+                  </>
+                )}
               </View>
             </Button>
+            
+            {/* Instant Booking Badge */}
+            {restaurant.booking_policy === "instant" && (
+              <View className="flex-row items-center justify-center gap-2 mt-2">
+                <CheckCircle size={14} color="#10b981" />
+                <Text className="text-xs text-muted-foreground">
+                  Instant confirmation available
+                </Text>
+              </View>
+            )}
           </View>
         </SafeAreaView>
       </View>

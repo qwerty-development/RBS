@@ -6,17 +6,19 @@ import {
   Star,
   Crown,
   Sparkles,
+  Timer, // Added for pending status
 } from "lucide-react-native";
 
-// Enhanced booking status configuration
+// --- Booking Statuses ---
+// Merged configuration with improved labels and the 'Timer' icon for pending requests.
 export const BOOKING_STATUS_CONFIG = {
   pending: {
-    label: "Pending Confirmation",
-    icon: AlertCircle,
-    color: "#f59e0b",
-    bgColor: "#fef3c7",
+    label: "Pending Approval",
+    icon: Timer, // Using 'Timer' for a more specific UX
+    color: "#f97316", // Orange for pending state
+    bgColor: "#ffedd5", // Light orange background
     description:
-      "Your booking is waiting for restaurant confirmation. We'll notify you once it's confirmed.",
+      "The restaurant is reviewing your request. We'll notify you upon confirmation.",
   },
   confirmed: {
     label: "Confirmed",
@@ -24,22 +26,22 @@ export const BOOKING_STATUS_CONFIG = {
     color: "#10b981",
     bgColor: "#d1fae5",
     description:
-      "Your table is confirmed! Please arrive on time and show your confirmation code.",
+      "Your table is confirmed! Please arrive on time and show your confirmation.",
   },
   cancelled_by_user: {
-    label: "Cancelled by You",
+    label: "Cancelled",
     icon: XCircle,
     color: "#6b7280",
     bgColor: "#f3f4f6",
     description: "You cancelled this booking.",
   },
   declined_by_restaurant: {
-    label: "Declined by Restaurant",
+    label: "Declined",
     icon: XCircle,
     color: "#ef4444",
     bgColor: "#fee2e2",
     description:
-      "Unfortunately, the restaurant couldn't accommodate your booking.",
+      "The restaurant was unable to accommodate this request.",
   },
   completed: {
     label: "Completed",
@@ -58,7 +60,25 @@ export const BOOKING_STATUS_CONFIG = {
   },
 } as const;
 
-// Tier configuration for display
+// --- Booking Policies (from AI suggestion) ---
+// Defines the type of booking available at a restaurant.
+export const BOOKING_POLICIES = {
+  instant: {
+    label: "Instant Booking",
+    description: "Your table is confirmed immediately.",
+    icon: "⚡",
+    color: "#10b981",
+  },
+  request: {
+    label: "Request to Book",
+    description: "The restaurant will confirm your request shortly.",
+    icon: "⏰",
+    color: "#f97316",
+  },
+} as const;
+
+// --- User Tiers (from your original) ---
+// Configuration for displaying user loyalty tiers.
 export const TIER_DISPLAY_CONFIG = {
   bronze: { name: "Bronze", color: "#CD7F32", icon: Award },
   silver: { name: "Silver", color: "#C0C0C0", icon: Star },
@@ -66,13 +86,21 @@ export const TIER_DISPLAY_CONFIG = {
   platinum: { name: "Platinum", color: "#E5E4E2", icon: Sparkles },
 } as const;
 
-// Default map coordinates (Beirut, Lebanon)
+// --- Booking Logic Timers (from AI suggestion) ---
+// Timeout in minutes for a pending request to be automatically handled.
+export const REQUEST_BOOKING_TIMEOUT = 120; // 2 hours
+
+// Time in minutes after which a warning or follow-up might be displayed.
+export const REQUEST_BOOKING_WARNING_TIME = 90; // 1.5 hours
+
+// --- Map Configuration (from your original) ---
+// Default map coordinates (Beirut, Lebanon) for when user location is unavailable.
 export const DEFAULT_MAP_COORDINATES = {
   latitude: 33.8938,
   longitude: 35.5018,
 };
 
-// Map region configuration
+// Default zoom level for the map.
 export const MAP_REGION_CONFIG = {
   latitudeDelta: 0.01,
   longitudeDelta: 0.01,

@@ -1,4 +1,4 @@
-// app/(protected)/booking/[id].tsx
+// app/(protected)/booking/[id].tsx - Updated with request booking support
 import React from "react";
 import {
   ScrollView,
@@ -16,6 +16,10 @@ import {
   Calendar,
   Clock,
   Users,
+  Timer,
+  Bell,
+  XCircle,
+  RefreshCw,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
@@ -27,7 +31,7 @@ import { H2, H3, P } from "@/components/ui/typography";
 import { LoyaltyPointsCard } from "@/components/ui/loyalty-points-card";
 import { useColorScheme } from "@/lib/useColorScheme";
 
-// Import new components
+// Import components
 import {
   BookingDetailsHeader,
   BookingActionsBar,
@@ -64,7 +68,18 @@ export default function BookingDetailsScreen() {
     isTomorrow,
     cancelBooking,
     copyOfferCode,
+    refetch,
   } = useBookingDetails(params.id || "");
+
+  // Additional state for pending bookings
+  const isPending = booking?.status === "pending";
+  const isDeclined = booking?.status === "declined_by_restaurant";
+  const timeSinceRequest = isPending && booking
+    ? Math.floor(
+        (Date.now() - new Date(booking.created_at).getTime()) / (1000 * 60)
+      )
+    : 0;
+  const timeRemaining = isPending ? Math.max(0, 120 - timeSinceRequest) : 0;
 
   // Navigation handlers
   const navigateToReview = () => {
@@ -113,20 +128,30 @@ export default function BookingDetailsScreen() {
   const shareBooking = async () => {
     if (!booking) return;
 
+    const statusText = isPending 
+      ? "I've requested a table"
+      : isDeclined
+      ? "My booking request was declined"
+      : "I have a reservation";
+
     const offerText = appliedOfferDetails
       ? ` Plus I saved ${appliedOfferDetails.discount_percentage}% with a special offer!`
       : "";
-    const pointsText = loyaltyActivity
+    const pointsText = loyaltyActivity && !isPending
       ? ` I also earned ${loyaltyActivity.points_earned} loyalty points!`
       : "";
 
-    const shareMessage = `I have a reservation at ${booking.restaurant.name} on ${new Date(
+    const shareMessage = `${statusText} at ${booking.restaurant.name} on ${new Date(
       booking.booking_time,
     ).toLocaleDateString()} at ${new Date(
       booking.booking_time,
     ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} for ${
       booking.party_size
-    } people.${offerText}${pointsText} Confirmation code: ${booking.confirmation_code}`;
+    } people.${offerText}${pointsText}${
+      booking.confirmation_code && !isPending 
+        ? ` Confirmation code: ${booking.confirmation_code}` 
+        : ""
+    }`;
 
     try {
       await Share.share({
@@ -146,7 +171,7 @@ export default function BookingDetailsScreen() {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     Alert.alert(
       "Copied!",
-      `Confirmation code ${booking.confirmation_code} copied to clipboard`,
+      `${isPending ? "Reference" : "Confirmation"} code ${booking.confirmation_code} copied to clipboard`,
     );
   };
 
@@ -165,6 +190,9 @@ export default function BookingDetailsScreen() {
   };
 
   // Loading state
+  if (loading) {
+    return <BookingDetailsScreenSkeleton />;
+  }
 
   if (!booking) {
     return (
@@ -185,10 +213,6 @@ export default function BookingDetailsScreen() {
   const statusConfig = BOOKING_STATUS_CONFIG[booking.status];
   const StatusIcon = statusConfig.icon;
   const bookingDate = new Date(booking.booking_time);
-
-  if (loading) {
-    return <BookingDetailsScreenSkeleton />;
-  }
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
@@ -231,30 +255,75 @@ export default function BookingDetailsScreen() {
               {statusConfig.description}
             </Text>
           </View>
-        </View>
 
-        {/* Rewards Section */}
-        <View className="p-4">
-          {/* Applied Offer Card */}
-          {appliedOfferDetails && (
-            <AppliedOfferCard
-              offerDetails={appliedOfferDetails}
-              onCopyCode={copyOfferCode}
-              onViewOffers={navigateToOffers}
-              onShareOffer={shareAppliedOffer}
-            />
+          {/* Pending Status Extra Info */}
+          {isPending && (
+            <View className="mt-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
+              <View className="flex-row items-center gap-2 mb-2">
+                <Timer size={20} color="#f97316" />
+                <Text className="font-semibold text-orange-800 dark:text-orange-200">
+                  Response Expected Soon
+                </Text>
+              </View>
+              <Text className="text-sm text-orange-700 dark:text-orange-300">
+                The restaurant typically responds within {timeRemaining} minutes. 
+                We'll notify you immediately when they confirm.
+              </Text>
+              <View className="flex-row items-center gap-2 mt-3">
+                <Bell size={16} color="#f97316" />
+                <Text className="text-xs text-orange-600 dark:text-orange-400">
+                  Push notifications enabled
+                </Text>
+              </View>
+            </View>
           )}
 
-          {/* Loyalty Points Card */}
-          {loyaltyActivity && (
-            <LoyaltyPointsCard
-              pointsEarned={loyaltyActivity.points_earned}
-              userTier={(booking as any).metadata?.userTier || "bronze"}
-              tierMultiplier={loyaltyActivity.points_multiplier}
-              hasOffer={!!appliedOfferDetails}
-            />
+          {/* Declined Status Extra Info */}
+          {isDeclined && (
+            <View className="mt-3 bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
+              <Text className="text-sm text-red-700 dark:text-red-300 mb-3">
+                The restaurant couldn't accommodate your request at this time. 
+                This could be due to full capacity or special events.
+              </Text>
+              <Button 
+                variant="default" 
+                size="sm" 
+                onPress={bookAgain}
+                className="w-full"
+              >
+                <RefreshCw size={16} color="white" />
+                <Text className="ml-2 text-white font-medium">
+                  Try Different Time
+                </Text>
+              </Button>
+            </View>
           )}
         </View>
+
+        {/* Rewards Section - Only show for confirmed bookings */}
+        {booking.status === "confirmed" && (
+          <View className="p-4">
+            {/* Applied Offer Card */}
+            {appliedOfferDetails && (
+              <AppliedOfferCard
+                offerDetails={appliedOfferDetails}
+                onCopyCode={copyOfferCode}
+                onViewOffers={navigateToOffers}
+                onShareOffer={shareAppliedOffer}
+              />
+            )}
+
+            {/* Loyalty Points Card */}
+            {loyaltyActivity && (
+              <LoyaltyPointsCard
+                pointsEarned={loyaltyActivity.points_earned}
+                userTier={(booking as any).metadata?.userTier || "bronze"}
+                tierMultiplier={loyaltyActivity.points_multiplier}
+                hasOffer={!!appliedOfferDetails}
+              />
+            )}
+          </View>
+        )}
 
         {/* Booking Information */}
         <View className="p-4 border-b border-border">
@@ -303,7 +372,9 @@ export default function BookingDetailsScreen() {
           </View>
 
           <View className="bg-card border border-border rounded-lg p-4">
-            <Text className="font-medium mb-2">Confirmation Code</Text>
+            <Text className="font-medium mb-2">
+              {isPending ? "Reference Code" : "Confirmation Code"}
+            </Text>
             <Pressable
               onPress={copyConfirmationCode}
               className="flex-row items-center justify-between bg-muted rounded-lg p-3"
@@ -314,17 +385,22 @@ export default function BookingDetailsScreen() {
               <Copy size={20} color="#666" />
             </Pressable>
             <Text className="text-xs text-muted-foreground mt-2">
-              Tap to copy • Show this code at the restaurant
+              Tap to copy • {isPending 
+                ? "Use this code to reference your request" 
+                : "Show this code at the restaurant"
+              }
             </Text>
           </View>
         </View>
 
-        {/* Table Assignment */}
-        <BookingTableInfo
-          tables={assignedTables}
-          partySize={booking.party_size}
-          loading={loading}
-        />
+        {/* Table Assignment - Only show for confirmed bookings */}
+        {booking.status === "confirmed" && (
+          <BookingTableInfo
+            tables={assignedTables}
+            partySize={booking.party_size}
+            loading={loading}
+          />
+        )}
 
         {/* Special Requests */}
         <BookingSpecialRequests booking={booking} />

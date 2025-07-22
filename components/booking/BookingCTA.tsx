@@ -1,20 +1,20 @@
-import React, { useState } from "react";
-import { View, ActivityIndicator, Alert } from "react-native";
-import { CheckCircle } from "lucide-react-native";
+// components/booking/BookingCTA.tsx - Updated with request booking support
+import React from "react";
+import { View, ActivityIndicator } from "react-native";
+import { Calendar, CheckCircle, Send, Timer } from "lucide-react-native";
+
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { useBiometricAuth } from "@/hooks/useBiometricAuth";
 
 interface BookingCTAProps {
   onSubmit: () => void;
   isSubmitting: boolean;
   isDisabled: boolean;
-  bookingPolicy: "instant" | "approval";
+  bookingPolicy: "instant" | "request" | "approval"; // "approval" is alias for "request"
   invitedFriendsCount?: number;
   selectedOfferDiscount?: number;
-  earnablePoints: number;
-  userTier: string;
-  className?: string;
+  earnablePoints?: number;
+  userTier?: string;
 }
 
 export const BookingCTA: React.FC<BookingCTAProps> = ({
@@ -26,56 +26,97 @@ export const BookingCTA: React.FC<BookingCTAProps> = ({
   selectedOfferDiscount,
   earnablePoints,
   userTier,
-  className = "",
 }) => {
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const { authenticate } = useBiometricAuth();
+  const isRequestBooking = bookingPolicy === "request" || bookingPolicy === "approval";
 
-  const handlePress = async () => {
-    setIsAuthenticating(true);
-    try {
-      const result = await authenticate();
-      if (result.success) {
-        onSubmit();
-      } else {
-        Alert.alert("Authentication Failed", result.error);
-      }
-    } finally {
-      setIsAuthenticating(false);
-    }
-  };
+  // Different button text and icon based on booking policy
+  const buttonText = isRequestBooking 
+    ? "Send Booking Request" 
+    : "Confirm Booking";
+  
+  const ButtonIcon = isRequestBooking ? Send : Calendar;
 
   return (
-    <View className={`p-4 border-t border-border bg-background ${className}`}>
+    <View className="p-4 bg-background border-t border-border">
+      {/* Summary Info */}
+      <View className="mb-3">
+        <View className="flex-row flex-wrap gap-2 mb-2">
+          {invitedFriendsCount > 0 && (
+            <View className="bg-blue-100 dark:bg-blue-900/20 rounded-full px-3 py-1">
+              <Text className="text-xs text-blue-800 dark:text-blue-200">
+                +{invitedFriendsCount} friends invited
+              </Text>
+            </View>
+          )}
+          
+          {selectedOfferDiscount && (
+            <View className="bg-green-100 dark:bg-green-900/20 rounded-full px-3 py-1">
+              <Text className="text-xs text-green-800 dark:text-green-200 font-medium">
+                {selectedOfferDiscount}% OFF applied
+              </Text>
+            </View>
+          )}
+          
+          {earnablePoints && earnablePoints > 0 && !isRequestBooking && (
+            <View className="bg-amber-100 dark:bg-amber-900/20 rounded-full px-3 py-1">
+              <Text className="text-xs text-amber-800 dark:text-amber-200">
+                +{earnablePoints} points
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {/* Request Booking Info */}
+        {isRequestBooking && (
+          <View className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 mb-2">
+            <View className="flex-row items-start gap-2">
+              <Timer size={16} color="#f97316" className="mt-0.5" />
+              <View className="flex-1">
+                <Text className="text-sm font-medium text-orange-800 dark:text-orange-200">
+                  Request Booking
+                </Text>
+                <Text className="text-xs text-orange-700 dark:text-orange-300">
+                  The restaurant will review and respond within 2 hours
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Instant Booking Info */}
+        {!isRequestBooking && (
+          <View className="flex-row items-center gap-2 justify-center">
+            <CheckCircle size={16} color="#10b981" />
+            <Text className="text-xs text-muted-foreground">
+              Instant confirmation • No waiting
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Submit Button */}
       <Button
-        onPress={handlePress}
-        disabled={isDisabled || isSubmitting || isAuthenticating}
+        onPress={onSubmit}
         size="lg"
+        disabled={isDisabled || isSubmitting}
         className="w-full"
       >
-        {isSubmitting || isAuthenticating ? (
+        {isSubmitting ? (
           <ActivityIndicator size="small" color="white" />
         ) : (
-          <>
-            <CheckCircle size={20} className="mr-2" />
+          <View className="flex-row items-center justify-center gap-2">
+            <ButtonIcon size={20} color="white" />
             <Text className="text-white font-bold text-lg">
-              {bookingPolicy === "instant"
-                ? "Confirm Booking"
-                : "Request Booking"}
-              {invitedFriendsCount > 0 && ` (${invitedFriendsCount} friends)`}
+              {buttonText}
             </Text>
-          </>
+          </View>
         )}
       </Button>
 
-      <View className="mt-3 flex-row justify-center items-center gap-2">
-        <Text className="text-xs text-muted-foreground text-center">
-          {selectedOfferDiscount ? `${selectedOfferDiscount}% discount + ` : ""}
-          {earnablePoints} loyalty points • {userTier.toUpperCase()} tier
-          {invitedFriendsCount > 0 &&
-            ` • ${invitedFriendsCount} friends invited`}
-        </Text>
-      </View>
+      {/* Terms Note */}
+      <Text className="text-xs text-muted-foreground text-center mt-2">
+        By {isRequestBooking ? "requesting" : "booking"}, you agree to the restaurant's terms and cancellation policy
+      </Text>
     </View>
   );
 };
