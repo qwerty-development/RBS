@@ -1,8 +1,9 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
-import { Pressable } from "react-native";
+import { Pressable, ActivityIndicator } from "react-native";
 import { cn } from "@/lib/utils";
 import { TextClassContext } from "@/components/ui/text";
+import * as Haptics from "expo-haptics";
 
 const buttonVariants = cva(
   "group flex items-center justify-center rounded-3xl web:ring-offset-background web:transition-colors web:focus-visible:outline-none web:focus-visible:ring-2 web:focus-visible:ring-ring web:focus-visible:ring-offset-2",
@@ -60,12 +61,14 @@ const buttonTextVariants = cva(
 );
 
 type ButtonProps = React.ComponentPropsWithoutRef<typeof Pressable> &
-  VariantProps<typeof buttonVariants>;
+  VariantProps<typeof buttonVariants> & {
+    loading?: boolean;
+  };
 
 const Button = React.forwardRef<
   React.ComponentRef<typeof Pressable>,
   ButtonProps
->(({ className, variant, size, ...props }, ref) => {
+>(({ className, variant, size, loading, ...props }, ref) => {
   return (
     <TextClassContext.Provider
       value={buttonTextVariants({
@@ -81,8 +84,17 @@ const Button = React.forwardRef<
         )}
         ref={ref}
         role="button"
+        onPressIn={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+        accessibilityRole="button"
+        accessibilityState={{ disabled: props.disabled, busy: loading }}
         {...props}
-      />
+      >
+        {loading ? (
+          <ActivityIndicator color={buttonTextVariants({ variant, size })} />
+        ) : (
+          props.children
+        )}
+      </Pressable>
     </TextClassContext.Provider>
   );
 });

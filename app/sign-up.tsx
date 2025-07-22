@@ -7,8 +7,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  TouchableOpacity,
 } from "react-native";
 import * as z from "zod";
+import { useState } from "react";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
@@ -18,6 +22,7 @@ import { H1, P } from "@/components/ui/typography";
 import { useAuth } from "@/context/supabase-provider";
 import { Checkbox } from "@/components/ui/checkbox";
 import SignUpScreenSkeleton from "@/components/skeletons/SignUpScreenSkeleton";
+import { useColorScheme } from "@/lib/useColorScheme";
 
 // Lebanese phone number validation regex
 const lebanesPhoneRegex = /^(\+961|961|03|70|71|76|78|79|80|81)\d{6,7}$/;
@@ -78,7 +83,13 @@ const formSchema = z
   });
 
 export default function SignUp() {
-  const { signUp, loading } = useAuth();
+  const { signUp, loading, googleSignIn, appleSignIn } = useAuth();
+  const router = useRouter();
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isAppleLoading, setIsAppleLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -116,6 +127,42 @@ export default function SignUp() {
       Alert.alert("Sign Up Error", errorMessage);
     }
   }
+
+  const handleGoogleSignUp = async () => {
+    try {
+      setIsGoogleLoading(true);
+      const { error, needsProfileUpdate } = await googleSignIn();
+      if (error) {
+        Alert.alert("Sign Up Error", error.message);
+      } else if (needsProfileUpdate) {
+        router.replace("/(protected)/profile");
+      } else {
+        router.replace("/(protected)/(tabs)");
+      }
+    } catch (err: any) {
+      Alert.alert("Sign Up Error", err.message);
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleAppleSignUp = async () => {
+    try {
+      setIsAppleLoading(true);
+      const { error, needsProfileUpdate } = await appleSignIn();
+      if (error) {
+        Alert.alert("Sign Up Error", error.message);
+      } else if (needsProfileUpdate) {
+        router.replace("/(protected)/profile");
+      } else {
+        router.replace("/(protected)/(tabs)");
+      }
+    } catch (err: any) {
+      Alert.alert("Sign Up Error", err.message);
+    } finally {
+      setIsAppleLoading(false);
+    }
+  };
 
   if (loading) {
     return <SignUpScreenSkeleton />;
@@ -261,7 +308,7 @@ export default function SignUp() {
               size="default"
               variant="default"
               onPress={form.handleSubmit(onSubmit)}
-              disabled={form.formState.isSubmitting}
+              disabled={form.formState.isSubmitting || isGoogleLoading || isAppleLoading}
             >
               {form.formState.isSubmitting ? (
                 <ActivityIndicator size="small" color="white" />
@@ -270,15 +317,79 @@ export default function SignUp() {
               )}
             </Button>
 
+            <View className="items-center">
+              <View className="flex-row items-center w-full mb-4">
+                <View className="flex-1 h-px bg-border/30" />
+                <Text className="mx-4 text-sm text-muted-foreground">
+                  or continue with
+                </Text>
+                <View className="flex-1 h-px bg-border/30" />
+              </View>
+
+              <View className="flex-row gap-3 w-full">
+                {Platform.OS === "ios" && (
+                  <TouchableOpacity
+                    onPress={handleAppleSignUp}
+                    disabled={isAppleLoading || form.formState.isSubmitting}
+                    className="flex-1"
+                  >
+                    <View className="bg-foreground rounded-md h-12 items-center justify-center flex-row gap-2">
+                      {isAppleLoading ? (
+                        <ActivityIndicator
+                          size="small"
+                          color={isDark ? "#000" : "#fff"}
+                        />
+                      ) : (
+                        <>
+                          <Ionicons
+                            name="logo-apple"
+                            size={20}
+                            color={isDark ? "#000" : "#fff"}
+                          />
+                          <Text
+                            className={
+                              isDark
+                                ? "text-black font-medium"
+                                : "text-white font-medium"
+                            }
+                          >
+                            Apple
+                          </Text>
+                        </>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  onPress={handleGoogleSignUp}
+                  disabled={isGoogleLoading || form.formState.isSubmitting}
+                  className="flex-1"
+                >
+                  <View className="bg-background border border-border rounded-md h-12 items-center justify-center flex-row gap-2">
+                    {isGoogleLoading ? (
+                      <ActivityIndicator
+                        size="small"
+                        color={isDark ? "#fff" : "#000"}
+                      />
+                    ) : (
+                      <>
+                        <Ionicons name="logo-google" size={20} color="#EA4335" />
+                        <Text className="text-foreground font-medium">Google</Text>
+                      </>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </View>
+            </View>
+
             <View className="flex-row items-center gap-2 justify-center">
               <Text className="text-muted-foreground">
                 Already have an account?
               </Text>
               <Text
                 className="text-primary font-medium"
-                onPress={() => {
-                  // Navigate to sign in
-                }}
+                onPress={() => router.push("/sign-in")}
               >
                 Sign In
               </Text>
