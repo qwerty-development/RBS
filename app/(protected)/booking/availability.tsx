@@ -1,11 +1,12 @@
-// app/(protected)/booking/availability.tsx
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+// app/(protected)/booking/availability.tsx (Fully Optimized)
+import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ScrollView,
   View,
   Pressable,
   ActivityIndicator,
   Alert,
+  Dimensions,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -23,6 +24,8 @@ import {
   Sparkles,
   QrCode,
   ArrowLeft,
+  Zap,
+  Clock,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
@@ -37,26 +40,115 @@ import { getMaxBookingWindow } from "@/lib/tableManagementUtils";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
 import { useRestaurant } from "@/hooks/useRestaurant";
-import { useAvailability } from "@/hooks/useAvailability";
+import { useAvailability, useAvailabilityPreloader } from "@/hooks/useAvailability";
 import { useLoyalty } from "@/hooks/useLoyalty";
 import { useOffers } from "@/hooks/useOffers";
-
-// Import the new optimized components
 import { TimeSlots, TableOptions } from "@/components/booking/TimeSlots";
+import { TableOption } from "@/lib/AvailabilityService";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
-// Party Size Selector Component
-const PartySizeSelector: React.FC<{
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Optimized Restaurant Info Card
+const RestaurantInfoCard = React.memo<{
+  restaurant: Restaurant;
+}>(({ restaurant }) => (
+  <View className="mx-4 mt-4 p-4 bg-card rounded-xl border border-border shadow-sm">
+    <View className="flex-row gap-3">
+      <Image
+        source={{ uri: restaurant.main_image_url }}
+        className="w-16 h-16 rounded-lg"
+        contentFit="cover"
+        placeholder="Restaurant"
+      />
+      <View className="flex-1">
+        <H3 className="mb-1" numberOfLines={1}>{restaurant.name}</H3>
+        <View className="flex-row items-center gap-2 mb-1">
+          <Star size={14} color="#f59e0b" fill="#f59e0b" />
+          <Text className="text-sm font-medium">
+            {restaurant.average_rating?.toFixed(1) || "4.5"}
+          </Text>
+          <Text className="text-sm text-muted-foreground">•</Text>
+          <Text className="text-sm text-muted-foreground" numberOfLines={1}>
+            {restaurant.cuisine_type}
+          </Text>
+        </View>
+        <View className="flex-row items-center gap-1">
+          <MapPin size={12} color="#666" />
+          <Text className="text-xs text-muted-foreground" numberOfLines={1}>
+            {restaurant.address}
+          </Text>
+        </View>
+      </View>
+    </View>
+  </View>
+));
+
+// Enhanced Progress Indicator
+const ProgressIndicator = React.memo<{
+  currentStep: 'time' | 'experience';
+  hasSelectedSlot: boolean;
+  selectedTime: string | null;
+  experienceCount: number;
+}>(({ currentStep, hasSelectedSlot, selectedTime, experienceCount }) => (
+  <View className="px-4 py-3 bg-muted/30 border-b border-border">
+    <View className="flex-row items-center justify-center gap-4">
+      <View className={`flex-row items-center gap-2 ${currentStep === 'time' ? 'opacity-100' : 'opacity-60'}`}>
+        <View className={`w-8 h-8 rounded-full items-center justify-center ${
+          currentStep === 'time' ? 'bg-primary' : hasSelectedSlot ? 'bg-green-500' : 'bg-primary'
+        }`}>
+          <Text className="text-white font-bold text-sm">1</Text>
+        </View>
+        <View>
+          <Text className="font-medium text-sm">Select Time</Text>
+          {selectedTime && currentStep !== 'time' && (
+            <Text className="text-xs text-green-600 dark:text-green-400">{selectedTime}</Text>
+          )}
+        </View>
+      </View>
+      
+      <View className={`w-8 h-px transition-colors ${hasSelectedSlot ? 'bg-green-500' : 'bg-border'}`} />
+      
+      <View className={`flex-row items-center gap-2 ${currentStep === 'experience' ? 'opacity-100' : 'opacity-60'}`}>
+        <View className={`w-8 h-8 rounded-full items-center justify-center ${
+          currentStep === 'experience' && hasSelectedSlot ? 'bg-primary' : 
+          hasSelectedSlot ? 'bg-green-500' : 'bg-muted'
+        }`}>
+          <Text className={`font-bold text-sm ${hasSelectedSlot ? 'text-white' : 'text-muted-foreground'}`}>2</Text>
+        </View>
+        <View>
+          <Text className="font-medium text-sm">Choose Experience</Text>
+          {experienceCount > 0 && currentStep === 'experience' && (
+            <Text className="text-xs text-blue-600 dark:text-blue-400">{experienceCount} options</Text>
+          )}
+        </View>
+      </View>
+    </View>
+  </View>
+));
+
+// Optimized Party Size Selector
+const PartySizeSelector = React.memo<{
   partySize: number;
   onPartySizeChange: (size: number) => void;
   maxPartySize?: number;
-}> = ({ partySize, onPartySizeChange, maxPartySize = 12 }) => {
+  disabled?: boolean;
+}>(({ partySize, onPartySizeChange, maxPartySize = 12, disabled = false }) => {
   const [expanded, setExpanded] = useState(false);
 
-  const partySizes = Array.from({ length: maxPartySize }, (_, i) => i + 1);
+  const partySizes = useMemo(() => 
+    Array.from({ length: maxPartySize }, (_, i) => i + 1),
+    [maxPartySize]
+  );
 
-  if (expanded) {
+  const handleSizeChange = useCallback((size: number) => {
+    onPartySizeChange(size);
+    setExpanded(false);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [onPartySizeChange]);
+
+  if (expanded && !disabled) {
     return (
       <View className="bg-card border border-border rounded-xl p-4">
         <View className="flex-row items-center justify-between mb-3">
@@ -70,11 +162,7 @@ const PartySizeSelector: React.FC<{
           {partySizes.map((size) => (
             <Pressable
               key={size}
-              onPress={() => {
-                onPartySizeChange(size);
-                setExpanded(false);
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              }}
+              onPress={() => handleSizeChange(size)}
               className={`w-12 h-12 rounded-lg border-2 items-center justify-center ${
                 partySize === size
                   ? "bg-primary border-primary"
@@ -111,8 +199,11 @@ const PartySizeSelector: React.FC<{
 
   return (
     <Pressable
-      onPress={() => setExpanded(true)}
-      className="bg-card border border-border rounded-xl p-4 flex-row items-center justify-between"
+      onPress={() => !disabled && setExpanded(true)}
+      disabled={disabled}
+      className={`bg-card border border-border rounded-xl p-4 flex-row items-center justify-between ${
+        disabled ? 'opacity-60' : ''
+      }`}
     >
       <View className="flex-row items-center gap-3">
         <Users size={20} color="#3b82f6" />
@@ -123,17 +214,18 @@ const PartySizeSelector: React.FC<{
           </Text>
         </View>
       </View>
-      <ChevronDown size={24} color="#666" />
+      {!disabled && <ChevronDown size={24} color="#666" />}
     </Pressable>
   );
-};
+});
 
-// Date Selector Component
-const DateSelector: React.FC<{
+// Enhanced Date Selector with better performance
+const DateSelector = React.memo<{
   selectedDate: Date;
   onDateChange: (date: Date) => void;
   maxDaysAhead?: number;
-}> = ({ selectedDate, onDateChange, maxDaysAhead = 30 }) => {
+  disabled?: boolean;
+}>(({ selectedDate, onDateChange, maxDaysAhead = 30, disabled = false }) => {
   const dates = useMemo(() => {
     const today = new Date();
     const datesArray = [];
@@ -147,8 +239,14 @@ const DateSelector: React.FC<{
     return datesArray;
   }, [maxDaysAhead]);
 
+  const handleDateChange = useCallback((date: Date) => {
+    if (disabled) return;
+    onDateChange(date);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [onDateChange, disabled]);
+
   return (
-    <View className="bg-card border border-border rounded-xl p-4">
+    <View className={`bg-card border border-border rounded-xl p-4 ${disabled ? 'opacity-60' : ''}`}>
       <View className="flex-row items-center gap-3 mb-3">
         <Calendar size={20} color="#3b82f6" />
         <Text className="font-semibold text-lg">Select Date</Text>
@@ -157,17 +255,15 @@ const DateSelector: React.FC<{
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View className="flex-row gap-3">
           {dates.map((date) => {
-            const isSelected =
-              date.toDateString() === selectedDate.toDateString();
+            const isSelected = date.toDateString() === selectedDate.toDateString();
             const isToday = date.toDateString() === new Date().toDateString();
+            const isTomorrow = date.toDateString() === new Date(Date.now() + 86400000).toDateString();
 
             return (
               <Pressable
                 key={date.toISOString()}
-                onPress={() => {
-                  onDateChange(date);
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }}
+                onPress={() => handleDateChange(date)}
+                disabled={disabled}
                 className={`min-w-[80px] p-3 rounded-lg border-2 items-center ${
                   isSelected
                     ? "bg-primary border-primary"
@@ -181,9 +277,7 @@ const DateSelector: React.FC<{
                       : "text-muted-foreground"
                   }`}
                 >
-                  {date
-                    .toLocaleDateString("en-US", { weekday: "short" })
-                    .toUpperCase()}
+                  {date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
                 </Text>
                 <Text
                   className={`text-lg font-bold mb-1 ${
@@ -199,9 +293,7 @@ const DateSelector: React.FC<{
                       : "text-muted-foreground"
                   }`}
                 >
-                  {isToday
-                    ? "Today"
-                    : date.toLocaleDateString("en-US", { month: "short" })}
+                  {isToday ? "Today" : isTomorrow ? "Tomorrow" : date.toLocaleDateString("en-US", { month: "short" })}
                 </Text>
               </Pressable>
             );
@@ -210,108 +302,107 @@ const DateSelector: React.FC<{
       </ScrollView>
     </View>
   );
-};
+});
 
-// Preselected Offer Preview Component
-const PreselectedOfferPreview: React.FC<{
+// Enhanced Offer Preview Components
+const PreselectedOfferPreview = React.memo<{
   offerTitle: string;
   offerDiscount: number;
   redemptionCode: string;
   onRemove: () => void;
-}> = ({ offerTitle, offerDiscount, redemptionCode, onRemove }) => {
-  return (
-    <View className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-2 border-green-300 dark:border-green-700 rounded-xl p-4">
-      <View className="flex-row items-center justify-between mb-2">
-        <View className="flex-row items-center gap-2">
-          <Sparkles size={20} color="#10b981" />
-          <Text className="font-bold text-lg text-green-800 dark:text-green-200">
-            Special Offer Applied!
-          </Text>
-        </View>
-        <View className="bg-green-600 rounded-full px-3 py-1">
-          <Text className="text-white font-bold text-sm">
-            {offerDiscount}% OFF
-          </Text>
-        </View>
-      </View>
-
-      <View className="mb-3">
-        <Text className="font-bold text-green-800 dark:text-green-200 mb-1">
-          {offerTitle}
-        </Text>
-        <Text className="text-sm text-green-700 dark:text-green-300">
-          This offer will be automatically applied to your booking
+}>(({ offerTitle, offerDiscount, redemptionCode, onRemove }) => (
+  <View className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border-2 border-green-300 dark:border-green-700 rounded-xl p-4">
+    <View className="flex-row items-center justify-between mb-2">
+      <View className="flex-row items-center gap-2">
+        <Sparkles size={20} color="#10b981" />
+        <Text className="font-bold text-lg text-green-800 dark:text-green-200">
+          Special Offer Applied!
         </Text>
       </View>
-
-      <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center bg-green-200 dark:bg-green-800 rounded-full px-3 py-1">
-          <QrCode size={14} color="#10b981" />
-          <Text className="text-green-800 dark:text-green-200 text-xs font-bold ml-1">
-            Code: {redemptionCode.slice(-6).toUpperCase()}
-          </Text>
-        </View>
-
-        <Pressable
-          onPress={onRemove}
-          className="bg-green-200 dark:bg-green-800 rounded-full px-3 py-1"
-        >
-          <Text className="text-green-800 dark:text-green-200 text-xs font-medium">
-            Remove Offer
-          </Text>
-        </Pressable>
+      <View className="bg-green-600 rounded-full px-3 py-1">
+        <Text className="text-white font-bold text-sm">
+          {offerDiscount}% OFF
+        </Text>
       </View>
     </View>
-  );
-};
 
-// Loyalty Preview Component
-const LoyaltyPreview: React.FC<{
+    <View className="mb-3">
+      <Text className="font-bold text-green-800 dark:text-green-200 mb-1" numberOfLines={2}>
+        {offerTitle}
+      </Text>
+      <Text className="text-sm text-green-700 dark:text-green-300">
+        This offer will be automatically applied to your booking
+      </Text>
+    </View>
+
+    <View className="flex-row items-center justify-between">
+      <View className="flex-row items-center bg-green-200 dark:bg-green-800 rounded-full px-3 py-1">
+        <QrCode size={14} color="#10b981" />
+        <Text className="text-green-800 dark:text-green-200 text-xs font-bold ml-1">
+          Code: {redemptionCode.slice(-6).toUpperCase()}
+        </Text>
+      </View>
+
+      <Pressable
+        onPress={onRemove}
+        className="bg-green-200 dark:bg-green-800 rounded-full px-3 py-1"
+      >
+        <Text className="text-green-800 dark:text-green-200 text-xs font-medium">
+          Remove
+        </Text>
+      </Pressable>
+    </View>
+  </View>
+));
+
+const LoyaltyPreview = React.memo<{
   earnablePoints: number;
   userTier: string;
   userPoints: number;
-}> = ({ earnablePoints, userTier, userPoints }) => {
-  return (
-    <View className="bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-      <View className="flex-row items-center gap-3 mb-2">
-        <Trophy size={20} color="#f59e0b" />
-        <Text className="font-semibold text-lg">Loyalty Rewards</Text>
-        <View className="bg-amber-200 dark:bg-amber-800 px-2 py-1 rounded-full">
-          <Text className="text-amber-800 dark:text-amber-200 font-bold text-xs">
-            {userTier.toUpperCase()}
-          </Text>
-        </View>
-      </View>
-
-      <View className="flex-row items-center justify-between">
-        <View>
-          <Text className="text-sm text-amber-700 dark:text-amber-300">
-            You'll earn
-          </Text>
-          <Text className="text-2xl font-bold text-amber-800 dark:text-amber-200">
-            +{earnablePoints} points
-          </Text>
-        </View>
-
-        <View className="items-end">
-          <Text className="text-sm text-amber-700 dark:text-amber-300">
-            Current balance
-          </Text>
-          <Text className="text-lg font-bold text-amber-800 dark:text-amber-200">
-            {userPoints} pts
-          </Text>
-        </View>
+}>(({ earnablePoints, userTier, userPoints }) => (
+  <View className="bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+    <View className="flex-row items-center gap-3 mb-2">
+      <Trophy size={20} color="#f59e0b" />
+      <Text className="font-semibold text-lg">Loyalty Rewards</Text>
+      <View className="bg-amber-200 dark:bg-amber-800 px-2 py-1 rounded-full">
+        <Text className="text-amber-800 dark:text-amber-200 font-bold text-xs">
+          {userTier.toUpperCase()}
+        </Text>
       </View>
     </View>
-  );
-};
 
-// Regular Offers Preview Component
-const OffersPreview: React.FC<{
+    <View className="flex-row items-center justify-between">
+      <View>
+        <Text className="text-sm text-amber-700 dark:text-amber-300">
+          You'll earn
+        </Text>
+        <Text className="text-2xl font-bold text-amber-800 dark:text-amber-200">
+          +{earnablePoints} points
+        </Text>
+      </View>
+
+      <View className="items-end">
+        <Text className="text-sm text-amber-700 dark:text-amber-300">
+          Current balance
+        </Text>
+        <Text className="text-lg font-bold text-amber-800 dark:text-amber-200">
+          {userPoints} pts
+        </Text>
+      </View>
+    </View>
+  </View>
+));
+
+const OffersPreview = React.memo<{
   availableOffers: any[];
   onViewOffers: () => void;
-}> = ({ availableOffers, onViewOffers }) => {
+}>(({ availableOffers, onViewOffers }) => {
   if (availableOffers.length === 0) return null;
+
+  const maxDiscount = useMemo(() => 
+    Math.max(...availableOffers.map((o) => o.discount_percentage || 0)),
+    [availableOffers]
+  );
 
   return (
     <Pressable
@@ -319,12 +410,11 @@ const OffersPreview: React.FC<{
       className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800 rounded-xl p-4"
     >
       <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center gap-3">
+        <View className="flex-row items-center gap-3 flex-1">
           <Gift size={20} color="#10b981" />
-          <View>
+          <View className="flex-1">
             <Text className="font-semibold text-lg text-green-800 dark:text-green-200">
-              {availableOffers.length} Special Offer
-              {availableOffers.length > 1 ? "s" : ""} Available
+              {availableOffers.length} Special Offer{availableOffers.length > 1 ? "s" : ""} Available
             </Text>
             <Text className="text-sm text-green-700 dark:text-green-300">
               Apply discounts during booking
@@ -333,24 +423,62 @@ const OffersPreview: React.FC<{
         </View>
         <View className="bg-green-200 dark:bg-green-800 rounded-full px-3 py-1">
           <Text className="text-green-800 dark:text-green-200 font-bold text-sm">
-            Save up to{" "}
-            {Math.max(
-              ...availableOffers.map((o) => o.discount_percentage || 0)
-            )}
-            %
+            Save up to {maxDiscount}%
           </Text>
         </View>
       </View>
     </Pressable>
   );
-};
+});
 
+// Enhanced Quick Stats Component
+const QuickStats = React.memo<{
+  restaurant: Restaurant;
+  timeSlots: any[];
+  isLoading: boolean;
+  earnablePoints: number;
+}>(({ restaurant, timeSlots, isLoading, earnablePoints }) => (
+  <View className="mx-4 my-2 p-3 bg-card/50 rounded-lg border border-border/50">
+    <View className="flex-row justify-around">
+      <View className="items-center">
+        {isLoading ? (
+          <ActivityIndicator size="small" />
+        ) : (
+          <Text className="text-lg font-bold text-primary">{timeSlots.length}</Text>
+        )}
+        <Text className="text-xs text-muted-foreground">Available</Text>
+      </View>
+      
+      <View className="items-center">
+        <View className="flex-row items-center gap-1">
+          <Zap size={12} color="#f59e0b" />
+          <Text className="text-lg font-bold text-amber-600">
+            {restaurant.booking_policy === 'instant' ? 'Instant' : '2hr'}
+          </Text>
+        </View>
+        <Text className="text-xs text-muted-foreground">Booking</Text>
+      </View>
+
+      <View className="items-center">
+        <View className="flex-row items-center gap-1">
+          <Trophy size={12} color="#10b981" />
+          <Text className="text-lg font-bold text-green-600">
+            +{earnablePoints}
+          </Text>
+        </View>
+        <Text className="text-xs text-muted-foreground">Points</Text>
+      </View>
+    </View>
+  </View>
+));
+
+// Main Component
 export default function AvailabilitySelectionScreen() {
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();
   const router = useRouter();
 
-  // Get offer parameters from navigation
+  // Get parameters with validation
   const params = useLocalSearchParams<{
     restaurantId: string;
     restaurantName?: string;
@@ -360,13 +488,21 @@ export default function AvailabilitySelectionScreen() {
     redemptionCode?: string;
   }>();
 
-  // State management
+  // Validate required params
+  useEffect(() => {
+    if (!params.restaurantId) {
+      Alert.alert("Error", "Restaurant information is missing");
+      router.back();
+    }
+  }, [params.restaurantId, router]);
+
+  // State management with optimized defaults
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [partySize, setPartySize] = useState(2);
   const [maxBookingDays, setMaxBookingDays] = useState(30);
   const [currentStep, setCurrentStep] = useState<'time' | 'experience'>('time');
 
-  // Track preselected offer
+  // Preselected offer state with memoization
   const [preselectedOffer, setPreselectedOffer] = useState<{
     id: string;
     title: string;
@@ -374,10 +510,14 @@ export default function AvailabilitySelectionScreen() {
     redemptionCode: string;
   } | null>(null);
 
-  // Custom hooks
-  const { restaurant, loading: restaurantLoading } = useRestaurant(params.restaurantId);
+  // Refs for cleanup and optimization
+  const stepTransitionRef = useRef<NodeJS.Timeout | null>(null);
 
-  // NEW: Use the enhanced availability hook with two-step flow
+  // Enhanced hooks with optimizations
+  const { restaurant, loading: restaurantLoading } = useRestaurant(params.restaurantId || '');
+  const { preloadRestaurant } = useAvailabilityPreloader();
+
+  // Enhanced availability hook with proper configuration
   const {
     timeSlots,
     timeSlotsLoading,
@@ -392,22 +532,37 @@ export default function AvailabilitySelectionScreen() {
     experienceCount,
     hasMultipleExperiences,
     primaryExperience,
+    isLoading,
+    refresh,
   } = useAvailability({
-    restaurantId: params.restaurantId,
+    restaurantId: params.restaurantId || '',
     date: selectedDate,
     partySize,
     enableRealtime: true,
     mode: 'time-first',
+    preloadNext: true,
   });
+
+  // Loyalty and offers hooks with memoization
+  const loyaltyData = useLoyalty();
+  const offersData = useOffers();
 
   const {
     userPoints = 0,
     userTier = "bronze",
     calculateBookingPoints,
-  } = useLoyalty() || {};
-  const { offers = [] } = useOffers() || {};
+  } = loyaltyData || {};
 
-  // Initialize preselected offer from params
+  const { offers = [] } = offersData || {};
+
+  // Preload restaurant data
+  useEffect(() => {
+    if (params.restaurantId) {
+      preloadRestaurant(params.restaurantId, [2, 4, partySize]);
+    }
+  }, [params.restaurantId, preloadRestaurant, partySize]);
+
+  // Initialize preselected offer with validation
   useEffect(() => {
     if (
       params.preselectedOfferId &&
@@ -415,12 +570,15 @@ export default function AvailabilitySelectionScreen() {
       params.offerDiscount &&
       params.redemptionCode
     ) {
-      setPreselectedOffer({
-        id: params.preselectedOfferId,
-        title: params.offerTitle,
-        discount: parseInt(params.offerDiscount, 10),
-        redemptionCode: params.redemptionCode,
-      });
+      const discount = parseInt(params.offerDiscount, 10);
+      if (!isNaN(discount) && discount > 0) {
+        setPreselectedOffer({
+          id: params.preselectedOfferId,
+          title: params.offerTitle,
+          discount,
+          redemptionCode: params.redemptionCode,
+        });
+      }
     }
   }, [
     params.preselectedOfferId,
@@ -429,27 +587,32 @@ export default function AvailabilitySelectionScreen() {
     params.redemptionCode,
   ]);
 
+  // Fetch max booking days with error handling
   useEffect(() => {
     async function fetchMaxDays() {
       if (profile?.id && restaurant?.id) {
-        const days = await getMaxBookingWindow(
-          profile.id,
-          restaurant.id,
-          restaurant.booking_window_days || 30
-        );
-        setMaxBookingDays(days);
+        try {
+          const days = await getMaxBookingWindow(
+            profile.id,
+            restaurant.id,
+            restaurant.booking_window_days || 30
+          );
+          setMaxBookingDays(days);
+        } catch (error) {
+          console.error('Error fetching max booking days:', error);
+          setMaxBookingDays(30); // fallback
+        }
       }
     }
     fetchMaxDays();
-  }, [profile, restaurant]);
+  }, [profile?.id, restaurant?.id, restaurant?.booking_window_days]);
 
-  // Computed values
+  // Computed values with memoization
   const earnablePoints = useMemo(() => {
     if (!restaurant || !calculateBookingPoints) return 0;
     return calculateBookingPoints(partySize, restaurant.price_range || 2);
-  }, [calculateBookingPoints, partySize, restaurant]);
+  }, [calculateBookingPoints, partySize, restaurant?.price_range]);
 
-  // Get available offers (excluding preselected one)
   const availableOffers = useMemo(() => {
     return offers.filter(
       (offer) =>
@@ -459,37 +622,67 @@ export default function AvailabilitySelectionScreen() {
         new Date(offer.expiresAt || offer.valid_until) > new Date() &&
         offer.id !== preselectedOffer?.id
     );
-  }, [offers, params.restaurantId, preselectedOffer]);
+  }, [offers, params.restaurantId, preselectedOffer?.id]);
 
-  // Event handlers
+  const formatSelectedDate = useCallback((date: Date) => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    
+    if (date.toDateString() === today.toDateString()) return "Today";
+    if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow";
+    return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  }, []);
+
+  // Optimized event handlers
   const handleDateChange = useCallback((date: Date) => {
+    if (date.toDateString() === selectedDate.toDateString()) return;
+    
     setSelectedDate(date);
     setCurrentStep('time');
     clearSelectedSlot();
-  }, [clearSelectedSlot]);
+    
+    // Clear any pending transitions
+    if (stepTransitionRef.current) {
+      clearTimeout(stepTransitionRef.current);
+    }
+  }, [selectedDate, clearSelectedSlot]);
 
   const handlePartySizeChange = useCallback((size: number) => {
+    if (size === partySize) return;
+    
     setPartySize(size);
     setCurrentStep('time');
     clearSelectedSlot();
-  }, [clearSelectedSlot]);
+    
+    if (stepTransitionRef.current) {
+      clearTimeout(stepTransitionRef.current);
+    }
+  }, [partySize, clearSelectedSlot]);
 
-  // NEW: Handle time selection (step 1 -> step 2)
   const handleTimeSelect = useCallback(async (time: string) => {
+    // Clear any existing timeout
+    if (stepTransitionRef.current) {
+      clearTimeout(stepTransitionRef.current);
+    }
+
+    // Fetch options and transition to experience step
     await fetchSlotOptions(time);
-    setCurrentStep('experience');
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    
+    // Smooth transition with haptic feedback
+    stepTransitionRef.current = setTimeout(() => {
+      setCurrentStep('experience');
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }, 200);
   }, [fetchSlotOptions]);
 
-  // NEW: Handle going back to time selection
   const handleBackToTimeSelection = useCallback(() => {
     setCurrentStep('time');
     clearSelectedSlot();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [clearSelectedSlot]);
 
-  // NEW: Handle experience confirmation (step 2 -> booking)
-  const handleExperienceConfirm = useCallback((tableIds: string[], selectedOption: any) => {
+  const handleExperienceConfirm = useCallback((tableIds: string[], selectedOption: TableOption) => {
     if (!selectedSlotOptions || !restaurant) {
       Alert.alert("Error", "Missing experience or restaurant information");
       return;
@@ -506,7 +699,7 @@ export default function AvailabilitySelectionScreen() {
       requiresCombination: selectedOption.requiresCombination ? "true" : "false",
     };
 
-    // Include preselected offer if available
+    // Include preselected offer
     if (preselectedOffer) {
       navigationParams.offerId = preselectedOffer.id;
       navigationParams.offerTitle = preselectedOffer.title;
@@ -540,7 +733,6 @@ export default function AvailabilitySelectionScreen() {
     });
   }, [router, params.restaurantId]);
 
-  // Remove preselected offer
   const handleRemovePreselectedOffer = useCallback(() => {
     Alert.alert(
       "Remove Offer",
@@ -559,24 +751,27 @@ export default function AvailabilitySelectionScreen() {
     );
   }, []);
 
-  // Format date for display
-  const formatSelectedDate = useCallback((date: Date) => {
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-    
-    if (date.toDateString() === today.toDateString()) return "Today";
-    if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow";
-    return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (stepTransitionRef.current) {
+        clearTimeout(stepTransitionRef.current);
+      }
+    };
   }, []);
 
-  // Loading state
+  // Loading state with better UX
   if (!restaurant || restaurantLoading) {
     return (
       <SafeAreaView className="flex-1 bg-background">
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" />
-          <Text className="mt-4 text-muted-foreground">Loading restaurant...</Text>
+        <View className="flex-1 items-center justify-center p-4">
+          <ActivityIndicator size="large" color="#3b82f6" />
+          <Text className="mt-4 text-muted-foreground text-center">
+            Loading restaurant information...
+          </Text>
+          <Text className="text-sm text-muted-foreground text-center mt-2">
+            Preparing your dining experience
+          </Text>
         </View>
       </SafeAreaView>
     );
@@ -584,77 +779,52 @@ export default function AvailabilitySelectionScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
-      {/* Header */}
-      <View className="flex-row items-center px-4 py-3 border-b border-border">
-        <Pressable onPress={() => router.back()} className="p-2 -ml-2">
+      {/* Enhanced Header */}
+      <View className="flex-row items-center px-4 py-3 border-b border-border bg-background">
+        <Pressable 
+          onPress={() => router.back()} 
+          className="p-2 -ml-2 rounded-full"
+          hitSlop={8}
+        >
           <ChevronLeft size={24} />
         </Pressable>
         <View className="flex-1 mx-4">
           <Text className="text-center font-semibold">
             {currentStep === 'time' ? 'Select Date & Time' : 'Choose Your Experience'}
           </Text>
-          <Muted className="text-center text-sm">{restaurant.name}</Muted>
+          <Muted className="text-center text-sm" numberOfLines={1}>
+            {restaurant.name}
+          </Muted>
         </View>
         <View className="w-10" />
       </View>
 
       {/* Progress Indicator */}
-      <View className="px-4 py-3 bg-muted/30">
-        <View className="flex-row items-center justify-center gap-4">
-          <View className={`flex-row items-center gap-2 ${currentStep === 'time' ? 'opacity-100' : 'opacity-60'}`}>
-            <View className={`w-8 h-8 rounded-full items-center justify-center ${
-              currentStep === 'time' ? 'bg-primary' : hasSelectedSlot ? 'bg-green-500' : 'bg-primary'
-            }`}>
-              <Text className="text-white font-bold text-sm">1</Text>
-            </View>
-            <Text className="font-medium text-sm">Select Time</Text>
-          </View>
-          
-          <View className={`w-8 h-px ${hasSelectedSlot ? 'bg-green-500' : 'bg-border'}`} />
-          
-          <View className={`flex-row items-center gap-2 ${currentStep === 'experience' ? 'opacity-100' : 'opacity-60'}`}>
-            <View className={`w-8 h-8 rounded-full items-center justify-center ${
-              currentStep === 'experience' && hasSelectedSlot ? 'bg-primary' : 
-              hasSelectedSlot ? 'bg-green-500' : 'bg-muted'
-            }`}>
-              <Text className={`font-bold text-sm ${hasSelectedSlot ? 'text-white' : 'text-muted-foreground'}`}>2</Text>
-            </View>
-            <Text className="font-medium text-sm">Choose Experience</Text>
-          </View>
-        </View>
-      </View>
+      <ProgressIndicator
+        currentStep={currentStep}
+        hasSelectedSlot={hasSelectedSlot}
+        selectedTime={selectedTime}
+        experienceCount={experienceCount}
+      />
 
       {/* Restaurant Info Card */}
-      <View className="mx-4 mt-4 p-4 bg-card rounded-xl border border-border">
-        <View className="flex-row gap-3">
-          <Image
-            source={{ uri: restaurant.main_image_url }}
-            className="w-16 h-16 rounded-lg"
-            contentFit="cover"
-          />
-          <View className="flex-1">
-            <H3 className="mb-1">{restaurant.name}</H3>
-            <View className="flex-row items-center gap-2 mb-1">
-              <Star size={14} color="#f59e0b" fill="#f59e0b" />
-              <Text className="text-sm font-medium">
-                {restaurant.average_rating?.toFixed(1) || "4.5"}
-              </Text>
-              <Text className="text-sm text-muted-foreground">•</Text>
-              <Text className="text-sm text-muted-foreground">
-                {restaurant.cuisine_type}
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-1">
-              <MapPin size={12} color="#666" />
-              <Text className="text-xs text-muted-foreground" numberOfLines={1}>
-                {restaurant.address}
-              </Text>
-            </View>
-          </View>
-        </View>
-      </View>
+      <RestaurantInfoCard restaurant={restaurant} />
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+      {/* Quick Stats */}
+      {hasTimeSlots && (
+        <QuickStats
+          restaurant={restaurant}
+          timeSlots={timeSlots}
+          isLoading={timeSlotsLoading}
+          earnablePoints={earnablePoints}
+        />
+      )}
+
+      <ScrollView 
+        className="flex-1" 
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+      >
         <View className="p-4 gap-4">
           {/* Preselected Offer Preview */}
           {preselectedOffer && (
@@ -666,18 +836,19 @@ export default function AvailabilitySelectionScreen() {
             />
           )}
 
-          {/* Party Size Selector */}
+          {/* Configuration Selectors - Disabled in experience step */}
           <PartySizeSelector
             partySize={partySize}
             onPartySizeChange={handlePartySizeChange}
             maxPartySize={restaurant.max_party_size || 12}
+            disabled={currentStep === 'experience'}
           />
 
-          {/* Date Selector */}
           <DateSelector
             selectedDate={selectedDate}
             onDateChange={handleDateChange}
             maxDaysAhead={maxBookingDays}
+            disabled={currentStep === 'experience'}
           />
 
           {/* Step 1: Time Selection */}
@@ -689,14 +860,23 @@ export default function AvailabilitySelectionScreen() {
                 onTimeSelect={handleTimeSelect}
                 loading={timeSlotsLoading}
                 showLiveIndicator={true}
+                error={error}
               />
 
-              {/* Error message if any */}
+              {/* Error message */}
               {error && (
-                <View className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
-                  <Text className="text-red-600 dark:text-red-400 text-sm">
+                <View className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
+                  <Text className="text-red-600 dark:text-red-400 text-sm font-medium">
                     {error}
                   </Text>
+                  <Pressable
+                    onPress={() => refresh(true)}
+                    className="mt-2 self-start"
+                  >
+                    <Text className="text-red-600 dark:text-red-400 text-sm underline">
+                      Retry
+                    </Text>
+                  </Pressable>
                 </View>
               )}
             </>
@@ -705,10 +885,10 @@ export default function AvailabilitySelectionScreen() {
           {/* Step 2: Experience Selection */}
           {currentStep === 'experience' && (
             <>
-              {/* Back to time selection option */}
+              {/* Back navigation */}
               <Pressable
                 onPress={handleBackToTimeSelection}
-                className="flex-row items-center gap-2 p-2 -ml-2"
+                className="flex-row items-center gap-2 p-2 -ml-2 self-start rounded-lg"
               >
                 <ArrowLeft size={20} color="#3b82f6" />
                 <Text className="text-primary font-medium">Back to Time Selection</Text>
@@ -716,7 +896,7 @@ export default function AvailabilitySelectionScreen() {
 
               {/* Experience Header */}
               {hasMultipleExperiences && (
-                <View className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-3">
+                <View className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
                   <View className="flex-row items-center gap-2">
                     <Sparkles size={16} color="#8b5cf6" />
                     <Text className="text-sm font-medium text-purple-800 dark:text-purple-200">
@@ -738,67 +918,67 @@ export default function AvailabilitySelectionScreen() {
             </>
           )}
 
-          {/* Loyalty Preview - Only show on step 1 */}
-          {currentStep === 'time' && profile && (
-            <LoyaltyPreview
-              earnablePoints={earnablePoints}
-              userTier={userTier}
-              userPoints={userPoints}
-            />
-          )}
-
-          {/* Other Offers Preview - Only show on step 1 */}
-          {currentStep === 'time' && !preselectedOffer && (
-            <OffersPreview
-              availableOffers={availableOffers}
-              onViewOffers={handleViewOffers}
-            />
-          )}
-
-          {/* Booking Policies - Only show on step 1 */}
+          {/* Additional Content - Only show on time step */}
           {currentStep === 'time' && (
-            <View className="bg-muted/30 rounded-xl p-4">
-              <Text className="font-semibold mb-2">Booking Information</Text>
-              <View className="gap-2">
-                <Text className="text-sm text-muted-foreground">
-                  •{" "}
-                  {restaurant.booking_policy === "instant"
-                    ? "Instant confirmation"
-                    : "Confirmation within 2 hours"}
-                </Text>
-                {restaurant.cancellation_window_hours && (
+            <>
+              {/* Loyalty Preview */}
+              {profile && (
+                <LoyaltyPreview
+                  earnablePoints={earnablePoints}
+                  userTier={userTier}
+                  userPoints={userPoints}
+                />
+              )}
+
+              {/* Other Offers Preview */}
+              {!preselectedOffer && (
+                <OffersPreview
+                  availableOffers={availableOffers}
+                  onViewOffers={handleViewOffers}
+                />
+              )}
+
+              {/* Booking Policies */}
+              <View className="bg-muted/30 rounded-xl p-4">
+                <Text className="font-semibold mb-2">Booking Information</Text>
+                <View className="gap-2">
                   <Text className="text-sm text-muted-foreground">
-                    • Free cancellation up to{" "}
-                    {restaurant.cancellation_window_hours} hours before
+                    • {restaurant.booking_policy === "instant"
+                        ? "Instant confirmation"
+                        : "Confirmation within 2 hours"}
                   </Text>
-                )}
-                <Text className="text-sm text-muted-foreground">
-                  • Please arrive on time to keep your reservation
-                </Text>
-                {preselectedOffer && (
-                  <Text className="text-sm text-green-600 dark:text-green-400">
-                    • Your {preselectedOffer.discount}% discount will be applied
-                    automatically
+                  {restaurant.cancellation_window_hours && (
+                    <Text className="text-sm text-muted-foreground">
+                      • Free cancellation up to {restaurant.cancellation_window_hours} hours before
+                    </Text>
+                  )}
+                  <Text className="text-sm text-muted-foreground">
+                    • Please arrive on time to keep your reservation
                   </Text>
-                )}
-                <Text className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-                  • Real-time availability with curated dining experiences
-                </Text>
+                  {preselectedOffer && (
+                    <Text className="text-sm text-green-600 dark:text-green-400">
+                      • Your {preselectedOffer.discount}% discount will be applied automatically
+                    </Text>
+                  )}
+                  <Text className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                    • Real-time availability with curated dining experiences
+                  </Text>
+                </View>
               </View>
-            </View>
+            </>
           )}
         </View>
       </ScrollView>
 
-      {/* Bottom CTA - Updated for experience flow */}
+      {/* Enhanced Bottom CTA */}
       <View className="p-4 border-t border-border bg-background">
         <View className="flex-row items-center justify-between mb-3">
-          <View>
+          <View className="flex-1">
             <Text className="font-semibold">
               {formatSelectedDate(selectedDate)}
               {selectedTime && ` at ${selectedTime}`}
             </Text>
-            <View className="flex-row items-center gap-2">
+            <View className="flex-row items-center gap-2 flex-wrap">
               <Text className="text-sm text-muted-foreground">
                 Party of {partySize} • Earn {earnablePoints} points
               </Text>
@@ -811,7 +991,6 @@ export default function AvailabilitySelectionScreen() {
                 </>
               )}
             </View>
-            {/* Show primary experience when selected */}
             {currentStep === 'experience' && primaryExperience && (
               <Text className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                 Recommended: {primaryExperience}
@@ -819,33 +998,25 @@ export default function AvailabilitySelectionScreen() {
             )}
           </View>
           
-          {/* Show different CTA based on current step */}
+          {/* Dynamic CTA based on step */}
           {currentStep === 'time' ? (
-            <View className="items-end">
-              <Text className="text-xs text-muted-foreground mb-1">
-                {hasTimeSlots ? 'Select a time above' : 'Loading times...'}
+            <View className="items-end ml-4">
+              <Text className="text-xs text-muted-foreground mb-1 text-right">
+                {isLoading ? 'Loading times...' : hasTimeSlots ? 'Select time above' : 'No times available'}
               </Text>
               <View className="w-20 h-10 bg-muted/50 rounded-lg items-center justify-center">
-                {timeSlotsLoading && <ActivityIndicator size="small" />}
+                {isLoading && <ActivityIndicator size="small" />}
+                {!isLoading && !hasTimeSlots && (
+                  <Pressable onPress={() => refresh(true)}>
+                    <Text className="text-xs text-primary">Retry</Text>
+                  </Pressable>
+                )}
               </View>
             </View>
           ) : (
-            <Button
-              onPress={() => {
-                // This shouldn't be needed since TableOptions handles confirmation
-                // But keeping as fallback
-                if (selectedSlotOptions && selectedSlotOptions.primaryOption) {
-                  const tableIds = selectedSlotOptions.primaryOption.tables.map((t: any) => t.id);
-                  handleExperienceConfirm(tableIds, selectedSlotOptions.primaryOption);
-                }
-              }}
-              disabled={!hasSelectedSlot || slotOptionsLoading}
-              className="px-6"
-            >
-              <Text className="text-white font-bold">
-                {slotOptionsLoading ? "Loading..." : "Continue"}
-              </Text>
-            </Button>
+            <Text className="text-xs text-muted-foreground ml-4 text-right max-w-[100px]">
+              Select experience above to continue
+            </Text>
           )}
         </View>
       </View>
