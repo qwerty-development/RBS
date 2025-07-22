@@ -1,248 +1,319 @@
-import React, { useEffect, useCallback } from "react";
-import { View, ScrollView, Pressable, ActivityIndicator } from "react-native";
+// components/restaurant/BookingWidget.tsx (Optimized)
+import React, { useState, useCallback } from "react";
+import { View, ScrollView, Pressable, Alert } from "react-native";
+import { 
+  ArrowLeft, Calendar as CalendarIcon, Users as UsersIcon, 
+  Sparkles, CheckCircle, MapPin 
+} from "lucide-react-native";
 import * as Haptics from "expo-haptics";
+
 import { Text } from "@/components/ui/text";
 import { H3 } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { Database } from "@/types/supabase";
-import { TimeSlot } from "@/lib/AvailabilityService";
+import { useAvailability } from "@/hooks/useAvailability";
+import { TimeSlots, TableOptions } from "@/components/booking/TimeSlots";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
 interface BookingWidgetProps {
   restaurant: Restaurant;
-  selectedDate: Date;
-  selectedTime: string;
-  partySize: number;
-  availableSlots: TimeSlot[];
-  loadingSlots: boolean;
-  onDateChange: (date: Date) => void;
-  onTimeChange: (time: string) => void;
-  onPartySizeChange: (size: number) => void;
-  onBooking: () => void;
-  fetchAvailableSlots: (date: Date, partySize: number) => Promise<void>; // CRITICAL: Added
+  onBookingSuccess: (tableIds: string[], selectedTime: string, selectedDate: Date, partySize: number, selectedOption: any) => void;
 }
 
-export const BookingWidget = ({
+export const BookingWidget: React.FC<BookingWidgetProps> = ({
   restaurant,
-  selectedDate,
-  selectedTime,
-  partySize,
-  availableSlots,
-  loadingSlots,
-  onDateChange,
-  onTimeChange,
-  onPartySizeChange,
-  onBooking,
-  fetchAvailableSlots, // CRITICAL: Added
-}: BookingWidgetProps) => {
-  const selectedSlot = availableSlots.find(slot => slot.time === selectedTime);
+  onBookingSuccess,
+}) => {
+  // State for booking parameters
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [partySize, setPartySize] = useState(2);
+  const [currentStep, setCurrentStep] = useState<'config' | 'time' | 'experience'>('config');
 
-  // CRITICAL FIX: Actually fetch availability when params change
-  useEffect(() => {
-    if (restaurant && selectedDate && partySize) {
-      console.log('Fetching availability for:', { 
-        date: selectedDate.toISOString(), 
-        partySize 
-      });
-      fetchAvailableSlots(selectedDate, partySize);
-    }
-  }, [restaurant, selectedDate, partySize, fetchAvailableSlots]);
+  // Use the enhanced availability hook
+  const {
+    timeSlots,
+    timeSlotsLoading,
+    selectedSlotOptions,
+    selectedTime,
+    slotOptionsLoading,
+    error,
+    fetchSlotOptions,
+    clearSelectedSlot,
+    hasTimeSlots,
+    experienceCount,
+    hasMultipleExperiences,
+    primaryExperience,
+  } = useAvailability({
+    restaurantId: restaurant.id,
+    date: selectedDate,
+    partySize,
+    enableRealtime: true,
+    mode: 'time-first',
+  });
 
-  // Handle date change with availability refresh
+  // Handle configuration changes
   const handleDateChange = useCallback((date: Date) => {
-    onDateChange(date);
-    // Clear selected time when date changes
-    if (selectedTime) {
-      onTimeChange('');
-    }
-  }, [onDateChange, onTimeChange, selectedTime]);
+    setSelectedDate(date);
+    setCurrentStep('config');
+    clearSelectedSlot();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [clearSelectedSlot]);
 
-  // Handle party size change with availability refresh
   const handlePartySizeChange = useCallback((size: number) => {
-    onPartySizeChange(size);
-    // Clear selected time when party size changes
-    if (selectedTime) {
-      onTimeChange('');
+    setPartySize(size);
+    setCurrentStep('config');
+    clearSelectedSlot();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [clearSelectedSlot]);
+
+  // Handle step progression
+  const handleContinueToTimeSelection = useCallback(() => {
+    setCurrentStep('time');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }, []);
+
+  const handleTimeSelect = useCallback(async (time: string) => {
+    await fetchSlotOptions(time);
+    setCurrentStep('experience');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }, [fetchSlotOptions]);
+
+  const handleBackToConfig = useCallback(() => {
+    setCurrentStep('config');
+    clearSelectedSlot();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [clearSelectedSlot]);
+
+  const handleBackToTime = useCallback(() => {
+    setCurrentStep('time');
+    clearSelectedSlot();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [clearSelectedSlot]);
+
+  const handleExperienceConfirm = useCallback((tableIds: string[], selectedOption: any) => {
+    if (!selectedSlotOptions) {
+      Alert.alert("Error", "Missing seating information");
+      return;
     }
-  }, [onPartySizeChange, onTimeChange, selectedTime]);
+
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    onBookingSuccess(tableIds, selectedSlotOptions.time, selectedDate, partySize, selectedOption);
+  }, [selectedSlotOptions, selectedDate, partySize, onBookingSuccess]);
+
+  // Format date for display
+  const formatSelectedDate = useCallback((date: Date) => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    
+    if (date.toDateString() === today.toDateString()) return "Today";
+    if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow";
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  }, []);
 
   return (
-    <View className="mx-4 mb-6 p-4 bg-card rounded-xl shadow-sm">
-      <H3 className="mb-4">Make a Reservation</H3>
+    <View className="mx-4 mb-6 p-4 bg-card rounded-xl shadow-sm border border-border">
+      <H3 className="mb-4">Reserve Your Experience</H3>
 
-      {/* Date Selection */}
-      <View className="mb-4">
-        <Text className="font-medium mb-2">Select Date</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="gap-2"
-        >
-          {Array.from({ length: 14 }, (_, i) => {
-            const date = new Date();
-            date.setDate(date.getDate() + i);
-            const isSelected = date.toDateString() === selectedDate.toDateString();
-            const isToday = date.toDateString() === new Date().toDateString();
-
-            return (
-              <Pressable
-                key={i}
-                onPress={() => handleDateChange(date)}
-                className={`px-4 py-3 rounded-lg mr-2 min-w-[70px] ${
-                  isSelected ? "bg-primary" : "bg-muted"
-                }`}
-              >
-                <Text
-                  className={`text-center font-medium text-xs ${
-                    isSelected ? "text-primary-foreground" : ""
-                  }`}
-                >
-                  {isToday
-                    ? "Today"
-                    : date.toLocaleDateString("en-US", { weekday: "short" })}
-                </Text>
-                <Text
-                  className={`text-center text-lg font-bold ${
-                    isSelected ? "text-primary-foreground" : ""
-                  }`}
-                >
-                  {date.getDate()}
-                </Text>
-                <Text
-                  className={`text-center text-xs ${
-                    isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
-                  }`}
-                >
-                  {date.toLocaleDateString("en-US", { month: "short" })}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </ScrollView>
-      </View>
-
-      {/* Party Size Selection */}
-      <View className="mb-4">
-        <Text className="font-medium mb-2">Party Size</Text>
-        <View className="flex-row gap-2">
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((size) => (
-            <Pressable
-              key={size}
-              onPress={() => handlePartySizeChange(size)}
-              className={`flex-1 py-2 rounded-lg ${
-                partySize === size ? "bg-primary" : "bg-muted"
-              }`}
+      {/* Step 1: Configuration */}
+      {currentStep === 'config' && (
+        <>
+          {/* Date Selection */}
+          <View className="mb-4">
+            <Text className="font-medium mb-2">Select Date</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="gap-2"
             >
-              <Text
-                className={`text-center font-medium ${
-                  partySize === size ? "text-primary-foreground" : ""
-                }`}
-              >
-                {size}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        {partySize > 8 && (
-          <Text className="text-sm text-muted-foreground mt-1">
-            For larger parties, please call the restaurant
-          </Text>
-        )}
-      </View>
+              {Array.from({ length: 14 }, (_, i) => {
+                const date = new Date();
+                date.setDate(date.getDate() + i);
+                const isSelected = date.toDateString() === selectedDate.toDateString();
+                const isToday = date.toDateString() === new Date().toDateString();
 
-      {/* Time Slot Selection */}
-      <View className="mb-4">
-        <Text className="font-medium mb-2">Available Times</Text>
-        {loadingSlots ? (
-          <View className="flex-row items-center justify-center py-4">
-            <ActivityIndicator size="small" />
-            <Text className="ml-2 text-muted-foreground">
-              Checking real-time availability...
-            </Text>
+                return (
+                  <Pressable
+                    key={i}
+                    onPress={() => handleDateChange(date)}
+                    className={`px-4 py-3 rounded-lg mr-2 min-w-[70px] ${
+                      isSelected ? "bg-primary" : "bg-muted"
+                    }`}
+                  >
+                    <Text
+                      className={`text-center font-medium text-xs ${
+                        isSelected ? "text-primary-foreground" : ""
+                      }`}
+                    >
+                      {isToday
+                        ? "Today"
+                        : date.toLocaleDateString("en-US", { weekday: "short" })}
+                    </Text>
+                    <Text
+                      className={`text-center text-lg font-bold ${
+                        isSelected ? "text-primary-foreground" : ""
+                      }`}
+                    >
+                      {date.getDate()}
+                    </Text>
+                    <Text
+                      className={`text-center text-xs ${
+                        isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                      }`}
+                    >
+                      {date.toLocaleDateString("en-US", { month: "short" })}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
           </View>
-        ) : (
-          <View className="flex-row flex-wrap gap-2">
-            {availableSlots.map((slot) => (
-              <Pressable
-                key={slot.time}
-                onPress={() => {
-                  if (slot.available) {
-                    console.log("Selected time:", slot.time);
-                    onTimeChange(slot.time);
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  }
-                }}
-                disabled={!slot.available}
-                className={`px-4 py-2 rounded-lg min-w-[70px] ${
-                  selectedTime === slot.time
-                    ? "bg-primary border-2 border-primary"
-                    : slot.available
-                      ? "bg-muted border border-border"
-                      : "bg-muted/50 border border-muted"
-                }`}
-                style={{
-                  opacity: slot.available ? 1 : 0.5,
-                }}
-              >
-                <Text
-                  className={`font-medium text-center ${
-                    selectedTime === slot.time
-                      ? "text-primary-foreground"
-                      : !slot.available
-                        ? "text-muted-foreground"
-                        : ""
+
+          {/* Party Size Selection */}
+          <View className="mb-4">
+            <Text className="font-medium mb-2">Party Size</Text>
+            <View className="flex-row gap-2">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((size) => (
+                <Pressable
+                  key={size}
+                  onPress={() => handlePartySizeChange(size)}
+                  className={`flex-1 py-2 rounded-lg ${
+                    partySize === size ? "bg-primary" : "bg-muted"
                   }`}
                 >
-                  {slot.time}
-                </Text>
-                {slot.requiresCombination && (
-                  <Text className="text-xs text-center text-orange-600 mt-1">
-                    Combined
+                  <Text
+                    className={`text-center font-medium ${
+                      partySize === size ? "text-primary-foreground" : ""
+                    }`}
+                  >
+                    {size}
                   </Text>
-                )}
-              </Pressable>
-            ))}
-            {availableSlots.length === 0 && (
-              <Text className="text-muted-foreground text-center w-full py-4">
-                No availability for this date and party size
+                </Pressable>
+              ))}
+            </View>
+            {partySize > 8 && (
+              <Text className="text-sm text-muted-foreground mt-1">
+                For larger parties, please call the restaurant
               </Text>
             )}
           </View>
-        )}
-      </View>
 
-      {/* Selected Time & Table Info */}
-      {selectedTime && selectedSlot && (
-        <View className="mb-2 p-3 bg-green-100 dark:bg-green-900/20 rounded">
-          <Text className="text-sm text-green-800 dark:text-green-200 font-medium">
-            Selected: {selectedTime}
-          </Text>
-          {selectedSlot.tables && selectedSlot.tables.length > 0 && (
-            <Text className="text-xs text-green-700 dark:text-green-300 mt-1">
-              {selectedSlot.requiresCombination
-                ? `Tables ${selectedSlot.tables.map(t => t.table_number).join(' + ')} (Combined for your party)`
-                : `Table ${selectedSlot.tables[0].table_number} • ${selectedSlot.tables[0].table_type}`}
-            </Text>
-          )}
-        </View>
+          {/* Continue Button */}
+          <Button onPress={handleContinueToTimeSelection} className="w-full">
+            <CalendarIcon size={20} color="white" />
+            <Text className="text-white font-semibold ml-2">Find Available Times</Text>
+          </Button>
+        </>
       )}
 
-      {/* Booking Button */}
-      <Button onPress={onBooking} disabled={!selectedTime} className="w-full">
-        <Text className="font-semibold">
-          {restaurant.booking_policy === "instant"
-            ? "Book Now"
-            : "Request Booking"}
-        </Text>
-      </Button>
+      {/* Step 2: Time Selection */}
+      {currentStep === 'time' && (
+        <>
+          <View className="flex-row items-center justify-between mb-4">
+            <Pressable
+              onPress={handleBackToConfig}
+              className="flex-row items-center gap-2"
+            >
+              <ArrowLeft size={16} color="#3b82f6" />
+              <Text className="text-primary text-sm">Change Date/Size</Text>
+            </Pressable>
+            <View className="items-end">
+              <View className="flex-row items-center gap-2">
+                <MapPin size={12} color="#666" />
+                <Text className="text-xs text-muted-foreground">
+                  {formatSelectedDate(selectedDate)}
+                </Text>
+              </View>
+              <View className="flex-row items-center gap-2 mt-1">
+                <UsersIcon size={12} color="#666" />
+                <Text className="text-xs text-muted-foreground">
+                  {partySize} guest{partySize > 1 ? 's' : ''}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          <TimeSlots
+            slots={timeSlots}
+            selectedTime={selectedTime}
+            onTimeSelect={handleTimeSelect}
+            loading={timeSlotsLoading}
+            showLiveIndicator={true}
+          />
+
+          {error && (
+            <View className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 mt-3">
+              <Text className="text-red-600 dark:text-red-400 text-sm">
+                {error}
+              </Text>
+            </View>
+          )}
+        </>
+      )}
+
+      {/* Step 3: Experience Selection */}
+      {currentStep === 'experience' && (
+        <>
+          <View className="flex-row items-center justify-between mb-4">
+            <Pressable
+              onPress={handleBackToTime}
+              className="flex-row items-center gap-2"
+            >
+              <ArrowLeft size={16} color="#3b82f6" />
+              <Text className="text-primary text-sm">Change Time</Text>
+            </Pressable>
+            <View className="items-end">
+              <View className="flex-row items-center gap-2">
+                <CalendarIcon size={12} color="#666" />
+                <Text className="text-xs text-muted-foreground">
+                  {formatSelectedDate(selectedDate)} at {selectedTime}
+                </Text>
+              </View>
+              <View className="flex-row items-center gap-2 mt-1">
+                <UsersIcon size={12} color="#666" />
+                <Text className="text-xs text-muted-foreground">
+                  {partySize} guest{partySize > 1 ? 's' : ''}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Experience Header */}
+          {hasMultipleExperiences && (
+            <View className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-3 mb-4">
+              <View className="flex-row items-center gap-2">
+                <Sparkles size={16} color="#8b5cf6" />
+                <Text className="text-sm font-medium text-purple-800 dark:text-purple-200">
+                  {experienceCount} unique dining experiences available
+                </Text>
+              </View>
+              <Text className="text-xs text-purple-700 dark:text-purple-300 mt-1">
+                Each offers a different atmosphere and setting
+              </Text>
+            </View>
+          )}
+
+          <TableOptions
+            slotOptions={selectedSlotOptions}
+            onConfirm={handleExperienceConfirm}
+            onBack={handleBackToTime}
+            loading={slotOptionsLoading}
+          />
+        </>
+      )}
 
       {/* Booking Policy Note */}
-      {restaurant.booking_policy === "request" && (
-        <Text className="text-xs text-muted-foreground text-center mt-2">
-          Restaurant will confirm within 2 hours
-        </Text>
-      )}
+      <View className="mt-3 pt-3 border-t border-border">
+        <View className="flex-row items-center justify-center gap-2">
+          <CheckCircle size={12} color="#10b981" />
+          <Text className="text-xs text-muted-foreground text-center">
+            {restaurant.booking_policy === "instant"
+              ? "Instant confirmation • Real-time availability"
+              : "Restaurant will confirm within 2 hours"}
+          </Text>
+        </View>
+      </View>
     </View>
   );
 };

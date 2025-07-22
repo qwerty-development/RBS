@@ -6,13 +6,11 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
-  Dimensions,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ChevronLeft,
   Calendar,
-  Clock,
   Users,
   ChevronDown,
   ChevronUp,
@@ -22,17 +20,16 @@ import {
   CheckCircle,
   Gift,
   Trophy,
-  Tag,
   Sparkles,
   QrCode,
-  Wifi,
+  ArrowLeft,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { H1, H2, H3, H4, P, Muted } from "@/components/ui/typography";
+import { H3, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 
 import { useColorScheme } from "@/lib/useColorScheme";
@@ -44,10 +41,10 @@ import { useAvailability } from "@/hooks/useAvailability";
 import { useLoyalty } from "@/hooks/useLoyalty";
 import { useOffers } from "@/hooks/useOffers";
 
-// Type definitions
-type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
+// Import the new optimized components
+import { TimeSlots, TableOptions } from "@/components/booking/TimeSlots";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
 // Party Size Selector Component
 const PartySizeSelector: React.FC<{
@@ -150,21 +147,6 @@ const DateSelector: React.FC<{
     return datesArray;
   }, [maxDaysAhead]);
 
-  const formatDate = useCallback((date: Date) => {
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(today.getDate() + 1);
-
-    if (date.toDateString() === today.toDateString()) return "Today";
-    if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow";
-
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
-  }, []);
-
   return (
     <View className="bg-card border border-border rounded-xl p-4">
       <View className="flex-row items-center gap-3 mb-3">
@@ -230,131 +212,7 @@ const DateSelector: React.FC<{
   );
 };
 
-// NEW: Enhanced Time Slots Component with Table Info
-const TimeSlots: React.FC<{
-  slots: any[];
-  selectedTime: string;
-  onTimeChange: (time: string, slot: any) => void;
-  loading: boolean;
-  showTableInfo?: boolean;
-}> = ({ slots, selectedTime, onTimeChange, loading, showTableInfo = true }) => {
-  if (loading) {
-    return (
-      <View className="bg-card border border-border rounded-xl p-4">
-        <View className="flex-row items-center gap-3 mb-3">
-          <Clock size={20} color="#3b82f6" />
-          <Text className="font-semibold text-lg">Available Times</Text>
-          <View className="bg-blue-100 dark:bg-blue-900/20 rounded-full px-2 py-1 ml-auto">
-            <View className="flex-row items-center gap-1">
-              <Wifi size={12} color="#3b82f6" />
-              <Text className="text-xs text-blue-600 dark:text-blue-400">Live</Text>
-            </View>
-          </View>
-        </View>
-        <View className="items-center py-8">
-          <ActivityIndicator size="large" />
-          <Text className="text-muted-foreground text-center mt-2">
-            Checking real-time availability...
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
-  if (!slots || slots.length === 0) {
-    return (
-      <View className="bg-card border border-border rounded-xl p-4">
-        <View className="flex-row items-center gap-3 mb-3">
-          <Clock size={20} color="#3b82f6" />
-          <Text className="font-semibold text-lg">Available Times</Text>
-        </View>
-        <View className="items-center py-8">
-          <Text className="text-muted-foreground text-center">
-            No available times for this date and party size.
-          </Text>
-          <Text className="text-sm text-muted-foreground text-center mt-1">
-            Try selecting a different date or smaller party size.
-          </Text>
-        </View>
-      </View>
-    );
-  }
-
-  return (
-    <View className="bg-card border border-border rounded-xl p-4">
-      <View className="flex-row items-center gap-3 mb-3">
-        <Clock size={20} color="#3b82f6" />
-        <Text className="font-semibold text-lg">Available Times</Text>
-        <View className="bg-green-100 dark:bg-green-900/20 rounded-full px-2 py-1 ml-auto">
-          <View className="flex-row items-center gap-1">
-            <CheckCircle size={12} color="#10b981" />
-            <Text className="text-xs text-green-600 dark:text-green-400">
-              {slots.length} slots
-            </Text>
-          </View>
-        </View>
-      </View>
-
-      <View className="flex-row flex-wrap gap-3">
-        {slots.map((slot) => (
-          <Pressable
-            key={slot.time}
-            onPress={() => {
-              onTimeChange(slot.time, slot);
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            }}
-            className={`px-4 py-3 rounded-lg border-2 min-w-[80px] items-center ${
-              selectedTime === slot.time
-                ? "bg-primary border-primary"
-                : "bg-background border-border"
-            }`}
-          >
-            <Text
-              className={`font-semibold ${
-                selectedTime === slot.time
-                  ? "text-primary-foreground"
-                  : "text-foreground"
-              }`}
-            >
-              {slot.time}
-            </Text>
-            {showTableInfo && slot.tables && (
-              <>
-                {slot.requiresCombination ? (
-                  <Text className="text-xs text-orange-600 mt-1">Combined</Text>
-                ) : (
-                  <Text className="text-xs text-muted-foreground mt-1">
-                    {slot.tables[0]?.table_type}
-                  </Text>
-                )}
-              </>
-            )}
-          </Pressable>
-        ))}
-      </View>
-
-      {selectedTime && (
-        <View className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-          <View className="flex-row items-center gap-2">
-            <CheckCircle size={16} color="#10b981" />
-            <Text className="text-sm text-green-800 dark:text-green-200">
-              Selected: {selectedTime}
-            </Text>
-            {slots.find(s => s.time === selectedTime)?.tables && (
-              <Text className="text-xs text-green-700 dark:text-green-300">
-                • {slots.find(s => s.time === selectedTime)?.requiresCombination 
-                   ? "Tables will be combined" 
-                   : "Single table"}
-              </Text>
-            )}
-          </View>
-        </View>
-      )}
-    </View>
-  );
-};
-
-// Preselected Offer Preview Component (unchanged)
+// Preselected Offer Preview Component
 const PreselectedOfferPreview: React.FC<{
   offerTitle: string;
   offerDiscount: number;
@@ -407,7 +265,7 @@ const PreselectedOfferPreview: React.FC<{
   );
 };
 
-// Loyalty Preview Component (unchanged)
+// Loyalty Preview Component
 const LoyaltyPreview: React.FC<{
   earnablePoints: number;
   userTier: string;
@@ -448,7 +306,7 @@ const LoyaltyPreview: React.FC<{
   );
 };
 
-// Regular Offers Preview Component (unchanged)
+// Regular Offers Preview Component
 const OffersPreview: React.FC<{
   availableOffers: any[];
   onViewOffers: () => void;
@@ -504,10 +362,9 @@ export default function AvailabilitySelectionScreen() {
 
   // State management
   const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const [selectedTime, setSelectedTime] = useState("");
-  const [selectedSlot, setSelectedSlot] = useState<any>(null);
   const [partySize, setPartySize] = useState(2);
   const [maxBookingDays, setMaxBookingDays] = useState(30);
+  const [currentStep, setCurrentStep] = useState<'time' | 'experience'>('time');
 
   // Track preselected offer
   const [preselectedOffer, setPreselectedOffer] = useState<{
@@ -520,12 +377,27 @@ export default function AvailabilitySelectionScreen() {
   // Custom hooks
   const { restaurant, loading: restaurantLoading } = useRestaurant(params.restaurantId);
 
-  // NEW: Use real-time availability hook
-  const { slots, loading: slotsLoading, error } = useAvailability({
+  // NEW: Use the enhanced availability hook with two-step flow
+  const {
+    timeSlots,
+    timeSlotsLoading,
+    selectedSlotOptions,
+    selectedTime,
+    slotOptionsLoading,
+    error,
+    fetchSlotOptions,
+    clearSelectedSlot,
+    hasTimeSlots,
+    hasSelectedSlot,
+    experienceCount,
+    hasMultipleExperiences,
+    primaryExperience,
+  } = useAvailability({
     restaurantId: params.restaurantId,
     date: selectedDate,
     partySize,
     enableRealtime: true,
+    mode: 'time-first',
   });
 
   const {
@@ -592,22 +464,34 @@ export default function AvailabilitySelectionScreen() {
   // Event handlers
   const handleDateChange = useCallback((date: Date) => {
     setSelectedDate(date);
-    setSelectedTime(""); // Reset time when date changes
-    setSelectedSlot(null);
-  }, []);
+    setCurrentStep('time');
+    clearSelectedSlot();
+  }, [clearSelectedSlot]);
 
-  const handleTimeChange = useCallback((time: string, slot: any) => {
-    setSelectedTime(time);
-    setSelectedSlot(slot);
-  }, []);
+  const handlePartySizeChange = useCallback((size: number) => {
+    setPartySize(size);
+    setCurrentStep('time');
+    clearSelectedSlot();
+  }, [clearSelectedSlot]);
 
-  // Continue booking with selected slot
-  const handleContinueBooking = useCallback(() => {
-    if (!selectedTime || !restaurant) {
-      Alert.alert(
-        "Please select a time",
-        "You need to select an available time slot to continue."
-      );
+  // NEW: Handle time selection (step 1 -> step 2)
+  const handleTimeSelect = useCallback(async (time: string) => {
+    await fetchSlotOptions(time);
+    setCurrentStep('experience');
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+  }, [fetchSlotOptions]);
+
+  // NEW: Handle going back to time selection
+  const handleBackToTimeSelection = useCallback(() => {
+    setCurrentStep('time');
+    clearSelectedSlot();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [clearSelectedSlot]);
+
+  // NEW: Handle experience confirmation (step 2 -> booking)
+  const handleExperienceConfirm = useCallback((tableIds: string[], selectedOption: any) => {
+    if (!selectedSlotOptions || !restaurant) {
+      Alert.alert("Error", "Missing experience or restaurant information");
       return;
     }
 
@@ -615,20 +499,12 @@ export default function AvailabilitySelectionScreen() {
       restaurantId: params.restaurantId,
       restaurantName: restaurant.name,
       date: selectedDate.toISOString(),
-      time: selectedTime,
+      time: selectedSlotOptions.time,
       partySize: partySize.toString(),
       earnablePoints: earnablePoints.toString(),
+      tableIds: JSON.stringify(tableIds),
+      requiresCombination: selectedOption.requiresCombination ? "true" : "false",
     };
-
-    // NEW: Pass table information
-    if (selectedSlot?.tables) {
-      navigationParams.tableIds = JSON.stringify(
-        selectedSlot.tables.map((t: any) => t.id)
-      );
-      navigationParams.requiresCombination = selectedSlot.requiresCombination
-        ? "true"
-        : "false";
-    }
 
     // Include preselected offer if available
     if (preselectedOffer) {
@@ -638,13 +514,13 @@ export default function AvailabilitySelectionScreen() {
       navigationParams.redemptionCode = preselectedOffer.redemptionCode;
     }
 
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     router.push({
       pathname: "/booking/create",
       params: navigationParams,
     });
   }, [
-    selectedTime,
-    selectedSlot,
+    selectedSlotOptions,
     restaurant,
     router,
     params.restaurantId,
@@ -683,13 +559,24 @@ export default function AvailabilitySelectionScreen() {
     );
   }, []);
 
+  // Format date for display
+  const formatSelectedDate = useCallback((date: Date) => {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
+    
+    if (date.toDateString() === today.toDateString()) return "Today";
+    if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow";
+    return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  }, []);
+
   // Loading state
   if (!restaurant || restaurantLoading) {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 items-center justify-center">
           <ActivityIndicator size="large" />
-          <Text className="mt-4 text-muted-foreground">Loading...</Text>
+          <Text className="mt-4 text-muted-foreground">Loading restaurant...</Text>
         </View>
       </SafeAreaView>
     );
@@ -703,10 +590,38 @@ export default function AvailabilitySelectionScreen() {
           <ChevronLeft size={24} />
         </Pressable>
         <View className="flex-1 mx-4">
-          <Text className="text-center font-semibold">Select Date & Time</Text>
+          <Text className="text-center font-semibold">
+            {currentStep === 'time' ? 'Select Date & Time' : 'Choose Your Experience'}
+          </Text>
           <Muted className="text-center text-sm">{restaurant.name}</Muted>
         </View>
         <View className="w-10" />
+      </View>
+
+      {/* Progress Indicator */}
+      <View className="px-4 py-3 bg-muted/30">
+        <View className="flex-row items-center justify-center gap-4">
+          <View className={`flex-row items-center gap-2 ${currentStep === 'time' ? 'opacity-100' : 'opacity-60'}`}>
+            <View className={`w-8 h-8 rounded-full items-center justify-center ${
+              currentStep === 'time' ? 'bg-primary' : hasSelectedSlot ? 'bg-green-500' : 'bg-primary'
+            }`}>
+              <Text className="text-white font-bold text-sm">1</Text>
+            </View>
+            <Text className="font-medium text-sm">Select Time</Text>
+          </View>
+          
+          <View className={`w-8 h-px ${hasSelectedSlot ? 'bg-green-500' : 'bg-border'}`} />
+          
+          <View className={`flex-row items-center gap-2 ${currentStep === 'experience' ? 'opacity-100' : 'opacity-60'}`}>
+            <View className={`w-8 h-8 rounded-full items-center justify-center ${
+              currentStep === 'experience' && hasSelectedSlot ? 'bg-primary' : 
+              hasSelectedSlot ? 'bg-green-500' : 'bg-muted'
+            }`}>
+              <Text className={`font-bold text-sm ${hasSelectedSlot ? 'text-white' : 'text-muted-foreground'}`}>2</Text>
+            </View>
+            <Text className="font-medium text-sm">Choose Experience</Text>
+          </View>
+        </View>
       </View>
 
       {/* Restaurant Info Card */}
@@ -754,7 +669,7 @@ export default function AvailabilitySelectionScreen() {
           {/* Party Size Selector */}
           <PartySizeSelector
             partySize={partySize}
-            onPartySizeChange={setPartySize}
+            onPartySizeChange={handlePartySizeChange}
             maxPartySize={restaurant.max_party_size || 12}
           />
 
@@ -765,26 +680,66 @@ export default function AvailabilitySelectionScreen() {
             maxDaysAhead={maxBookingDays}
           />
 
-          {/* Time Slots with Real-time Updates */}
-          <TimeSlots
-            slots={slots}
-            selectedTime={selectedTime}
-            onTimeChange={handleTimeChange}
-            loading={slotsLoading}
-            showTableInfo={true}
-          />
+          {/* Step 1: Time Selection */}
+          {currentStep === 'time' && (
+            <>
+              <TimeSlots
+                slots={timeSlots}
+                selectedTime={selectedTime}
+                onTimeSelect={handleTimeSelect}
+                loading={timeSlotsLoading}
+                showLiveIndicator={true}
+              />
 
-          {/* Error message if any */}
-          {error && (
-            <View className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
-              <Text className="text-red-600 dark:text-red-400 text-sm">
-                {error}
-              </Text>
-            </View>
+              {/* Error message if any */}
+              {error && (
+                <View className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3">
+                  <Text className="text-red-600 dark:text-red-400 text-sm">
+                    {error}
+                  </Text>
+                </View>
+              )}
+            </>
           )}
 
-          {/* Loyalty Preview */}
-          {profile && (
+          {/* Step 2: Experience Selection */}
+          {currentStep === 'experience' && (
+            <>
+              {/* Back to time selection option */}
+              <Pressable
+                onPress={handleBackToTimeSelection}
+                className="flex-row items-center gap-2 p-2 -ml-2"
+              >
+                <ArrowLeft size={20} color="#3b82f6" />
+                <Text className="text-primary font-medium">Back to Time Selection</Text>
+              </Pressable>
+
+              {/* Experience Header */}
+              {hasMultipleExperiences && (
+                <View className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-3">
+                  <View className="flex-row items-center gap-2">
+                    <Sparkles size={16} color="#8b5cf6" />
+                    <Text className="text-sm font-medium text-purple-800 dark:text-purple-200">
+                      {experienceCount} unique dining experiences available
+                    </Text>
+                  </View>
+                  <Text className="text-xs text-purple-700 dark:text-purple-300 mt-1">
+                    Each offers a different atmosphere and setting for your meal
+                  </Text>
+                </View>
+              )}
+
+              <TableOptions
+                slotOptions={selectedSlotOptions}
+                onConfirm={handleExperienceConfirm}
+                onBack={handleBackToTimeSelection}
+                loading={slotOptionsLoading}
+              />
+            </>
+          )}
+
+          {/* Loyalty Preview - Only show on step 1 */}
+          {currentStep === 'time' && profile && (
             <LoyaltyPreview
               earnablePoints={earnablePoints}
               userTier={userTier}
@@ -792,57 +747,55 @@ export default function AvailabilitySelectionScreen() {
             />
           )}
 
-          {/* Other Offers Preview (only show if no preselected offer) */}
-          {!preselectedOffer && (
+          {/* Other Offers Preview - Only show on step 1 */}
+          {currentStep === 'time' && !preselectedOffer && (
             <OffersPreview
               availableOffers={availableOffers}
               onViewOffers={handleViewOffers}
             />
           )}
 
-          {/* Booking Policies */}
-          <View className="bg-muted/30 rounded-xl p-4">
-            <Text className="font-semibold mb-2">Booking Information</Text>
-            <View className="gap-2">
-              <Text className="text-sm text-muted-foreground">
-                •{" "}
-                {restaurant.booking_policy === "instant"
-                  ? "Instant confirmation"
-                  : "Confirmation within 2 hours"}
-              </Text>
-              {restaurant.cancellation_window_hours && (
+          {/* Booking Policies - Only show on step 1 */}
+          {currentStep === 'time' && (
+            <View className="bg-muted/30 rounded-xl p-4">
+              <Text className="font-semibold mb-2">Booking Information</Text>
+              <View className="gap-2">
                 <Text className="text-sm text-muted-foreground">
-                  • Free cancellation up to{" "}
-                  {restaurant.cancellation_window_hours} hours before
+                  •{" "}
+                  {restaurant.booking_policy === "instant"
+                    ? "Instant confirmation"
+                    : "Confirmation within 2 hours"}
                 </Text>
-              )}
-              <Text className="text-sm text-muted-foreground">
-                • Please arrive on time to keep your reservation
-              </Text>
-              {preselectedOffer && (
-                <Text className="text-sm text-green-600 dark:text-green-400">
-                  • Your {preselectedOffer.discount}% discount will be applied
-                  automatically
+                {restaurant.cancellation_window_hours && (
+                  <Text className="text-sm text-muted-foreground">
+                    • Free cancellation up to{" "}
+                    {restaurant.cancellation_window_hours} hours before
+                  </Text>
+                )}
+                <Text className="text-sm text-muted-foreground">
+                  • Please arrive on time to keep your reservation
                 </Text>
-              )}
-              <Text className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-                • Real-time availability updates enabled
-              </Text>
+                {preselectedOffer && (
+                  <Text className="text-sm text-green-600 dark:text-green-400">
+                    • Your {preselectedOffer.discount}% discount will be applied
+                    automatically
+                  </Text>
+                )}
+                <Text className="text-sm text-blue-600 dark:text-blue-400 font-medium">
+                  • Real-time availability with curated dining experiences
+                </Text>
+              </View>
             </View>
-          </View>
+          )}
         </View>
       </ScrollView>
 
-      {/* Bottom CTA with offer info */}
+      {/* Bottom CTA - Updated for experience flow */}
       <View className="p-4 border-t border-border bg-background">
         <View className="flex-row items-center justify-between mb-3">
           <View>
             <Text className="font-semibold">
-              {selectedDate.toLocaleDateString("en-US", {
-                weekday: "short",
-                month: "short",
-                day: "numeric",
-              })}
+              {formatSelectedDate(selectedDate)}
               {selectedTime && ` at ${selectedTime}`}
             </Text>
             <View className="flex-row items-center gap-2">
@@ -858,14 +811,42 @@ export default function AvailabilitySelectionScreen() {
                 </>
               )}
             </View>
+            {/* Show primary experience when selected */}
+            {currentStep === 'experience' && primaryExperience && (
+              <Text className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                Recommended: {primaryExperience}
+              </Text>
+            )}
           </View>
-          <Button
-            onPress={handleContinueBooking}
-            disabled={!selectedTime}
-            className="px-6"
-          >
-            <Text className="text-white font-bold">Continue</Text>
-          </Button>
+          
+          {/* Show different CTA based on current step */}
+          {currentStep === 'time' ? (
+            <View className="items-end">
+              <Text className="text-xs text-muted-foreground mb-1">
+                {hasTimeSlots ? 'Select a time above' : 'Loading times...'}
+              </Text>
+              <View className="w-20 h-10 bg-muted/50 rounded-lg items-center justify-center">
+                {timeSlotsLoading && <ActivityIndicator size="small" />}
+              </View>
+            </View>
+          ) : (
+            <Button
+              onPress={() => {
+                // This shouldn't be needed since TableOptions handles confirmation
+                // But keeping as fallback
+                if (selectedSlotOptions && selectedSlotOptions.primaryOption) {
+                  const tableIds = selectedSlotOptions.primaryOption.tables.map((t: any) => t.id);
+                  handleExperienceConfirm(tableIds, selectedSlotOptions.primaryOption);
+                }
+              }}
+              disabled={!hasSelectedSlot || slotOptionsLoading}
+              className="px-6"
+            >
+              <Text className="text-white font-bold">
+                {slotOptionsLoading ? "Loading..." : "Continue"}
+              </Text>
+            </Button>
+          )}
         </View>
       </View>
     </SafeAreaView>
