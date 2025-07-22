@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Alert } from "react-native";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -12,7 +12,6 @@ type Booking = Database["public"]["Tables"]["bookings"]["Row"] & {
 };
 
 type TabType = "upcoming" | "past";
-type SortType = "date_asc" | "date_desc" | "name_asc" | "name_desc";
 
 export function useBookings() {
   const router = useRouter();
@@ -28,7 +27,8 @@ export function useBookings() {
   const [processingBookingId, setProcessingBookingId] = useState<string | null>(
     null,
   );
-  const [sort, setSort] = useState<SortType>("date_asc");
+
+  const hasInitialLoad = useRef(false);
 
   // Data Fetching Functions
   const fetchBookings = useCallback(async () => {
@@ -37,7 +37,7 @@ export function useBookings() {
     try {
       const now = new Date().toISOString();
 
-      // Fetch upcoming bookings
+      // Fetch upcoming bookings (pending, confirmed)
       const { data: upcomingData, error: upcomingError } = await supabase
         .from("bookings")
         .select(
@@ -49,11 +49,11 @@ export function useBookings() {
         .eq("user_id", profile.id)
         .in("status", ["pending", "confirmed"])
         .gte("booking_time", now)
-        .order("booking_time", { ascending: sort === "date_asc" });
+        .order("booking_time", { ascending: true });
 
       if (upcomingError) throw upcomingError;
 
-      // Fetch past bookings
+      // Fetch past bookings (all statuses, past dates or completed/cancelled)
       const { data: pastData, error: pastError } = await supabase
         .from("bookings")
         .select(
@@ -66,7 +66,7 @@ export function useBookings() {
         .or(
           `booking_time.lt.${now},status.in.(completed,cancelled_by_user,declined_by_restaurant,no_show)`,
         )
-        .order("booking_time", { ascending: sort === "date_asc" })
+        .order("booking_time", { ascending: false })
         .limit(50);
 
       if (pastError) throw pastError;
@@ -82,62 +82,138 @@ export function useBookings() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [profile?.id, sort]);
+  }, [profile?.id]);
 
-  // Real-time updates
-  useEffect(() => {
-    const channel = supabase
-      .channel("bookings-list")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "bookings" },
-        () => fetchBookings()
-      )
-      .subscribe();
+  // Navigation Functions
+  const navigateToBookingDetails = useCallback(
+    (bookingId: string) => {
+      router.push({
+        pathname: "/booking/[id]",
+        params: { id: bookingId },
+      });
+    },
+    [router],
+  );
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+  const navigateToRestaurant = useCallback(
+    (restaurantId: string) => {
+      router.push({
+        pathname: "/restaurant/[id]",
+        params: { id: restaurantId },
+      });
+    },
+    [router],
+  );
+
+  const navigateToSearch = useCallback(() => {
+    router.push("/search");
+  }, [router]);
+
+  // Quick Actions
+  const cancelBooking = useCallback(
+    async (bookingId: string) => {
+      Alert.alert(
+        "Cancel Booking",
+        "Are you sure you want to cancel this booking?",
+        [
+          { text: "No", style: "cancel" },
+          {
+            text: "Yes, Cancel",
+            style: "destructive",
+            onPress: async () => {
+              setProcessingBookingId(bookingId);
+
+              try {
+                const { error } = await supabase
+                  .from("bookings")
+                  .update({
+                    status: "cancelled_by_user",
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq("id", bookingId);
+
+                if (error) throw error;
+
+                await Haptics.notificationAsync(
+                  Haptics.NotificationFeedbackType.Success,
+                );
+
+                fetchBookings();
+                Alert.alert("Success", "Your booking has been cancelled");
+              } catch (error) {
+                console.error("Error cancelling booking:", error);
+                Alert.alert("Error", "Failed to cancel booking");
+              } finally {
+                setProcessingBookingId(null);
+              }
+            },
+          },
+        ],
+      );
+    },
+    [fetchBookings],
+  );
+
+  const rebookRestaurant = useCallback(
+    (booking: Booking) => {
+      router.push({
+        pathname: "/booking/create",
+        params: {
+          restaurantId: booking.restaurant_id,
+          restaurantName: booking.restaurant.name,
+          partySize: booking.party_size.toString(),
+          quickBook: "true",
+        },
+      });
+    },
+    [router],
+  );
+
+  const reviewBooking = useCallback(
+    (booking: Booking) => {
+      router.push({
+        pathname: "/review/create",
+        params: {
+          bookingId: booking.id,
+          restaurantId: booking.restaurant_id,
+          restaurantName: booking.restaurant.name,
+        },
+      });
+    },
+    [router],
+  );
+
+  // Refresh Handler
+  const handleRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchBookings();
   }, [fetchBookings]);
 
-  const sortedBookings = useMemo(() => {
-    const sortFn = (a: Booking, b: Booking) => {
-      switch (sort) {
-        case "date_desc":
-          return (
-            new Date(b.booking_time).getTime() -
-            new Date(a.booking_time).getTime()
-          );
-        case "name_asc":
-          return a.restaurant.name.localeCompare(b.restaurant.name);
-        case "name_desc":
-          return b.restaurant.name.localeCompare(a.restaurant.name);
-        default:
-          return (
-            new Date(a.booking_time).getTime() -
-            new Date(b.booking_time).getTime()
-          );
-      }
-    };
-    return {
-      upcoming: [...bookings.upcoming].sort(sortFn),
-      past: [...bookings.past].sort(sortFn),
-    };
-  }, [bookings, sort]);
-
-  // ... (rest of the hook)
+  // Lifecycle Management
+  useEffect(() => {
+    if (!hasInitialLoad.current && profile) {
+      fetchBookings();
+      hasInitialLoad.current = true;
+    }
+  }, [profile, fetchBookings]);
 
   return {
     // State
     activeTab,
     setActiveTab,
-    bookings: sortedBookings,
+    bookings,
     loading,
     refreshing,
     processingBookingId,
-    sort,
-    setSort,
 
-    // ... (actions)
+    // Actions
+    fetchBookings,
+    handleRefresh,
+    navigateToBookingDetails,
+    navigateToRestaurant,
+    navigateToSearch,
+    cancelBooking,
+    rebookRestaurant,
+    reviewBooking,
   };
 }

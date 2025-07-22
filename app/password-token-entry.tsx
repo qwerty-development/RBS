@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { ActivityIndicator, View, Alert, TouchableOpacity } from "react-native";
+import { ActivityIndicator, View, Alert } from "react-native";
 import * as z from "zod";
 import { useState } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
@@ -27,7 +27,6 @@ export default function PasswordTokenEntry() {
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email: string }>();
   const [isLoading, setIsLoading] = useState(false);
-  const [isResending, setIsResending] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -74,24 +73,6 @@ export default function PasswordTokenEntry() {
       Alert.alert("Error", errorMessage);
     } finally {
       setIsLoading(false);
-    }
-  }
-
-  async function handleResendToken() {
-    try {
-      setIsResending(true);
-      if (!email) {
-        throw new Error("Email is required.");
-      }
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
-      if (error) {
-        throw error;
-      }
-      Alert.alert("Token Resent", "A new password reset token has been sent to your email.");
-    } catch (error: any) {
-      Alert.alert("Error", error.message);
-    } finally {
-      setIsResending(false);
     }
   }
 
@@ -150,12 +131,6 @@ export default function PasswordTokenEntry() {
             />
           </View>
         </Form>
-
-        <TouchableOpacity onPress={handleResendToken} disabled={isResending} className="mt-4">
-          <Text className="text-primary font-medium self-center">
-            {isResending ? <ActivityIndicator size="small" /> : "Resend Token"}
-          </Text>
-        </TouchableOpacity>
       </View>
 
       <View className="gap-4 web:m-4">
@@ -163,7 +138,7 @@ export default function PasswordTokenEntry() {
           size="default"
           variant="default"
           onPress={form.handleSubmit(onSubmit)}
-          disabled={isLoading || isResending}
+          disabled={isLoading}
         >
           {isLoading ? (
             <ActivityIndicator size="small" color="white" />

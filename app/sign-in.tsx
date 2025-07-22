@@ -13,16 +13,13 @@ import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormField, FormInput } from "@/components/ui/form";
 import { Text } from "@/components/ui/text";
 import { H1, P } from "@/components/ui/typography";
 import { useAuth } from "@/context/supabase-provider";
-import { useBiometricAuth } from "@/hooks/useBiometricAuth";
 import { useColorScheme } from "@/lib/useColorScheme";
 
 const formSchema = z.object({
@@ -42,11 +39,7 @@ export default function SignIn() {
   const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [isAppleLoading, setIsAppleLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isBiometricLoading, setIsBiometricLoading] = useState(false);
   const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-
-  const { authenticate } = useBiometricAuth();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -55,17 +48,6 @@ export default function SignIn() {
       password: "",
     },
   });
-
-  useEffect(() => {
-    const loadRememberedEmail = async () => {
-      const rememberedEmail = await AsyncStorage.getItem("rememberedEmail");
-      if (rememberedEmail) {
-        form.setValue("email", rememberedEmail);
-        setRememberMe(true);
-      }
-    };
-    loadRememberedEmail();
-  }, [form]);
 
   // Check if Apple Authentication is available
   useEffect(() => {
@@ -88,11 +70,6 @@ export default function SignIn() {
       setIsEmailLoading(true);
       console.log("🔄 Starting sign-in process...");
       await signIn(data.email, data.password);
-      if (rememberMe) {
-        await AsyncStorage.setItem("rememberedEmail", data.email);
-      } else {
-        await AsyncStorage.removeItem("rememberedEmail");
-      }
       // Redirect to the protected home/tabs stack after successful sign-in
       router.replace("/(protected)/(tabs)");
       console.log("✅ Sign-in successful");
@@ -189,24 +166,6 @@ export default function SignIn() {
     }
   };
 
-  const handleBiometricSignIn = async () => {
-    try {
-      setIsBiometricLoading(true);
-      const result = await authenticate();
-      if (result.success) {
-        // You would typically have a saved credential to use here
-        Alert.alert("Biometric Success", "You would be signed in now.");
-        router.replace("/(protected)/(tabs)");
-      } else {
-        Alert.alert("Biometric Failed", result.error);
-      }
-    } catch (err: any) {
-      Alert.alert("Biometric Error", err.message);
-    } finally {
-      setIsBiometricLoading(false);
-    }
-  };
-
   return (
     <SafeAreaView className="flex-1 bg-background p-4" edges={["top", "bottom"]}>
       <KeyboardAvoidingView
@@ -253,22 +212,12 @@ export default function SignIn() {
                   />
                 )}
               />
-              <View className="flex-row justify-between items-center mt-2">
-                <View className="flex-row items-center gap-2">
-                  <Checkbox
-                    id="remember-me"
-                    checked={rememberMe}
-                    onCheckedChange={() => setRememberMe(!rememberMe)}
-                  />
-                  <Text>Remember Me</Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => router.push("/password-reset")}
-                  className="self-end"
-                >
-                  <Text className="text-primary font-medium">Forgot Password?</Text>
-                </TouchableOpacity>
-              </View>
+              <TouchableOpacity
+                onPress={() => router.push("/password-reset")}
+                className="mt-2 self-end"
+              >
+                <Text className="text-primary font-medium">Forgot Password?</Text>
+              </TouchableOpacity>
             </View>
           </Form>
         </View>
@@ -278,7 +227,7 @@ export default function SignIn() {
             size="default"
             variant="default"
             onPress={form.handleSubmit(onSubmit)}
-            disabled={isEmailLoading || isAppleLoading || isGoogleLoading || isBiometricLoading}
+            disabled={isEmailLoading || isAppleLoading || isGoogleLoading}
           >
             {isEmailLoading ? (
               <ActivityIndicator size="small" color="white" />
@@ -302,7 +251,7 @@ export default function SignIn() {
               {Platform.OS === "ios" && appleAuthAvailable && (
                 <TouchableOpacity
                   onPress={handleAppleSignIn}
-                  disabled={isAppleLoading || isEmailLoading || isGoogleLoading || isBiometricLoading}
+                  disabled={isAppleLoading || isEmailLoading || isGoogleLoading}
                   className="flex-1"
                 >
                   <View className="bg-foreground rounded-md h-12 items-center justify-center flex-row gap-2">
@@ -336,7 +285,7 @@ export default function SignIn() {
               {/* Google Sign In Button */}
               <TouchableOpacity
                 onPress={handleGoogleSignIn}
-                disabled={isGoogleLoading || isEmailLoading || isAppleLoading || isBiometricLoading}
+                disabled={isGoogleLoading || isEmailLoading || isAppleLoading}
                 className="flex-1"
               >
                 <View className="bg-background border border-border rounded-md h-12 items-center justify-center flex-row gap-2">
@@ -349,27 +298,6 @@ export default function SignIn() {
                     <>
                       <Ionicons name="logo-google" size={20} color="#EA4335" />
                       <Text className="text-foreground font-medium">Google</Text>
-                    </>
-                  )}
-                </View>
-              </TouchableOpacity>
-
-              {/* Biometric Sign In Button */}
-              <TouchableOpacity
-                onPress={handleBiometricSignIn}
-                disabled={isBiometricLoading || isEmailLoading || isAppleLoading || isGoogleLoading}
-                className="flex-1"
-              >
-                <View className="bg-background border border-border rounded-md h-12 items-center justify-center flex-row gap-2">
-                  {isBiometricLoading ? (
-                    <ActivityIndicator
-                      size="small"
-                      color={isDark ? "#fff" : "#000"}
-                    />
-                  ) : (
-                    <>
-                      <Ionicons name="finger-print" size={20} color={isDark ? "#fff" : "#000"} />
-                      <Text className="text-foreground font-medium">Biometric</Text>
                     </>
                   )}
                 </View>

@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/config/supabase";
 import { Database } from "@/types/supabase";
 import debounce from "lodash.debounce";
-import * as Location from "expo-location";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -18,14 +17,12 @@ interface SearchFilters {
 interface UseRestaurantSearchOptions {
   query: string;
   filters: SearchFilters;
-  userLocation?: Location.LocationObject | null;
   pageSize?: number;
 }
 
 export function useRestaurantSearch({
   query,
   filters,
-  userLocation,
   pageSize = 20,
 }: UseRestaurantSearchOptions) {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -42,27 +39,57 @@ export function useRestaurantSearch({
       setLoading(true);
 
       try {
-        let rpcParams: any = {
-          p_query: query,
-          p_cuisines: filters.cuisines,
-          p_features: filters.features,
-          p_min_price: filters.priceRange[0],
-          p_max_price: filters.priceRange[1],
-          p_booking_policy: filters.bookingPolicy === "all" ? null : filters.bookingPolicy,
-          p_sort_by: filters.sortBy,
-          p_limit: pageSize,
-          p_offset: reset ? 0 : page * pageSize,
-        };
+        let supabaseQuery = supabase
+          .from("restaurants")
+          .select("*", { count: "exact" });
 
-        if (userLocation) {
-          rpcParams.p_lat = userLocation.coords.latitude;
-          rpcParams.p_lon = userLocation.coords.longitude;
+        // Apply search query
+        if (query.trim()) {
+          supabaseQuery = supabaseQuery.or(
+            `name.ilike.%${query}%,cuisine_type.ilike.%${query}%,address.ilike.%${query}%`,
+          );
         }
 
-        const { data, error } = await supabase.rpc(
-          "search_restaurants",
-          rpcParams
-        );
+        // Apply filters
+        if (filters.cuisines.length > 0) {
+          supabaseQuery = supabaseQuery.in("cuisine_type", filters.cuisines);
+        }
+
+        if (filters.priceRange) {
+          supabaseQuery = supabaseQuery
+            .gte("price_range", filters.priceRange[0])
+            .lte("price_range", filters.priceRange[1]);
+        }
+
+        if (filters.bookingPolicy !== "all") {
+          supabaseQuery = supabaseQuery.eq(
+            "booking_policy",
+            filters.bookingPolicy,
+          );
+        }
+
+        // Apply sorting
+        switch (filters.sortBy) {
+          case "rating":
+            supabaseQuery = supabaseQuery.order("average_rating", {
+              ascending: false,
+            });
+            break;
+          case "name":
+            supabaseQuery = supabaseQuery.order("name", { ascending: true });
+            break;
+          default:
+            supabaseQuery = supabaseQuery
+              .order("featured", { ascending: false })
+              .order("average_rating", { ascending: false });
+        }
+
+        // Pagination
+        const from = reset ? 0 : page * pageSize;
+        const to = from + pageSize - 1;
+        supabaseQuery = supabaseQuery.range(from, to);
+
+        const { data, error, count } = await supabaseQuery;
 
         // Check if this is still the latest request
         if (requestId !== currentRequestRef.current) return;
@@ -77,7 +104,9 @@ export function useRestaurantSearch({
           setPage((prev) => prev + 1);
         }
 
-        setHasMore((data?.length || 0) === pageSize);
+        setHasMore(
+          (data?.length || 0) === pageSize && (count || 0) > from + pageSize,
+        );
       } catch (error) {
         console.error("Search error:", error);
       } finally {
@@ -86,7 +115,7 @@ export function useRestaurantSearch({
         }
       }
     },
-    [query, filters, page, pageSize, userLocation],
+    [query, filters, page, pageSize],
   );
 
   const debouncedSearch = useRef(
@@ -100,7 +129,7 @@ export function useRestaurantSearch({
     return () => {
       debouncedSearch.cancel();
     };
-  }, [query, filters, userLocation]);
+  }, [query, filters]);
 
   const loadMore = useCallback(() => {
     if (!loading && hasMore) {
