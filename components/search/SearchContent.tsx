@@ -7,6 +7,8 @@ import { Restaurant, BookingFilters, ViewMode } from "@/types/search";
 import { RestaurantSearchCard } from "@/components/search/RestaurantSearchCard";
 import { Text } from "@/components/ui/text";
 import { ActivityIndicator } from "react-native";
+import { Image } from "@/components/image";
+import { Utensils } from "lucide-react-native";
 
 interface SearchContentProps {
   viewMode: ViewMode;
@@ -103,7 +105,41 @@ export const SearchContent = ({
                 onPress={() => onRestaurantPress(restaurant.id)}
                 title={restaurant.name}
                 description={restaurant.cuisine_type}
-              />
+              >
+                {/* Custom marker with restaurant image */}
+                <View className="items-center">
+                  <View className="bg-slate-200 rounded-full p-1 shadow-lg">
+                    {restaurant.main_image_url ? (
+                      <Image
+                        source={{ uri: restaurant.main_image_url }}
+                        className="w-12 h-12 rounded-full"
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View className="w-12 h-12 rounded-full bg-primary items-center justify-center">
+                        <Utensils size={20} color="white" />
+                      </View>
+                    )}
+                  </View>
+                  {/* Small triangle pointer */}
+                  <View
+                    style={{
+                      width: 0,
+                      height: 0,
+                      backgroundColor: "transparent",
+                      borderStyle: "solid",
+                      borderLeftWidth: 6,
+                      borderRightWidth: 6,
+                      borderBottomWidth: 0,
+                      borderTopWidth: 8,
+                      borderLeftColor: "transparent",
+                      borderRightColor: "transparent",
+                      borderTopColor: "#ef4444", // Tailwind red-500
+                      marginTop: -1,
+                    }}
+                  />
+                </View>
+              </Marker>
             );
           })}
         </MapView>
