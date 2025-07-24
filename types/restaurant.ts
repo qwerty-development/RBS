@@ -55,3 +55,5 @@ export type SpecialOffer =
     isExpired?: boolean;
     canUse?: boolean;
   };
+
+  

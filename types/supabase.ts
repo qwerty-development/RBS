@@ -10,6 +10,164 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      restaurant_loyalty_balance: {
+        Row: {
+          id: string;
+          restaurant_id: string;
+          total_purchased: number;
+          current_balance: number;
+          last_purchase_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          restaurant_id: string;
+          total_purchased?: number;
+          current_balance?: number;
+          last_purchase_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          restaurant_id?: string;
+          total_purchased?: number;
+          current_balance?: number;
+          last_purchase_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      
+      restaurant_loyalty_transactions: {
+        Row: {
+          id: string;
+          restaurant_id: string;
+          transaction_type: 'purchase' | 'deduction' | 'refund' | 'adjustment';
+          points: number;
+          balance_before: number;
+          balance_after: number;
+          description: string | null;
+          booking_id: string | null;
+          user_id: string | null;
+          created_at: string;
+          metadata: any;
+        };
+        Insert: {
+          id?: string;
+          restaurant_id: string;
+          transaction_type: 'purchase' | 'deduction' | 'refund' | 'adjustment';
+          points: number;
+          balance_before: number;
+          balance_after: number;
+          description?: string | null;
+          booking_id?: string | null;
+          user_id?: string | null;
+          created_at?: string;
+          metadata?: any;
+        };
+        Update: {
+          id?: string;
+          restaurant_id?: string;
+          transaction_type?: 'purchase' | 'deduction' | 'refund' | 'adjustment';
+          points?: number;
+          balance_before?: number;
+          balance_after?: number;
+          description?: string | null;
+          booking_id?: string | null;
+          user_id?: string | null;
+          created_at?: string;
+          metadata?: any;
+        };
+      };
+      
+      restaurant_loyalty_rules: {
+        Row: {
+          id: string;
+          restaurant_id: string;
+          rule_name: string;
+          points_to_award: number;
+          is_active: boolean;
+          valid_from: string;
+          valid_until: string | null;
+          applicable_days: number[];
+          start_time_minutes: number | null;
+          end_time_minutes: number | null;
+          minimum_party_size: number;
+          maximum_party_size: number | null;
+          max_uses_total: number | null;
+          current_uses: number;
+          max_uses_per_user: number | null;
+          priority: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          restaurant_id: string;
+          rule_name: string;
+          points_to_award: number;
+          is_active?: boolean;
+          valid_from?: string;
+          valid_until?: string | null;
+          applicable_days?: number[];
+          start_time_minutes?: number | null;
+          end_time_minutes?: number | null;
+          minimum_party_size?: number;
+          maximum_party_size?: number | null;
+          max_uses_total?: number | null;
+          current_uses?: number;
+          max_uses_per_user?: number | null;
+          priority?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          restaurant_id?: string;
+          rule_name?: string;
+          points_to_award?: number;
+          is_active?: boolean;
+          valid_from?: string;
+          valid_until?: string | null;
+          applicable_days?: number[];
+          start_time_minutes?: number | null;
+          end_time_minutes?: number | null;
+          minimum_party_size?: number;
+          maximum_party_size?: number | null;
+          max_uses_total?: number | null;
+          current_uses?: number;
+          max_uses_per_user?: number | null;
+          priority?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
+      
+      user_loyalty_rule_usage: {
+        Row: {
+          id: string;
+          user_id: string;
+          rule_id: string;
+          booking_id: string;
+          used_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          rule_id: string;
+          booking_id: string;
+          used_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          rule_id?: string;
+          booking_id?: string;
+          used_at?: string;
+        };
+      };
       profiles: {
         Row: {
           id: string;
@@ -156,6 +314,7 @@ export interface Database {
           name?: string;
           description?: string;
           address?: string;
+          applied_loyalty_rule_id?: string | null;
           location?: {
             type: "Point";
             coordinates: [number, number];
@@ -195,6 +354,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
+          applied_loyalty_rule_id: string | null;
           restaurant_id: string;
           booking_time: string;
           party_size: number;
@@ -222,6 +382,7 @@ export interface Database {
           restaurant_id: string;
           booking_time: string;
           party_size: number;
+          applied_loyalty_rule_id?: string | null;
           status:
             | "pending"
             | "confirmed"
@@ -490,6 +651,31 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
+
+      check_loyalty_rules_for_booking: {
+        Args: {
+          p_booking_id: string;
+        };
+        Returns: {
+          rule_id: string;
+          points_to_award: number;
+          rule_name: string;
+        }[];
+      };
+      
+      award_restaurant_loyalty_points: {
+        Args: {
+          p_booking_id: string;
+        };
+        Returns: boolean;
+      };
+      
+      refund_restaurant_loyalty_points: {
+        Args: {
+          p_booking_id: string;
+        };
+        Returns: boolean;
+      },
       update_restaurant_availability: {
         Args: {
           p_restaurant_id: string;

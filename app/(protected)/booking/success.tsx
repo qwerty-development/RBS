@@ -1,5 +1,5 @@
 // app/(protected)/booking/success.tsx
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { View, ScrollView, Share, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -14,6 +14,7 @@ import {
   Trophy,
   Sparkles,
   TableIcon,
+  TrendingUp, // NEW: Added TrendingUp icon
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import Confetti from "react-native-confetti";
@@ -24,6 +25,8 @@ import { Text } from "@/components/ui/text";
 import { H1, H2, H3, P, Muted } from "@/components/ui/typography";
 import { LoyaltyPointsCard } from "@/components/ui/loyalty-points-card";
 import { useColorScheme } from "@/lib/useColorScheme";
+import { supabase } from "@/config/supabase"; // NEW: Added supabase import
+import { LoyaltyRuleDetails } from '@/hooks/useRestaurantLoyalty'; // NEW: Added type import
 
 interface BookingSuccessParams {
   bookingId: string;
@@ -36,8 +39,54 @@ interface BookingSuccessParams {
   userTier?: string;
   offerTitle?: string;
   offerDiscount?: string;
-  tableInfo?: string; // NEW: "single" or "combined"
+  tableInfo?: string; // "single" or "combined"
+  // NEW: Restaurant loyalty parameters
+  restaurantLoyaltyPoints?: string;
+  loyaltyRuleId?: string;
+  loyaltyRuleName?: string;
 }
+
+// NEW: Restaurant Loyalty Notification Component
+const RestaurantLoyaltyNotification: React.FC<{
+  points: number;
+  ruleName: string;
+  restaurantName: string;
+}> = ({ points, ruleName, restaurantName }) => {
+  if (!points || points <= 0) return null;
+
+  return (
+    <View className="mb-6">
+      <View className="bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl p-0.5">
+        <View className="bg-background rounded-xl p-4">
+          <View className="flex-row items-center mb-3">
+            <View className="bg-purple-100 dark:bg-purple-900/50 rounded-full p-2">
+              <Trophy size={24} color="#9333ea" />
+            </View>
+            <View className="ml-3 flex-1">
+              <Text className="font-bold text-lg">
+                {points} Bonus Points Earned!
+              </Text>
+              <Text className="text-sm text-muted-foreground">
+                From "{ruleName}"
+              </Text>
+            </View>
+            <View className="bg-green-100 dark:bg-green-900/50 px-3 py-1 rounded-full">
+              <Text className="text-green-700 dark:text-green-300 font-semibold">
+                +{points}
+              </Text>
+            </View>
+          </View>
+
+          <View className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
+            <Text className="text-sm text-purple-900 dark:text-purple-100">
+              🎉 These bonus points were awarded by {restaurantName} for booking during their special promotion time!
+            </Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+};
 
 export default function BookingSuccessScreen() {
   const params = useLocalSearchParams<BookingSuccessParams>();
@@ -45,6 +94,7 @@ export default function BookingSuccessScreen() {
   const { colorScheme } = useColorScheme();
   const confettiRef = React.useRef<any>(null);
 
+  // Existing state
   const earnedPoints = params.earnedPoints ? parseInt(params.earnedPoints) : 0;
   const hasOffer = params.appliedOffer === "true";
   const invitedFriendsCount = params.invitedFriends
@@ -56,6 +106,83 @@ export default function BookingSuccessScreen() {
     : 0;
   const tableInfo = params.tableInfo || "single";
 
+  // NEW: Restaurant loyalty state
+  const [appliedLoyaltyRule, setAppliedLoyaltyRule] = useState<LoyaltyRuleDetails | null>(null);
+  const [restaurantLoyaltyPoints, setRestaurantLoyaltyPoints] = useState<number>(0);
+  const [offerDetails, setOfferDetails] = useState<{
+    estimatedSavings: number;
+    title: string;
+  } | null>(null);
+
+  // Initialize restaurant loyalty points from params
+  useEffect(() => {
+    if (params.restaurantLoyaltyPoints) {
+      const points = parseInt(params.restaurantLoyaltyPoints);
+      if (!isNaN(points)) {
+        setRestaurantLoyaltyPoints(points);
+      }
+    }
+
+    if (params.loyaltyRuleId && params.loyaltyRuleName) {
+      setAppliedLoyaltyRule({
+        id: params.loyaltyRuleId,
+        rule_name: params.loyaltyRuleName,
+        points_to_award: parseInt(params.restaurantLoyaltyPoints || '0'),
+        restaurant_id: '', // Not needed for display
+      });
+    }
+  }, [params.restaurantLoyaltyPoints, params.loyaltyRuleId, params.loyaltyRuleName]);
+
+  // NEW: Fetch detailed loyalty rule information if not provided in params
+  useEffect(() => {
+    const fetchLoyaltyRuleDetails = async () => {
+      if (!params.bookingId || appliedLoyaltyRule) return;
+
+      try {
+        // Fetch booking details to get loyalty rule info
+        const { data: bookingData, error: bookingError } = await supabase
+          .from('bookings')
+          .select('applied_loyalty_rule_id, loyalty_points_earned')
+          .eq('id', params.bookingId)
+          .single();
+
+        if (bookingError || !bookingData?.applied_loyalty_rule_id) return;
+
+        // Fetch loyalty rule details
+        const { data: ruleData, error: ruleError } = await supabase
+          .from('restaurant_loyalty_rules')
+          .select('id, rule_name, points_to_award, restaurant_id')
+          .eq('id', bookingData.applied_loyalty_rule_id)
+          .single();
+
+        if (!ruleError && ruleData) {
+          setAppliedLoyaltyRule(ruleData);
+          setRestaurantLoyaltyPoints(bookingData.loyalty_points_earned || 0);
+        }
+      } catch (err) {
+        console.error('Error fetching loyalty rule details:', err);
+      }
+    };
+
+    fetchLoyaltyRuleDetails();
+  }, [params.bookingId, appliedLoyaltyRule]);
+
+  // NEW: Calculate offer details for value summary
+  useEffect(() => {
+    if (hasOffer && params.offerTitle) {
+      // Estimate savings based on party size and discount
+      const partySize = parseInt(params.invitedFriends || '1') + 1;
+      const estimatedMealCost = partySize * 30; // Rough estimate $30 per person
+      const estimatedSavings = (estimatedMealCost * offerDiscount) / 100;
+
+      setOfferDetails({
+        estimatedSavings,
+        title: params.offerTitle,
+      });
+    }
+  }, [hasOffer, params.offerTitle, offerDiscount, params.invitedFriends]);
+
+  // Confetti and haptic effects
   useEffect(() => {
     // Trigger confetti animation
     if (confettiRef.current) {
@@ -75,18 +202,43 @@ export default function BookingSuccessScreen() {
     return () => clearTimeout(timeout);
   }, []);
 
+  // NEW: Enhanced share message with restaurant loyalty
+  const shareMessage = useMemo(() => {
+    let message = `I just booked a table at ${params.restaurantName}! 🎉\nConfirmation: ${params.confirmationCode}`;
+
+    if (hasOffer) {
+      message += `\nSaved ${offerDiscount}% with a special offer!`;
+    }
+
+    if (isGroupBooking) {
+      message += `\nDining with ${invitedFriendsCount} friend${invitedFriendsCount > 1 ? "s" : ""}`;
+    }
+
+    if (earnedPoints > 0) {
+      message += `\nEarned ${earnedPoints} platform points!`;
+    }
+
+    if (restaurantLoyaltyPoints > 0 && appliedLoyaltyRule) {
+      message += `\nPlus ${restaurantLoyaltyPoints} bonus points from "${appliedLoyaltyRule.rule_name}"!`;
+    }
+
+    return message;
+  }, [
+    params.restaurantName,
+    params.confirmationCode,
+    hasOffer,
+    offerDiscount,
+    isGroupBooking,
+    invitedFriendsCount,
+    earnedPoints,
+    restaurantLoyaltyPoints,
+    appliedLoyaltyRule,
+  ]);
+
   const handleShare = async () => {
     try {
-      const message = `I just booked a table at ${params.restaurantName}! 🎉\nConfirmation: ${params.confirmationCode}${
-        hasOffer ? `\nSaved ${offerDiscount}% with a special offer!` : ""
-      }${
-        isGroupBooking
-          ? `\nDining with ${invitedFriendsCount} friend${invitedFriendsCount > 1 ? "s" : ""}`
-          : ""
-      }`;
-
       await Share.share({
-        message,
+        message: shareMessage,
         title: `Booking at ${params.restaurantName}`,
       });
     } catch (error) {
@@ -142,7 +294,7 @@ export default function BookingSuccessScreen() {
             </View>
           </View>
 
-          {/* Table Information Card - NEW */}
+          {/* Table Information Card */}
           {tableInfo && (
             <View className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 mb-6">
               <View className="flex-row items-center gap-3">
@@ -202,13 +354,75 @@ export default function BookingSuccessScreen() {
             </View>
           )}
 
-          {/* Loyalty Points Card */}
+          {/* NEW: Restaurant Loyalty Notification */}
+          {appliedLoyaltyRule && restaurantLoyaltyPoints > 0 && (
+            <RestaurantLoyaltyNotification 
+              points={restaurantLoyaltyPoints}
+              ruleName={appliedLoyaltyRule.rule_name}
+              restaurantName={params.restaurantName}
+            />
+          )}
+
+          {/* Platform Loyalty Points Card */}
           {earnedPoints > 0 && (
             <LoyaltyPointsCard
               pointsEarned={earnedPoints}
               userTier={params.userTier || "bronze"}
               hasOffer={hasOffer}
             />
+          )}
+
+          {/* NEW: Enhanced Value Summary */}
+          {(offerDetails || earnedPoints > 0 || restaurantLoyaltyPoints > 0) && (
+            <View className="mb-6">
+              <View className="bg-card border border-border rounded-xl p-4">
+                <View className="flex-row items-center mb-3">
+                  <TrendingUp size={20} color="#3b82f6" />
+                  <Text className="font-bold text-lg ml-2">Your Total Value</Text>
+                </View>
+                
+                <View className="space-y-2">
+                  {offerDetails && (
+                    <View className="flex-row justify-between">
+                      <Text className="text-muted-foreground">Discount Savings</Text>
+                      <Text className="font-bold text-green-600">
+                        ${offerDetails.estimatedSavings.toFixed(2)}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {earnedPoints > 0 && (
+                    <View className="flex-row justify-between">
+                      <Text className="text-muted-foreground">Platform Points Value</Text>
+                      <Text className="font-bold text-blue-600">
+                        ${(earnedPoints * 0.05).toFixed(2)}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  {restaurantLoyaltyPoints > 0 && (
+                    <View className="flex-row justify-between">
+                      <Text className="text-muted-foreground">Restaurant Bonus Points</Text>
+                      <Text className="font-bold text-purple-600">
+                        ${(restaurantLoyaltyPoints * 0.05).toFixed(2)}
+                      </Text>
+                    </View>
+                  )}
+                  
+                  <View className="border-t border-border pt-2 mt-2">
+                    <View className="flex-row justify-between">
+                      <Text className="font-medium">Total Value Gained</Text>
+                      <Text className="font-bold text-lg text-primary">
+                        ${(
+                          (offerDetails?.estimatedSavings || 0) + 
+                          ((earnedPoints + restaurantLoyaltyPoints) * 0.05)
+                        ).toFixed(2)}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
           )}
 
           {/* What's Next Section */}
@@ -259,6 +473,21 @@ export default function BookingSuccessScreen() {
                     </Text>
                     <Muted className="text-sm">
                       Track who's coming in the booking details
+                    </Muted>
+                  </View>
+                </View>
+              )}
+
+              {/* NEW: Restaurant loyalty next steps */}
+              {restaurantLoyaltyPoints > 0 && (
+                <View className="flex-row items-start gap-3">
+                  <Trophy size={20} color="#6b7280" className="mt-1" />
+                  <View className="flex-1">
+                    <Text className="font-medium">
+                      Use your bonus points
+                    </Text>
+                    <Muted className="text-sm">
+                      Your restaurant loyalty points can be used for future bookings at {params.restaurantName}
                     </Muted>
                   </View>
                 </View>

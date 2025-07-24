@@ -1,5 +1,5 @@
 // app/(protected)/booking/request-sent.tsx
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { View, ScrollView, Share, Alert, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -13,6 +13,7 @@ import {
   Timer,
   Info,
   Copy,
+  Trophy,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
@@ -22,6 +23,8 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { H1, H2, H3, P, Muted } from "@/components/ui/typography";
 import { useColorScheme } from "@/lib/useColorScheme";
+import { supabase } from "@/config/supabase";
+import { Database } from "@/types/supabase";
 
 interface RequestSentParams {
   bookingId: string;
@@ -32,10 +35,57 @@ interface RequestSentParams {
   confirmationCode: string;
 }
 
+type Booking = Database["public"]["Tables"]["bookings"]["Row"] & {
+  restaurant: Database["public"]["Tables"]["restaurants"]["Row"];
+};
+
+interface LoyaltyRuleDetails {
+  id: string;
+  rule_name: string;
+  points_to_award: number;
+  restaurant_id: string;
+}
+
+// Component to show potential loyalty points
+const PotentialLoyaltyPointsCard: React.FC<{
+  expectedPoints: number;
+  ruleName?: string;
+}> = ({ expectedPoints, ruleName }) => {
+  if (!expectedPoints || expectedPoints <= 0) return null;
+
+  return (
+    <View className="bg-card border border-border rounded-xl p-4 mb-6">
+      <View className="flex-row items-center mb-3">
+        <Trophy size={20} color="#9333ea" />
+        <Text className="font-semibold text-lg ml-2">Potential Rewards</Text>
+      </View>
+      
+      <View className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
+        <Text className="text-sm text-purple-900 dark:text-purple-100">
+          If your booking is confirmed, you'll earn <Text className="font-bold">{expectedPoints} bonus points</Text>
+          {ruleName && <Text> from "{ruleName}"</Text>}!
+        </Text>
+      </View>
+      
+      <View className="flex-row items-start mt-3">
+        <Info size={14} color="#666" className="mt-0.5" />
+        <Text className="text-xs text-muted-foreground ml-2 flex-1">
+          Points will be added to your account automatically once the restaurant confirms your booking.
+        </Text>
+      </View>
+    </View>
+  );
+};
+
 export default function RequestSentScreen() {
   const params = useLocalSearchParams<RequestSentParams>();
   const router = useRouter();
   const { colorScheme } = useColorScheme();
+
+  // State for booking data and loyalty details
+  const [booking, setBooking] = useState<Booking | null>(null);
+  const [expectedLoyaltyRule, setExpectedLoyaltyRule] = useState<LoyaltyRuleDetails | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const bookingDate = new Date(params.bookingDate);
   const formattedDate = bookingDate.toLocaleDateString("en-US", {
@@ -45,6 +95,49 @@ export default function RequestSentScreen() {
     year: "numeric",
   });
 
+  // Fetch booking data and loyalty details
+  useEffect(() => {
+    const fetchBookingData = async () => {
+      if (!params.bookingId) return;
+
+      try {
+        setLoading(true);
+
+        // Fetch booking with restaurant data
+        const { data: bookingData, error: bookingError } = await supabase
+          .from("bookings")
+          .select(`
+            *,
+            restaurant:restaurants (*)
+          `)
+          .eq("id", params.bookingId)
+          .single();
+
+        if (bookingError) throw bookingError;
+        setBooking(bookingData);
+
+        // Fetch loyalty rule details if applicable
+        if (bookingData?.applied_loyalty_rule_id && bookingData?.expected_loyalty_points) {
+          const { data: ruleData, error: ruleError } = await supabase
+            .from('restaurant_loyalty_rules')
+            .select('id, rule_name, points_to_award, restaurant_id')
+            .eq('id', bookingData.applied_loyalty_rule_id)
+            .single();
+
+          if (!ruleError && ruleData) {
+            setExpectedLoyaltyRule(ruleData);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching booking data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookingData();
+  }, [params.bookingId]);
+
   useEffect(() => {
     // Success haptic feedback
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -52,11 +145,16 @@ export default function RequestSentScreen() {
 
   const handleShare = async () => {
     try {
-      const message = `I've requested a table at ${params.restaurantName} for ${
+      let message = `I've requested a table at ${params.restaurantName} for ${
         params.partySize
       } ${parseInt(params.partySize) === 1 ? "person" : "people"} on ${formattedDate} at ${
         params.bookingTime
       }. Awaiting confirmation! 🤞`;
+
+      // Add loyalty points info if available
+      if (booking?.expected_loyalty_points && booking.expected_loyalty_points > 0 && expectedLoyaltyRule) {
+        message += ` If confirmed, I'll earn ${booking.expected_loyalty_points} bonus points from "${expectedLoyaltyRule.rule_name}"!`;
+      }
 
       await Share.share({
         message,
@@ -208,6 +306,14 @@ export default function RequestSentScreen() {
             </View>
           </View>
 
+          {/* Potential Loyalty Points Card */}
+          {!loading && booking?.expected_loyalty_points && booking.expected_loyalty_points > 0 && (
+            <PotentialLoyaltyPointsCard
+              expectedPoints={booking.expected_loyalty_points}
+              ruleName={expectedLoyaltyRule?.rule_name}
+            />
+          )}
+
           {/* Tips */}
           <View className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 mb-6">
             <View className="flex-row items-start gap-2">
@@ -218,6 +324,9 @@ export default function RequestSentScreen() {
                 </Text>
                 <Text className="text-sm text-amber-700 dark:text-amber-300">
                   Enable push notifications to get instant updates about your booking request
+                  {booking?.expected_loyalty_points && booking.expected_loyalty_points > 0 && 
+                    " and earn your bonus loyalty points when confirmed"
+                  }
                 </Text>
               </View>
             </View>
@@ -255,6 +364,9 @@ export default function RequestSentScreen() {
           <Bell size={16} color="#666" />
           <Text className="text-sm text-muted-foreground text-center">
             We'll notify you as soon as the restaurant responds
+            {booking?.expected_loyalty_points && booking.expected_loyalty_points > 0 && 
+              " and award your bonus points"
+            }
           </Text>
         </View>
       </View>

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   ScrollView,
@@ -26,7 +25,7 @@ import {
   ArrowLeft,
   Zap,
   Clock,
-  Timer, // Added Timer icon
+  Timer,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
@@ -35,17 +34,20 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { H3, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
-
 import { useColorScheme } from "@/lib/useColorScheme";
 import { getMaxBookingWindow } from "@/lib/tableManagementUtils";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { useAvailability, useAvailabilityPreloader } from "@/hooks/useAvailability";
-import { useLoyalty } from "@/hooks/useLoyalty";
-import { useOffers } from "@/hooks/useOffers";
 import { TimeSlots, TableOptions } from "@/components/booking/TimeSlots";
 import { TableOption } from "@/lib/AvailabilityService";
+import { useOffers } from "@/hooks/useOffers";
+
+// New loyalty system imports
+import { LoyaltyPointsDisplay } from '@/components/booking/LoyaltyPointsDisplay';
+import { useBookingConfirmation } from "@/hooks/useBookingConfirmation";
+import { PotentialLoyaltyPoints, useRestaurantLoyalty } from '@/hooks/useRestaurantLoyalty';
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -356,44 +358,6 @@ const PreselectedOfferPreview = React.memo<{
   </View>
 ));
 
-const LoyaltyPreview = React.memo<{
-  earnablePoints: number;
-  userTier: string;
-  userPoints: number;
-}>(({ earnablePoints, userTier, userPoints }) => (
-  <View className="bg-gradient-to-r from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
-    <View className="flex-row items-center gap-3 mb-2">
-      <Trophy size={20} color="#f59e0b" />
-      <Text className="font-semibold text-lg">Loyalty Rewards</Text>
-      <View className="bg-amber-200 dark:bg-amber-800 px-2 py-1 rounded-full">
-        <Text className="text-amber-800 dark:text-amber-200 font-bold text-xs">
-          {userTier.toUpperCase()}
-        </Text>
-      </View>
-    </View>
-
-    <View className="flex-row items-center justify-between">
-      <View>
-        <Text className="text-sm text-amber-700 dark:text-amber-300">
-          You'll earn
-        </Text>
-        <Text className="text-2xl font-bold text-amber-800 dark:text-amber-200">
-          +{earnablePoints} points
-        </Text>
-      </View>
-
-      <View className="items-end">
-        <Text className="text-sm text-amber-700 dark:text-amber-300">
-          Current balance
-        </Text>
-        <Text className="text-lg font-bold text-amber-800 dark:text-amber-200">
-          {userPoints} pts
-        </Text>
-      </View>
-    </View>
-  </View>
-));
-
 const OffersPreview = React.memo<{
   availableOffers: any[];
   onViewOffers: () => void;
@@ -432,14 +396,14 @@ const OffersPreview = React.memo<{
   );
 });
 
-// [MODIFIED] Quick Stats Component
 const QuickStats = React.memo<{
   restaurant: Restaurant;
   timeSlots: any[];
   isLoading: boolean;
-  earnablePoints: number;
+  selectedLoyaltyPoints: PotentialLoyaltyPoints | null;
   isRequestBooking: boolean;
-}>(({ restaurant, timeSlots, isLoading, earnablePoints, isRequestBooking }) => (
+  hasLoyaltyProgram: boolean;
+}>(({ restaurant, timeSlots, isLoading, selectedLoyaltyPoints, isRequestBooking, hasLoyaltyProgram }) => (
   <View className="mx-4 my-2 p-3 bg-card/50 rounded-lg border border-border/50">
     <View className="flex-row justify-around">
       <View className="items-center">
@@ -469,19 +433,24 @@ const QuickStats = React.memo<{
         </Text>
       </View>
 
-      <View className="items-center">
-        <View className="flex-row items-center gap-1">
-          <Trophy size={12} color="#10b981" />
-          <Text className="text-lg font-bold text-green-600">
-            {isRequestBooking ? 'TBD' : `+${earnablePoints}`}
-          </Text>
+      {/* Only show points if restaurant has loyalty program */}
+      {hasLoyaltyProgram && !isRequestBooking && (
+        <View className="items-center">
+          <View className="flex-row items-center gap-1">
+            <Trophy size={12} color="#10b981" />
+            <Text className="text-lg font-bold text-green-600">
+              {selectedLoyaltyPoints?.available 
+                ? `+${selectedLoyaltyPoints.pointsToAward}` 
+                : 'N/A'
+              }
+            </Text>
+          </View>
+          <Text className="text-xs text-muted-foreground">Points</Text>
         </View>
-        <Text className="text-xs text-muted-foreground">Points</Text>
-      </View>
+      )}
     </View>
   </View>
 ));
-
 
 // Main Component
 export default function AvailabilitySelectionScreen() {
@@ -521,12 +490,17 @@ export default function AvailabilitySelectionScreen() {
     redemptionCode: string;
   } | null>(null);
 
+  // Loyalty points state
+  const [selectedLoyaltyPoints, setSelectedLoyaltyPoints] = useState<PotentialLoyaltyPoints | null>(null);
+
   // Refs for cleanup and optimization
   const stepTransitionRef = useRef<NodeJS.Timeout | null>(null);
 
   // Enhanced hooks with optimizations
   const { restaurant, loading: restaurantLoading } = useRestaurant(params.restaurantId || '');
   const { preloadRestaurant } = useAvailabilityPreloader();
+  const { hasLoyaltyProgram } = useRestaurantLoyalty(params.restaurantId || '');
+  const { confirmBooking, loading: confirmingBooking } = useBookingConfirmation();
 
   // Enhanced availability hook with proper configuration
   const {
@@ -554,17 +528,22 @@ export default function AvailabilitySelectionScreen() {
     preloadNext: true,
   });
 
-  // Loyalty and offers hooks with memoization
-  const loyaltyData = useLoyalty();
   const offersData = useOffers();
-
-  const {
-    userPoints = 0,
-    userTier = "bronze",
-    calculateBookingPoints,
-  } = loyaltyData || {};
-
   const { offers = [] } = offersData || {};
+
+  // FIXED: Memoize booking date time to prevent infinite re-renders
+  const bookingDateTime = useMemo(() => {
+    if (!selectedTime) return null;
+    try {
+      const dt = new Date(selectedDate);
+      const [h, m] = selectedTime.split(':');
+      dt.setHours(parseInt(h), parseInt(m), 0, 0);
+      return dt;
+    } catch (error) {
+      console.error('Error constructing booking date time:', error);
+      return null;
+    }
+  }, [selectedDate, selectedTime]);
 
   // Preload restaurant data
   useEffect(() => {
@@ -618,12 +597,6 @@ export default function AvailabilitySelectionScreen() {
     fetchMaxDays();
   }, [profile?.id, restaurant?.id, restaurant?.booking_window_days]);
 
-  // Computed values with memoization
-  const earnablePoints = useMemo(() => {
-    if (!restaurant || !calculateBookingPoints) return 0;
-    return calculateBookingPoints(partySize, restaurant.price_range || 2);
-  }, [calculateBookingPoints, partySize, restaurant?.price_range]);
-
   const availableOffers = useMemo(() => {
     return offers.filter(
       (offer) =>
@@ -645,6 +618,11 @@ export default function AvailabilitySelectionScreen() {
     return date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
   }, []);
 
+  // FIXED: Reset loyalty points when date/time/party size changes
+  useEffect(() => {
+    setSelectedLoyaltyPoints(null);
+  }, [selectedDate, selectedTime, partySize]);
+
   // Optimized event handlers
   const handleDateChange = useCallback((date: Date) => {
     if (date.toDateString() === selectedDate.toDateString()) return;
@@ -652,6 +630,7 @@ export default function AvailabilitySelectionScreen() {
     setSelectedDate(date);
     setCurrentStep('time');
     clearSelectedSlot();
+    setSelectedLoyaltyPoints(null); // Reset loyalty points
 
     // Clear any pending transitions
     if (stepTransitionRef.current) {
@@ -665,6 +644,7 @@ export default function AvailabilitySelectionScreen() {
     setPartySize(size);
     setCurrentStep('time');
     clearSelectedSlot();
+    setSelectedLoyaltyPoints(null); // Reset loyalty points
 
     if (stepTransitionRef.current) {
       clearTimeout(stepTransitionRef.current);
@@ -677,61 +657,70 @@ export default function AvailabilitySelectionScreen() {
       clearTimeout(stepTransitionRef.current);
     }
 
-    // Fetch options and transition to experience step
-    await fetchSlotOptions(time);
+    try {
+      // Fetch options and transition to experience step
+      await fetchSlotOptions(time);
 
-    // Smooth transition with haptic feedback
-    stepTransitionRef.current = setTimeout(() => {
-      setCurrentStep('experience');
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }, 200);
+      // Smooth transition with haptic feedback
+      stepTransitionRef.current = setTimeout(() => {
+        setCurrentStep('experience');
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }, 200);
+    } catch (error) {
+      console.error('Error fetching slot options:', error);
+      Alert.alert('Error', 'Failed to load seating options. Please try again.');
+    }
   }, [fetchSlotOptions]);
 
   const handleBackToTimeSelection = useCallback(() => {
     setCurrentStep('time');
     clearSelectedSlot();
+    setSelectedLoyaltyPoints(null); // Reset loyalty points
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [clearSelectedSlot]);
 
-  const handleExperienceConfirm = useCallback((tableIds: string[], selectedOption: TableOption) => {
-    if (!selectedSlotOptions || !restaurant) {
-      Alert.alert("Error", "Missing experience or restaurant information");
+  // FIXED: Updated experience confirmation with better error handling
+  const handleExperienceConfirm = useCallback(async (tableIds: string[], selectedOption: TableOption) => {
+    if (!selectedSlotOptions || !restaurant || !bookingDateTime) {
+      Alert.alert("Error", "Missing booking information");
       return;
     }
 
-    const navigationParams: any = {
-      restaurantId: params.restaurantId,
-      restaurantName: restaurant.name,
-      date: selectedDate.toISOString(),
-      time: selectedSlotOptions.time,
-      partySize: partySize.toString(),
-      earnablePoints: earnablePoints.toString(),
-      tableIds: JSON.stringify(tableIds),
-      requiresCombination: selectedOption.requiresCombination ? "true" : "false",
-    };
+    try {
+      // Use the new booking confirmation hook
+      const success = await confirmBooking({
+        restaurantId: params.restaurantId,
+        bookingTime: bookingDateTime,
+        partySize: partySize,
+        specialRequests: undefined,
+        occasion: undefined,
+        dietaryNotes: undefined,
+        tablePreferences: undefined,
+        bookingPolicy: restaurant.booking_policy,
+        expectedLoyaltyPoints: selectedLoyaltyPoints?.available ? selectedLoyaltyPoints.pointsToAward : 0,
+        appliedOfferId: preselectedOffer?.id,
+        loyaltyRuleId: selectedLoyaltyPoints?.available ? selectedLoyaltyPoints.ruleId : undefined,
+        tableIds: JSON.stringify(tableIds),
+        requiresCombination: selectedOption.requiresCombination
+      });
 
-    // Include preselected offer
-    if (preselectedOffer) {
-      navigationParams.offerId = preselectedOffer.id;
-      navigationParams.offerTitle = preselectedOffer.title;
-      navigationParams.offerDiscount = preselectedOffer.discount.toString();
-      navigationParams.redemptionCode = preselectedOffer.redemptionCode;
+      // Success navigation is handled by the hook
+      if (success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (error) {
+      console.error('Error confirming booking:', error);
+      Alert.alert('Error', 'Failed to confirm booking. Please try again.');
     }
-
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    router.push({
-      pathname: "/booking/create",
-      params: navigationParams,
-    });
   }, [
     selectedSlotOptions,
     restaurant,
-    router,
+    bookingDateTime,
     params.restaurantId,
-    selectedDate,
     partySize,
-    earnablePoints,
+    selectedLoyaltyPoints,
     preselectedOffer,
+    confirmBooking,
   ]);
 
   const handleViewOffers = useCallback(() => {
@@ -788,7 +777,6 @@ export default function AvailabilitySelectionScreen() {
     );
   }
 
-  // [MODIFIED] Add isRequestBooking check
   const isRequestBooking = restaurant?.booking_policy === "request";
 
   return (
@@ -824,14 +812,15 @@ export default function AvailabilitySelectionScreen() {
       {/* Restaurant Info Card */}
       <RestaurantInfoCard restaurant={restaurant} />
 
-      {/* [MODIFIED] Quick Stats */}
+      {/* Quick Stats */}
       {hasTimeSlots && (
         <QuickStats
           restaurant={restaurant}
           timeSlots={timeSlots}
           isLoading={timeSlotsLoading}
-          earnablePoints={earnablePoints}
+          selectedLoyaltyPoints={selectedLoyaltyPoints}
           isRequestBooking={isRequestBooking}
+          hasLoyaltyProgram={hasLoyaltyProgram}
         />
       )}
 
@@ -894,6 +883,16 @@ export default function AvailabilitySelectionScreen() {
                   </Pressable>
                 </View>
               )}
+
+              {/* FIXED: Loyalty Points Display for Time Step - only when time is selected */}
+              {bookingDateTime && !isRequestBooking && hasLoyaltyProgram && (
+                <LoyaltyPointsDisplay
+                  restaurantId={params.restaurantId}
+                  bookingTime={bookingDateTime}
+                  partySize={partySize}
+                  onPointsCalculated={setSelectedLoyaltyPoints}
+                />
+              )}
             </>
           )}
 
@@ -924,6 +923,16 @@ export default function AvailabilitySelectionScreen() {
                 </View>
               )}
 
+              {/* FIXED: Loyalty Points Display for Experience Step */}
+              {bookingDateTime && !isRequestBooking && hasLoyaltyProgram && (
+                <LoyaltyPointsDisplay
+                  restaurantId={params.restaurantId}
+                  bookingTime={bookingDateTime}
+                  partySize={partySize}
+                  onPointsCalculated={setSelectedLoyaltyPoints}
+                />
+              )}
+
               <TableOptions
                 slotOptions={selectedSlotOptions}
                 onConfirm={handleExperienceConfirm}
@@ -936,15 +945,6 @@ export default function AvailabilitySelectionScreen() {
           {/* Additional Content - Only show on time step */}
           {currentStep === 'time' && (
             <>
-              {/* Loyalty Preview */}
-              {profile && !isRequestBooking && ( // Hide points preview for request bookings
-                <LoyaltyPreview
-                  earnablePoints={earnablePoints}
-                  userTier={userTier}
-                  userPoints={userPoints}
-                />
-              )}
-
               {/* Other Offers Preview */}
               {!preselectedOffer && (
                 <OffersPreview
@@ -953,7 +953,7 @@ export default function AvailabilitySelectionScreen() {
                 />
               )}
 
-              {/* [MODIFIED] Booking Policies */}
+              {/* Booking Policies */}
               <View className="bg-muted/30 rounded-xl p-4">
                 <Text className="font-semibold mb-2">Booking Information</Text>
                 <View className="gap-2">
@@ -1002,6 +1002,11 @@ export default function AvailabilitySelectionScreen() {
                       • Your {preselectedOffer.discount}% discount will be applied
                     </Text>
                   )}
+                  {selectedLoyaltyPoints?.available && (
+                    <Text className="text-sm text-amber-600 dark:text-amber-400">
+                      • Earn {selectedLoyaltyPoints.pointsToAward} loyalty points
+                    </Text>
+                  )}
                   <Text className="text-sm text-blue-600 dark:text-blue-400 font-medium">
                     • Real-time availability with curated dining experiences
                   </Text>
@@ -1012,7 +1017,7 @@ export default function AvailabilitySelectionScreen() {
         </View>
       </ScrollView>
 
-      {/* [MODIFIED] Enhanced Bottom CTA */}
+      {/* Enhanced Bottom CTA */}
       <View className="p-4 border-t border-border bg-background">
         {isRequestBooking && (
           <View className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-2 mb-3">
@@ -1034,7 +1039,7 @@ export default function AvailabilitySelectionScreen() {
             <View className="flex-row items-center gap-2 flex-wrap">
               <Text className="text-sm text-muted-foreground">
                 Party of {partySize}
-                {!isRequestBooking && ` • Earn ${earnablePoints} points`}
+                {!isRequestBooking && selectedLoyaltyPoints?.available && ` • Earn ${selectedLoyaltyPoints.pointsToAward} points`}
               </Text>
               {preselectedOffer && (
                 <>
@@ -1068,9 +1073,16 @@ export default function AvailabilitySelectionScreen() {
               </View>
             </View>
           ) : (
-            <Text className="text-xs text-muted-foreground ml-4 text-right max-w-[100px]">
-              Select experience above to continue
-            </Text>
+            <View className="items-end ml-4">
+              <Text className="text-xs text-muted-foreground mb-1 text-right">
+                {confirmingBooking ? 'Confirming...' : 'Select experience above'}
+              </Text>
+              {confirmingBooking && (
+                <View className="w-20 h-10 bg-muted/50 rounded-lg items-center justify-center">
+                  <ActivityIndicator size="small" />
+                </View>
+              )}
+            </View>
           )}
         </View>
       </View>
