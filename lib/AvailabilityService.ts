@@ -1,4 +1,4 @@
-// lib/availability/AvailabilityService.ts (Optimized)
+// lib/availability/AvailabilityService.ts (Fixed for large groups)
 import { supabase } from "@/config/supabase";
 
 export interface TimeSlot {
@@ -31,6 +31,7 @@ export interface TableOption {
   combinationInfo?: {
     primaryTable: Table;
     secondaryTable: Table;
+    additionalTables?: Table[];
     reason: string;
   };
 }
@@ -80,14 +81,13 @@ class EnhancedCache<T> {
     }
 
     entry.hits++;
-    entry.timestamp = now; // Update access time
+    entry.timestamp = now;
     return entry.data;
   }
 
   set(key: string, data: T): void {
     const now = Date.now();
     
-    // Cleanup if at max capacity
     if (this.cache.size >= this.maxSize) {
       this.evictLeastUsed();
     }
@@ -127,11 +127,10 @@ class EnhancedCache<T> {
   }
 
   prefetch(keys: string[], fetchFn: (key: string) => Promise<T>): void {
-    // Background prefetch without blocking
     setTimeout(async () => {
       const promises = keys
         .filter(key => !this.get(key))
-        .slice(0, 5) // Limit concurrent prefetch
+        .slice(0, 5)
         .map(async key => {
           try {
             const data = await fetchFn(key);
@@ -149,13 +148,11 @@ class EnhancedCache<T> {
 export class AvailabilityService {
   private static instance: AvailabilityService;
 
-  // Enhanced caching system
-  private timeSlotsCache = new EnhancedCache<TimeSlotBasic[]>(50, 3 * 60 * 1000); // 3 min TTL
-  private tableOptionsCache = new EnhancedCache<SlotTableOptions>(100, 2 * 60 * 1000); // 2 min TTL
-  private restaurantConfigCache = new EnhancedCache<any>(20, 10 * 60 * 1000); // 10 min TTL
-  private quickAvailabilityCache = new EnhancedCache<boolean>(200, 1 * 60 * 1000); // 1 min TTL
+  private timeSlotsCache = new EnhancedCache<TimeSlotBasic[]>(50, 3 * 60 * 1000);
+  private tableOptionsCache = new EnhancedCache<SlotTableOptions>(100, 2 * 60 * 1000);
+  private restaurantConfigCache = new EnhancedCache<any>(20, 10 * 60 * 1000);
+  private quickAvailabilityCache = new EnhancedCache<boolean>(200, 1 * 60 * 1000);
 
-  // Batch processing
   private batchedQueries = new Map<string, Promise<any>>();
   private batchTimeout: NodeJS.Timeout | null = null;
 
@@ -186,9 +183,6 @@ export class AvailabilityService {
     }
   }
 
-  /**
-   * OPTIMIZED: Get available time slots with enhanced caching and pre-loading
-   */
   async getAvailableTimeSlots(
     restaurantId: string,
     date: Date,
@@ -199,10 +193,8 @@ export class AvailabilityService {
     const dateStr = date.toISOString().split("T")[0];
     const cacheKey = `time-slots:${restaurantId}:${dateStr}:${partySize}:${userId || 'guest'}`;
     
-    // Check cache first
     let cached = this.timeSlotsCache.get(cacheKey);
     if (cached) {
-      // Trigger background prefetch for next day
       if (preloadNextDay) {
         this.prefetchNextDay(restaurantId, date, partySize, userId);
       }
@@ -210,7 +202,6 @@ export class AvailabilityService {
     }
 
     try {
-      // Batch restaurant config requests
       const [restaurant, vipBenefits] = await Promise.all([
         this.getRestaurantConfig(restaurantId),
         userId ? this.getVIPBenefits(restaurantId, userId) : Promise.resolve(null)
@@ -218,7 +209,6 @@ export class AvailabilityService {
 
       if (!restaurant) return [];
 
-      // Check booking window
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const bookingDate = new Date(date);
@@ -235,13 +225,11 @@ export class AvailabilityService {
         return [];
       }
 
-      // Generate base slots and get turn time in parallel
       const [baseSlots, turnTime] = await Promise.all([
-        this.generate15MinuteSlots(restaurant.opening_time, restaurant.closing_time, restaurantId),
+        this.generate15MinuteSlots(restaurant.opening_time, restaurant.closing_time, restaurantId, partySize),
         this.getTurnTimeForParty(restaurantId, partySize, date)
       ]);
 
-      // Batch availability checks
       const availableSlots = await this.batchQuickAvailabilityChecks(
         restaurantId,
         date,
@@ -250,10 +238,8 @@ export class AvailabilityService {
         partySize
       );
 
-      // Cache result
       this.timeSlotsCache.set(cacheKey, availableSlots);
       
-      // Trigger background prefetch
       if (preloadNextDay) {
         this.prefetchNextDay(restaurantId, date, partySize, userId);
       }
@@ -265,9 +251,6 @@ export class AvailabilityService {
     }
   }
 
-  /**
-   * OPTIMIZED: Get table options with smart caching and parallel processing
-   */
   async getTableOptionsForSlot(
     restaurantId: string,
     date: Date,
@@ -277,25 +260,20 @@ export class AvailabilityService {
     const dateStr = date.toISOString().split("T")[0];
     const cacheKey = `table-options:${restaurantId}:${dateStr}:${time}:${partySize}`;
     
-    // Check cache first
     let cached = this.tableOptionsCache.get(cacheKey);
     if (cached) return cached;
 
     try {
       const startTime = new Date(`${dateStr}T${time}:00`);
-      
-      // Get turn time from cache if possible
       const turnTime = await this.getTurnTimeForParty(restaurantId, partySize, date);
       const endTime = new Date(startTime.getTime() + turnTime * 60000);
 
-      // Check if we have this query in progress to avoid duplication
       const queryKey = `${restaurantId}:${startTime.toISOString()}:${endTime.toISOString()}:${partySize}`;
       if (this.batchedQueries.has(queryKey)) {
         const availableTables = await this.batchedQueries.get(queryKey);
         return this.processTableOptions(time, availableTables, restaurantId, startTime, endTime, partySize, cacheKey);
       }
 
-      // Execute query and cache the promise
       const tablesPromise = supabase.rpc("get_available_tables", {
         p_restaurant_id: restaurantId,
         p_start_time: startTime.toISOString(),
@@ -304,8 +282,6 @@ export class AvailabilityService {
       });
 
       this.batchedQueries.set(queryKey, tablesPromise);
-      
-      // Clean up after some time
       setTimeout(() => this.batchedQueries.delete(queryKey), 5000);
 
       const { data: availableTables, error } = await tablesPromise;
@@ -331,9 +307,6 @@ export class AvailabilityService {
     }
   }
 
-  /**
-   * Process table options with enhanced logic
-   */
   private async processTableOptions(
     time: string,
     availableTables: any[],
@@ -344,27 +317,29 @@ export class AvailabilityService {
     cacheKey: string
   ): Promise<SlotTableOptions | null> {
     if (!availableTables || availableTables.length === 0) {
-      // Try table combinations for larger parties
-      if (partySize > 4) {
-        const combination = await this.findTableCombination(
+      // Always try table combinations for parties > 2
+      if (partySize > 2) {
+        const combination = await this.findTableCombinationForLargeParties(
           restaurantId,
           startTime,
           endTime,
           partySize
         );
 
-        if (combination) {
+        if (combination && combination.length > 0) {
+          const totalCapacity = combination.reduce((sum, t) => sum + t.capacity, 0);
           const combinationOption: TableOption = {
             tables: combination,
             requiresCombination: true,
-            totalCapacity: combination.reduce((sum, t) => sum + t.capacity, 0),
+            totalCapacity: totalCapacity,
             tableTypes: [...new Set(combination.map(t => t.table_type))],
-            experienceTitle: "Private Group Arrangement",
-            experienceDescription: "Multiple tables specially arranged together for your group dining experience",
-            isPerfectFit: false,
+            experienceTitle: combination.length > 2 ? "Special Group Arrangement" : "Private Group Arrangement",
+            experienceDescription: `${combination.length} tables specially arranged together for your party of ${partySize}`,
+            isPerfectFit: totalCapacity >= partySize && totalCapacity <= partySize + 2,
             combinationInfo: {
               primaryTable: combination[0],
               secondaryTable: combination[1],
+              additionalTables: combination.length > 2 ? combination.slice(2) : undefined,
               reason: `Specially arranged for ${partySize} guests`,
             },
           };
@@ -382,7 +357,6 @@ export class AvailabilityService {
       return null;
     }
 
-    // Create optimized table options
     const tableOptions = this.createOptimizedTableOptions(availableTables, partySize);
     
     if (tableOptions.length === 0) {
@@ -396,14 +370,10 @@ export class AvailabilityService {
       primaryOption,
     };
 
-    // Cache the result
     this.tableOptionsCache.set(cacheKey, result);
     return result;
   }
 
-  /**
-   * OPTIMIZED: Batch quick availability checks to reduce database round trips
-   */
   private async batchQuickAvailabilityChecks(
     restaurantId: string,
     date: Date,
@@ -415,14 +385,12 @@ export class AvailabilityService {
     const now = new Date();
     const availableSlots: TimeSlotBasic[] = [];
 
-    // Process slots in batches of 10 to avoid overwhelming the database
     const batchSize = 10;
     for (let i = 0; i < baseSlots.length; i += batchSize) {
       const batch = baseSlots.slice(i, i + batchSize);
       const batchPromises = batch.map(async (slot) => {
         const startTime = new Date(`${dateStr}T${slot.time}:00`);
         
-        // Skip slots that are in the past
         if (startTime < now) return null;
 
         const cacheKey = `quick-check:${restaurantId}:${startTime.toISOString()}:${partySize}`;
@@ -449,9 +417,6 @@ export class AvailabilityService {
     return availableSlots;
   }
 
-  /**
-   * OPTIMIZED: Get restaurant config with caching
-   */
   private async getRestaurantConfig(restaurantId: string): Promise<any> {
     const cacheKey = `restaurant:${restaurantId}`;
     let cached = this.restaurantConfigCache.get(cacheKey);
@@ -471,9 +436,6 @@ export class AvailabilityService {
     return error ? null : restaurant;
   }
 
-  /**
-   * OPTIMIZED: Get turn time with caching
-   */
   private async getTurnTimeForParty(
     restaurantId: string,
     partySize: number,
@@ -496,9 +458,6 @@ export class AvailabilityService {
     return turnTime;
   }
 
-  /**
-   * OPTIMIZED: Prefetch next day data in background
-   */
   private prefetchNextDay(
     restaurantId: string,
     currentDate: Date,
@@ -508,16 +467,12 @@ export class AvailabilityService {
     const nextDay = new Date(currentDate);
     nextDay.setDate(currentDate.getDate() + 1);
 
-    // Don't await this - let it run in background
     setTimeout(() => {
       this.getAvailableTimeSlots(restaurantId, nextDay, partySize, userId, false)
         .catch(error => console.warn('Background prefetch failed:', error));
     }, 500);
   }
 
-  /**
-   * Enhanced quick availability check with better query optimization
-   */
   private async quickAvailabilityCheck(
     restaurantId: string,
     startTime: Date,
@@ -525,7 +480,11 @@ export class AvailabilityService {
     partySize: number
   ): Promise<boolean> {
     try {
-      // First, try a single optimized query for available tables
+      // For large parties, always check combinations
+      if (partySize > 6) {
+        return await this.quickCombinationCheckForLargeParties(restaurantId, startTime, endTime, partySize);
+      }
+
       const { data: availabilityCheck, error } = await supabase.rpc(
         'quick_availability_check',
         {
@@ -536,12 +495,10 @@ export class AvailabilityService {
         }
       );
 
-      // If we have a custom function, use it
       if (!error && availabilityCheck !== undefined) {
         return availabilityCheck;
       }
 
-      // Fallback to original logic
       const { data: singleTable } = await supabase.rpc("get_available_tables", {
         p_restaurant_id: restaurantId,
         p_start_time: startTime.toISOString(),
@@ -553,10 +510,8 @@ export class AvailabilityService {
         return true;
       }
 
-      // For larger parties, quick combination check
-      if (partySize > 4) {
-        // Use a more efficient combination check
-        return await this.quickCombinationCheck(restaurantId, startTime, endTime, partySize);
+      if (partySize > 2) {
+        return await this.quickCombinationCheckForLargeParties(restaurantId, startTime, endTime, partySize);
       }
 
       return false;
@@ -566,60 +521,245 @@ export class AvailabilityService {
     }
   }
 
-  /**
-   * OPTIMIZED: Quick combination check without full table details
-   */
-  private async quickCombinationCheck(
+  // NEW METHOD: Enhanced combination check for large parties
+  private async quickCombinationCheckForLargeParties(
     restaurantId: string,
     startTime: Date,
     endTime: Date,
     partySize: number
   ): Promise<boolean> {
-    // Get minimal table info for combination check
+    // Get all combinable tables
     const { data: combinableTables } = await supabase
       .from("restaurant_tables")
       .select("id, capacity")
       .eq("restaurant_id", restaurantId)
       .eq("is_active", true)
       .eq("is_combinable", true)
-      .gte("capacity", Math.max(2, Math.floor(partySize / 3))) // More efficient filter
-      .order("capacity", { ascending: false })
-      .limit(6); // Limit to reduce processing
+      .order("capacity", { ascending: false });
 
     if (!combinableTables || combinableTables.length < 2) return false;
 
-    // Check only the most promising combinations
-    for (let i = 0; i < Math.min(combinableTables.length - 1, 3); i++) {
-      for (let j = i + 1; j < Math.min(combinableTables.length, 4); j++) {
-        const combinedCapacity = combinableTables[i].capacity + combinableTables[j].capacity;
-        
-        if (combinedCapacity >= partySize && combinedCapacity <= partySize + 3) {
-          // Quick overlap check
-          const { data: conflict } = await supabase.rpc("check_booking_overlap", {
-            p_table_ids: [combinableTables[i].id, combinableTables[j].id],
-            p_start_time: startTime.toISOString(),
-            p_end_time: endTime.toISOString(),
-          });
-          
-          if (!conflict) return true;
+    // For very large parties, check if we can combine multiple tables
+    const requiredTables = Math.ceil(partySize / 6); // Assume average table capacity of 6
+    
+    if (combinableTables.length < requiredTables) return false;
+
+    // Quick check: see if total capacity is sufficient
+    const totalCapacity = combinableTables.reduce((sum, table) => sum + table.capacity, 0);
+    if (totalCapacity < partySize) return false;
+
+    // Try to find a combination that works
+    const combination = await this.findQuickCombination(
+      combinableTables,
+      partySize,
+      startTime,
+      endTime,
+      requiredTables
+    );
+
+    return combination !== null;
+  }
+
+  // NEW METHOD: Find quick combination for availability check
+  private async findQuickCombination(
+    tables: any[],
+    partySize: number,
+    startTime: Date,
+    endTime: Date,
+    maxTables: number
+  ): Promise<any[] | null> {
+    // Sort tables by capacity descending
+    const sortedTables = [...tables].sort((a, b) => b.capacity - a.capacity);
+
+    // Try greedy approach first
+    let selectedTables: any[] = [];
+    let currentCapacity = 0;
+
+    for (const table of sortedTables) {
+      if (selectedTables.length >= maxTables) break;
+      
+      selectedTables.push(table);
+      currentCapacity += table.capacity;
+
+      if (currentCapacity >= partySize) {
+        // Check if this combination is available
+        const tableIds = selectedTables.map(t => t.id);
+        const { data: conflict } = await supabase.rpc("check_booking_overlap", {
+          p_table_ids: tableIds,
+          p_start_time: startTime.toISOString(),
+          p_end_time: endTime.toISOString(),
+        });
+
+        if (!conflict) {
+          return selectedTables;
         }
+
+        // If conflict, try without the last table
+        selectedTables.pop();
+        currentCapacity -= table.capacity;
       }
     }
 
-    return false;
+    return null;
   }
 
-  // ... [Rest of the existing methods remain the same - createOptimizedTableOptions, selectPrimaryOption, etc.]
-  
-  /**
-   * OPTIMIZED: Create smart table options that prioritize perfect fits and experiences
-   */
+  // UPDATED METHOD: Support multi-table combinations for large parties
+  private async findTableCombinationForLargeParties(
+    restaurantId: string,
+    startTime: Date,
+    endTime: Date,
+    partySize: number
+  ): Promise<Table[] | null> {
+    const cacheKey = `combination:${restaurantId}:${partySize}`;
+    
+    let cached = this.combinationCache.get(cacheKey);
+    if (cached) {
+      const tableIds = cached.map(t => t.id);
+      const { data: conflict } = await supabase.rpc("check_booking_overlap", {
+        p_table_ids: tableIds,
+        p_start_time: startTime.toISOString(),
+        p_end_time: endTime.toISOString(),
+      });
+
+      if (!conflict) {
+        return cached;
+      }
+    }
+
+    // Get all combinable tables
+    const { data: tables } = await supabase
+      .from("restaurant_tables")
+      .select("*")
+      .eq("restaurant_id", restaurantId)
+      .eq("is_active", true)
+      .eq("is_combinable", true)
+      .order("capacity", { ascending: false });
+
+    if (!tables || tables.length < 2) return null;
+
+    // For large parties, we need multiple tables
+    const requiredTables = Math.min(Math.ceil(partySize / 4), 5); // Max 5 tables
+
+    // Try different combination strategies
+    let combination = await this.findOptimalCombination(
+      tables,
+      startTime,
+      endTime,
+      partySize,
+      requiredTables
+    );
+
+    if (combination) {
+      this.combinationCache.set(cacheKey, combination);
+    }
+
+    return combination;
+  }
+
+  // NEW METHOD: Find optimal combination for large parties
+  private async findOptimalCombination(
+    tables: Table[],
+    startTime: Date,
+    endTime: Date,
+    partySize: number,
+    maxTables: number
+  ): Promise<Table[] | null> {
+    // Sort tables by capacity descending
+    const sortedTables = [...tables].sort((a, b) => b.capacity - a.capacity);
+
+    // Try greedy approach with backtracking
+    const result = await this.findCombinationRecursive(
+      sortedTables,
+      [],
+      0,
+      partySize,
+      maxTables,
+      startTime,
+      endTime,
+      new Set()
+    );
+
+    return result;
+  }
+
+  // NEW METHOD: Recursive combination finder with memoization
+  private async findCombinationRecursive(
+    tables: Table[],
+    currentCombination: Table[],
+    currentCapacity: number,
+    targetCapacity: number,
+    maxTables: number,
+    startTime: Date,
+    endTime: Date,
+    checkedCombinations: Set<string>
+  ): Promise<Table[] | null> {
+    // Base cases
+    if (currentCapacity >= targetCapacity) {
+      // Check if this combination is available
+      const tableIds = currentCombination.map(t => t.id).sort();
+      const combinationKey = tableIds.join(',');
+
+      if (checkedCombinations.has(combinationKey)) {
+        return null;
+      }
+      checkedCombinations.add(combinationKey);
+
+      const { data: conflict } = await supabase.rpc("check_booking_overlap", {
+        p_table_ids: tableIds,
+        p_start_time: startTime.toISOString(),
+        p_end_time: endTime.toISOString(),
+      });
+
+      if (!conflict) {
+        return currentCombination;
+      }
+      return null;
+    }
+
+    if (currentCombination.length >= maxTables) {
+      return null;
+    }
+
+    // Try adding each remaining table
+    for (let i = 0; i < tables.length; i++) {
+      const table = tables[i];
+      
+      // Skip if already in combination
+      if (currentCombination.some(t => t.id === table.id)) {
+        continue;
+      }
+
+      // Skip if adding this table would exceed reasonable capacity
+      if (currentCapacity + table.capacity > targetCapacity + 6) {
+        continue;
+      }
+
+      const newCombination = [...currentCombination, table];
+      const newCapacity = currentCapacity + table.capacity;
+
+      const result = await this.findCombinationRecursive(
+        tables,
+        newCombination,
+        newCapacity,
+        targetCapacity,
+        maxTables,
+        startTime,
+        endTime,
+        checkedCombinations
+      );
+
+      if (result) {
+        return result;
+      }
+    }
+
+    return null;
+  }
+
   private createOptimizedTableOptions(availableTables: Table[], partySize: number): TableOption[] {
-    // 1. Find exact capacity matches first.
     const exactCapacityTables = availableTables.filter(table => table.capacity === partySize);
 
     if (exactCapacityTables.length > 0) {
-        // If we have exact matches, create options for all of them.
         const exactFitOptions = exactCapacityTables.map(table => {
             const experience = this.getTableExperience(table, partySize);
             return {
@@ -629,10 +769,9 @@ export class AvailabilityService {
                 tableTypes: [table.table_type],
                 experienceTitle: experience.title,
                 experienceDescription: experience.description,
-                isPerfectFit: true, // It's an exact fit.
+                isPerfectFit: true,
             };
         });
-        // Sort them by experience score
         return exactFitOptions.sort((a, b) => {
             const scoreA = this.getExperienceScore(a.tableTypes[0], partySize);
             const scoreB = this.getExperienceScore(b.tableTypes[0], partySize);
@@ -640,7 +779,6 @@ export class AvailabilityService {
         });
     }
 
-    // 2. If no exact matches, fall back to finding the next best oversized tables.
     const tablesByType = availableTables.reduce((groups, table) => {
       const type = table.table_type;
       if (!groups[type]) groups[type] = [];
@@ -651,10 +789,9 @@ export class AvailabilityService {
     const additionalOptions = this.createAdditionalOptions(
       tablesByType,
       partySize,
-      [] // No existing types to exclude
+      []
     );
 
-    // Sort by preference: perfect fits first, then by capacity, then by score
     return additionalOptions.sort((a, b) => {
       if (a.isPerfectFit && !b.isPerfectFit) return -1;
       if (!a.isPerfectFit && b.isPerfectFit) return 1;
@@ -671,48 +808,6 @@ export class AvailabilityService {
     });
   }
 
-  /**
-   * Create options for tables that fit perfectly (capacity = party size or party size + 1)
-   */
-  private createPerfectFitOptions(tablesByType: Record<string, Table[]>, partySize: number): TableOption[] {
-    const perfectOptions: TableOption[] = [];
-
-    Object.entries(tablesByType).forEach(([tableType, tables]) => {
-      // Find perfect fit tables (exact match or +1)
-      const perfectFitTables = tables.filter(table => 
-        table.capacity >= partySize && table.capacity <= partySize + 1
-      );
-
-      if (perfectFitTables.length > 0) {
-        // Sort by priority and pick the best one
-        const sortedTables = [...perfectFitTables].sort((a, b) => {
-          const aDiff = a.capacity - partySize;
-          const bDiff = b.capacity - partySize;
-          if (aDiff !== bDiff) return aDiff - bDiff; // Prefer exact match
-          return (b.priority_score || 0) - (a.priority_score || 0);
-        });
-
-        const bestTable = sortedTables[0];
-        const experience = this.getTableExperience(bestTable, partySize);
-
-        perfectOptions.push({
-          tables: [bestTable],
-          requiresCombination: false,
-          totalCapacity: bestTable.capacity,
-          tableTypes: [bestTable.table_type],
-          experienceTitle: experience.title,
-          experienceDescription: experience.description,
-          isPerfectFit: true,
-        });
-      }
-    });
-
-    return perfectOptions;
-  }
-
-  /**
-   * Create additional options for unique experiences (only if not too much overcapacity)
-   */
   private createAdditionalOptions(
     tablesByType: Record<string, Table[]>, 
     partySize: number, 
@@ -721,12 +816,12 @@ export class AvailabilityService {
     const additionalOptions: TableOption[] = [];
 
     Object.entries(tablesByType).forEach(([tableType, tables]) => {
-      // Skip if we already have this table type
       if (existingTypes.includes(tableType)) return;
 
-      // Only consider tables that aren't massively oversized (max +3 capacity)
+      // For large parties, be more lenient with capacity
+      const maxOvercapacity = partySize > 8 ? 6 : 3;
       const reasonableTables = tables.filter(table => 
-        table.capacity >= partySize && table.capacity <= partySize + 3
+        table.capacity >= partySize && table.capacity <= partySize + maxOvercapacity
       );
 
       if (reasonableTables.length > 0) {
@@ -740,7 +835,6 @@ export class AvailabilityService {
         const bestTable = sortedTables[0];
         const experience = this.getTableExperience(bestTable, partySize);
 
-        // Only add if it offers a meaningfully different experience
         if (this.isUniqueExperience(tableType, existingTypes)) {
           additionalOptions.push({
             tables: [bestTable],
@@ -758,30 +852,34 @@ export class AvailabilityService {
     return additionalOptions;
   }
 
-  /**
-   * Get experience-focused title and description for a table
-   */
   private getTableExperience(table: Table, partySize: number): { title: string; description: string } {
     const tableType = table.table_type;
     const isCozy = partySize <= 2;
     const isGroup = partySize >= 6;
+    const isLargeGroup = partySize >= 10;
 
     const experiences: Record<string, { title: string; description: string }> = {
       'booth': {
-        title: isCozy ? 'Intimate Booth' : 'Cozy Booth Seating',
+        title: isCozy ? 'Intimate Booth' : isGroup ? 'Large Booth Section' : 'Cozy Booth Seating',
         description: isCozy 
           ? 'Private and romantic booth perfect for intimate dining'
+          : isGroup
+          ? 'Spacious booth area ideal for group gatherings'
           : 'Comfortable booth seating with privacy and warmth'
       },
       'window': {
-        title: 'Window View',
-        description: isCozy
+        title: isLargeGroup ? 'Window Area' : 'Window View',
+        description: isLargeGroup
+          ? 'Window seating area with beautiful views for your group'
+          : isCozy
           ? 'Scenic window seating with natural light and views'
           : 'Bright window table with lovely views while you dine'
       },
       'patio': {
-        title: 'Outdoor Dining',
-        description: isCozy
+        title: isLargeGroup ? 'Outdoor Event Space' : 'Outdoor Dining',
+        description: isLargeGroup
+          ? 'Spacious outdoor area perfect for large group celebrations'
+          : isCozy
           ? 'Fresh air dining with an al fresco atmosphere'
           : 'Outdoor seating for a refreshing dining experience'
       },
@@ -796,8 +894,10 @@ export class AvailabilityService {
           : 'Exclusive and quiet seating away from the main dining area'
       },
       'standard': {
-        title: 'Classic Dining',
-        description: isCozy
+        title: isLargeGroup ? 'Main Dining Area' : 'Classic Dining',
+        description: isLargeGroup
+          ? 'Central dining area with ample space for your party'
+          : isCozy
           ? 'Traditional table setting in the heart of the restaurant'
           : 'Prime dining room seating with full restaurant atmosphere'
       }
@@ -809,11 +909,7 @@ export class AvailabilityService {
     };
   }
 
-  /**
-   * Check if a table type offers a unique experience compared to existing options
-   */
   private isUniqueExperience(tableType: string, existingTypes: string[]): boolean {
-    // Group similar experiences to avoid redundancy
     const experienceGroups: Record<string, string[]> = {
       'intimate': ['booth', 'window'],
       'casual': ['standard', 'bar'],
@@ -832,9 +928,6 @@ export class AvailabilityService {
     return !existingExperienceGroups.includes(newExperienceGroup);
   }
 
-  /**
-   * Get experience score for prioritization
-   */
   private getExperienceScore(tableType: string, partySize: number): number {
     const baseScores: Record<string, number> = {
       'booth': 20,
@@ -847,182 +940,31 @@ export class AvailabilityService {
 
     let score = baseScores[tableType] || 8;
 
-    // Boost score based on party size appropriateness
+    // Updated size preferences for large groups
     const sizePreferences: Record<string, Record<number, number>> = {
-      'booth': { 1: 5, 2: 15, 3: 8, 4: 12, 5: 3, 6: 0, 7: 0, 8: 0 },
-      'window': { 1: 8, 2: 12, 3: 10, 4: 8, 5: 5, 6: 3, 7: 0, 8: 0 },
-      'private': { 1: 0, 2: 3, 3: 5, 4: 8, 5: 12, 6: 15, 7: 18, 8: 20 },
-      'bar': { 1: 10, 2: 8, 3: 3, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0 },
-      'patio': { 1: 5, 2: 12, 3: 8, 4: 10, 5: 6, 6: 4, 7: 2, 8: 0 },
-      'standard': { 1: 6, 2: 8, 3: 10, 4: 10, 5: 8, 6: 6, 7: 4, 8: 2 },
+      'booth': { 1: 5, 2: 15, 3: 8, 4: 12, 5: 3, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0 },
+      'window': { 1: 8, 2: 12, 3: 10, 4: 8, 5: 5, 6: 3, 7: 2, 8: 1, 9: 0, 10: 0, 11: 0, 12: 0 },
+      'private': { 1: 0, 2: 3, 3: 5, 4: 8, 5: 12, 6: 15, 7: 18, 8: 20, 9: 22, 10: 25, 11: 25, 12: 25 },
+      'bar': { 1: 10, 2: 8, 3: 3, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0, 11: 0, 12: 0 },
+      'patio': { 1: 5, 2: 12, 3: 8, 4: 10, 5: 6, 6: 4, 7: 2, 8: 5, 9: 8, 10: 10, 11: 10, 12: 10 },
+      'standard': { 1: 6, 2: 8, 3: 10, 4: 10, 5: 8, 6: 6, 7: 4, 8: 2, 9: 5, 10: 8, 11: 8, 12: 8 },
     };
 
-    const sizeBonus = sizePreferences[tableType]?.[Math.min(partySize, 8)] || 0;
+    const sizeBonus = sizePreferences[tableType]?.[Math.min(partySize, 12)] || 0;
     return score + sizeBonus;
   }
 
-  /**
-   * Select the primary (recommended) option
-   */
   private selectPrimaryOption(options: TableOption[], partySize: number): TableOption {
-    // Prioritize perfect fits, then by experience score
     const perfectFits = options.filter(opt => opt.isPerfectFit);
     if (perfectFits.length > 0) {
-      return perfectFits[0]; // Already sorted by preference
+      return perfectFits[0];
     }
     
-    return options[0]; // Fallback to first option
+    return options[0];
   }
 
-  // Table combination logic with enhanced caching
   private combinationCache = new EnhancedCache<Table[]>(30, 5 * 60 * 1000);
-  
-  private async findTableCombination(
-    restaurantId: string,
-    startTime: Date,
-    endTime: Date,
-    partySize: number
-  ): Promise<Table[] | null> {
-    const cacheKey = `combination:${restaurantId}:${partySize}`;
-    
-    // Check cache first
-    let cached = this.combinationCache.get(cacheKey);
-    if (cached) {
-      // Verify the cached combination is still available
-      const tableIds = cached.map(t => t.id);
-      const { data: conflict } = await supabase.rpc("check_booking_overlap", {
-        p_table_ids: tableIds,
-        p_start_time: startTime.toISOString(),
-        p_end_time: endTime.toISOString(),
-      });
 
-      if (!conflict) {
-        return cached;
-      }
-    }
-
-    // Get all tables that are combinable
-    const { data: tables } = await supabase
-      .from("restaurant_tables")
-      .select("*")
-      .eq("restaurant_id", restaurantId)
-      .eq("is_active", true)
-      .eq("is_combinable", true)
-      .order("capacity", { ascending: false })
-      .limit(10); // Limit to improve performance
-
-    if (!tables || tables.length < 2) return null;
-
-    // Check pre-configured combinations first
-    const combination = await this.checkPreConfiguredCombinations(
-      restaurantId,
-      startTime,
-      endTime,
-      partySize
-    );
-
-    if (combination) {
-      this.combinationCache.set(cacheKey, combination);
-      return combination;
-    }
-
-    // Try dynamic combinations with limited iterations
-    const dynamicCombination = await this.findDynamicCombination(
-      tables,
-      startTime,
-      endTime,
-      partySize
-    );
-
-    if (dynamicCombination) {
-      this.combinationCache.set(cacheKey, dynamicCombination);
-    }
-
-    return dynamicCombination;
-  }
-
-  private async checkPreConfiguredCombinations(
-    restaurantId: string,
-    startTime: Date,
-    endTime: Date,
-    partySize: number
-  ): Promise<Table[] | null> {
-    const { data: combinations } = await supabase
-      .from("table_combinations")
-      .select(`
-        *,
-        primary_table:primary_table_id(*),
-        secondary_table:secondary_table_id(*)
-      `)
-      .eq("restaurant_id", restaurantId)
-      .eq("is_active", true)
-      .gte("combined_capacity", partySize)
-      .lte("combined_capacity", partySize + 2)
-      .order("combined_capacity", { ascending: true })
-      .limit(5); // Limit for performance
-
-    for (const combo of combinations || []) {
-      const tableIds = [combo.primary_table_id, combo.secondary_table_id];
-      
-      const { data: conflict } = await supabase.rpc("check_booking_overlap", {
-        p_table_ids: tableIds,
-        p_start_time: startTime.toISOString(),
-        p_end_time: endTime.toISOString(),
-      });
-
-      if (!conflict) {
-        return [combo.primary_table, combo.secondary_table];
-      }
-    }
-
-    return null;
-  }
-
-  private async findDynamicCombination(
-    tables: Table[],
-    startTime: Date,
-    endTime: Date,
-    partySize: number
-  ): Promise<Table[] | null> {
-    // Sort tables for optimal combinations
-    const sortedTables = [...tables].sort((a, b) => {
-      const aDiff = Math.abs(a.capacity - (partySize / 2));
-      const bDiff = Math.abs(b.capacity - (partySize / 2));
-      return aDiff - bDiff;
-    });
-
-    // Limit combinations to check for performance
-    const maxChecks = 20;
-    let checksPerformed = 0;
-
-    for (let i = 0; i < sortedTables.length - 1 && checksPerformed < maxChecks; i++) {
-      for (let j = i + 1; j < sortedTables.length && checksPerformed < maxChecks; j++) {
-        checksPerformed++;
-        
-        const table1 = sortedTables[i];
-        const table2 = sortedTables[j];
-        const combinedCapacity = table1.capacity + table2.capacity;
-
-        if (combinedCapacity >= partySize && combinedCapacity <= partySize + 3) {
-          const { data: conflict } = await supabase.rpc("check_booking_overlap", {
-            p_table_ids: [table1.id, table2.id],
-            p_start_time: startTime.toISOString(),
-            p_end_time: endTime.toISOString(),
-          });
-
-          if (!conflict) {
-            return [table1, table2];
-          }
-        }
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Get VIP benefits for a user at a restaurant
-   */
   private async getVIPBenefits(
     restaurantId: string,
     userId: string
@@ -1047,13 +989,12 @@ export class AvailabilityService {
     return data;
   }
 
-  /**
-   * Generate 15-minute interval slots
-   */
+  // UPDATED METHOD: Better time slot generation for large parties
   private async generate15MinuteSlots(
     openTime: string,
     closeTime: string,
-    restaurantId: string
+    restaurantId: string,
+    partySize: number
   ): Promise<{ time: string }[]> {
     const slots: { time: string }[] = [];
     const [openHour, openMin] = openTime.split(":").map(Number);
@@ -1062,7 +1003,6 @@ export class AvailabilityService {
     let currentHour = openHour;
     let currentMin = openMin;
 
-    // Align to 15-minute intervals
     currentMin = Math.ceil(currentMin / 15) * 15;
     if (currentMin === 60) {
       currentMin = 0;
@@ -1071,11 +1011,14 @@ export class AvailabilityService {
 
     const closeTimeInMinutes = closeHour * 60 + closeMin;
     
-    // Get dynamic buffer time based on restaurant's max turn time
-    const maxTurnTime = await this.getMaxTurnTime(restaurantId);
+    // For large parties, get appropriate turn time
+    const turnTimeForParty = this.getDefaultTurnTime(partySize);
+    const maxTurnTime = Math.max(await this.getMaxTurnTime(restaurantId), turnTimeForParty);
 
-    // Stop at a time that allows for the maximum turn time
-    while (currentHour * 60 + currentMin <= closeTimeInMinutes - maxTurnTime) {
+    // Allow booking closer to closing time for large parties
+    const bufferTime = partySize > 8 ? maxTurnTime - 30 : maxTurnTime;
+
+    while (currentHour * 60 + currentMin <= closeTimeInMinutes - bufferTime) {
       slots.push({
         time: `${currentHour.toString().padStart(2, "0")}:${currentMin
           .toString()
@@ -1092,19 +1035,15 @@ export class AvailabilityService {
     return slots;
   }
 
-  /**
-   * Get default turn time based on party size
-   */
   private getDefaultTurnTime(partySize: number): number {
     if (partySize <= 2) return 90;
     if (partySize <= 4) return 120;
     if (partySize <= 6) return 150;
-    return 180;
+    if (partySize <= 8) return 180;
+    if (partySize <= 10) return 210;
+    return 240; // 4 hours for very large groups
   }
 
-  /**
-   * Backward compatibility methods
-   */
   async getAvailableSlots(
     restaurantId: string,
     date: Date,
@@ -1115,7 +1054,6 @@ export class AvailabilityService {
       const timeSlots = await this.getAvailableTimeSlots(restaurantId, date, partySize, userId);
       const fullSlots: TimeSlot[] = [];
 
-      // Process in batches to avoid overwhelming the system
       const batchSize = 5;
       for (let i = 0; i < timeSlots.length; i += batchSize) {
         const batch = timeSlots.slice(i, i + batchSize);
@@ -1164,9 +1102,6 @@ export class AvailabilityService {
     return !conflict;
   }
 
-  /**
-   * Cache management
-   */
   clearCombinationCache(restaurantId?: string) {
     if (restaurantId) {
       this.combinationCache.invalidate(restaurantId);
@@ -1181,9 +1116,6 @@ export class AvailabilityService {
     }
   }
 
-  /**
-   * Preload popular time slots
-   */
   async preloadPopularSlots(restaurantId: string, partySizes: number[] = [2, 4]): Promise<void> {
     const today = new Date();
     const tomorrow = new Date(today);
