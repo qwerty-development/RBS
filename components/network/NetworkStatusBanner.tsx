@@ -13,6 +13,7 @@ import {
 import { Text } from "@/components/ui/text";
 import { useNetwork } from "@/context/network-provider";
 import { useColorScheme } from "@/lib/useColorScheme";
+import { getIconColor } from "@/lib/utils";
 
 interface NetworkStatusBannerProps {
   showWhenOnline?: boolean;
@@ -132,7 +133,7 @@ export function NetworkStatusBanner({
           <View className="flex-row items-center flex-1">
             <Icon 
               size={20} 
-              color={colorScheme === "dark" ? "#fff" : "#000"} 
+              color={getIconColor(colorScheme)} 
             />
             <View className="ml-3 flex-1">
               <Text className={`font-semibold ${config.textColor}`}>
@@ -153,7 +154,7 @@ export function NetworkStatusBanner({
               >
                 <RefreshCw 
                   size={18} 
-                  color={colorScheme === "dark" ? "#fff" : "#000"}
+                  color={getIconColor(colorScheme)}
                   style={{ 
                     transform: [{ rotate: refreshing ? "360deg" : "0deg" }] 
                   }}
@@ -164,7 +165,7 @@ export function NetworkStatusBanner({
             <Pressable onPress={handleDismiss} className="p-2">
               <X 
                 size={18} 
-                color={colorScheme === "dark" ? "#fff" : "#000"} 
+                color={getIconColor(colorScheme)} 
               />
             </Pressable>
           </View>

@@ -9,6 +9,7 @@ import { Text } from "@/components/ui/text";
 import { ActivityIndicator } from "react-native";
 import { Image } from "@/components/image";
 import { Utensils } from "lucide-react-native";
+import { getActivityIndicatorColor, getRefreshControlColor } from "@/lib/utils";
 
 interface SearchContentProps {
   viewMode: ViewMode;
@@ -60,7 +61,7 @@ export const SearchContent = ({
   if (loading && restaurants.length === 0) {
     return (
       <View className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" color={colorScheme === "dark" ? "#fff" : "#000"} />
+        <ActivityIndicator size="large" color={getActivityIndicatorColor(colorScheme)} />
         <Text className="mt-4 text-muted-foreground">Loading restaurants...</Text>
       </View>
     );
@@ -164,7 +165,7 @@ export const SearchContent = ({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colorScheme === "dark" ? "#fff" : "#000"}
+            tintColor={getRefreshControlColor(colorScheme)}
           />
         }
         onScroll={onScroll} // Pass scroll event to parent

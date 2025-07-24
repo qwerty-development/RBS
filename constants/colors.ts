@@ -26,24 +26,38 @@ export const colors = {
     ring: "hsl(0, 0%, 70.80%)",
   },
   dark: {
-    background: "hsl(240, 10%, 3.90%)",
-    foreground: "hsl(0, 0%, 98%)",
-    card: "hsl(240, 10%, 3.90%)",
-    cardForeground: "hsl(0, 0%, 98%)",
-    popover: "hsl(240, 10%, 3.90%)",
-    popoverForeground: "hsl(0, 0%, 98%)",
-    primary: "hsl(0, 0%, 98%)",
-    primaryForeground: "hsl(240, 5.90%, 10%)",
-    secondary: "hsl(240, 3.70%, 15.90%)",
-    secondaryForeground: "hsl(0, 0%, 98%)",
-    muted: "hsl(240, 3.70%, 15.90%)",
-    mutedForeground: "hsl(240, 5%, 64.90%)",
-    accent: "hsl(240, 3.70%, 15.90%)",
-    accentForeground: "hsl(0, 0%, 98%)",
-    destructive: "hsl(0, 62.80%, 30.60%)",
-    destructiveForeground: "hsl(0, 85.70%, 97.30%)",
-    border: "hsl(240, 3.70%, 15.90%)",
-    input: "hsl(240, 3.70%, 15.90%)",
-    ring: "hsl(240, 4.90%, 83.90%)",
+    // Modern dark theme with better visual hierarchy
+    background: "hsl(220, 13%, 9%)",           // Rich dark blue-black
+    foreground: "hsl(220, 9%, 95%)",           // Warm white
+    card: "hsl(220, 13%, 12%)",                // Slightly lighter than background
+    cardForeground: "hsl(220, 9%, 95%)",       // Warm white
+    popover: "hsl(220, 13%, 12%)",             // Same as card
+    popoverForeground: "hsl(220, 9%, 95%)",    // Warm white
+    primary: "hsl(216, 87%, 67%)",             // Vibrant blue
+    primaryForeground: "hsl(220, 13%, 9%)",    // Dark background for contrast
+    secondary: "hsl(220, 13%, 18%)",           // Medium dark surface
+    secondaryForeground: "hsl(220, 9%, 85%)",  // Slightly dimmed white
+    muted: "hsl(220, 13%, 15%)",               // Subtle surface
+    mutedForeground: "hsl(220, 9%, 65%)",      // Muted text
+    accent: "hsl(262, 83%, 75%)",              // Purple accent for variety
+    accentForeground: "hsl(220, 13%, 9%)",     // Dark for contrast
+    destructive: "hsl(0, 84%, 65%)",           // Softer red
+    destructiveForeground: "hsl(220, 9%, 95%)", // White text
+    border: "hsl(220, 13%, 20%)",              // Subtle borders
+    input: "hsl(220, 13%, 18%)",               // Input backgrounds
+    ring: "hsl(216, 87%, 67%)",                // Focus rings match primary
+    
+    // Additional semantic colors for better UX
+    success: "hsl(142, 76%, 55%)",             // Green for success states
+    successForeground: "hsl(220, 13%, 9%)",    // Dark text on success
+    warning: "hsl(45, 93%, 60%)",              // Orange for warnings
+    warningForeground: "hsl(220, 13%, 9%)",    // Dark text on warning
+    info: "hsl(199, 89%, 60%)",                // Cyan for info
+    infoForeground: "hsl(220, 13%, 9%)",       // Dark text on info
+    
+    // Surface variations for better hierarchy
+    surface1: "hsl(220, 13%, 12%)",            // Elevated surface 1
+    surface2: "hsl(220, 13%, 15%)",            // Elevated surface 2
+    surface3: "hsl(220, 13%, 18%)",            // Elevated surface 3
   },
 };

@@ -12,10 +12,9 @@ import * as Updates from 'expo-updates';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useNetworkMonitor } from '@/hooks/useNetworkMonitor';
 import * as Sentry from '@sentry/react-native';
+import { getThemedColors } from '@/lib/utils';
 
 import React from 'react';
-
-
 
 // Network status bar component
 function NetworkStatusBar() {
@@ -56,49 +55,45 @@ function NetworkStatusBar() {
     : 'Slow connection detected';
 
   return (
-    <View
-      style={{
-        backgroundColor,
-        padding: 8,
-        alignItems: 'center',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 9999,
+    <View 
+      style={{ 
+        backgroundColor, 
+        paddingVertical: 8, 
+        paddingHorizontal: 16 
       }}
+      className="bg-warning"
     >
-      <Text style={{ color: 'white', fontSize: 12, fontWeight: '500' }}>
+      <Text 
+        style={{ color: 'white', textAlign: 'center', fontWeight: '500' }}
+        className="text-warning-foreground text-center font-medium"
+      >
         {message}
       </Text>
     </View>
   );
 }
 
-// Main layout component
 function RootLayoutContent() {
   const { colorScheme } = useColorScheme();
-  const [updateChecking, setUpdateChecking] = useState(false);
+  const themedColors = getThemedColors(colorScheme);
 
+  // Hide warnings in development
   useEffect(() => {
-    LogBox.ignoreLogs([
-      'Clerk:',
-      'Clerk has been loaded with development keys',
-      'Unsupported Server Component type',
-      'Warning: TNodeChildrenRenderer',
-      'You seem to update props of the "TRenderEngineProvider" component',
-      'Text strings must be rendered within a <Text> component'
-    ]);
+    if (__DEV__) {
+      LogBox.ignoreLogs([
+        'Skipping duplicate check',
+        'Non-serializable values were found',
+        'Remote debugger',
+        'VirtualizedLists should never be nested',
+      ]);
+    }
   }, []);
 
+  // Handle over-the-air updates
   useEffect(() => {
-    if (__DEV__) return;
-
-    async function checkForUpdates() {
+    async function handleUpdates() {
       try {
-        setUpdateChecking(true);
         const update = await Updates.checkForUpdateAsync();
-
         if (update.isAvailable) {
           Alert.alert(
             'Update Available',
@@ -108,31 +103,22 @@ function RootLayoutContent() {
               {
                 text: 'Update',
                 onPress: async () => {
-                  try {
-                    await Updates.fetchUpdateAsync();
-                    await Updates.reloadAsync();
-                  } catch (error) {
-                    console.error('Failed to update:', error);
-                    Alert.alert(
-                      'Update Failed',
-                      'Failed to download the update. Please try again later.'
-                    );
-                  }
+                  await Updates.fetchUpdateAsync();
+                  await Updates.reloadAsync();
                 },
               },
             ]
           );
         }
       } catch (error) {
-        console.error('Update check failed:', error);
-      } finally {
-        setUpdateChecking(false);
+        // Silently fail - updates aren't critical
+        console.log('Update check failed:', error);
       }
     }
 
-    checkForUpdates();
-    const interval = setInterval(checkForUpdates, 30 * 60 * 1000);
-    return () => clearInterval(interval);
+    if (!__DEV__) {
+      handleUpdates();
+    }
   }, []);
 
   return (
@@ -142,10 +128,7 @@ function RootLayoutContent() {
         screenOptions={{
           headerShown: false,
           contentStyle: {
-            backgroundColor:
-              colorScheme === 'dark'
-                ? colors.dark.background
-                : colors.light.background,
+            backgroundColor: themedColors.background,
           },
         }}
       />
@@ -153,22 +136,13 @@ function RootLayoutContent() {
   );
 }
 
-Sentry.init({
-  dsn: "https://596c39f50e8604dcd468a29a63c1f442@o4509672135065600.ingest.de.sentry.io/4509672139587664",
-  enabled: !__DEV__,
-  debug: __DEV__,
-  environment: __DEV__ ? 'development' : 'production',
-});
-
 export default function RootLayout() {
   return (
     <ErrorBoundary>
       <GestureHandlerRootView style={{ flex: 1 }}>
         <NetworkProvider>
           <AuthProvider>
-       
-              <RootLayoutContent />
-
+            <RootLayoutContent />
           </AuthProvider>
         </NetworkProvider>
       </GestureHandlerRootView>

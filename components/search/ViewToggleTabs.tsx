@@ -1,8 +1,10 @@
 // components/search/ViewToggleTabs.tsx
 import React from "react";
 import { View, Pressable } from "react-native";
-import { Map, List } from "lucide-react-native";
+import { Map, List, MapPin } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
+import { useColorScheme } from "@/lib/useColorScheme";
+import { getThemedColors } from "@/lib/utils";
 
 export type ViewMode = "list" | "map";
 
@@ -34,6 +36,9 @@ export const ViewToggleTabs = ({
       });
     }
   }, [viewMode, onViewModeChange, onMapViewSelected]);
+
+  const themedColors = getThemedColors(colorScheme);
+
   return (
     <View className="bg-background border-b border-border">
       <View className="flex-row">
@@ -50,10 +55,8 @@ export const ViewToggleTabs = ({
             size={18}
             color={
               viewMode === "list"
-                ? colorScheme === "dark"
-                  ? "#3b82f6"
-                  : "#2563eb"
-                : "#666"
+                ? themedColors.primary
+                : themedColors.mutedForeground
             }
           />
           <Text
@@ -83,14 +86,12 @@ export const ViewToggleTabs = ({
               : "border-transparent"
           }`}
         >
-          <Map
+          <MapPin
             size={18}
             color={
               viewMode === "map"
-                ? colorScheme === "dark"
-                  ? "#3b82f6"
-                  : "#2563eb"
-                : "#666"
+                ? themedColors.primary
+                : themedColors.mutedForeground
             }
           />
           <Text
