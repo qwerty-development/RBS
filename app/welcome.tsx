@@ -111,10 +111,7 @@ export default function WelcomeScreen() {
       // Navigation handled by AuthContext
     } catch (err: any) {
       console.error("Guest mode error:", err);
-      Alert.alert(
-        "Error",
-        "Failed to continue as guest. Please try again.",
-      );
+      Alert.alert("Error", "Failed to continue as guest. Please try again.");
     } finally {
       setIsGuestLoading(false);
     }
@@ -126,7 +123,8 @@ export default function WelcomeScreen() {
         <Image source={appIcon} className="w-20 h-20 rounded-xl" />
         <H1 className="text-center">Welcome to Booklet</H1>
         <Muted className="text-center max-w-sm">
-          Discover and book the best restaurants in Lebanon. Join thousands of food lovers.
+          Discover and book the best restaurants in Lebanon. Join thousands of
+          food lovers.
         </Muted>
       </View>
       <View className="flex flex-col gap-y-3 web:m-4">
@@ -139,7 +137,7 @@ export default function WelcomeScreen() {
         >
           <Text>Sign Up with Email</Text>
         </Button>
-        
+
         <Button
           size="default"
           variant="secondary"
@@ -166,7 +164,10 @@ export default function WelcomeScreen() {
             } ${isAppleLoading ? "opacity-50" : ""}`}
           >
             {isAppleLoading ? (
-              <ActivityIndicator size="small" color={isDark ? "#000" : "#fff"} />
+              <ActivityIndicator
+                size="small"
+                color={isDark ? "#000" : "#fff"}
+              />
             ) : (
               <>
                 <Ionicons
@@ -214,9 +215,9 @@ export default function WelcomeScreen() {
               <ActivityIndicator size="small" />
             ) : (
               <>
-                <Ionicons 
-                  name="eye-outline" 
-                  size={20} 
+                <Ionicons
+                  name="eye-outline"
+                  size={20}
                   color={isDark ? "#9ca3af" : "#6b7280"}
                 />
                 <Text className="ml-2 text-muted-foreground">

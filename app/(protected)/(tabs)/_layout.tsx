@@ -24,10 +24,10 @@ export default function TabsLayout() {
           height: 80,
           paddingBottom: 20,
           paddingTop: 8,
-          borderTopLeftRadius: 12, 
-          borderTopRightRadius: 12, 
-          overflow: 'hidden', // ensure corners are clipped
-          position: 'absolute', // Ensure tab bar sits on top
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+          overflow: "hidden", // ensure corners are clipped
+          position: "absolute", // Ensure tab bar sits on top
           bottom: 0,
           left: 0,
           right: 0,

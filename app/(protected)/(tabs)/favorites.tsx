@@ -51,15 +51,15 @@ class PlaylistErrorBoundary extends React.Component<
     super(props);
     this.state = { hasError: false };
   }
-  
+
   static getDerivedStateFromError(error: any) {
     return { hasError: true };
   }
-  
+
   componentDidCatch(error: any, errorInfo: any) {
     console.error("Playlist Error:", error, errorInfo);
   }
-  
+
   render() {
     if (this.state.hasError) {
       return this.props.fallback;
@@ -120,7 +120,9 @@ export default function FavoritesScreen() {
 
   // --- Authenticated User View ---
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
-  const [activeTab, setActiveTab] = useState<"favorites" | "playlists">("favorites");
+  const [activeTab, setActiveTab] = useState<"favorites" | "playlists">(
+    "favorites",
+  );
   const [playlistError, setPlaylistError] = useState(false);
   const [invitationError, setInvitationError] = useState(false);
 
@@ -201,7 +203,7 @@ export default function FavoritesScreen() {
           params: { id: restaurantId },
         });
       } catch (error) {
-        console.error('Navigation error:', error);
+        console.error("Navigation error:", error);
       }
     },
     [router],
@@ -210,12 +212,12 @@ export default function FavoritesScreen() {
   const navigateToPlaylist = useCallback(
     (playlistId: string) => {
       try {
-        router.push({ 
-          pathname: "/playlist/[id]", 
-          params: { id: playlistId } 
+        router.push({
+          pathname: "/playlist/[id]",
+          params: { id: playlistId },
         });
       } catch (error) {
-        console.error('Navigation error:', error);
+        console.error("Navigation error:", error);
       }
     },
     [router],
@@ -225,7 +227,7 @@ export default function FavoritesScreen() {
     try {
       router.push("/profile/insights");
     } catch (error) {
-      console.error('Navigation error:', error);
+      console.error("Navigation error:", error);
     }
   }, [router]);
 
@@ -233,7 +235,7 @@ export default function FavoritesScreen() {
     try {
       router.push("/search");
     } catch (error) {
-      console.error('Navigation error:', error);
+      console.error("Navigation error:", error);
     }
   }, [router]);
 
@@ -241,7 +243,7 @@ export default function FavoritesScreen() {
     try {
       router.push("/playlist/join");
     } catch (error) {
-      console.error('Navigation error:', error);
+      console.error("Navigation error:", error);
     }
   }, [router]);
 
@@ -249,7 +251,7 @@ export default function FavoritesScreen() {
     try {
       router.push("/playlist/invitations");
     } catch (error) {
-      console.error('Navigation error:', error);
+      console.error("Navigation error:", error);
     }
   }, [router]);
 
@@ -263,7 +265,7 @@ export default function FavoritesScreen() {
         handlePlaylistsRefresh?.();
       }
     } catch (error) {
-      console.error('Refresh error:', error);
+      console.error("Refresh error:", error);
     }
   }, [
     activeTab,
@@ -277,10 +279,10 @@ export default function FavoritesScreen() {
     async (data: { name: string; description: string; emoji: string }) => {
       try {
         if (!createPlaylist) {
-          console.error('createPlaylist function not available');
+          console.error("createPlaylist function not available");
           return;
         }
-        
+
         const newPlaylist = await createPlaylist(
           data.name,
           data.description,
@@ -291,7 +293,7 @@ export default function FavoritesScreen() {
           navigateToPlaylist(newPlaylist.id);
         }
       } catch (error) {
-        console.error('Create playlist error:', error);
+        console.error("Create playlist error:", error);
         setShowCreatePlaylist(false);
       }
     },
@@ -302,7 +304,7 @@ export default function FavoritesScreen() {
     try {
       setActiveTab(tab);
     } catch (error) {
-      console.error('Tab switch error:', error);
+      console.error("Tab switch error:", error);
     }
   }, []);
 
@@ -312,7 +314,7 @@ export default function FavoritesScreen() {
         fetchFavorites();
       }
     } catch (error) {
-      console.error('Fetch favorites error:', error);
+      console.error("Fetch favorites error:", error);
     }
   }, [activeTab, fetchFavorites]);
 
@@ -331,24 +333,21 @@ export default function FavoritesScreen() {
           />
         );
       } catch (error) {
-        console.error('Render grid row error:', error);
+        console.error("Render grid row error:", error);
         return null;
       }
     },
     [navigateToRestaurant, removeFavorite, removingId, fadeAnim, scaleAnim],
   );
 
-  const renderSectionHeader = useCallback(
-    ({ section }: any) => {
-      try {
-        return <SectionHeader title={section.title} />;
-      } catch (error) {
-        console.error('Render section header error:', error);
-        return null;
-      }
-    },
-    [],
-  );
+  const renderSectionHeader = useCallback(({ section }: any) => {
+    try {
+      return <SectionHeader title={section.title} />;
+    } catch (error) {
+      console.error("Render section header error:", error);
+      return null;
+    }
+  }, []);
 
   const renderPlaylistItem = useCallback(
     ({ item }: { item: any }) => {
@@ -438,8 +437,10 @@ export default function FavoritesScreen() {
     ],
   );
 
-  const loading = activeTab === "favorites" ? favoritesLoading : playlistsLoading;
-  const refreshing = activeTab === "favorites" ? favoritesRefreshing : playlistsRefreshing;
+  const loading =
+    activeTab === "favorites" ? favoritesLoading : playlistsLoading;
+  const refreshing =
+    activeTab === "favorites" ? favoritesRefreshing : playlistsRefreshing;
 
   // Loading state
   if (
@@ -577,7 +578,9 @@ export default function FavoritesScreen() {
             <OptimizedList
               data={processedFavorites?.[0]?.data || []}
               renderItem={renderGridRow}
-              keyExtractor={(item, index) => `${item?.[0]?.id || index}-${index}`}
+              keyExtractor={(item, index) =>
+                `${item?.[0]?.id || index}-${index}`
+              }
               contentContainerStyle={{ padding: 8, paddingBottom: 100 }}
               showsVerticalScrollIndicator={false}
               refreshControl={
@@ -593,7 +596,9 @@ export default function FavoritesScreen() {
               sections={processedFavorites || []}
               renderItem={renderGridRow}
               renderSectionHeader={renderSectionHeader}
-              keyExtractor={(item, index) => `${item?.[0]?.id || index}-${index}`}
+              keyExtractor={(item, index) =>
+                `${item?.[0]?.id || index}-${index}`
+              }
               contentContainerStyle={{
                 padding: 8,
                 paddingBottom: 100,

@@ -191,9 +191,9 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
 
               {/* Description Input */}
               <View className="mb-6">
-              <Text className="text-base font-medium">Description </Text>
-              <Muted className="text-sm font-normal">(optional)</Muted>
-                
+                <Text className="text-base font-medium">Description </Text>
+                <Muted className="text-sm font-normal">(optional)</Muted>
+
                 <TextInput
                   value={description}
                   onChangeText={(text) => {

@@ -40,8 +40,7 @@ export const BOOKING_STATUS_CONFIG = {
     icon: XCircle,
     color: "#ef4444",
     bgColor: "#fee2e2",
-    description:
-      "The restaurant was unable to accommodate this request.",
+    description: "The restaurant was unable to accommodate this request.",
   },
   completed: {
     label: "Completed",

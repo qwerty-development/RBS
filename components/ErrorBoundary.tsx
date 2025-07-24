@@ -1,7 +1,6 @@
 // components/ErrorBoundary.tsx
-import React, { Component, ReactNode } from 'react';
-import { View, Text, Button } from 'react-native';
-
+import React, { Component, ReactNode } from "react";
+import { View, Text, Button } from "react-native";
 
 interface Props {
   children: ReactNode;
@@ -23,8 +22,6 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-
-
   handleReset = () => {
     this.setState({ hasError: false, error: null });
   };
@@ -37,7 +34,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return (
         <View className="flex-1 items-center justify-center p-4">
-          <Text className="text-xl font-bold mb-2">Oops! Something went wrong</Text>
+          <Text className="text-xl font-bold mb-2">
+            Oops! Something went wrong
+          </Text>
           <Text className="text-muted-foreground text-center mb-4">
             We're sorry for the inconvenience. Please try again.
           </Text>

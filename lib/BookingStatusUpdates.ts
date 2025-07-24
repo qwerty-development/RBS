@@ -13,7 +13,7 @@ export class BookingStatusUpdates {
    */
   initialize(userId: string) {
     this.userId = userId;
-    
+
     // Clean up any existing channel
     if (this.channel) {
       this.channel.unsubscribe();
@@ -23,34 +23,34 @@ export class BookingStatusUpdates {
     this.channel = supabase
       .channel(`user-bookings:${userId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'bookings',
+          event: "UPDATE",
+          schema: "public",
+          table: "bookings",
           filter: `user_id=eq.${userId}`,
         },
         async (payload) => {
-          console.log('Booking status update received:', payload);
+          console.log("Booking status update received:", payload);
           await this.handleBookingUpdate(payload);
-        }
+        },
       )
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
           filter: `user_id=eq.${userId}`,
         },
         async (payload) => {
-          console.log('New notification received:', payload);
+          console.log("New notification received:", payload);
           await this.handleNotification(payload);
-        }
+        },
       )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
-          console.log('Subscribed to booking status updates');
+        if (status === "SUBSCRIBED") {
+          console.log("Subscribed to booking status updates");
         }
       });
   }
@@ -67,17 +67,20 @@ export class BookingStatusUpdates {
 
     // Get restaurant details for notification
     const { data: booking } = await supabase
-      .from('bookings')
-      .select('*, restaurant:restaurants(name)')
-      .eq('id', bookingId)
+      .from("bookings")
+      .select("*, restaurant:restaurants(name)")
+      .eq("id", bookingId)
       .single();
 
     if (!booking) return;
 
     // Handle different status transitions
-    if (oldStatus === 'pending' && newStatus === 'confirmed') {
+    if (oldStatus === "pending" && newStatus === "confirmed") {
       await this.showBookingConfirmedNotification(booking);
-    } else if (oldStatus === 'pending' && newStatus === 'declined_by_restaurant') {
+    } else if (
+      oldStatus === "pending" &&
+      newStatus === "declined_by_restaurant"
+    ) {
       await this.showBookingDeclinedNotification(booking);
     }
   }
@@ -91,13 +94,13 @@ export class BookingStatusUpdates {
 
     // Show push notification based on type
     switch (notification.type) {
-      case 'booking_confirmed':
-      case 'booking_cancelled':
-      case 'booking_reminder':
+      case "booking_confirmed":
+      case "booking_cancelled":
+      case "booking_reminder":
         await this.showPushNotification(
           notification.title,
           notification.message,
-          notification.data
+          notification.data,
         );
         break;
     }
@@ -108,23 +111,23 @@ export class BookingStatusUpdates {
    */
   private async showBookingConfirmedNotification(booking: any) {
     const bookingDate = new Date(booking.booking_time);
-    const dateStr = bookingDate.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
+    const dateStr = bookingDate.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
     });
     const timeStr = bookingDate.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
+      hour: "2-digit",
+      minute: "2-digit",
     });
 
     await this.showPushNotification(
-      '🎉 Booking Confirmed!',
+      "🎉 Booking Confirmed!",
       `Your table at ${booking.restaurant.name} for ${dateStr} at ${timeStr} is confirmed!`,
       {
         bookingId: booking.id,
         restaurantId: booking.restaurant_id,
-        action: 'view_booking',
-      }
+        action: "view_booking",
+      },
     );
   }
 
@@ -133,24 +136,20 @@ export class BookingStatusUpdates {
    */
   private async showBookingDeclinedNotification(booking: any) {
     await this.showPushNotification(
-      '😔 Booking Request Declined',
+      "😔 Booking Request Declined",
       `${booking.restaurant.name} couldn't accommodate your request. Try booking a different time.`,
       {
         bookingId: booking.id,
         restaurantId: booking.restaurant_id,
-        action: 'book_again',
-      }
+        action: "book_again",
+      },
     );
   }
 
   /**
    * Show push notification
    */
-  private async showPushNotification(
-    title: string,
-    body: string,
-    data?: any
-  ) {
+  private async showPushNotification(title: string, body: string, data?: any) {
     try {
       await Notifications.scheduleNotificationAsync({
         content: {
@@ -163,30 +162,32 @@ export class BookingStatusUpdates {
         trigger: null, // Show immediately
       });
     } catch (error) {
-      console.error('Error showing push notification:', error);
+      console.error("Error showing push notification:", error);
     }
   }
 
   /**
    * Handle notification tap
    */
-  static handleNotificationResponse(response: Notifications.NotificationResponse) {
+  static handleNotificationResponse(
+    response: Notifications.NotificationResponse,
+  ) {
     const data = response.notification.request.content.data;
     if (!data) return;
 
     switch (data.action) {
-      case 'view_booking':
+      case "view_booking":
         if (data.bookingId) {
           router.push({
-            pathname: '/booking/[id]',
+            pathname: "/booking/[id]",
             params: { id: data.bookingId },
           });
         }
         break;
-      case 'book_again':
+      case "book_again":
         if (data.restaurantId) {
           router.push({
-            pathname: '/restaurant/[id]',
+            pathname: "/restaurant/[id]",
             params: { id: data.restaurantId },
           });
         }
@@ -211,19 +212,22 @@ export class BookingStatusUpdates {
   static async checkExpiredPendingBookings(userId: string) {
     try {
       // Call the auto-decline function
-      await supabase.rpc('auto_decline_expired_pending_bookings');
-      
+      await supabase.rpc("auto_decline_expired_pending_bookings");
+
       // Refresh user's bookings
       const { data: bookings } = await supabase
-        .from('bookings')
-        .select('*')
-        .eq('user_id', userId)
-        .eq('status', 'pending')
-        .lt('created_at', new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString());
+        .from("bookings")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("status", "pending")
+        .lt(
+          "created_at",
+          new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+        );
 
       return bookings || [];
     } catch (error) {
-      console.error('Error checking expired bookings:', error);
+      console.error("Error checking expired bookings:", error);
       return [];
     }
   }

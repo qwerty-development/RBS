@@ -16,9 +16,9 @@ import { cn } from "@/lib/utils";
 import { LocationService } from "@/lib/locationService";
 
 interface BookingFilters {
-  date: Date;
+  date: Date | null;
   time: string;
-  partySize: number;
+  partySize: number | null;
   availableOnly: boolean;
 }
 
@@ -173,7 +173,6 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
       <View className={cn("p-3", variant === "compact" && "p-2")}>
         <View className="flex-row items-start justify-between mb-1">
           <View className="flex-1 mr-3">
-            
             <Text
               className={cn(
                 "font-semibold mb-1",
@@ -181,9 +180,9 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
               )}
               numberOfLines={1}
             >
-              {restaurant.name} 
+              {restaurant.name}
             </Text>
-                        <Text className="text-muted-foreground text-sm mb-1">
+            <Text className="text-muted-foreground text-sm mb-1">
               {restaurant.cuisine_type}
             </Text>
 
@@ -205,7 +204,7 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
                       ({restaurant.total_reviews || 0})
                     </Text>
                   </View>
-                  
+
                   {/* Dot divider */}
                   <Text className="text-muted-foreground mx-2 text-xs">•</Text>
                 </>
@@ -223,7 +222,9 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
               {restaurant.distance !== undefined &&
                 restaurant.distance !== null && (
                   <>
-                    <Text className="text-muted-foreground mx-2 text-xs">•</Text>
+                    <Text className="text-muted-foreground mx-2 text-xs">
+                      •
+                    </Text>
                     <View className="flex-row items-center">
                       <MapPin size={12} color="#666" />
                       <Text className="text-xs text-muted-foreground ml-1">
@@ -260,7 +261,6 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
               )}
           </View>
         </View>
-
       </View>
     </Pressable>
   );

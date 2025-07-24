@@ -1,8 +1,8 @@
 // components/ui/optimized-list.tsx
-import React, { useCallback, useMemo, useRef } from 'react';
-import { FlatList, ViewToken } from 'react-native';
-import { imageCache } from '@/utils/imageCache';
-import { useDebounce } from 'use-debounce';
+import React, { useCallback, useMemo, useRef } from "react";
+import { FlatList, ViewToken } from "react-native";
+import { imageCache } from "@/utils/imageCache";
+import { useDebounce } from "use-debounce";
 
 interface OptimizedListProps<T> {
   data: T[];
@@ -35,10 +35,8 @@ export function OptimizedList<T>({
         }
       });
     },
-    []
+    [],
   );
-
- 
 
   return (
     <FlatList

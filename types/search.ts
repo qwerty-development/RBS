@@ -17,9 +17,9 @@ export interface UserLocation extends LocationCoordinates {}
 export type ViewMode = "list" | "map";
 
 export interface BookingFilters {
-  date: Date;
+  date: Date | null;
   time: string;
-  partySize: number;
+  partySize: number | null;
   availableOnly: boolean;
 }
 

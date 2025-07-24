@@ -1,19 +1,19 @@
 // polyfills.ts
-if (typeof globalThis.structuredClone === 'undefined') {
+if (typeof globalThis.structuredClone === "undefined") {
   globalThis.structuredClone = function structuredClone(value: any): any {
-    if (value === null || typeof value !== 'object') {
+    if (value === null || typeof value !== "object") {
       return value;
     }
-    
+
     if (value instanceof Date) {
       return new Date(value.getTime());
     }
-    
+
     if (Array.isArray(value)) {
-      return value.map(item => structuredClone(item));
+      return value.map((item) => structuredClone(item));
     }
-    
-    if (typeof value === 'object') {
+
+    if (typeof value === "object") {
       const cloned: any = {};
       for (const key in value) {
         if (value.hasOwnProperty(key)) {
@@ -22,7 +22,7 @@ if (typeof globalThis.structuredClone === 'undefined') {
       }
       return cloned;
     }
-    
+
     return value;
   };
 }

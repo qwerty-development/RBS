@@ -23,7 +23,7 @@ export function useGuestGuard() {
         convertGuestToUser();
       }
     },
-    [isGuest, user, convertGuestToUser]
+    [isGuest, user, convertGuestToUser],
   );
 
   const handleClosePrompt = useCallback(() => {

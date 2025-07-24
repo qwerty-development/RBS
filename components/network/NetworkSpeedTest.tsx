@@ -43,11 +43,16 @@ export function NetworkSpeedTest({ onTestComplete }: NetworkSpeedTestProps) {
 
   const getQualityColor = (quality: string) => {
     switch (quality) {
-      case "excellent": return "text-green-600 dark:text-green-400";
-      case "good": return "text-blue-600 dark:text-blue-400";
-      case "fair": return "text-yellow-600 dark:text-yellow-400";
-      case "poor": return "text-red-600 dark:text-red-400";
-      default: return "text-gray-600 dark:text-gray-400";
+      case "excellent":
+        return "text-green-600 dark:text-green-400";
+      case "good":
+        return "text-blue-600 dark:text-blue-400";
+      case "fair":
+        return "text-yellow-600 dark:text-yellow-400";
+      case "poor":
+        return "text-red-600 dark:text-red-400";
+      default:
+        return "text-gray-600 dark:text-gray-400";
     }
   };
 
@@ -58,7 +63,7 @@ export function NetworkSpeedTest({ onTestComplete }: NetworkSpeedTestProps) {
           <Zap size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
           <Text className="font-semibold ml-2">Connection Speed Test</Text>
         </View>
-        
+
         <Button
           onPress={runSpeedTest}
           disabled={!isOnline || testing}
@@ -77,8 +82,13 @@ export function NetworkSpeedTest({ onTestComplete }: NetworkSpeedTestProps) {
         <View className="space-y-3">
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center">
-              <Download size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
-              <Text className="ml-2 text-gray-600 dark:text-gray-400">Download Speed</Text>
+              <Download
+                size={16}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+              />
+              <Text className="ml-2 text-gray-600 dark:text-gray-400">
+                Download Speed
+              </Text>
             </View>
             <Text className="font-semibold">
               {results.downloadSpeed.toFixed(2)} Mbps
@@ -87,17 +97,22 @@ export function NetworkSpeedTest({ onTestComplete }: NetworkSpeedTestProps) {
 
           <View className="flex-row items-center justify-between">
             <View className="flex-row items-center">
-              <Clock size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
-              <Text className="ml-2 text-gray-600 dark:text-gray-400">Latency</Text>
+              <Clock
+                size={16}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+              />
+              <Text className="ml-2 text-gray-600 dark:text-gray-400">
+                Latency
+              </Text>
             </View>
-            <Text className="font-semibold">
-              {results.latency}ms
-            </Text>
+            <Text className="font-semibold">{results.latency}ms</Text>
           </View>
 
           <View className="flex-row items-center justify-between">
             <Text className="text-gray-600 dark:text-gray-400">Quality</Text>
-            <Text className={`font-semibold capitalize ${getQualityColor(results.quality)}`}>
+            <Text
+              className={`font-semibold capitalize ${getQualityColor(results.quality)}`}
+            >
               {results.quality}
             </Text>
           </View>

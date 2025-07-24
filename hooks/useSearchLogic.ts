@@ -214,26 +214,44 @@ export const useSearchLogic = (): UseSearchReturn => {
             gFilters.features,
           );
 
-          // Check availability for all restaurants
-          const availabilityChecks = await Promise.all(
-            processedRestaurants.map(async (restaurant) => {
-              const isAvailable = await checkRestaurantAvailability(
-                restaurant.id,
-                bFilters.date,
-                bFilters.time,
-                bFilters.partySize,
-              );
-              return { ...restaurant, isAvailable };
-            }),
-          );
+          // Check availability for all restaurants only if specific criteria are set
+          const needsAvailabilityCheck = 
+            bFilters.availableOnly || 
+            bFilters.partySize !== null || 
+            bFilters.date !== null;
 
-          processedRestaurants = availabilityChecks;
-
-          // Filter by availability if enabled
-          if (bFilters.availableOnly) {
-            processedRestaurants = processedRestaurants.filter(
-              (r) => r.isAvailable,
+          if (needsAvailabilityCheck) {
+            const availabilityChecks = await Promise.all(
+              processedRestaurants.map(async (restaurant) => {
+                const isAvailable = await checkRestaurantAvailability(
+                  restaurant.id,
+                  bFilters.date || new Date(), // Use current date if null
+                  bFilters.time,
+                  bFilters.partySize || 2, // Use default party size if null
+                );
+                return { ...restaurant, isAvailable };
+              }),
             );
+
+            processedRestaurants = availabilityChecks;
+
+            // Filter by availability if enabled OR if specific booking criteria are set
+            const shouldFilterByAvailability =
+              bFilters.availableOnly || 
+              bFilters.partySize !== null || 
+              bFilters.date !== null;
+
+            if (shouldFilterByAvailability) {
+              processedRestaurants = processedRestaurants.filter(
+                (r) => r.isAvailable,
+              );
+            }
+          } else {
+            // If no specific criteria, mark all as available (no filtering)
+            processedRestaurants = processedRestaurants.map(restaurant => ({
+              ...restaurant,
+              isAvailable: true
+            }));
           }
 
           // Sort restaurants using the existing sort function
@@ -319,26 +337,44 @@ export const useSearchLogic = (): UseSearchReturn => {
             gFilters.features,
           );
 
-          // Check availability
-          const availabilityChecks = await Promise.all(
-            processedRestaurants.map(async (restaurant) => {
-              const isAvailable = await checkRestaurantAvailability(
-                restaurant.id,
-                bFilters.date,
-                bFilters.time,
-                bFilters.partySize,
-              );
-              return { ...restaurant, isAvailable };
-            }),
-          );
+          // Check availability only if specific criteria are set
+          const needsAvailabilityCheck = 
+            bFilters.availableOnly || 
+            bFilters.partySize !== null || 
+            bFilters.date !== null;
 
-          processedRestaurants = availabilityChecks;
-
-          // Filter by availability if enabled
-          if (bFilters.availableOnly) {
-            processedRestaurants = processedRestaurants.filter(
-              (r) => r.isAvailable,
+          if (needsAvailabilityCheck) {
+            const availabilityChecks = await Promise.all(
+              processedRestaurants.map(async (restaurant) => {
+                const isAvailable = await checkRestaurantAvailability(
+                  restaurant.id,
+                  bFilters.date || new Date(), // Use current date if null
+                  bFilters.time,
+                  bFilters.partySize || 2, // Use default party size if null
+                );
+                return { ...restaurant, isAvailable };
+              }),
             );
+
+            processedRestaurants = availabilityChecks;
+
+            // Filter by availability if enabled OR if specific booking criteria are set
+            const shouldFilterByAvailability =
+              bFilters.availableOnly || 
+              bFilters.partySize !== null || 
+              bFilters.date !== null;
+
+            if (shouldFilterByAvailability) {
+              processedRestaurants = processedRestaurants.filter(
+                (r) => r.isAvailable,
+              );
+            }
+          } else {
+            // If no specific criteria, mark all as available (no filtering)
+            processedRestaurants = processedRestaurants.map(restaurant => ({
+              ...restaurant,
+              isAvailable: true
+            }));
           }
 
           // Sort restaurants
@@ -372,9 +408,9 @@ export const useSearchLogic = (): UseSearchReturn => {
         pathname: "/restaurant/[id]",
         params: {
           id: restaurantId,
-          date: bookingFilters.date.toISOString(),
+          date: bookingFilters.date ? bookingFilters.date.toISOString() : new Date().toISOString(),
           time: bookingFilters.time,
-          partySize: bookingFilters.partySize.toString(),
+          partySize: (bookingFilters.partySize || 2).toString(),
         },
       });
     },

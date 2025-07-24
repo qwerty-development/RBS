@@ -8,15 +8,15 @@ export interface RequestConfig {
   timeout?: number;
   retries?: number;
   retryDelay?: number;
-  
+
   // Offline options
   queueWhenOffline?: boolean;
   offlineQueueType?: string;
-  
+
   // Cache options
   cacheKey?: string;
   cacheExpiry?: number; // ms
-  
+
   // UI options
   showNetworkAlerts?: boolean;
 }
@@ -53,7 +53,6 @@ const DEFAULT_CONFIG: Required<RequestConfig> = {
 export function useNetworkRequest<T = any>() {
   const { isOnline, networkState } = useNetwork();
 
-  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -61,7 +60,7 @@ export function useNetworkRequest<T = any>() {
   // Check cache
   const checkCache = useCallback(<T>(key: string, expiry: number): T | null => {
     const cached = requestCache.get(key);
-    
+
     if (cached) {
       const isExpired = Date.now() - cached.timestamp > expiry;
       if (!isExpired) {
@@ -70,7 +69,7 @@ export function useNetworkRequest<T = any>() {
         requestCache.delete(key);
       }
     }
-    
+
     return null;
   }, []);
 
@@ -84,167 +83,183 @@ export function useNetworkRequest<T = any>() {
   }, []);
 
   // Execute request with timeout
-  const executeRequest = useCallback(async <T>(
-    url: string,
-    options?: RequestInit,
-    timeout: number = 10000
-  ): Promise<T> => {
-    abortControllerRef.current = new AbortController();
-    
-    const timeoutId = setTimeout(() => {
-      abortControllerRef.current?.abort();
-    }, timeout);
+  const executeRequest = useCallback(
+    async <T>(
+      url: string,
+      options?: RequestInit,
+      timeout: number = 10000,
+    ): Promise<T> => {
+      abortControllerRef.current = new AbortController();
 
-    try {
-      const response = await fetch(url, {
-        ...options,
-        signal: abortControllerRef.current.signal,
-      });
+      const timeoutId = setTimeout(() => {
+        abortControllerRef.current?.abort();
+      }, timeout);
 
-      clearTimeout(timeoutId);
+      try {
+        const response = await fetch(url, {
+          ...options,
+          signal: abortControllerRef.current.signal,
+        });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        return data as T;
+      } catch (error) {
+        clearTimeout(timeoutId);
+
+        if (error instanceof Error && error.name === "AbortError") {
+          throw new Error("Request timeout");
+        }
+
+        throw error;
       }
-
-      const data = await response.json();
-      return data as T;
-    } catch (error) {
-      clearTimeout(timeoutId);
-      
-      if (error instanceof Error && error.name === "AbortError") {
-        throw new Error("Request timeout");
-      }
-      
-      throw error;
-    }
-  }, []);
+    },
+    [],
+  );
 
   // Execute request with retries
-  const executeWithRetries = useCallback(async <T>(
-    url: string,
-    options: RequestInit | undefined,
-    config: Required<RequestConfig>
-  ): Promise<T> => {
-    let lastError: Error = new Error("Unknown error");
-    
-    for (let attempt = 0; attempt <= config.retries; attempt++) {
-      try {
-        // Adjust timeout for slow connections
-        const adjustedTimeout = networkState.quality === "poor" || networkState.quality === "fair"
-          ? config.timeout * 2
-          : config.timeout;
-        
-        const result = await executeRequest<T>(url, options, adjustedTimeout);
-        return result;
-      } catch (error) {
-        lastError = error as Error;
-        
-        if (attempt < config.retries) {
-          // Wait before retry with exponential backoff
-          const delay = config.retryDelay * Math.pow(2, attempt);
-          await new Promise(resolve => setTimeout(resolve, delay));
+  const executeWithRetries = useCallback(
+    async <T>(
+      url: string,
+      options: RequestInit | undefined,
+      config: Required<RequestConfig>,
+    ): Promise<T> => {
+      let lastError: Error = new Error("Unknown error");
+
+      for (let attempt = 0; attempt <= config.retries; attempt++) {
+        try {
+          // Adjust timeout for slow connections
+          const adjustedTimeout =
+            networkState.quality === "poor" || networkState.quality === "fair"
+              ? config.timeout * 2
+              : config.timeout;
+
+          const result = await executeRequest<T>(url, options, adjustedTimeout);
+          return result;
+        } catch (error) {
+          lastError = error as Error;
+
+          if (attempt < config.retries) {
+            // Wait before retry with exponential backoff
+            const delay = config.retryDelay * Math.pow(2, attempt);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+          }
         }
       }
-    }
-    
-    throw lastError;
-  }, [executeRequest, networkState.quality]);
+
+      throw lastError;
+    },
+    [executeRequest, networkState.quality],
+  );
 
   // Main request function
-  const request = useCallback(async <T>(
-    url: string,
-    options?: RequestInit,
-    config?: RequestConfig
-  ): Promise<RequestResult<T>> => {
-    const finalConfig = { ...DEFAULT_CONFIG, ...config };
-    setError(null);
-    
-    // Check cache first
-    if (finalConfig.cacheKey) {
-      const cached = checkCache<T>(finalConfig.cacheKey, finalConfig.cacheExpiry);
-      if (cached !== null) {
+  const request = useCallback(
+    async <T>(
+      url: string,
+      options?: RequestInit,
+      config?: RequestConfig,
+    ): Promise<RequestResult<T>> => {
+      const finalConfig = { ...DEFAULT_CONFIG, ...config };
+      setError(null);
+
+      // Check cache first
+      if (finalConfig.cacheKey) {
+        const cached = checkCache<T>(
+          finalConfig.cacheKey,
+          finalConfig.cacheExpiry,
+        );
+        if (cached !== null) {
+          return {
+            data: cached,
+            error: null,
+            loading: false,
+            fromCache: true,
+          };
+        }
+      }
+
+      // Check if offline
+      if (!isOnline) {
+        if (finalConfig.queueWhenOffline) {
+          // Queue for later
+          await queueAction(finalConfig.offlineQueueType, {
+            url,
+            options,
+            config: finalConfig,
+          });
+
+          const offlineError = new Error("Request queued for offline sync");
+          setError(offlineError);
+
+          return {
+            data: null,
+            error: offlineError,
+            loading: false,
+            fromCache: false,
+          };
+        } else {
+          const offlineError = new Error("No internet connection");
+          setError(offlineError);
+
+          return {
+            data: null,
+            error: offlineError,
+            loading: false,
+            fromCache: false,
+          };
+        }
+      }
+
+      // Execute request
+      setLoading(true);
+
+      try {
+        const data = await executeWithRetries<T>(url, options, finalConfig);
+
+        // Save to cache
+        if (finalConfig.cacheKey) {
+          saveToCache(finalConfig.cacheKey, data);
+        }
+
+        setLoading(false);
         return {
-          data: cached,
+          data,
           error: null,
           loading: false,
-          fromCache: true,
-        };
-      }
-    }
-    
-    // Check if offline
-    if (!isOnline) {
-      if (finalConfig.queueWhenOffline) {
-        // Queue for later
-        await queueAction(finalConfig.offlineQueueType, {
-          url,
-          options,
-          config: finalConfig,
-        });
-        
-        const offlineError = new Error("Request queued for offline sync");
-        setError(offlineError);
-        
-        return {
-          data: null,
-          error: offlineError,
-          loading: false,
           fromCache: false,
         };
-      } else {
-        const offlineError = new Error("No internet connection");
-        setError(offlineError);
-        
+      } catch (error) {
+        const requestError = error as Error;
+        setError(requestError);
+        setLoading(false);
+
+        // Queue for retry if it was a network error
+        if (
+          finalConfig.queueWhenOffline &&
+          requestError.message.includes("Network")
+        ) {
+          await queueAction(finalConfig.offlineQueueType, {
+            url,
+            options,
+            config: finalConfig,
+          });
+        }
+
         return {
           data: null,
-          error: offlineError,
+          error: requestError,
           loading: false,
           fromCache: false,
         };
       }
-    }
-    
-    // Execute request
-    setLoading(true);
-    
-    try {
-      const data = await executeWithRetries<T>(url, options, finalConfig);
-      
-      // Save to cache
-      if (finalConfig.cacheKey) {
-        saveToCache(finalConfig.cacheKey, data);
-      }
-      
-      setLoading(false);
-      return {
-        data,
-        error: null,
-        loading: false,
-        fromCache: false,
-      };
-    } catch (error) {
-      const requestError = error as Error;
-      setError(requestError);
-      setLoading(false);
-      
-      // Queue for retry if it was a network error
-      if (finalConfig.queueWhenOffline && requestError.message.includes("Network")) {
-        await queueAction(finalConfig.offlineQueueType, {
-          url,
-          options,
-          config: finalConfig,
-        });
-      }
-      
-      return {
-        data: null,
-        error: requestError,
-        loading: false,
-        fromCache: false,
-      };
-    }
-  }, [isOnline, checkCache, executeWithRetries, saveToCache, queueAction]);
+    },
+    [isOnline, checkCache, executeWithRetries, saveToCache, queueAction],
+  );
 
   // Cancel ongoing request
   const cancel = useCallback(() => {
@@ -262,15 +277,18 @@ export function useNetworkRequest<T = any>() {
   }, []);
 
   // Register handler for offline sync
-  const handleOfflineSync = useCallback(async (action: any) => {
-    const { url, options, config } = action.payload;
-    const result = await executeWithRetries(url, options, config);
-    
-    // Save to cache if configured
-    if (config.cacheKey) {
-      saveToCache(config.cacheKey, result);
-    }
-  }, [executeWithRetries, saveToCache]);
+  const handleOfflineSync = useCallback(
+    async (action: any) => {
+      const { url, options, config } = action.payload;
+      const result = await executeWithRetries(url, options, config);
+
+      // Save to cache if configured
+      if (config.cacheKey) {
+        saveToCache(config.cacheKey, result);
+      }
+    },
+    [executeWithRetries, saveToCache],
+  );
 
   // Register sync handler on mount
   registerSyncHandler(handleOfflineSync);

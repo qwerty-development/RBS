@@ -137,7 +137,7 @@ export default function RequestSentScreen() {
               </Text>
             </View>
             <Text className="text-sm text-blue-700 dark:text-blue-300">
-              The restaurant will review your request and confirm availability. 
+              The restaurant will review your request and confirm availability.
               You'll receive a notification with their response.
             </Text>
           </View>
@@ -145,7 +145,7 @@ export default function RequestSentScreen() {
           {/* Booking Details */}
           <View className="bg-muted/30 rounded-xl p-4 mb-6">
             <H3 className="mb-3">Request Details</H3>
-            
+
             <View className="space-y-3">
               <View className="flex-row items-center gap-3">
                 <Calendar size={20} color="#666" />
@@ -160,7 +160,8 @@ export default function RequestSentScreen() {
               <View className="flex-row items-center gap-3">
                 <Users size={20} color="#666" />
                 <Text className="font-medium">
-                  {params.partySize} {parseInt(params.partySize) === 1 ? "Guest" : "Guests"}
+                  {params.partySize}{" "}
+                  {parseInt(params.partySize) === 1 ? "Guest" : "Guests"}
                 </Text>
               </View>
             </View>
@@ -177,7 +178,8 @@ export default function RequestSentScreen() {
                 <View className="flex-1">
                   <Text className="font-medium">Restaurant Reviews</Text>
                   <Muted className="text-sm">
-                    The restaurant will check availability and review your request
+                    The restaurant will check availability and review your
+                    request
                   </Muted>
                 </View>
               </View>
@@ -199,9 +201,12 @@ export default function RequestSentScreen() {
                   <Text className="text-primary font-bold">3</Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="font-medium">Confirmation or Alternative</Text>
+                  <Text className="font-medium">
+                    Confirmation or Alternative
+                  </Text>
                   <Muted className="text-sm">
-                    If confirmed, you're all set! If not, try booking another time
+                    If confirmed, you're all set! If not, try booking another
+                    time
                   </Muted>
                 </View>
               </View>
@@ -217,7 +222,8 @@ export default function RequestSentScreen() {
                   Pro Tip
                 </Text>
                 <Text className="text-sm text-amber-700 dark:text-amber-300">
-                  Enable push notifications to get instant updates about your booking request
+                  Enable push notifications to get instant updates about your
+                  booking request
                 </Text>
               </View>
             </View>
@@ -236,11 +242,7 @@ export default function RequestSentScreen() {
         </Button>
 
         <View className="flex-row gap-3">
-          <Button
-            variant="outline"
-            onPress={navigateToHome}
-            className="flex-1"
-          >
+          <Button variant="outline" onPress={navigateToHome} className="flex-1">
             <Home size={20} />
             <Text className="ml-2">Home</Text>
           </Button>

@@ -128,12 +128,15 @@ export const GeneralFiltersModal = React.memo(
         presentationStyle="formSheet"
         onRequestClose={onClose}
       >
-        <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900" edges={["top"]}>
+        <SafeAreaView
+          className="flex-1 bg-gray-50 dark:bg-gray-900"
+          edges={["top"]}
+        >
           {/* Header */}
           <View className="bg-white dark:bg-gray-800 px-6 py-4 shadow-sm">
             <View className="flex-row items-center justify-between">
               <H3 className="text-gray-900 dark:text-white">Filters</H3>
-              <Pressable 
+              <Pressable
                 onPress={onClose}
                 className="p-2 -mr-2 rounded-full active:bg-gray-100 dark:active:bg-gray-700"
               >
@@ -142,20 +145,38 @@ export const GeneralFiltersModal = React.memo(
             </View>
           </View>
 
-          <ScrollView 
-            className="flex-1 px-4" 
+          <ScrollView
+            className="flex-1 px-4"
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingVertical: 16 }}
           >
             {/* Sort By Section */}
             <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 shadow-sm">
-              <Text className="font-semibold text-lg text-gray-900 dark:text-white mb-4">Sort By</Text>
+              <Text className="font-semibold text-lg text-gray-900 dark:text-white mb-4">
+                Sort By
+              </Text>
               <View className="space-y-3">
                 {[
-                  { value: "recommended", label: "Recommended", desc: "Best overall matches" },
-                  { value: "availability", label: "Best Availability", desc: "Most open time slots" },
-                  { value: "rating", label: "Highest Rated", desc: "Top customer reviews" },
-                  { value: "distance", label: "Nearest First", desc: "Closest to your location" },
+                  {
+                    value: "recommended",
+                    label: "Recommended",
+                    desc: "Best overall matches",
+                  },
+                  {
+                    value: "availability",
+                    label: "Best Availability",
+                    desc: "Most open time slots",
+                  },
+                  {
+                    value: "rating",
+                    label: "Highest Rated",
+                    desc: "Top customer reviews",
+                  },
+                  {
+                    value: "distance",
+                    label: "Nearest First",
+                    desc: "Closest to your location",
+                  },
                   { value: "name", label: "A-Z", desc: "Alphabetical order" },
                 ].map((option) => (
                   <Pressable
@@ -174,11 +195,13 @@ export const GeneralFiltersModal = React.memo(
                   >
                     <View className="flex-row items-center justify-between">
                       <View className="flex-1">
-                        <Text className={`font-medium ${
-                          tempFilters.sortBy === option.value
-                            ? "text-primary"
-                            : "text-gray-900 dark:text-white"
-                        }`}>
+                        <Text
+                          className={`font-medium ${
+                            tempFilters.sortBy === option.value
+                              ? "text-primary"
+                              : "text-gray-900 dark:text-white"
+                          }`}
+                        >
                           {option.label}
                         </Text>
                         <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -208,7 +231,9 @@ export const GeneralFiltersModal = React.memo(
             <View className="flex-row gap-4 mb-4">
               {/* Price Range */}
               <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm">
-                <Text className="font-semibold text-gray-900 dark:text-white mb-3">Price</Text>
+                <Text className="font-semibold text-gray-900 dark:text-white mb-3">
+                  Price
+                </Text>
                 <View className="flex-row gap-2">
                   {[1, 2, 3, 4].map((price) => (
                     <Pressable
@@ -236,13 +261,18 @@ export const GeneralFiltersModal = React.memo(
 
               {/* Minimum Rating */}
               <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm">
-                <Text className="font-semibold text-gray-900 dark:text-white mb-3">Rating</Text>
+                <Text className="font-semibold text-gray-900 dark:text-white mb-3">
+                  Rating
+                </Text>
                 <View className="flex-row gap-2">
                   {[0, 3, 4, 4.5].map((rating) => (
                     <Pressable
                       key={rating}
                       onPress={() =>
-                        setTempFilters((prev) => ({ ...prev, minRating: rating }))
+                        setTempFilters((prev) => ({
+                          ...prev,
+                          minRating: rating,
+                        }))
                       }
                       className={`flex-1 items-center py-3 rounded-lg ${
                         tempFilters.minRating === rating
@@ -272,7 +302,9 @@ export const GeneralFiltersModal = React.memo(
 
             {/* Cuisine Types */}
             <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 shadow-sm">
-              <Text className="font-semibold text-lg text-gray-900 dark:text-white mb-4">Cuisine Types</Text>
+              <Text className="font-semibold text-lg text-gray-900 dark:text-white mb-4">
+                Cuisine Types
+              </Text>
               <View className="flex-row flex-wrap gap-2">
                 {CUISINE_TYPES.map((cuisine) => (
                   <Pressable
@@ -300,7 +332,9 @@ export const GeneralFiltersModal = React.memo(
 
             {/* Features & Amenities */}
             <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 shadow-sm">
-              <Text className="font-semibold text-lg text-gray-900 dark:text-white mb-4">Features & Amenities</Text>
+              <Text className="font-semibold text-lg text-gray-900 dark:text-white mb-4">
+                Features & Amenities
+              </Text>
               <View className="grid grid-cols-2 gap-3">
                 {FEATURES.map((feature) => (
                   <Pressable
@@ -323,11 +357,13 @@ export const GeneralFiltersModal = React.memo(
                         <Check size={12} className="text-white" />
                       )}
                     </View>
-                    <Text className={`flex-1 text-sm font-medium ${
-                      tempFilters.features.includes(feature.id)
-                        ? "text-primary"
-                        : "text-gray-700 dark:text-gray-300"
-                    }`}>
+                    <Text
+                      className={`flex-1 text-sm font-medium ${
+                        tempFilters.features.includes(feature.id)
+                          ? "text-primary"
+                          : "text-gray-700 dark:text-gray-300"
+                      }`}
+                    >
                       {feature.label}
                     </Text>
                   </Pressable>
@@ -337,12 +373,26 @@ export const GeneralFiltersModal = React.memo(
 
             {/* Booking Policy */}
             <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-6 shadow-sm">
-              <Text className="font-semibold text-lg text-gray-900 dark:text-white mb-4">Booking Type</Text>
+              <Text className="font-semibold text-lg text-gray-900 dark:text-white mb-4">
+                Booking Type
+              </Text>
               <View className="space-y-3">
                 {[
-                  { value: "all", label: "All restaurants", desc: "Show all booking options" },
-                  { value: "instant", label: "Instant booking only", desc: "Book immediately without waiting" },
-                  { value: "request", label: "Request booking only", desc: "Requires restaurant confirmation" },
+                  {
+                    value: "all",
+                    label: "All restaurants",
+                    desc: "Show all booking options",
+                  },
+                  {
+                    value: "instant",
+                    label: "Instant booking only",
+                    desc: "Book immediately without waiting",
+                  },
+                  {
+                    value: "request",
+                    label: "Request booking only",
+                    desc: "Requires restaurant confirmation",
+                  },
                 ].map((option) => (
                   <Pressable
                     key={option.value}
@@ -360,11 +410,13 @@ export const GeneralFiltersModal = React.memo(
                   >
                     <View className="flex-row items-center justify-between">
                       <View className="flex-1">
-                        <Text className={`font-medium ${
-                          tempFilters.bookingPolicy === option.value
-                            ? "text-primary"
-                            : "text-gray-900 dark:text-white"
-                        }`}>
+                        <Text
+                          className={`font-medium ${
+                            tempFilters.bookingPolicy === option.value
+                              ? "text-primary"
+                              : "text-gray-900 dark:text-white"
+                          }`}
+                        >
                           {option.label}
                         </Text>
                         <Text className="text-sm text-gray-500 dark:text-gray-400 mt-1">
@@ -389,7 +441,9 @@ export const GeneralFiltersModal = React.memo(
                 className="flex-1 border-2 border-gray-300 dark:border-gray-600"
                 onPress={clearAllFilters}
               >
-                <Text className="font-semibold text-gray-700 dark:text-gray-300">Clear All</Text>
+                <Text className="font-semibold text-gray-700 dark:text-gray-300">
+                  Clear All
+                </Text>
               </Button>
               <Button
                 variant="default"

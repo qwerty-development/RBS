@@ -42,7 +42,7 @@ export const TIME_SLOTS = [
   "21:30",
 ];
 
-export const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8];
+export const PARTY_SIZES = [null, 1, 2, 3, 4, 5, 6, 7, 8]; // null represents "Any"
 
 // Distance filter options
 export const DISTANCE_FILTERS = [
@@ -73,9 +73,9 @@ export const LEBANON_BOUNDS = {
 
 // Default filter values
 export const DEFAULT_BOOKING_FILTERS: BookingFilters = {
-  date: new Date(),
+  date: null, // Any date
   time: "19:00",
-  partySize: 2,
+  partySize: null, // Any party size
   availableOnly: false,
 };
 

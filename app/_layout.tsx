@@ -1,28 +1,27 @@
-import './polyfills'
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import '../global.css';
-import { Stack } from 'expo-router';
-import { AuthProvider } from '@/context/supabase-provider';
-import { NetworkProvider } from '@/context/network-provider';
-import { useColorScheme } from '@/lib/useColorScheme';
-import { colors } from '@/constants/colors';
-import { LogBox, Alert, View, Text } from 'react-native';
-import { useEffect, useState } from 'react';
-import * as Updates from 'expo-updates';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { useNetworkMonitor } from '@/hooks/useNetworkMonitor';
-import * as Sentry from '@sentry/react-native';
-import { getThemedColors } from '@/lib/utils';
-
-import React from 'react';
+import "./polyfills";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import "../global.css";
+import { Stack } from "expo-router";
+import { AuthProvider } from "@/context/supabase-provider";
+import { NetworkProvider } from "@/context/network-provider";
+import { useColorScheme } from "@/lib/useColorScheme";
+import { colors } from "@/constants/colors";
+import { LogBox, Alert, View, Text } from "react-native";
+import React, { useEffect, useState } from "react";
+import * as Updates from "expo-updates";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { useNetworkMonitor } from "@/hooks/useNetworkMonitor";
+import * as Sentry from "@sentry/react-native";
+import { getThemedColors } from "@/lib/utils";
 
 // Network status bar component
 function NetworkStatusBar() {
-  const { isOnline, connectionQuality, isLoading, hasInitialized } = useNetworkMonitor({
-    showOfflineAlert: true,
-    showOnlineAlert: false,
-    alertDelay: 5000,
-  });
+  const { isOnline, connectionQuality, isLoading, hasInitialized } =
+    useNetworkMonitor({
+      showOfflineAlert: true,
+      showOnlineAlert: false,
+      alertDelay: 5000,
+    });
 
   const [showBanner, setShowBanner] = useState(false);
 
@@ -37,7 +36,7 @@ function NetworkStatusBar() {
     // Add a small delay after initialization to ensure stable state
     const timer = setTimeout(() => {
       // Show banner if offline or poor connection
-      const shouldShow = !isOnline || connectionQuality === 'poor';
+      const shouldShow = !isOnline || connectionQuality === "poor";
       setShowBanner(shouldShow);
     }, 1000); // 1 second delay after initialization
 
@@ -49,22 +48,22 @@ function NetworkStatusBar() {
     return null;
   }
 
-  const backgroundColor = !isOnline ? '#F44336' : '#FF9800';
+  const backgroundColor = !isOnline ? "#F44336" : "#FF9800";
   const message = !isOnline
-    ? 'No internet connection'
-    : 'Slow connection detected';
+    ? "No internet connection"
+    : "Slow connection detected";
 
   return (
-    <View 
-      style={{ 
-        backgroundColor, 
-        paddingVertical: 8, 
-        paddingHorizontal: 16 
+    <View
+      style={{
+        backgroundColor,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
       }}
       className="bg-warning"
     >
-      <Text 
-        style={{ color: 'white', textAlign: 'center', fontWeight: '500' }}
+      <Text
+        style={{ color: "white", textAlign: "center", fontWeight: "500" }}
         className="text-warning-foreground text-center font-medium"
       >
         {message}
@@ -81,10 +80,10 @@ function RootLayoutContent() {
   useEffect(() => {
     if (__DEV__) {
       LogBox.ignoreLogs([
-        'Skipping duplicate check',
-        'Non-serializable values were found',
-        'Remote debugger',
-        'VirtualizedLists should never be nested',
+        "Skipping duplicate check",
+        "Non-serializable values were found",
+        "Remote debugger",
+        "VirtualizedLists should never be nested",
       ]);
     }
   }, []);
@@ -96,23 +95,23 @@ function RootLayoutContent() {
         const update = await Updates.checkForUpdateAsync();
         if (update.isAvailable) {
           Alert.alert(
-            'Update Available',
-            'A new version of the app is available. Would you like to update now?',
+            "Update Available",
+            "A new version of the app is available. Would you like to update now?",
             [
-              { text: 'Later', style: 'cancel' },
+              { text: "Later", style: "cancel" },
               {
-                text: 'Update',
+                text: "Update",
                 onPress: async () => {
                   await Updates.fetchUpdateAsync();
                   await Updates.reloadAsync();
                 },
               },
-            ]
+            ],
           );
         }
       } catch (error) {
         // Silently fail - updates aren't critical
-        console.log('Update check failed:', error);
+        console.log("Update check failed:", error);
       }
     }
 

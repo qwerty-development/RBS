@@ -4,16 +4,16 @@ import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 
 interface BookingFilters {
-  date: Date;
+  date: Date | null;
   time: string;
-  partySize: number;
+  partySize: number | null;
   availableOnly: boolean;
 }
 
 interface DatePickerModalProps {
   visible: boolean;
   bookingFilters: BookingFilters;
-  onDateSelect: (date: Date) => void;
+  onDateSelect: (date: Date | null) => void;
   onClose: () => void;
 }
 
@@ -38,9 +38,29 @@ export const DatePickerModal = React.memo(
       return dates;
     }, []);
 
-    const handleDateSelect = (date: Date) => {
+    const handleDateSelect = (date: Date | null) => {
       onDateSelect(date);
       onClose();
+    };
+
+    const getDateDisplayText = (date: Date) => {
+      const today = new Date();
+      const tomorrow = new Date(today);
+      tomorrow.setDate(today.getDate() + 1);
+
+      if (date.toDateString() === today.toDateString()) return "Today";
+      if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow";
+      return date.toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+      });
+    };
+
+    const isDateSelected = (date: Date | null) => {
+      if (bookingFilters.date === null && date === null) return true;
+      if (bookingFilters.date === null || date === null) return false;
+      return date.toDateString() === bookingFilters.date.toDateString();
     };
 
     return (
@@ -64,11 +84,21 @@ export const DatePickerModal = React.memo(
             </View>
 
             <ScrollView className="max-h-64">
+              {/* Any Date Option */}
+              <Pressable
+                onPress={() => handleDateSelect(null)}
+                className={`p-4 border-b border-border ${isDateSelected(null) ? "bg-primary/10" : ""}`}
+              >
+                <Text
+                  className={`font-medium ${isDateSelected(null) ? "text-primary" : ""}`}
+                >
+                  Any date
+                </Text>
+              </Pressable>
+
+              {/* Specific Dates */}
               {dateOptions.map((date, index) => {
-                const isSelected =
-                  date.toDateString() === bookingFilters.date.toDateString();
-                const isToday =
-                  date.toDateString() === new Date().toDateString();
+                const isSelected = isDateSelected(date);
 
                 return (
                   <Pressable
@@ -79,13 +109,7 @@ export const DatePickerModal = React.memo(
                     <Text
                       className={`font-medium ${isSelected ? "text-primary" : ""}`}
                     >
-                      {isToday
-                        ? "Today"
-                        : date.toLocaleDateString("en-US", {
-                            weekday: "long",
-                            month: "long",
-                            day: "numeric",
-                          })}
+                      {getDateDisplayText(date)}
                     </Text>
                   </Pressable>
                 );

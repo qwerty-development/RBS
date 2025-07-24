@@ -23,36 +23,42 @@ export async function validateTableAssignment(
   tableIds: string[],
   partySize: number,
   startTime: Date,
-  endTime: Date
+  endTime: Date,
 ): Promise<{ valid: boolean; error?: string }> {
   try {
     // Check if tables are available
-    const { data: conflict } = await supabase.rpc('check_booking_overlap', {
+    const { data: conflict } = await supabase.rpc("check_booking_overlap", {
       p_table_ids: tableIds,
       p_start_time: startTime.toISOString(),
       p_end_time: endTime.toISOString(),
     });
 
     if (conflict) {
-      return { valid: false, error: 'Tables are no longer available for this time slot' };
+      return {
+        valid: false,
+        error: "Tables are no longer available for this time slot",
+      };
     }
 
     // Verify total capacity
     const { data: tables } = await supabase
-      .from('restaurant_tables')
-      .select('capacity')
-      .in('id', tableIds);
+      .from("restaurant_tables")
+      .select("capacity")
+      .in("id", tableIds);
 
     const totalCapacity = tables?.reduce((sum, t) => sum + t.capacity, 0) || 0;
 
     if (totalCapacity < partySize) {
-      return { valid: false, error: 'Selected tables do not have enough capacity' };
+      return {
+        valid: false,
+        error: "Selected tables do not have enough capacity",
+      };
     }
 
     return { valid: true };
   } catch (error) {
-    console.error('Error validating table assignment:', error);
-    return { valid: false, error: 'Failed to validate table assignment' };
+    console.error("Error validating table assignment:", error);
+    return { valid: false, error: "Failed to validate table assignment" };
   }
 }
 
@@ -63,16 +69,16 @@ export async function calculateBookingWindow(
   restaurantId: string,
   bookingDate: Date,
   bookingTime: string,
-  partySize: number
+  partySize: number,
 ): Promise<BookingTimeWindow> {
-  const [hours, minutes] = bookingTime.split(':').map(Number);
+  const [hours, minutes] = bookingTime.split(":").map(Number);
   const startTime = new Date(bookingDate);
   startTime.setHours(hours, minutes, 0, 0);
 
   const turnTimeMinutes = await TurnTimeService.getTurnTime(
     restaurantId,
     partySize,
-    startTime
+    startTime,
   );
 
   const endTime = TurnTimeService.calculateEndTime(startTime, turnTimeMinutes);
@@ -88,13 +94,13 @@ export async function calculateBookingWindow(
  * Format table assignment for display
  */
 export function formatTableAssignment(tables: any[]): string {
-  if (tables.length === 0) return 'No table assigned';
-  
+  if (tables.length === 0) return "No table assigned";
+
   if (tables.length === 1) {
     return `Table ${tables[0].table_number}`;
   }
-  
-  const tableNumbers = tables.map(t => t.table_number).join(' + ');
+
+  const tableNumbers = tables.map((t) => t.table_number).join(" + ");
   return `Tables ${tableNumbers} (Combined)`;
 }
 
@@ -104,7 +110,7 @@ export function formatTableAssignment(tables: any[]): string {
 export async function getMaxBookingWindow(
   userId: string,
   restaurantId: string,
-  defaultDays: number
+  defaultDays: number,
 ): Promise<number> {
   return VIPService.getMaxBookingDays(userId, restaurantId, defaultDays);
 }
@@ -122,14 +128,14 @@ export function requiresTableCombination(partySize: number): boolean {
  */
 export function getTableTypeDisplayName(tableType: string): string {
   const displayNames: Record<string, string> = {
-    'booth': 'Booth',
-    'window': 'Window Table',
-    'patio': 'Patio',
-    'standard': 'Standard Table',
-    'bar': 'Bar Seating',
-    'private': 'Private Room',
+    booth: "Booth",
+    window: "Window Table",
+    patio: "Patio",
+    standard: "Standard Table",
+    bar: "Bar Seating",
+    private: "Private Room",
   };
-  
+
   return displayNames[tableType] || tableType;
 }
 
@@ -139,17 +145,17 @@ export function getTableTypeDisplayName(tableType: string): string {
 export function isPeakHour(date: Date): boolean {
   const hour = date.getHours();
   const dayOfWeek = date.getDay();
-  
+
   // Friday and Saturday 6-9 PM
   if ((dayOfWeek === 5 || dayOfWeek === 6) && hour >= 18 && hour <= 21) {
     return true;
   }
-  
+
   // Any day 12-2 PM (lunch rush)
   if (hour >= 12 && hour <= 14) {
     return true;
   }
-  
+
   return false;
 }
 
@@ -167,22 +173,29 @@ export function getSuggestedPartySizes(maxCapacity: number): number[] {
 /**
  * Cleanup old availability data (for maintenance)
  */
-export async function cleanupOldBookings(daysToKeep: number = 90): Promise<number> {
+export async function cleanupOldBookings(
+  daysToKeep: number = 90,
+): Promise<number> {
   try {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - daysToKeep);
 
     const { data, error } = await supabase
-      .from('bookings')
+      .from("bookings")
       .delete()
-      .lt('booking_time', cutoffDate.toISOString())
-      .in('status', ['completed', 'cancelled_by_user', 'declined_by_restaurant', 'no_show'])
-      .select('id');
+      .lt("booking_time", cutoffDate.toISOString())
+      .in("status", [
+        "completed",
+        "cancelled_by_user",
+        "declined_by_restaurant",
+        "no_show",
+      ])
+      .select("id");
 
     if (error) throw error;
     return data?.length || 0;
   } catch (error) {
-    console.error('Error cleaning up old bookings:', error);
+    console.error("Error cleaning up old bookings:", error);
     return 0;
   }
 }

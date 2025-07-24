@@ -1,4 +1,5 @@
-// utils/guestUtils.ts
+// utils/guestUtils.tsx
+import React from "react";
 import { Alert } from "react-native";
 import * as Haptics from "expo-haptics";
 import { useAuth } from "@/context/supabase-provider";
@@ -52,7 +53,7 @@ export function withAuthOnly<P extends object>(
             return null;
         }
 
-        return <Component { ...props } />;
+        return <Component {...props} />;
     };
 }
 

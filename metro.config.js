@@ -39,7 +39,7 @@ const jsoMetroPlugin = require("obfuscator-io-metro-plugin")(
       // Only obfuscate files in your project, not in node_modules
       return !filename.includes(`${path.sep}node_modules${path.sep}`);
     },
-  }
+  },
 );
 
 // Merge everything into one export

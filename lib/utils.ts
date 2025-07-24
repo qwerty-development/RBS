@@ -1,9 +1,9 @@
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 import { colors } from "@/constants/colors";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 /**
@@ -19,8 +19,8 @@ export function getThemedColors(colorScheme: "light" | "dark") {
  * Usage: getThemedColor('primary', colorScheme)
  */
 export function getThemedColor(
-  colorName: keyof typeof colors.light, 
-  colorScheme: "light" | "dark"
+  colorName: keyof typeof colors.light,
+  colorScheme: "light" | "dark",
 ): string {
   return colors[colorScheme][colorName] || colors[colorScheme].foreground;
 }
@@ -30,19 +30,27 @@ export function getThemedColor(
  * Replaces hard-coded "#fff" and "#000" patterns
  */
 export function getIconColor(colorScheme: "light" | "dark"): string {
-  return colorScheme === "dark" ? colors.dark.foreground : colors.light.foreground;
+  return colorScheme === "dark"
+    ? colors.dark.foreground
+    : colors.light.foreground;
 }
 
 /**
  * Get activity indicator color based on theme
  */
-export function getActivityIndicatorColor(colorScheme: "light" | "dark"): string {
-  return colorScheme === "dark" ? colors.dark.foreground : colors.light.foreground;
+export function getActivityIndicatorColor(
+  colorScheme: "light" | "dark",
+): string {
+  return colorScheme === "dark"
+    ? colors.dark.foreground
+    : colors.light.foreground;
 }
 
 /**
  * Get refresh control tint color based on theme
  */
 export function getRefreshControlColor(colorScheme: "light" | "dark"): string {
-  return colorScheme === "dark" ? colors.dark.foreground : colors.light.foreground;
+  return colorScheme === "dark"
+    ? colors.dark.foreground
+    : colors.light.foreground;
 }

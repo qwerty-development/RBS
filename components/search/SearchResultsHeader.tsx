@@ -28,6 +28,31 @@ export const SearchResultsHeader = React.memo(
       return ` in ${location.city}`;
     };
 
+    const getFilterText = () => {
+      if (bookingFilters.availableOnly) {
+        return ` • Showing only available restaurants`;
+      }
+      
+      if (bookingFilters.date === null && bookingFilters.partySize === null) {
+        return ` • Showing all restaurants`;
+      }
+
+      const datePart = bookingFilters.date === null 
+        ? "any date" 
+        : bookingFilters.date.toDateString() === new Date().toDateString()
+          ? "today"
+          : bookingFilters.date.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            });
+
+      const sizePart = bookingFilters.partySize === null 
+        ? "any party size" 
+        : `party of ${bookingFilters.partySize}`;
+
+      return ` • Showing availability for ${datePart} at ${bookingFilters.time}, ${sizePart}`;
+    };
+
     return (
       <View className="px-4 py-2 border-b border-border">
         <Text className="text-sm text-muted-foreground">
@@ -37,17 +62,7 @@ export const SearchResultsHeader = React.memo(
             <>
               {restaurantCount} restaurant{restaurantCount !== 1 ? "s" : ""}{" "}
               found{getLocationText()}
-              {bookingFilters.availableOnly
-                ? ` • Showing only available for ${bookingFilters.time}`
-                : ` • Showing availability for ${
-                    bookingFilters.date.toDateString() ===
-                    new Date().toDateString()
-                      ? "today"
-                      : bookingFilters.date.toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })
-                  } at ${bookingFilters.time}`}
+              {getFilterText()}
             </>
           )}
         </Text>

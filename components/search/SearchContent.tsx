@@ -1,12 +1,17 @@
 // components/search/SearchContent.tsx - Updated with scroll handling
 import React from "react";
-import { View, FlatList, RefreshControl } from "react-native";
+import {
+  View,
+  FlatList,
+  RefreshControl,
+  ActivityIndicator,
+} from "react-native";
 import MapView, { Region, Marker } from "react-native-maps";
 
 import { Restaurant, BookingFilters, ViewMode } from "@/types/search";
 import { RestaurantSearchCard } from "@/components/search/RestaurantSearchCard";
 import { Text } from "@/components/ui/text";
-import { ActivityIndicator } from "react-native";
+
 import { Image } from "@/components/image";
 import { Utensils } from "lucide-react-native";
 import { getActivityIndicatorColor, getRefreshControlColor } from "@/lib/utils";
@@ -61,8 +66,13 @@ export const SearchContent = ({
   if (loading && restaurants.length === 0) {
     return (
       <View className="flex-1 justify-center items-center">
-        <ActivityIndicator size="large" color={getActivityIndicatorColor(colorScheme)} />
-        <Text className="mt-4 text-muted-foreground">Loading restaurants...</Text>
+        <ActivityIndicator
+          size="large"
+          color={getActivityIndicatorColor(colorScheme)}
+        />
+        <Text className="mt-4 text-muted-foreground">
+          Loading restaurants...
+        </Text>
       </View>
     );
   }
@@ -92,12 +102,14 @@ export const SearchContent = ({
           mapType="standard"
         >
           {restaurants.map((restaurant) => {
-            const latitude = restaurant.coordinates?.latitude || 
-                           restaurant.staticCoordinates?.lat || 
-                           33.8938; // Default Beirut latitude
-            const longitude = restaurant.coordinates?.longitude || 
-                            restaurant.staticCoordinates?.lng || 
-                            35.5018; // Default Beirut longitude
+            const latitude =
+              restaurant.coordinates?.latitude ||
+              restaurant.staticCoordinates?.lat ||
+              33.8938; // Default Beirut latitude
+            const longitude =
+              restaurant.coordinates?.longitude ||
+              restaurant.staticCoordinates?.lng ||
+              35.5018; // Default Beirut longitude
 
             return (
               <Marker

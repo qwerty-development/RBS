@@ -60,7 +60,7 @@ export default function PlaylistDetailScreen() {
 
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [userPermission, setUserPermission] = useState<"view" | "edit" | null>(
-    null
+    null,
   );
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -98,7 +98,7 @@ export default function PlaylistDetailScreen() {
             full_name,
             avatar_url
           )
-        `
+        `,
         )
         .eq("id", id)
         .single();
@@ -149,7 +149,7 @@ export default function PlaylistDetailScreen() {
         params: { id: restaurantId },
       });
     },
-    [router]
+    [router],
   );
 
   const handleAddRestaurants = useCallback(() => {
@@ -170,7 +170,7 @@ export default function PlaylistDetailScreen() {
         fetchPlaylistDetails();
       }
     },
-    [playlist, updatePlaylist, fetchPlaylistDetails]
+    [playlist, updatePlaylist, fetchPlaylistDetails],
   );
 
   const handleDeletePlaylist = useCallback(async () => {
@@ -188,7 +188,7 @@ export default function PlaylistDetailScreen() {
             await deletePlaylist(playlist.id, playlist.name);
           },
         },
-      ]
+      ],
     );
   }, [playlist, deletePlaylist, router]);
 
@@ -196,7 +196,7 @@ export default function PlaylistDetailScreen() {
     if (!playlist) return;
 
     const { success, shareCode } = await togglePublicAccess(
-      !playlist.is_public
+      !playlist.is_public,
     );
     if (success) {
       fetchPlaylistDetails();
@@ -222,7 +222,7 @@ export default function PlaylistDetailScreen() {
             text: "Make Public",
             onPress: handleTogglePublic,
           },
-        ]
+        ],
       );
       return;
     }
@@ -259,7 +259,7 @@ export default function PlaylistDetailScreen() {
         </ScaleDecorator>
       );
     },
-    [handleRestaurantPress, userPermission]
+    [handleRestaurantPress, userPermission],
   );
 
   // Loading state
@@ -312,20 +312,18 @@ export default function PlaylistDetailScreen() {
             </View>
             <Muted>{items.length} restaurants</Muted>
           </View>
-                  {isOwner && (
-          <Pressable
-            onPress={() => setShowEditModal(true)}
-            className="w-10 h-10 items-center justify-center rounded-full bg-muted"
-          >
-            <Settings
-              size={20}
-              color={colorScheme === "dark" ? "#fff" : "#000"}
-            />
-          </Pressable>
-        )}
+          {isOwner && (
+            <Pressable
+              onPress={() => setShowEditModal(true)}
+              className="w-10 h-10 items-center justify-center rounded-full bg-muted"
+            >
+              <Settings
+                size={20}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+              />
+            </Pressable>
+          )}
         </View>
-
-
       </View>
 
       {/* Stats Bar */}

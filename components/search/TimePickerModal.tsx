@@ -21,9 +21,9 @@ const TIME_SLOTS = [
 ];
 
 interface BookingFilters {
-  date: Date;
+  date: Date | null;
   time: string;
-  partySize: number;
+  partySize: number | null;
   availableOnly: boolean;
 }
 

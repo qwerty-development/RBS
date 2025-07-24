@@ -23,19 +23,21 @@ export const ViewToggleTabs = ({
   restaurantCount,
   onMapViewSelected,
 }: ViewToggleTabsProps) => {
-  
-  const handleViewModeChange = React.useCallback((mode: ViewMode) => {
-    // Prevent unnecessary calls if already in the same mode
-    if (mode === viewMode) return;
-    
-    onViewModeChange(mode);
-    if (mode === "map" && onMapViewSelected) {
-      // Use requestAnimationFrame for smoother transition
-      requestAnimationFrame(() => {
-        onMapViewSelected();
-      });
-    }
-  }, [viewMode, onViewModeChange, onMapViewSelected]);
+  const handleViewModeChange = React.useCallback(
+    (mode: ViewMode) => {
+      // Prevent unnecessary calls if already in the same mode
+      if (mode === viewMode) return;
+
+      onViewModeChange(mode);
+      if (mode === "map" && onMapViewSelected) {
+        // Use requestAnimationFrame for smoother transition
+        requestAnimationFrame(() => {
+          onMapViewSelected();
+        });
+      }
+    },
+    [viewMode, onViewModeChange, onMapViewSelected],
+  );
 
   const themedColors = getThemedColors(colorScheme);
 
@@ -61,9 +63,7 @@ export const ViewToggleTabs = ({
           />
           <Text
             className={`font-medium ${
-              viewMode === "list"
-                ? "text-primary"
-                : "text-muted-foreground"
+              viewMode === "list" ? "text-primary" : "text-muted-foreground"
             }`}
           >
             List
@@ -96,9 +96,7 @@ export const ViewToggleTabs = ({
           />
           <Text
             className={`font-medium ${
-              viewMode === "map"
-                ? "text-primary"
-                : "text-muted-foreground"
+              viewMode === "map" ? "text-primary" : "text-muted-foreground"
             }`}
           >
             Map

@@ -12,9 +12,9 @@ import { Text } from "@/components/ui/text";
 import { LocationDisplay } from "./LocationDisplay";
 
 interface BookingFilters {
-  date: Date;
+  date: Date | null;
   time: string;
-  partySize: number;
+  partySize: number | null;
   availableOnly: boolean;
 }
 
@@ -61,9 +61,26 @@ export const SearchHeader = ({
         toValue: isCollapsed ? 0 : 1,
         duration: 200, // Faster animation
         useNativeDriver: true, // Use native driver for better performance
-      })
+      }),
     ]).start();
   }, [isCollapsed]);
+
+  // Helper functions for display text
+  const getPartySizeText = () => {
+    if (bookingFilters.partySize === null) return "Any size";
+    return bookingFilters.partySize.toString();
+  };
+
+  const getDateText = () => {
+    if (bookingFilters.date === null) return "Any date";
+    if (bookingFilters.date.toDateString() === new Date().toDateString()) {
+      return "Today";
+    }
+    return bookingFilters.date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  };
 
   return (
     <View className="bg-background border-b border-border">
@@ -72,22 +89,18 @@ export const SearchHeader = ({
         {/* Location Header with Booking Bubble */}
         <View className="flex-row items-center justify-between mb-4">
           <LocationDisplay />
-          
+
           {/* Booking Quick Access Bubble */}
           <Pressable
             onPress={onShowBookingModal}
             className="bg-primary/10 border border-primary/20 rounded-full px-3 py-2 flex-row items-center gap-2"
           >
-            <Users size={14} color={colorScheme === "dark" ? "#3b82f6" : "#2563eb"} />
+            <Users
+              size={14}
+              color={colorScheme === "dark" ? "#3b82f6" : "#2563eb"}
+            />
             <Text className="text-primary text-sm font-medium">
-              {bookingFilters.partySize} • {" "}
-              {bookingFilters.date.toDateString() === new Date().toDateString()
-                ? "Today"
-                : bookingFilters.date.toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })}
-              , {bookingFilters.time}
+              {getPartySizeText()} • {getDateText()}, {bookingFilters.time}
             </Text>
           </Pressable>
         </View>
@@ -105,7 +118,7 @@ export const SearchHeader = ({
               returnKeyType="search"
             />
           </View>
-          
+
           {/* Filter Button */}
           <Pressable
             onPress={onShowGeneralFilters}
@@ -126,9 +139,6 @@ export const SearchHeader = ({
       </View>
 
       {/* Collapsible Content: Booking Filters */}
-
-
-
-        </View>
+    </View>
   );
 };

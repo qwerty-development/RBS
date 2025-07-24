@@ -1,6 +1,10 @@
 // hooks/useAvailability.ts (Optimized)
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { AvailabilityService, TimeSlotBasic, SlotTableOptions } from "@/lib/AvailabilityService";
+import {
+  AvailabilityService,
+  TimeSlotBasic,
+  SlotTableOptions,
+} from "@/lib/AvailabilityService";
 import { realtimeAvailability } from "@/lib/RealtimeAvailability";
 import { useAuth } from "@/context/supabase-provider";
 
@@ -9,7 +13,7 @@ interface UseAvailabilityOptions {
   date: Date;
   partySize: number;
   enableRealtime?: boolean;
-  mode?: 'time-first' | 'full';
+  mode?: "time-first" | "full";
   preloadNext?: boolean;
 }
 
@@ -17,12 +21,12 @@ interface AvailabilityState {
   // Time slots (first step)
   timeSlots: TimeSlotBasic[];
   timeSlotsLoading: boolean;
-  
+
   // Selected slot details (second step)
   selectedSlotOptions: SlotTableOptions | null;
   selectedTime: string | null;
   slotOptionsLoading: boolean;
-  
+
   // General state
   error: string | null;
   lastUpdate: number;
@@ -33,8 +37,8 @@ export function useAvailability({
   date,
   partySize,
   enableRealtime = true,
-  mode = 'time-first',
-  preloadNext = true
+  mode = "time-first",
+  preloadNext = true,
 }: UseAvailabilityOptions) {
   const { profile } = useAuth();
   const [state, setState] = useState<AvailabilityState>({
@@ -48,120 +52,142 @@ export function useAvailability({
   });
 
   // Refs for optimization
-  const availabilityService = useMemo(() => AvailabilityService.getInstance(), []);
+  const availabilityService = useMemo(
+    () => AvailabilityService.getInstance(),
+    [],
+  );
   const abortControllerRef = useRef<AbortController | null>(null);
-  const lastParamsRef = useRef<string>('');
+  const lastParamsRef = useRef<string>("");
 
   // Memoized params key for change detection
-  const paramsKey = useMemo(() => 
-    `${restaurantId}:${date.toISOString().split('T')[0]}:${partySize}:${profile?.id || 'guest'}`,
-    [restaurantId, date, partySize, profile?.id]
+  const paramsKey = useMemo(
+    () =>
+      `${restaurantId}:${date.toISOString().split("T")[0]}:${partySize}:${profile?.id || "guest"}`,
+    [restaurantId, date, partySize, profile?.id],
   );
 
   // Optimized fetch function with abort capability
-  const fetchTimeSlots = useCallback(async (signal?: AbortSignal) => {
-    if (!restaurantId) return;
+  const fetchTimeSlots = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!restaurantId) return;
 
-    // Skip if params haven't changed
-    if (paramsKey === lastParamsRef.current && state.timeSlots.length > 0 && !state.error) {
-      return;
-    }
+      // Skip if params haven't changed
+      if (
+        paramsKey === lastParamsRef.current &&
+        state.timeSlots.length > 0 &&
+        !state.error
+      ) {
+        return;
+      }
 
-    setState(prev => ({ 
-      ...prev, 
-      timeSlotsLoading: true, 
-      error: null,
-      selectedSlotOptions: null,
-      selectedTime: null
-    }));
-
-    try {
-      const timeSlots = await availabilityService.getAvailableTimeSlots(
-        restaurantId,
-        date,
-        partySize,
-        profile?.id,
-        preloadNext
-      );
-
-      // Check if request was cancelled
-      if (signal?.aborted) return;
-
-      setState(prev => ({ 
-        ...prev, 
-        timeSlots,
-        timeSlotsLoading: false,
-        lastUpdate: Date.now()
+      setState((prev) => ({
+        ...prev,
+        timeSlotsLoading: true,
+        error: null,
+        selectedSlotOptions: null,
+        selectedTime: null,
       }));
 
-      lastParamsRef.current = paramsKey;
+      try {
+        const timeSlots = await availabilityService.getAvailableTimeSlots(
+          restaurantId,
+          date,
+          partySize,
+          profile?.id,
+          preloadNext,
+        );
 
-    } catch (err) {
-      if (signal?.aborted) return;
-      
-      console.error("Error fetching time slots:", err);
-      setState(prev => ({ 
-        ...prev, 
-        error: "Failed to load available times",
-        timeSlots: [],
-        timeSlotsLoading: false 
-      }));
-    }
-  }, [restaurantId, date, partySize, profile?.id, preloadNext, availabilityService, paramsKey, state.timeSlots.length, state.error]);
+        // Check if request was cancelled
+        if (signal?.aborted) return;
+
+        setState((prev) => ({
+          ...prev,
+          timeSlots,
+          timeSlotsLoading: false,
+          lastUpdate: Date.now(),
+        }));
+
+        lastParamsRef.current = paramsKey;
+      } catch (err) {
+        if (signal?.aborted) return;
+
+        console.error("Error fetching time slots:", err);
+        setState((prev) => ({
+          ...prev,
+          error: "Failed to load available times",
+          timeSlots: [],
+          timeSlotsLoading: false,
+        }));
+      }
+    },
+    [
+      restaurantId,
+      date,
+      partySize,
+      profile?.id,
+      preloadNext,
+      availabilityService,
+      paramsKey,
+      state.timeSlots.length,
+      state.error,
+    ],
+  );
 
   // Optimized fetch slot options with debouncing
-  const fetchSlotOptions = useCallback(async (time: string) => {
-    if (!restaurantId || !time) return;
+  const fetchSlotOptions = useCallback(
+    async (time: string) => {
+      if (!restaurantId || !time) return;
 
-    // Cancel any existing request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
+      // Cancel any existing request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
 
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
-    setState(prev => ({ 
-      ...prev, 
-      slotOptionsLoading: true, 
-      selectedTime: time,
-      error: null 
-    }));
-
-    try {
-      // Small delay to avoid rapid fire requests
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      if (controller.signal.aborted) return;
-
-      const slotOptions = await availabilityService.getTableOptionsForSlot(
-        restaurantId,
-        date,
-        time,
-        partySize
-      );
-
-      if (controller.signal.aborted) return;
-
-      setState(prev => ({ 
-        ...prev, 
-        selectedSlotOptions: slotOptions,
-        slotOptionsLoading: false,
-        lastUpdate: Date.now()
+      setState((prev) => ({
+        ...prev,
+        slotOptionsLoading: true,
+        selectedTime: time,
+        error: null,
       }));
 
-    } catch (err) {
-      if (controller.signal.aborted) return;
-      
-      console.error("Error fetching slot options:", err);
-      setState(prev => ({ 
-        ...prev, 
-        error: "Failed to load seating experiences",
-        selectedSlotOptions: null,
-        slotOptionsLoading: false 
-      }));
-    }
-  }, [restaurantId, date, partySize, availabilityService]);
+      try {
+        // Small delay to avoid rapid fire requests
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        if (controller.signal.aborted) return;
+
+        const slotOptions = await availabilityService.getTableOptionsForSlot(
+          restaurantId,
+          date,
+          time,
+          partySize,
+        );
+
+        if (controller.signal.aborted) return;
+
+        setState((prev) => ({
+          ...prev,
+          selectedSlotOptions: slotOptions,
+          slotOptionsLoading: false,
+          lastUpdate: Date.now(),
+        }));
+      } catch (err) {
+        if (controller.signal.aborted) return;
+
+        console.error("Error fetching slot options:", err);
+        setState((prev) => ({
+          ...prev,
+          error: "Failed to load seating experiences",
+          selectedSlotOptions: null,
+          slotOptionsLoading: false,
+        }));
+      }
+    },
+    [restaurantId, date, partySize, availabilityService],
+  );
 
   // Optimized clear function
   const clearSelectedSlot = useCallback(() => {
@@ -170,36 +196,45 @@ export function useAvailability({
       abortControllerRef.current.abort();
     }
 
-    setState(prev => ({ 
-      ...prev, 
+    setState((prev) => ({
+      ...prev,
       selectedSlotOptions: null,
       selectedTime: null,
       slotOptionsLoading: false,
-      error: prev.error && prev.error.includes('seating') ? null : prev.error
+      error: prev.error && prev.error.includes("seating") ? null : prev.error,
     }));
   }, []);
 
   // Enhanced refresh with optimistic updates
-  const refresh = useCallback(async (force = false) => {
-    if (force) {
-      // Clear cache for this restaurant
-      availabilityService.clearCombinationCache(restaurantId);
-      lastParamsRef.current = '';
-    }
+  const refresh = useCallback(
+    async (force = false) => {
+      if (force) {
+        // Clear cache for this restaurant
+        availabilityService.clearCombinationCache(restaurantId);
+        lastParamsRef.current = "";
+      }
 
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
-    await fetchTimeSlots(controller.signal);
-    
-    if (state.selectedTime && !controller.signal.aborted) {
-      await fetchSlotOptions(state.selectedTime);
-    }
-  }, [fetchTimeSlots, fetchSlotOptions, state.selectedTime, availabilityService, restaurantId]);
+      await fetchTimeSlots(controller.signal);
+
+      if (state.selectedTime && !controller.signal.aborted) {
+        await fetchSlotOptions(state.selectedTime);
+      }
+    },
+    [
+      fetchTimeSlots,
+      fetchSlotOptions,
+      state.selectedTime,
+      availabilityService,
+      restaurantId,
+    ],
+  );
 
   // Initial fetch with optimization
   useEffect(() => {
-    if (mode === 'time-first') {
+    if (mode === "time-first") {
       const controller = new AbortController();
       abortControllerRef.current = controller;
       fetchTimeSlots(controller.signal);
@@ -214,7 +249,7 @@ export function useAvailability({
 
   // Real-time updates with throttling
   const realtimeUpdateRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   useEffect(() => {
     if (!enableRealtime || !restaurantId) return;
 
@@ -233,7 +268,7 @@ export function useAvailability({
 
     const unsubscribe = realtimeAvailability.subscribeToRestaurant(
       restaurantId,
-      throttledUpdate
+      throttledUpdate,
     );
 
     return () => {
@@ -264,22 +299,30 @@ export function useAvailability({
   }, []);
 
   // Memoized computed values
-  const computedValues = useMemo(() => ({
-    hasTimeSlots: state.timeSlots.length > 0,
-    hasSelectedSlot: !!state.selectedSlotOptions,
-    isLoading: state.timeSlotsLoading || state.slotOptionsLoading,
-    experienceCount: state.selectedSlotOptions?.options?.length || 0,
-    hasMultipleExperiences: (state.selectedSlotOptions?.options?.length || 0) > 1,
-    primaryExperience: state.selectedSlotOptions?.primaryOption?.experienceTitle,
-    isEmpty: !state.timeSlotsLoading && state.timeSlots.length === 0,
-    hasError: !!state.error,
-    isStale: (Date.now() - state.lastUpdate) > 300000, // 5 minutes
-  }), [state]);
+  const computedValues = useMemo(
+    () => ({
+      hasTimeSlots: state.timeSlots.length > 0,
+      hasSelectedSlot: !!state.selectedSlotOptions,
+      isLoading: state.timeSlotsLoading || state.slotOptionsLoading,
+      experienceCount: state.selectedSlotOptions?.options?.length || 0,
+      hasMultipleExperiences:
+        (state.selectedSlotOptions?.options?.length || 0) > 1,
+      primaryExperience:
+        state.selectedSlotOptions?.primaryOption?.experienceTitle,
+      isEmpty: !state.timeSlotsLoading && state.timeSlots.length === 0,
+      hasError: !!state.error,
+      isStale: Date.now() - state.lastUpdate > 300000, // 5 minutes
+    }),
+    [state],
+  );
 
   // Optimized slot finding
-  const findSlot = useCallback((time: string) => {
-    return state.timeSlots.find(slot => slot.time === time);
-  }, [state.timeSlots]);
+  const findSlot = useCallback(
+    (time: string) => {
+      return state.timeSlots.find((slot) => slot.time === time);
+    },
+    [state.timeSlots],
+  );
 
   // Prefetch next logical selections
   const prefetchNext = useCallback(() => {
@@ -290,16 +333,22 @@ export function useAvailability({
       const slotsToPreload = state.timeSlots.slice(0, 3);
       slotsToPreload.forEach((slot, index) => {
         setTimeout(() => {
-          availabilityService.getTableOptionsForSlot(
-            restaurantId,
-            date,
-            slot.time,
-            partySize
-          ).catch(() => {/* Ignore errors in prefetch */});
+          availabilityService
+            .getTableOptionsForSlot(restaurantId, date, slot.time, partySize)
+            .catch(() => {
+              /* Ignore errors in prefetch */
+            });
         }, index * 500); // Stagger requests
       });
     }, 1000);
-  }, [preloadNext, state.timeSlots, restaurantId, date, partySize, availabilityService]);
+  }, [
+    preloadNext,
+    state.timeSlots,
+    restaurantId,
+    date,
+    partySize,
+    availabilityService,
+  ]);
 
   // Trigger prefetch when time slots are loaded
   useEffect(() => {
@@ -312,22 +361,22 @@ export function useAvailability({
     // Time slots (step 1)
     timeSlots: state.timeSlots,
     timeSlotsLoading: state.timeSlotsLoading,
-    
+
     // Selected slot details (step 2)
     selectedSlotOptions: state.selectedSlotOptions,
     selectedTime: state.selectedTime,
     slotOptionsLoading: state.slotOptionsLoading,
-    
+
     // General state
     error: state.error,
     lastUpdate: state.lastUpdate,
-    
+
     // Actions
     fetchSlotOptions,
     clearSelectedSlot,
     refresh,
     findSlot,
-    
+
     // Computed values (memoized)
     ...computedValues,
   };
@@ -339,13 +388,16 @@ export function useAvailabilityLegacy({
   date,
   partySize,
   enableRealtime = true,
-}: Omit<UseAvailabilityOptions, 'mode'>) {
+}: Omit<UseAvailabilityOptions, "mode">) {
   const { profile } = useAuth();
   const [slots, setSlots] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const availabilityService = useMemo(() => AvailabilityService.getInstance(), []);
+  const availabilityService = useMemo(
+    () => AvailabilityService.getInstance(),
+    [],
+  );
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const fetchAvailability = useCallback(async () => {
@@ -367,7 +419,7 @@ export function useAvailabilityLegacy({
         restaurantId,
         date,
         partySize,
-        profile?.id
+        profile?.id,
       );
 
       if (!controller.signal.aborted) {
@@ -388,7 +440,7 @@ export function useAvailabilityLegacy({
 
   useEffect(() => {
     fetchAvailability();
-    
+
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
@@ -401,7 +453,7 @@ export function useAvailabilityLegacy({
     if (!enableRealtime || !restaurantId) return;
 
     const updateRef = { current: null as NodeJS.Timeout | null };
-    
+
     const throttledRefresh = () => {
       if (updateRef.current) {
         clearTimeout(updateRef.current);
@@ -414,7 +466,7 @@ export function useAvailabilityLegacy({
 
     const unsubscribe = realtimeAvailability.subscribeToRestaurant(
       restaurantId,
-      throttledRefresh
+      throttledRefresh,
     );
 
     return () => {
@@ -440,12 +492,15 @@ export function useQuickAvailability(
   restaurantId: string,
   date: Date,
   partySize: number,
-  enabled: boolean = true
+  enabled: boolean = true,
 ) {
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(false);
 
-  const availabilityService = useMemo(() => AvailabilityService.getInstance(), []);
+  const availabilityService = useMemo(
+    () => AvailabilityService.getInstance(),
+    [],
+  );
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const checkAvailability = useCallback(async () => {
@@ -467,7 +522,7 @@ export function useQuickAvailability(
         date,
         partySize,
         undefined,
-        false // Don't preload for quick checks
+        false, // Don't preload for quick checks
       );
 
       if (!controller.signal.aborted) {
@@ -504,14 +559,17 @@ export function useQuickAvailability(
 
 // Hook for preloading availability data
 export function useAvailabilityPreloader() {
-  const availabilityService = useMemo(() => AvailabilityService.getInstance(), []);
+  const availabilityService = useMemo(
+    () => AvailabilityService.getInstance(),
+    [],
+  );
 
-  const preloadRestaurant = useCallback((
-    restaurantId: string,
-    partySizes: number[] = [2, 4]
-  ) => {
-    availabilityService.preloadPopularSlots(restaurantId, partySizes);
-  }, [availabilityService]);
+  const preloadRestaurant = useCallback(
+    (restaurantId: string, partySizes: number[] = [2, 4]) => {
+      availabilityService.preloadPopularSlots(restaurantId, partySizes);
+    },
+    [availabilityService],
+  );
 
   return { preloadRestaurant };
 }

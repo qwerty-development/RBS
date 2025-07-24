@@ -1,12 +1,6 @@
 // components/home/SpecialOfferBannerCarousel.tsx
 import React, { useRef, useState, useCallback } from "react";
-import {
-  ScrollView,
-  View,
-  Dimensions,
-  Pressable,
-  Alert,
-} from "react-native";
+import { ScrollView, View, Dimensions, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
 
 import { SpecialOfferBanner } from "./SpecialOfferBanner";
@@ -111,7 +105,9 @@ export function SpecialOfferBannerCarousel({
         if (offer.isExpired || offer.used) {
           Alert.alert(
             "Offer Not Available",
-            offer.used ? "This offer has already been used." : "This offer has expired.",
+            offer.used
+              ? "This offer has already been used."
+              : "This offer has expired.",
           );
           return;
         }

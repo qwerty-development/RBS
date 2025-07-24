@@ -1,14 +1,14 @@
 // components/network/NetworkStatusBanner.tsx
 import React, { useEffect, useState } from "react";
 import { View, Pressable, Animated } from "react-native";
-import { 
-  Wifi, 
-  WifiOff, 
-  Signal, 
-  AlertTriangle, 
+import {
+  Wifi,
+  WifiOff,
+  Signal,
+  AlertTriangle,
   CheckCircle,
   RefreshCw,
-  X 
+  X,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { useNetwork } from "@/context/network-provider";
@@ -22,11 +22,11 @@ interface NetworkStatusBannerProps {
   onDismiss?: () => void;
 }
 
-export function NetworkStatusBanner({ 
+export function NetworkStatusBanner({
   showWhenOnline = false,
   autoDismiss,
   position = "top",
-  onDismiss
+  onDismiss,
 }: NetworkStatusBannerProps) {
   const { networkState, isOnline, refresh } = useNetwork();
   const { colorScheme } = useColorScheme();
@@ -35,11 +35,11 @@ export function NetworkStatusBanner({
   const slideAnim = useState(new Animated.Value(0))[0];
 
   // Determine if banner should be shown
-  const shouldShow = visible && (
-    !isOnline || 
-    (showWhenOnline && isOnline) ||
-    networkState.isSlowConnection
-  );
+  const shouldShow =
+    visible &&
+    (!isOnline ||
+      (showWhenOnline && isOnline) ||
+      networkState.isSlowConnection);
 
   // Auto-dismiss logic
   useEffect(() => {
@@ -118,8 +118,8 @@ export function NetworkStatusBanner({
   });
 
   return (
-    <Animated.View 
-      style={{ 
+    <Animated.View
+      style={{
         transform: [{ translateY }],
         zIndex: 1000,
         position: "absolute",
@@ -128,13 +128,12 @@ export function NetworkStatusBanner({
         right: 0,
       }}
     >
-      <View className={`${config.bgColor} px-4 py-3 mx-4 mt-2 rounded-lg shadow-lg`}>
+      <View
+        className={`${config.bgColor} px-4 py-3 mx-4 mt-2 rounded-lg shadow-lg`}
+      >
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center flex-1">
-            <Icon 
-              size={20} 
-              color={getIconColor(colorScheme)} 
-            />
+            <Icon size={20} color={getIconColor(colorScheme)} />
             <View className="ml-3 flex-1">
               <Text className={`font-semibold ${config.textColor}`}>
                 {config.message}
@@ -144,29 +143,26 @@ export function NetworkStatusBanner({
               </Text>
             </View>
           </View>
-          
+
           <View className="flex-row items-center ml-2">
             {config.showRefresh && (
-              <Pressable 
+              <Pressable
                 onPress={handleRefresh}
                 className="p-2 mr-1"
                 disabled={refreshing}
               >
-                <RefreshCw 
-                  size={18} 
+                <RefreshCw
+                  size={18}
                   color={getIconColor(colorScheme)}
-                  style={{ 
-                    transform: [{ rotate: refreshing ? "360deg" : "0deg" }] 
+                  style={{
+                    transform: [{ rotate: refreshing ? "360deg" : "0deg" }],
                   }}
                 />
               </Pressable>
             )}
-            
+
             <Pressable onPress={handleDismiss} className="p-2">
-              <X 
-                size={18} 
-                color={getIconColor(colorScheme)} 
-              />
+              <X size={18} color={getIconColor(colorScheme)} />
             </Pressable>
           </View>
         </View>

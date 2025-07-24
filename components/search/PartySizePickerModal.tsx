@@ -2,20 +2,19 @@ import React from "react";
 import { View, Modal, Pressable, ScrollView } from "react-native";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
-
-const PARTY_SIZES = [1, 2, 3, 4, 5, 6, 7, 8];
+import { PARTY_SIZES } from "@/constants/searchConstants";
 
 interface BookingFilters {
-  date: Date;
+  date: Date | null;
   time: string;
-  partySize: number;
+  partySize: number | null;
   availableOnly: boolean;
 }
 
 interface PartySizePickerModalProps {
   visible: boolean;
   bookingFilters: BookingFilters;
-  onPartySizeSelect: (size: number) => void;
+  onPartySizeSelect: (size: number | null) => void;
   onClose: () => void;
 }
 
@@ -26,9 +25,14 @@ export const PartySizePickerModal = React.memo(
     onPartySizeSelect,
     onClose,
   }: PartySizePickerModalProps) => {
-    const handlePartySizeSelect = (size: number) => {
+    const handlePartySizeSelect = (size: number | null) => {
       onPartySizeSelect(size);
       onClose();
+    };
+
+    const getDisplayText = (size: number | null) => {
+      if (size === null) return "Any party size";
+      return `${size} ${size === 1 ? "Person" : "People"}`;
     };
 
     return (
@@ -52,19 +56,19 @@ export const PartySizePickerModal = React.memo(
             </View>
 
             <ScrollView className="max-h-64">
-              {PARTY_SIZES.map((size) => {
+              {PARTY_SIZES.map((size, index) => {
                 const isSelected = size === bookingFilters.partySize;
 
                 return (
                   <Pressable
-                    key={size}
+                    key={index}
                     onPress={() => handlePartySizeSelect(size)}
                     className={`p-4 border-b border-border ${isSelected ? "bg-primary/10" : ""}`}
                   >
                     <Text
                       className={`font-medium ${isSelected ? "text-primary" : ""}`}
                     >
-                      {size} {size === 1 ? "Person" : "People"}
+                      {getDisplayText(size)}
                     </Text>
                   </Pressable>
                 );

@@ -6,7 +6,7 @@ import { GlobalChatTab } from "@/components/ui/global-chat-tab";
 import { View, ActivityIndicator, Text } from "react-native";
 import { NetworkStatusBanner } from "@/components/network/NetworkStatusBanner";
 import { useColorScheme } from "@/lib/useColorScheme";
-import { colors } from "@/constants/colors"; 
+import { colors } from "@/constants/colors";
 import { getThemedColors, getActivityIndicatorColor } from "@/lib/utils";
 
 export const unstable_settings = {
@@ -30,8 +30,11 @@ export default function ProtectedLayout() {
         }}
         className="bg-background"
       >
-        <ActivityIndicator size="large" color={getActivityIndicatorColor(colorScheme)} />
-        <Text 
+        <ActivityIndicator
+          size="large"
+          color={getActivityIndicatorColor(colorScheme)}
+        />
+        <Text
           style={{ color: themedColors.foreground, marginTop: 16 }}
           className="text-foreground mt-4"
         >
@@ -53,8 +56,11 @@ export default function ProtectedLayout() {
         }}
         className="bg-background"
       >
-        <ActivityIndicator size="large" color={getActivityIndicatorColor(colorScheme)} />
-        <Text 
+        <ActivityIndicator
+          size="large"
+          color={getActivityIndicatorColor(colorScheme)}
+        />
+        <Text
           style={{ color: themedColors.foreground, marginTop: 16 }}
           className="text-foreground mt-4"
         >
@@ -65,14 +71,14 @@ export default function ProtectedLayout() {
   }
 
   return (
-    <View style={{ 
-      flex: 1, 
-      backgroundColor: themedColors.background 
-    }} className="bg-background">
-      <NetworkStatusBanner 
-        position="top"
-        autoDismiss={5000}
-      />
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: themedColors.background,
+      }}
+      className="bg-background"
+    >
+      <NetworkStatusBanner position="top" autoDismiss={5000} />
       <Stack
         screenOptions={{
           headerShown: false,
