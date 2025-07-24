@@ -248,34 +248,62 @@ export function useAvailability({
   }, [mode, paramsKey]); // Use paramsKey instead of individual params
 
   // Real-time updates with throttling
-  const realtimeUpdateRef = useRef<NodeJS.Timeout | null>(null);
+  const realtimeUpdateRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!enableRealtime || !restaurantId) return;
 
+    let isMounted = true;
+    let unsubscribeRealtime: (() => void) | null = null;
+
     const throttledUpdate = () => {
+      // Check if component is still mounted
+      if (!isMounted) return;
+
       // Clear existing timeout
       if (realtimeUpdateRef.current) {
         clearTimeout(realtimeUpdateRef.current);
+        realtimeUpdateRef.current = null;
       }
 
       // Throttle updates to avoid excessive calls
       realtimeUpdateRef.current = setTimeout(() => {
-        console.log("Availability update received, refreshing experiences...");
-        refresh();
+        if (isMounted) {
+          console.log("Availability update received, refreshing experiences...");
+          refresh();
+        }
       }, 2000); // 2 second throttle
     };
 
-    const unsubscribe = realtimeAvailability.subscribeToRestaurant(
-      restaurantId,
-      throttledUpdate,
-    );
+    const subscribeToRealtime = async () => {
+      try {
+        unsubscribeRealtime = realtimeAvailability.subscribeToRestaurant(
+          restaurantId,
+          throttledUpdate,
+        );
+      } catch (error) {
+        console.error("Failed to subscribe to realtime updates:", error);
+      }
+    };
+
+    subscribeToRealtime();
 
     return () => {
-      unsubscribe();
+      isMounted = false;
+      
+      // Clean up realtime subscription
+      if (unsubscribeRealtime) {
+        unsubscribeRealtime();
+        unsubscribeRealtime = null;
+      }
+      
+      // Clean up timeout
       if (realtimeUpdateRef.current) {
         clearTimeout(realtimeUpdateRef.current);
+        realtimeUpdateRef.current = null;
       }
+      
+      console.log("🧹 Availability realtime subscription cleaned up");
     };
   }, [restaurantId, enableRealtime, refresh]);
 
@@ -452,7 +480,7 @@ export function useAvailabilityLegacy({
   useEffect(() => {
     if (!enableRealtime || !restaurantId) return;
 
-    const updateRef = { current: null as NodeJS.Timeout | null };
+    const updateRef = { current: null as number | null };
 
     const throttledRefresh = () => {
       if (updateRef.current) {

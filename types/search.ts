@@ -24,7 +24,7 @@ export interface BookingFilters {
 }
 
 export interface GeneralFilters {
-  sortBy: "recommended" | "rating" | "distance" | "name" | "availability";
+  sortBy: "recommended" | "rating" | "distance" | "name";
   cuisines: string[];
   features: string[];
   priceRange: number[];

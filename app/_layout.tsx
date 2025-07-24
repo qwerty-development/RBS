@@ -9,7 +9,7 @@ import { colors } from "@/constants/colors";
 import { LogBox, Alert, View, Text } from "react-native";
 import React, { useEffect, useState } from "react";
 import * as Updates from "expo-updates";
-import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ErrorBoundary, NavigationErrorBoundary } from "@/components/ErrorBoundary";
 import { useNetworkMonitor } from "@/hooks/useNetworkMonitor";
 import * as Sentry from "@sentry/react-native";
 import { getThemedColors } from "@/lib/utils";
@@ -137,11 +137,29 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
   return (
-    <ErrorBoundary>
+    <ErrorBoundary 
+      showDetails={__DEV__}
+      onError={(error, errorInfo) => {
+        // Custom error logging
+        console.error('Root Error:', error);
+        console.error('Error Info:', errorInfo);
+        
+        // Additional error tracking
+        if (!__DEV__) {
+          Sentry.withScope((scope) => {
+            scope.setTag('location', 'root_layout');
+            scope.setLevel('fatal');
+            Sentry.captureException(error);
+          });
+        }
+      }}
+    >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <NetworkProvider>
           <AuthProvider>
-            <RootLayoutContent />
+            <NavigationErrorBoundary>
+              <RootLayoutContent />
+            </NavigationErrorBoundary>
           </AuthProvider>
         </NetworkProvider>
       </GestureHandlerRootView>

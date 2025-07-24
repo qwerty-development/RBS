@@ -32,7 +32,7 @@ const FEATURES = [
 ];
 
 interface GeneralFilters {
-  sortBy: "recommended" | "rating" | "distance" | "name" | "availability";
+  sortBy: "recommended" | "rating" | "distance" | "name";
   cuisines: string[];
   features: string[];
   priceRange: number[];
@@ -162,11 +162,7 @@ export const GeneralFiltersModal = React.memo(
                     label: "Recommended",
                     desc: "Best overall matches",
                   },
-                  {
-                    value: "availability",
-                    label: "Best Availability",
-                    desc: "Most open time slots",
-                  },
+
                   {
                     value: "rating",
                     label: "Highest Rated",

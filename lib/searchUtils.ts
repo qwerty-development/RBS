@@ -154,10 +154,6 @@ export const sortRestaurants = (
         return a.name.localeCompare(b.name);
       case "distance":
         return (a.distance || Infinity) - (b.distance || Infinity);
-      case "availability":
-        return availableOnly
-          ? 0
-          : (b.isAvailable ? 1 : 0) - (a.isAvailable ? 1 : 0);
       case "recommended":
       default:
         const scoreA =

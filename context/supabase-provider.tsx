@@ -746,6 +746,9 @@ function AuthContent({ children }: PropsWithChildren) {
     if (initializationAttempted.current) return;
     initializationAttempted.current = true;
 
+    let authSubscription: { unsubscribe: () => void } | null = null;
+    let isMounted = true;
+
     const initializeAuth = async () => {
       try {
         console.log("🔄 Initializing auth state...");
@@ -754,6 +757,9 @@ function AuthContent({ children }: PropsWithChildren) {
           data: { session },
           error,
         } = await supabase.auth.getSession();
+
+        // Check if component is still mounted before updating state
+        if (!isMounted) return;
 
         if (error) {
           console.error("❌ Error getting session:", error);
@@ -775,18 +781,23 @@ function AuthContent({ children }: PropsWithChildren) {
       } catch (error) {
         console.error("❌ Error initializing auth:", error);
       } finally {
-        setInitialized(true);
-        console.log("✅ Auth initialization complete");
+        if (isMounted) {
+          setInitialized(true);
+          console.log("✅ Auth initialization complete");
+        }
       }
     };
 
     initializeAuth();
 
-    // Listen for auth changes
+    // Listen for auth changes with proper cleanup
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("🔄 Auth state changed:", event, !!session);
+
+      // Check if component is still mounted before updating state
+      if (!isMounted) return;
 
       try {
         if (session) {
@@ -804,8 +815,16 @@ function AuthContent({ children }: PropsWithChildren) {
       }
     });
 
+    authSubscription = subscription;
+
+    // Cleanup function
     return () => {
-      subscription.unsubscribe();
+      isMounted = false;
+      if (authSubscription) {
+        authSubscription.unsubscribe();
+        authSubscription = null;
+      }
+      console.log("🧹 Auth subscription cleaned up");
     };
   }, []);
 

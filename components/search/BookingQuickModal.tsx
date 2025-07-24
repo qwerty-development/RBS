@@ -13,6 +13,7 @@ import { Text } from "@/components/ui/text";
 import { H3 } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { PARTY_SIZES } from "@/constants/searchConstants";
+import { RotateCcw } from "lucide-react-native";
 
 interface BookingFilters {
   date: Date | null;
@@ -31,7 +32,7 @@ interface BookingQuickModalProps {
 
 interface DateOption {
   id: string;
-  date: Date;
+  date: Date | null;
   label: string;
 }
 
@@ -46,6 +47,13 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 // Generate available dates (next 60 days)
 const generateDateOptions = (): DateOption[] => {
   const dates: DateOption[] = [];
+
+  // Add "Any date" option first
+  dates.push({
+    id: "date-any",
+    date: null,
+    label: "Any date",
+  });
 
   for (let dayOffset = 0; dayOffset < 60; dayOffset++) {
     const date = new Date();
@@ -134,18 +142,18 @@ export const BookingQuickModal = ({
       const matchingDate = bookingFilters.date 
         ? DATE_OPTIONS.find(
             (option) =>
-              option.date.toDateString() === bookingFilters.date!.toDateString(),
+              option.date && option.date.toDateString() === bookingFilters.date!.toDateString(),
           )
-        : null;
-      setSelectedDateId(matchingDate?.id || DATE_OPTIONS[0]?.id || "");
+        : DATE_OPTIONS.find(option => option.date === null); // Find "Any date" option
+      setSelectedDateId(matchingDate?.id || "date-any");
 
       // Find the matching time
       const matchingTime = bookingFilters.time 
         ? TIME_OPTIONS.find(
             (option) => option.time === bookingFilters.time,
           )
-        : null;
-      setSelectedTimeId(matchingTime?.id || TIME_OPTIONS[0]?.id || "");
+        : TIME_OPTIONS.find(option => option.time === null); // Find "Any time" option
+      setSelectedTimeId(matchingTime?.id || "time-any");
     }
   }, [visible, bookingFilters]);
 
@@ -160,7 +168,7 @@ export const BookingQuickModal = ({
     if (selectedDate && selectedTime) {
       onApply({
         ...localFilters,
-        date: selectedDate.date,
+        date: selectedDate.date, // date can now be null for "Any date"
         time: selectedTime.time, // time can now be null for "Any time"
       });
     }
@@ -329,7 +337,38 @@ export const BookingQuickModal = ({
           </View>
 
           {/* Footer */}
-          <View className="p-4 border-t border-border">
+          <View className="p-4 border-t border-border space-y-3">
+            {/* Show All Button - only show if any filters are applied */}
+            {(localFilters.partySize !== null || 
+              selectedDateId !== "date-any" || 
+              selectedTimeId !== "time-any") && (
+                              <Button 
+                onPress={() => {
+                  // Reset all filters to "Any"
+                  setLocalFilters({ 
+                    ...localFilters, 
+                    partySize: null 
+                  });
+                  setSelectedDateId("date-any");
+                  setSelectedTimeId("time-any");
+                  
+                  // Apply the reset filters immediately
+                  onApply({
+                    ...localFilters,
+                    partySize: null,
+                    date: null, // "Any date" 
+                    time: null, // "Any time" 
+                  });
+                }} 
+                variant="outline" 
+                className="w-full border-primary flex-row items-center gap-2"
+              >
+                <RotateCcw size={16} color="#2563eb" />
+                <Text className="text-primary font-medium">Show All Restaurants</Text>
+              </Button>
+            )}
+            
+            {/* Done Button */}
             <Button onPress={handleApply} className="w-full bg-black">
               <Text className="text-white font-semibold text-lg">Done</Text>
             </Button>
