@@ -50,7 +50,7 @@ import {
   postgisToAddress,
   parsePostGISGeometry,
 } from "../../../lib/locationConverter";
-
+import { RestaurantLoyaltyRules } from '@/components/booking/LoyaltyPointsDisplay';
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { useRestaurant } from "@/hooks/useRestaurant";
@@ -868,6 +868,7 @@ export default function RestaurantDetailsScreen() {
 
         <AboutSection restaurant={restaurant} />
         <FeaturesSection restaurant={restaurant} />
+        <RestaurantLoyaltyRules restaurantId={id as string} />
         <ContactInfo
           restaurant={restaurant}
           onCall={() => handleCall(restaurant)}
