@@ -13,7 +13,7 @@ import { LocationDisplay } from "./LocationDisplay";
 
 interface BookingFilters {
   date: Date | null;
-  time: string;
+  time: string | null;
   partySize: number | null;
   availableOnly: boolean;
 }
@@ -82,6 +82,43 @@ export const SearchHeader = ({
     });
   };
 
+  const getTimeText = () => {
+    if (bookingFilters.time === null) return "Any time";
+    return bookingFilters.time;
+  };
+
+  const getFilterDisplayText = () => {
+    const partyText = getPartySizeText();
+    const dateText = getDateText();
+    const timeText = getTimeText();
+
+    // If all are "Any", show a simplified message
+    if (bookingFilters.partySize === null && 
+        bookingFilters.date === null && 
+        bookingFilters.time === null) {
+      return "All restaurants";
+    }
+
+    // Build the display text based on what's set
+    const parts = [];
+    
+    if (bookingFilters.partySize !== null) {
+      parts.push(partyText);
+    }
+    
+    if (bookingFilters.date !== null || bookingFilters.time !== null) {
+      if (bookingFilters.date !== null && bookingFilters.time !== null) {
+        parts.push(`${dateText}, ${timeText}`);
+      } else if (bookingFilters.date !== null) {
+        parts.push(`${dateText}, any time`);
+      } else {
+        parts.push(`any date, ${timeText}`);
+      }
+    }
+
+    return parts.length > 0 ? parts.join(" • ") : "All restaurants";
+  };
+
   return (
     <View className="bg-background border-b border-border">
       {/* Always visible: Location + Search + Filter */}
@@ -93,14 +130,32 @@ export const SearchHeader = ({
           {/* Booking Quick Access Bubble */}
           <Pressable
             onPress={onShowBookingModal}
-            className="bg-primary/10 border border-primary/20 rounded-full px-3 py-2 flex-row items-center gap-2"
+            className={`border rounded-full px-3 py-2 flex-row items-center gap-2 ${
+              bookingFilters.partySize === null && 
+              bookingFilters.date === null && 
+              bookingFilters.time === null
+                ? "bg-muted border-border" // Muted when all are "Any"
+                : "bg-primary/10 border-primary/20" // Active when filters are set
+            }`}
           >
             <Users
               size={14}
-              color={colorScheme === "dark" ? "#3b82f6" : "#2563eb"}
+              color={
+                bookingFilters.partySize === null && 
+                bookingFilters.date === null && 
+                bookingFilters.time === null
+                  ? "#666" // Muted icon
+                  : colorScheme === "dark" ? "#3b82f6" : "#2563eb" // Active icon
+              }
             />
-            <Text className="text-primary text-sm font-medium">
-              {getPartySizeText()} • {getDateText()}, {bookingFilters.time}
+            <Text className={`text-sm font-medium ${
+              bookingFilters.partySize === null && 
+              bookingFilters.date === null && 
+              bookingFilters.time === null
+                ? "text-muted-foreground" // Muted text
+                : "text-primary" // Active text
+            }`}>
+              {getFilterDisplayText()}
             </Text>
           </Pressable>
         </View>

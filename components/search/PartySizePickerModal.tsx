@@ -3,10 +3,11 @@ import { View, Modal, Pressable, ScrollView } from "react-native";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { PARTY_SIZES } from "@/constants/searchConstants";
+import { Users, X } from "lucide-react-native";
 
 interface BookingFilters {
   date: Date | null;
-  time: string;
+  time: string | null;
   partySize: number | null;
   availableOnly: boolean;
 }
@@ -48,14 +49,22 @@ export const PartySizePickerModal = React.memo(
           onPress={onClose}
         >
           <Pressable
-            className="bg-background rounded-lg w-80 max-h-96"
+            className="bg-background rounded-2xl w-80 max-h-96 shadow-xl"
             onPress={(e) => e.stopPropagation()}
           >
-            <View className="p-4 border-b border-border">
-              <Text className="font-semibold text-lg">Select Party Size</Text>
+            {/* Header */}
+            <View className="flex-row items-center justify-between p-4 border-b border-border">
+              <View className="flex-row items-center gap-2">
+                <Users size={20} color="#666" />
+                <Text className="font-semibold text-lg">Party Size</Text>
+              </View>
+              <Pressable onPress={onClose} className="p-1">
+                <X size={20} color="#666" />
+              </Pressable>
             </View>
 
-            <ScrollView className="max-h-64">
+            {/* Content */}
+            <ScrollView className="max-h-64 py-2">
               {PARTY_SIZES.map((size, index) => {
                 const isSelected = size === bookingFilters.partySize;
 
@@ -63,10 +72,16 @@ export const PartySizePickerModal = React.memo(
                   <Pressable
                     key={index}
                     onPress={() => handlePartySizeSelect(size)}
-                    className={`p-4 border-b border-border ${isSelected ? "bg-primary/10" : ""}`}
+                    className={`mx-4 my-1 p-4 rounded-xl border ${
+                      isSelected 
+                        ? "bg-primary/10 border-primary/20" 
+                        : "bg-transparent border-transparent hover:bg-muted"
+                    }`}
                   >
                     <Text
-                      className={`font-medium ${isSelected ? "text-primary" : ""}`}
+                      className={`font-medium text-center ${
+                        isSelected ? "text-primary" : "text-foreground"
+                      }`}
                     >
                       {getDisplayText(size)}
                     </Text>
@@ -75,8 +90,9 @@ export const PartySizePickerModal = React.memo(
               })}
             </ScrollView>
 
-            <View className="p-4">
-              <Button variant="outline" onPress={onClose}>
+            {/* Footer */}
+            <View className="p-4 border-t border-border">
+              <Button variant="outline" onPress={onClose} className="w-full">
                 <Text>Cancel</Text>
               </Button>
             </View>

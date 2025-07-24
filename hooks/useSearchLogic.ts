@@ -218,7 +218,8 @@ export const useSearchLogic = (): UseSearchReturn => {
           const needsAvailabilityCheck = 
             bFilters.availableOnly || 
             bFilters.partySize !== null || 
-            bFilters.date !== null;
+            bFilters.date !== null || 
+            bFilters.time !== null;
 
           if (needsAvailabilityCheck) {
             const availabilityChecks = await Promise.all(
@@ -226,7 +227,7 @@ export const useSearchLogic = (): UseSearchReturn => {
                 const isAvailable = await checkRestaurantAvailability(
                   restaurant.id,
                   bFilters.date || new Date(), // Use current date if null
-                  bFilters.time,
+                  bFilters.time || "19:00", // Use default time if null
                   bFilters.partySize || 2, // Use default party size if null
                 );
                 return { ...restaurant, isAvailable };
@@ -239,7 +240,8 @@ export const useSearchLogic = (): UseSearchReturn => {
             const shouldFilterByAvailability =
               bFilters.availableOnly || 
               bFilters.partySize !== null || 
-              bFilters.date !== null;
+              bFilters.date !== null || 
+              bFilters.time !== null;
 
             if (shouldFilterByAvailability) {
               processedRestaurants = processedRestaurants.filter(
@@ -341,7 +343,8 @@ export const useSearchLogic = (): UseSearchReturn => {
           const needsAvailabilityCheck = 
             bFilters.availableOnly || 
             bFilters.partySize !== null || 
-            bFilters.date !== null;
+            bFilters.date !== null || 
+            bFilters.time !== null;
 
           if (needsAvailabilityCheck) {
             const availabilityChecks = await Promise.all(
@@ -349,7 +352,7 @@ export const useSearchLogic = (): UseSearchReturn => {
                 const isAvailable = await checkRestaurantAvailability(
                   restaurant.id,
                   bFilters.date || new Date(), // Use current date if null
-                  bFilters.time,
+                  bFilters.time || "19:00", // Use default time if null
                   bFilters.partySize || 2, // Use default party size if null
                 );
                 return { ...restaurant, isAvailable };
@@ -362,7 +365,8 @@ export const useSearchLogic = (): UseSearchReturn => {
             const shouldFilterByAvailability =
               bFilters.availableOnly || 
               bFilters.partySize !== null || 
-              bFilters.date !== null;
+              bFilters.date !== null || 
+              bFilters.time !== null;
 
             if (shouldFilterByAvailability) {
               processedRestaurants = processedRestaurants.filter(
@@ -409,7 +413,7 @@ export const useSearchLogic = (): UseSearchReturn => {
         params: {
           id: restaurantId,
           date: bookingFilters.date ? bookingFilters.date.toISOString() : new Date().toISOString(),
-          time: bookingFilters.time,
+          time: bookingFilters.time || "19:00",
           partySize: (bookingFilters.partySize || 2).toString(),
         },
       });

@@ -18,7 +18,7 @@ export type ViewMode = "list" | "map";
 
 export interface BookingFilters {
   date: Date | null;
-  time: string;
+  time: string | null;
   partySize: number | null;
   availableOnly: boolean;
 }

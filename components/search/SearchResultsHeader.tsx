@@ -33,24 +33,53 @@ export const SearchResultsHeader = React.memo(
         return ` • Showing only available restaurants`;
       }
       
-      if (bookingFilters.date === null && bookingFilters.partySize === null) {
+      if (bookingFilters.date === null && 
+          bookingFilters.partySize === null && 
+          bookingFilters.time === null) {
         return ` • Showing all restaurants`;
       }
 
-      const datePart = bookingFilters.date === null 
-        ? "any date" 
-        : bookingFilters.date.toDateString() === new Date().toDateString()
-          ? "today"
-          : bookingFilters.date.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            });
+      const parts = [];
 
-      const sizePart = bookingFilters.partySize === null 
-        ? "any party size" 
-        : `party of ${bookingFilters.partySize}`;
+      // Add party size info
+      if (bookingFilters.partySize !== null) {
+        parts.push(`party of ${bookingFilters.partySize}`);
+      }
 
-      return ` • Showing availability for ${datePart} at ${bookingFilters.time}, ${sizePart}`;
+      // Add date/time info
+      if (bookingFilters.date !== null || bookingFilters.time !== null) {
+        let dateTimePart = "";
+        
+        if (bookingFilters.date !== null && bookingFilters.time !== null) {
+          const datePart = bookingFilters.date.toDateString() === new Date().toDateString()
+            ? "today"
+            : bookingFilters.date.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              });
+          dateTimePart = `${datePart} at ${bookingFilters.time}`;
+        } else if (bookingFilters.date !== null) {
+          const datePart = bookingFilters.date.toDateString() === new Date().toDateString()
+            ? "today"
+            : bookingFilters.date.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              });
+          dateTimePart = `${datePart} at any time`;
+        } else if (bookingFilters.time !== null) {
+          dateTimePart = `any date at ${bookingFilters.time}`;
+        }
+        
+        if (dateTimePart) {
+          parts.push(dateTimePart);
+        }
+      }
+
+      if (parts.length === 0) {
+        return ` • Showing all restaurants`;
+      }
+
+      return ` • Showing availability for ${parts.join(", ")}`;
     };
 
     return (

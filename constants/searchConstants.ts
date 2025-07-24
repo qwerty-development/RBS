@@ -26,6 +26,7 @@ export const FEATURES = [
 ];
 
 export const TIME_SLOTS = [
+  null, // "Any time"
   "12:00",
   "12:30",
   "13:00",
@@ -74,7 +75,7 @@ export const LEBANON_BOUNDS = {
 // Default filter values
 export const DEFAULT_BOOKING_FILTERS: BookingFilters = {
   date: null, // Any date
-  time: "19:00",
+  time: null, // Any time
   partySize: null, // Any party size
   availableOnly: false,
 };

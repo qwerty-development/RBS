@@ -16,7 +16,7 @@ import { PARTY_SIZES } from "@/constants/searchConstants";
 
 interface BookingFilters {
   date: Date | null;
-  time: string;
+  time: string | null;
   partySize: number | null;
   availableOnly: boolean;
 }
@@ -37,7 +37,7 @@ interface DateOption {
 
 interface TimeOption {
   id: string;
-  time: string;
+  time: string | null;
   label: string;
 }
 
@@ -77,6 +77,13 @@ const generateDateOptions = (): DateOption[] => {
 // Generate available times (all day in 30-minute intervals)
 const generateTimeOptions = (): TimeOption[] => {
   const times: TimeOption[] = [];
+
+  // Add "Any time" option first
+  times.push({
+    id: "time-any",
+    time: null,
+    label: "Any time",
+  });
 
   // Generate times from 06:00 to 23:30 in 30-minute intervals
   for (let hour = 6; hour <= 23; hour++) {
@@ -133,9 +140,11 @@ export const BookingQuickModal = ({
       setSelectedDateId(matchingDate?.id || DATE_OPTIONS[0]?.id || "");
 
       // Find the matching time
-      const matchingTime = TIME_OPTIONS.find(
-        (option) => option.time === bookingFilters.time,
-      );
+      const matchingTime = bookingFilters.time 
+        ? TIME_OPTIONS.find(
+            (option) => option.time === bookingFilters.time,
+          )
+        : null;
       setSelectedTimeId(matchingTime?.id || TIME_OPTIONS[0]?.id || "");
     }
   }, [visible, bookingFilters]);
@@ -152,7 +161,7 @@ export const BookingQuickModal = ({
       onApply({
         ...localFilters,
         date: selectedDate.date,
-        time: selectedTime.time,
+        time: selectedTime.time, // time can now be null for "Any time"
       });
     }
     onClose();
