@@ -30,10 +30,15 @@ export default function TabsLayout() {
               : colors.light.background,
           borderTopWidth: 1,
           borderTopColor:
-            colorScheme === "dark" ? colors.dark.border : colors.light.border,
+            colorScheme === "dark"
+              ? "hsl(240, 3.7%, 25%)" // less white, more subtle than the default border
+              : colors.light.border,
           height: 80,
           paddingBottom: 20,
           paddingTop: 8,
+          borderTopLeftRadius: 12, // small rounded corners
+          borderTopRightRadius: 12, // small rounded corners
+          overflow: 'hidden', // ensure corners are clipped
         },
         tabBarActiveTintColor:
           colorScheme === "dark" ? colors.dark.primary : colors.light.primary,

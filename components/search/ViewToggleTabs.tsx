@@ -4,7 +4,7 @@ import { View, Pressable } from "react-native";
 import { Map, List } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 
-type ViewMode = "list" | "map";
+export type ViewMode = "list" | "map";
 
 interface ViewToggleTabsProps {
   viewMode: ViewMode;

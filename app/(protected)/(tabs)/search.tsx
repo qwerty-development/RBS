@@ -113,7 +113,7 @@ export default function SearchScreen() {
   };
 
   // --- MODIFIED: The favorite action is now wrapped by the guest guard ---
-  const handleToggleFavoriteProtected = (restaurantId: string) => {
+  const handleToggleFavoriteProtected = async (restaurantId: string) => {
     runProtectedAction(() => actions.toggleFavorite(restaurantId));
   };
 
@@ -235,7 +235,10 @@ export default function SearchScreen() {
         visible={showGeneralFilters}
         generalFilters={searchState.generalFilters}
         onApplyFilters={(filters) => {
-          actions.updateGeneralFilters(filters);
+          actions.updateGeneralFilters({
+            ...filters,
+            maxDistance: filters.maxDistance || 10, // Ensure maxDistance is never null
+          });
           setShowGeneralFilters(false);
         }}
         onClose={() => setShowGeneralFilters(false)}
