@@ -112,12 +112,7 @@ export function useAccessibility(): AccessibilityOptions & {
         const highContrastSetting = await getHighContrast();
         setIsHighContrastEnabled(highContrastSetting === 'true');
 
-        console.log('Accessibility settings initialized:', {
-          screenReader: screenReaderEnabled,
-          reduceMotion: reduceMotionEnabled,
-          fontScale: scale,
-          highContrast: highContrastSetting === 'true',
-        });
+        
       } catch (error) {
         console.error('Failed to initialize accessibility settings:', error);
       }
