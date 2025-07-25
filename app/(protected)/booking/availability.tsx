@@ -679,15 +679,12 @@ export default function AvailabilitySelectionScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [clearSelectedSlot]);
 
-  // FIXED: Updated experience confirmation with better error handling
   const handleExperienceConfirm = useCallback(async (tableIds: string[], selectedOption: TableOption) => {
     if (!selectedSlotOptions || !restaurant || !bookingDateTime) {
       Alert.alert("Error", "Missing booking information");
       return;
     }
-
     try {
-      // Use the new booking confirmation hook
       const success = await confirmBooking({
         restaurantId: params.restaurantId,
         bookingTime: bookingDateTime,
@@ -703,8 +700,6 @@ export default function AvailabilitySelectionScreen() {
         tableIds: JSON.stringify(tableIds),
         requiresCombination: selectedOption.requiresCombination
       });
-
-      // Success navigation is handled by the hook
       if (success) {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }

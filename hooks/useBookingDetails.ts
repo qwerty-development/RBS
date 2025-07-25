@@ -83,24 +83,27 @@ export const useBookingDetails = (bookingId: string) => {
 
       // NEW: Fetch assigned tables
       const { data: tablesData, error: tablesError } = await supabase
-        .from("booking_tables")
-        .select(
-          `
-          table:restaurant_tables (
-            id,
-            table_number,
-            table_type,
-            capacity
-          )
-        `
+      .from("booking_tables")
+      .select(`
+        table_id,
+        created_at,
+        table:restaurant_tables (
+          id,
+          table_number,
+          table_type,
+          capacity
         )
-        .eq("booking_id", bookingId);
+      `)
+      .eq("booking_id", bookingId);
 
-      if (!tablesError && tablesData) {
+      if (!tablesError && tablesData && tablesData.length > 0) {
         const tables = tablesData
           .map((bt) => bt.table)
           .filter((t): t is TableInfo => t !== null);
         setAssignedTables(tables);
+      } else {
+        console.log('No tables found for booking:', bookingId);
+        setAssignedTables([]);
       }
 
       // Check if review exists for completed bookings

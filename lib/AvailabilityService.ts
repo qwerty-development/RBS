@@ -316,60 +316,79 @@ export class AvailabilityService {
     partySize: number,
     cacheKey: string
   ): Promise<SlotTableOptions | null> {
-    if (!availableTables || availableTables.length === 0) {
-      // Always try table combinations for parties > 2
-      if (partySize > 2) {
-        const combination = await this.findTableCombinationForLargeParties(
-          restaurantId,
-          startTime,
-          endTime,
-          partySize
-        );
-
-        if (combination && combination.length > 0) {
-          const totalCapacity = combination.reduce((sum, t) => sum + t.capacity, 0);
-          const combinationOption: TableOption = {
-            tables: combination,
-            requiresCombination: true,
-            totalCapacity: totalCapacity,
-            tableTypes: [...new Set(combination.map(t => t.table_type))],
-            experienceTitle: combination.length > 2 ? "Special Group Arrangement" : "Private Group Arrangement",
-            experienceDescription: `${combination.length} tables specially arranged together for your party of ${partySize}`,
-            isPerfectFit: totalCapacity >= partySize && totalCapacity <= partySize + 2,
-            combinationInfo: {
-              primaryTable: combination[0],
-              secondaryTable: combination[1],
-              additionalTables: combination.length > 2 ? combination.slice(2) : undefined,
-              reason: `Specially arranged for ${partySize} guests`,
-            },
-          };
-
-          const result = {
-            time,
-            options: [combinationOption],
-            primaryOption: combinationOption,
-          };
-
-          this.tableOptionsCache.set(cacheKey, result);
-          return result;
-        }
+    // Validate table data
+    const validTables = (availableTables || []).filter(table => 
+      table.table_id && table.table_number && table.capacity
+    ).map(table => ({
+      id: table.table_id, // Ensure we use table_id from RPC result
+      table_number: table.table_number,
+      capacity: table.capacity,
+      min_capacity: table.min_capacity,
+      max_capacity: table.max_capacity,
+      table_type: table.table_type || 'standard',
+      is_combinable: table.is_combinable,
+      priority_score: table.priority_score || 0,
+      features: table.features || []
+    }));
+  
+    console.log('Processing tables for slot:', time, 'Valid tables:', validTables.length);
+  
+    if (validTables.length === 0 && partySize > 2) {
+      // Try combinations for larger parties
+      const combination = await this.findTableCombinationForLargeParties(
+        restaurantId,
+        startTime,
+        endTime,
+        partySize
+      );
+  
+      if (combination && combination.length > 0) {
+        const totalCapacity = combination.reduce((sum, t) => sum + t.capacity, 0);
+        const combinationOption: TableOption = {
+          tables: combination,
+          requiresCombination: true,
+          totalCapacity: totalCapacity,
+          tableTypes: [...new Set(combination.map(t => t.table_type))],
+          experienceTitle: combination.length > 2 ? "Special Group Arrangement" : "Private Group Arrangement",
+          experienceDescription: `${combination.length} tables specially arranged together for your party of ${partySize}`,
+          isPerfectFit: totalCapacity >= partySize && totalCapacity <= partySize + 2,
+          combinationInfo: {
+            primaryTable: combination[0],
+            secondaryTable: combination[1],
+            additionalTables: combination.length > 2 ? combination.slice(2) : undefined,
+            reason: `Specially arranged for ${partySize} guests`,
+          },
+        };
+  
+        const result = {
+          time,
+          options: [combinationOption],
+          primaryOption: combinationOption,
+        };
+  
+        this.tableOptionsCache.set(cacheKey, result);
+        return result;
       }
       return null;
     }
-
-    const tableOptions = this.createOptimizedTableOptions(availableTables, partySize);
+  
+    if (validTables.length === 0) {
+      return null;
+    }
+  
+    const tableOptions = this.createOptimizedTableOptions(validTables, partySize);
     
     if (tableOptions.length === 0) {
       return null;
     }
-
+  
     const primaryOption = this.selectPrimaryOption(tableOptions, partySize);
     const result = {
       time,
       options: tableOptions,
       primaryOption,
     };
-
+  
     this.tableOptionsCache.set(cacheKey, result);
     return result;
   }
@@ -1053,7 +1072,7 @@ export class AvailabilityService {
     try {
       const timeSlots = await this.getAvailableTimeSlots(restaurantId, date, partySize, userId);
       const fullSlots: TimeSlot[] = [];
-
+  
       const batchSize = 5;
       for (let i = 0; i < timeSlots.length; i += batchSize) {
         const batch = timeSlots.slice(i, i + batchSize);
@@ -1064,23 +1083,34 @@ export class AvailabilityService {
             timeSlot.time,
             partySize
           );
-
-          if (tableOptions) {
-            return {
-              time: timeSlot.time,
-              available: true,
-              tables: tableOptions.primaryOption.tables,
-              requiresCombination: tableOptions.primaryOption.requiresCombination,
-              totalCapacity: tableOptions.primaryOption.totalCapacity,
-            };
+  
+          if (tableOptions && tableOptions.primaryOption) {
+            // Ensure all tables have valid IDs
+            const validTables = tableOptions.primaryOption.tables.filter(t => t.id);
+            
+            if (validTables.length > 0) {
+              return {
+                time: timeSlot.time,
+                available: true,
+                tables: validTables,
+                requiresCombination: tableOptions.primaryOption.requiresCombination,
+                totalCapacity: tableOptions.primaryOption.totalCapacity,
+              };
+            }
           }
           return null;
         });
-
+  
         const batchResults = await Promise.all(batchPromises);
         fullSlots.push(...batchResults.filter(slot => slot !== null) as TimeSlot[]);
       }
-
+  
+      console.log('Available slots with tables:', fullSlots.map(s => ({
+        time: s.time,
+        tableCount: s.tables?.length || 0,
+        tableIds: s.tables?.map(t => t.id) || []
+      })));
+  
       return fullSlots;
     } catch (error) {
       console.error("Error getting available slots:", error);

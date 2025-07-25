@@ -450,15 +450,7 @@ export default function BookingDetailsScreen() {
               />
             )}
 
-            {/* Loyalty Points Card */}
-            {loyaltyActivity && (
-              <LoyaltyPointsCard
-                pointsEarned={loyaltyActivity.points_earned}
-                userTier={(booking as any).metadata?.userTier || "bronze"}
-                tierMultiplier={loyaltyActivity.points_multiplier}
-                hasOffer={!!appliedOfferDetails}
-              />
-            )}
+       
           </View>
         )}
 
