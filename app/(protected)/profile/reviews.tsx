@@ -51,6 +51,12 @@ const fetchReviews = async (id: string) => {
 };
 
 export default function ReviewsPage() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const [reviews, setReviews] = useState<Review[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const params = useLocalSearchParams();

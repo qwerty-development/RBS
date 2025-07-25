@@ -332,6 +332,12 @@ const RewardCard: React.FC<{
 };
 
 export default function LoyaltyScreen() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const { profile, refreshProfile } = useAuth();
   const { colorScheme } = useColorScheme();
   const router = useRouter();

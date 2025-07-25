@@ -25,6 +25,12 @@ import {
 } from "@/components/restaurant";
 
 export default function RestaurantReviewsScreen() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const { colorScheme } = useColorScheme();
   const router = useRouter();
 

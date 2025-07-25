@@ -62,6 +62,12 @@ const SORT_OPTIONS = [
 ] as const;
 
 export default function CuisineScreen() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const { cuisineId, cuisineName } =

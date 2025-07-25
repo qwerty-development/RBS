@@ -89,6 +89,12 @@ const RestaurantLoyaltyNotification: React.FC<{
 };
 
 export default function BookingSuccessScreen() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const params = useLocalSearchParams<BookingSuccessParams>();
   const router = useRouter();
   const { colorScheme } = useColorScheme();
@@ -216,7 +222,7 @@ export default function BookingSuccessScreen() {
     let message = `I just booked a table at ${params.restaurantName}! 🎉\nConfirmation: ${params.confirmationCode}`;
 
     if (parsedParams.hasOffer) {
-      message += `\nSaved ${parsedParams.offerDiscount}% with a special offer!`;
+      message += `\nSaved ${parsedParams.offerDiscount}% with a special offer!`
     }
 
     if (parsedParams.isGroupBooking) {
@@ -224,7 +230,7 @@ export default function BookingSuccessScreen() {
     }
 
     if (parsedParams.earnedPoints > 0) {
-      message += `\nEarned ${parsedParams.earnedPoints} platform points!`;
+      message += `\nEarned ${parsedParams.earnedPoints} platform points!`
     }
 
     if (restaurantLoyaltyPoints > 0 && appliedLoyaltyRule) {
@@ -266,6 +272,10 @@ export default function BookingSuccessScreen() {
   const navigateToHome = useCallback(() => {
     router.replace("/(protected)/(tabs)");
   }, [router]);
+
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -325,7 +335,7 @@ export default function BookingSuccessScreen() {
 
           {/* Special Offer Applied Card */}
           {parsedParams.hasOffer && params.offerTitle && (
-            <View className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-300 dark:border-green-700 rounded-xl p-4 mb-6">
+            <View className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/30 dark:to-emerald-900/30 border border-green-300 dark:border-700 rounded-xl p-4 mb-6">
               <View className="flex-row items-center justify-between mb-2">
                 <View className="flex-row items-center gap-2">
                   <Gift size={20} color="#10b981" />

@@ -669,6 +669,12 @@ const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
 
 // Main Component
 export default function RestaurantDetailsScreen() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const { colorScheme } = useColorScheme();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();

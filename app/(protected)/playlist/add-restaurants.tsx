@@ -33,6 +33,12 @@ type AddRestaurantsParams = {
 };
 
 export default function AddRestaurantsScreen() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();

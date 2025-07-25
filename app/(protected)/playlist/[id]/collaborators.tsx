@@ -44,6 +44,12 @@ interface UserSearchResult {
 }
 
 export default function PlaylistCollaboratorsScreen() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();

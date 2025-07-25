@@ -53,6 +53,12 @@ type PlaylistParams = {
 };
 
 export default function PlaylistDetailScreen() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();

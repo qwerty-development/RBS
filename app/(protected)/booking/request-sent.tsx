@@ -78,6 +78,12 @@ const PotentialLoyaltyPointsCard: React.FC<{
 };
 
 export default function RequestSentScreen() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const params = useLocalSearchParams<RequestSentParams>();
   const router = useRouter();
   const { colorScheme } = useColorScheme();

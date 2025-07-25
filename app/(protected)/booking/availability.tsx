@@ -454,6 +454,12 @@ const QuickStats = React.memo<{
 
 // Main Component
 export default function AvailabilitySelectionScreen() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();
   const router = useRouter();

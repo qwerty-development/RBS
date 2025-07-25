@@ -55,6 +55,12 @@ interface FriendshipInfo {
 }
 
 export default function FriendProfileScreen() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { profile } = useAuth();

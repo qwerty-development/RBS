@@ -45,6 +45,12 @@ const DIETARY_ICONS: Record<string, any> = {
 };
 
 export default function MenuScreen() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const router = useRouter();
   const { restaurantId } = useLocalSearchParams<{ restaurantId: string }>();
   const { colorScheme } = useColorScheme();

@@ -132,6 +132,12 @@ const RestaurantLoyaltyStatus: React.FC<{
 };
 
 export default function BookingDetailsScreen() {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const params = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colorScheme } = useColorScheme();
@@ -320,7 +326,7 @@ export default function BookingDetailsScreen() {
   };
 
   // Loading state
-  if (loading) {
+  if (loading || !isMounted) {
     return <BookingDetailsScreenSkeleton />;
   }
 
