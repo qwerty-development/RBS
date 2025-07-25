@@ -12,9 +12,9 @@ import { Text } from "@/components/ui/text";
 import { LocationDisplay } from "./LocationDisplay";
 
 interface BookingFilters {
-  date: Date;
-  time: string;
-  partySize: number;
+  date: Date | null;
+  time: string | null;
+  partySize: number | null;
   availableOnly: boolean;
 }
 
@@ -61,9 +61,63 @@ export const SearchHeader = ({
         toValue: isCollapsed ? 0 : 1,
         duration: 200, // Faster animation
         useNativeDriver: true, // Use native driver for better performance
-      })
+      }),
     ]).start();
   }, [isCollapsed]);
+
+  // Helper functions for display text
+  const getPartySizeText = () => {
+    if (bookingFilters.partySize === null) return "Any size";
+    return bookingFilters.partySize.toString();
+  };
+
+  const getDateText = () => {
+    if (bookingFilters.date === null) return "Any date";
+    if (bookingFilters.date.toDateString() === new Date().toDateString()) {
+      return "Today";
+    }
+    return bookingFilters.date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const getTimeText = () => {
+    if (bookingFilters.time === null) return "Any time";
+    return bookingFilters.time;
+  };
+
+  const getFilterDisplayText = () => {
+    const partyText = getPartySizeText();
+    const dateText = getDateText();
+    const timeText = getTimeText();
+
+    // If all are "Any", show a simplified message
+    if (bookingFilters.partySize === null && 
+        bookingFilters.date === null && 
+        bookingFilters.time === null) {
+      return "All restaurants";
+    }
+
+    // Build the display text based on what's set
+    const parts = [];
+    
+    if (bookingFilters.partySize !== null) {
+      parts.push(partyText);
+    }
+    
+    if (bookingFilters.date !== null || bookingFilters.time !== null) {
+      if (bookingFilters.date !== null && bookingFilters.time !== null) {
+        parts.push(`${dateText}, ${timeText}`);
+      } else if (bookingFilters.date !== null) {
+        parts.push(`${dateText}, any time`);
+      } else {
+        parts.push(`any date, ${timeText}`);
+      }
+    }
+
+    return parts.length > 0 ? parts.join(" • ") : "All restaurants";
+  };
 
   return (
     <View className="bg-background border-b border-border">
@@ -72,22 +126,36 @@ export const SearchHeader = ({
         {/* Location Header with Booking Bubble */}
         <View className="flex-row items-center justify-between mb-4">
           <LocationDisplay />
-          
+
           {/* Booking Quick Access Bubble */}
           <Pressable
             onPress={onShowBookingModal}
-            className="bg-primary/10 border border-primary/20 rounded-full px-3 py-2 flex-row items-center gap-2"
+            className={`border rounded-full px-3 py-2 flex-row items-center gap-2 ${
+              bookingFilters.partySize === null && 
+              bookingFilters.date === null && 
+              bookingFilters.time === null
+                ? "bg-muted border-border" // Muted when all are "Any"
+                : "bg-primary/10 border-primary/20" // Active when filters are set
+            }`}
           >
-            <Users size={14} color={colorScheme === "dark" ? "#3b82f6" : "#2563eb"} />
-            <Text className="text-primary text-sm font-medium">
-              {bookingFilters.partySize} • {" "}
-              {bookingFilters.date.toDateString() === new Date().toDateString()
-                ? "Today"
-                : bookingFilters.date.toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })}
-              , {bookingFilters.time}
+            <Users
+              size={14}
+              color={
+                bookingFilters.partySize === null && 
+                bookingFilters.date === null && 
+                bookingFilters.time === null
+                  ? "#666" // Muted icon
+                  : colorScheme === "dark" ? "#3b82f6" : "#2563eb" // Active icon
+              }
+            />
+            <Text className={`text-sm font-medium ${
+              bookingFilters.partySize === null && 
+              bookingFilters.date === null && 
+              bookingFilters.time === null
+                ? "text-muted-foreground" // Muted text
+                : "text-primary" // Active text
+            }`}>
+              {getFilterDisplayText()}
             </Text>
           </Pressable>
         </View>
@@ -105,7 +173,7 @@ export const SearchHeader = ({
               returnKeyType="search"
             />
           </View>
-          
+
           {/* Filter Button */}
           <Pressable
             onPress={onShowGeneralFilters}
@@ -126,9 +194,6 @@ export const SearchHeader = ({
       </View>
 
       {/* Collapsible Content: Booking Filters */}
-
-
-
-        </View>
+    </View>
   );
 };

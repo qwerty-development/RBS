@@ -1,29 +1,27 @@
-import './polyfills'
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import '../global.css';
-import { Stack } from 'expo-router';
-import { AuthProvider } from '@/context/supabase-provider';
-import { NetworkProvider } from '@/context/network-provider';
-import { useColorScheme } from '@/lib/useColorScheme';
-import { colors } from '@/constants/colors';
-import { LogBox, Alert, View, Text } from 'react-native';
-import { useEffect, useState } from 'react';
-import * as Updates from 'expo-updates';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { useNetworkMonitor } from '@/hooks/useNetworkMonitor';
-import * as Sentry from '@sentry/react-native';
-
-import React from 'react';
-
-
+import "./polyfills";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import "../global.css";
+import { Stack } from "expo-router";
+import { AuthProvider } from "@/context/supabase-provider";
+import { NetworkProvider } from "@/context/network-provider";
+import { useColorScheme } from "@/lib/useColorScheme";
+import { colors } from "@/constants/colors";
+import { LogBox, Alert, View, Text } from "react-native";
+import React, { useEffect, useState } from "react";
+import * as Updates from "expo-updates";
+import { ErrorBoundary, NavigationErrorBoundary } from "@/components/ErrorBoundary";
+import { useNetworkMonitor } from "@/hooks/useNetworkMonitor";
+import * as Sentry from "@sentry/react-native";
+import { getThemedColors } from "@/lib/utils";
 
 // Network status bar component
 function NetworkStatusBar() {
-  const { isOnline, connectionQuality, isLoading, hasInitialized } = useNetworkMonitor({
-    showOfflineAlert: true,
-    showOnlineAlert: false,
-    alertDelay: 5000,
-  });
+  const { isOnline, connectionQuality, isLoading, hasInitialized } =
+    useNetworkMonitor({
+      showOfflineAlert: true,
+      showOnlineAlert: false,
+      alertDelay: 5000,
+    });
 
   const [showBanner, setShowBanner] = useState(false);
 
@@ -38,7 +36,7 @@ function NetworkStatusBar() {
     // Add a small delay after initialization to ensure stable state
     const timer = setTimeout(() => {
       // Show banner if offline or poor connection
-      const shouldShow = !isOnline || connectionQuality === 'poor';
+      const shouldShow = !isOnline || connectionQuality === "poor";
       setShowBanner(shouldShow);
     }, 1000); // 1 second delay after initialization
 
@@ -50,36 +48,35 @@ function NetworkStatusBar() {
     return null;
   }
 
-  const backgroundColor = !isOnline ? '#F44336' : '#FF9800';
+  const backgroundColor = !isOnline ? "#F44336" : "#FF9800";
   const message = !isOnline
-    ? 'No internet connection'
-    : 'Slow connection detected';
+    ? "No internet connection"
+    : "Slow connection detected";
 
   return (
     <View
       style={{
         backgroundColor,
-        padding: 8,
-        alignItems: 'center',
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        zIndex: 9999,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
       }}
+      className="bg-warning"
     >
-      <Text style={{ color: 'white', fontSize: 12, fontWeight: '500' }}>
+      <Text
+        style={{ color: "white", textAlign: "center", fontWeight: "500" }}
+        className="text-warning-foreground text-center font-medium"
+      >
         {message}
       </Text>
     </View>
   );
 }
 
-// Main layout component
 function RootLayoutContent() {
   const { colorScheme } = useColorScheme();
-  const [updateChecking, setUpdateChecking] = useState(false);
+  const themedColors = getThemedColors(colorScheme);
 
+  // Hide warnings in development
   useEffect(() => {
     LogBox.ignoreLogs([
       'Clerk:',
@@ -92,48 +89,36 @@ function RootLayoutContent() {
     ]);
   }, []);
 
+  // Handle over-the-air updates
   useEffect(() => {
-    if (__DEV__) return;
-
-    async function checkForUpdates() {
+    async function handleUpdates() {
       try {
-        setUpdateChecking(true);
         const update = await Updates.checkForUpdateAsync();
-
         if (update.isAvailable) {
           Alert.alert(
-            'Update Available',
-            'A new version of the app is available. Would you like to update now?',
+            "Update Available",
+            "A new version of the app is available. Would you like to update now?",
             [
-              { text: 'Later', style: 'cancel' },
+              { text: "Later", style: "cancel" },
               {
-                text: 'Update',
+                text: "Update",
                 onPress: async () => {
-                  try {
-                    await Updates.fetchUpdateAsync();
-                    await Updates.reloadAsync();
-                  } catch (error) {
-                    console.error('Failed to update:', error);
-                    Alert.alert(
-                      'Update Failed',
-                      'Failed to download the update. Please try again later.'
-                    );
-                  }
+                  await Updates.fetchUpdateAsync();
+                  await Updates.reloadAsync();
                 },
               },
-            ]
+            ],
           );
         }
       } catch (error) {
-        console.error('Update check failed:', error);
-      } finally {
-        setUpdateChecking(false);
+        // Silently fail - updates aren't critical
+        console.log("Update check failed:", error);
       }
     }
 
-    checkForUpdates();
-    const interval = setInterval(checkForUpdates, 30 * 60 * 1000);
-    return () => clearInterval(interval);
+    if (!__DEV__) {
+      handleUpdates();
+    }
   }, []);
 
   return (
@@ -143,10 +128,7 @@ function RootLayoutContent() {
         screenOptions={{
           headerShown: false,
           contentStyle: {
-            backgroundColor:
-              colorScheme === 'dark'
-                ? colors.dark.background
-                : colors.light.background,
+            backgroundColor: themedColors.background,
           },
         }}
       />
@@ -154,22 +136,31 @@ function RootLayoutContent() {
   );
 }
 
-Sentry.init({
-  dsn: "https://596c39f50e8604dcd468a29a63c1f442@o4509672135065600.ingest.de.sentry.io/4509672139587664",
-  enabled: !__DEV__,
-  debug: __DEV__,
-  environment: __DEV__ ? 'development' : 'production',
-});
-
 export default function RootLayout() {
   return (
-    <ErrorBoundary>
+    <ErrorBoundary 
+      showDetails={__DEV__}
+      onError={(error, errorInfo) => {
+        // Custom error logging
+        console.error('Root Error:', error);
+        console.error('Error Info:', errorInfo);
+        
+        // Additional error tracking
+        if (!__DEV__) {
+          Sentry.withScope((scope) => {
+            scope.setTag('location', 'root_layout');
+            scope.setLevel('fatal');
+            Sentry.captureException(error);
+          });
+        }
+      }}
+    >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <NetworkProvider>
           <AuthProvider>
-       
+            <NavigationErrorBoundary>
               <RootLayoutContent />
-
+            </NavigationErrorBoundary>
           </AuthProvider>
         </NetworkProvider>
       </GestureHandlerRootView>

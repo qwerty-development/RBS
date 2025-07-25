@@ -1,5 +1,6 @@
 import { LEBANON_BOUNDS, FEATURES } from "@/constants/searchConstants";
 import { supabase } from "@/config/supabase";
+import { AvailabilityService } from "@/lib/AvailabilityService";
 import type {
   Restaurant,
   UserLocation,
@@ -73,7 +74,7 @@ export const normalizeTimeForDatabase = (time: string): string => {
   return time;
 };
 
-// Check restaurant availability with mock data fallback
+// Check restaurant availability using the optimized AvailabilityService
 export const checkRestaurantAvailability = async (
   restaurantId: string,
   date: Date,
@@ -81,73 +82,58 @@ export const checkRestaurantAvailability = async (
   partySize: number,
 ): Promise<boolean> => {
   try {
-    const dateStr = date.toISOString().split("T")[0];
-    const normalizedTime = normalizeTimeForDatabase(time);
+    // Get the AvailabilityService instance
+    const availabilityService = AvailabilityService.getInstance();
 
-    const { data, error } = await supabase
-      .from("restaurant_availability")
-      .select("*")
-      .eq("restaurant_id", restaurantId)
-      .eq("date", dateStr)
-      .eq("time_slot", normalizedTime)
-      .gte("available_capacity", partySize);
-
-    if (error) {
-      console.log("Database availability check failed, using mock data");
-    }
-
-    // If we have real availability data, use it
-    if (data && data.length > 0) {
-      return data[0].available_capacity >= partySize;
-    }
-
-    // Generate realistic mock availability based on restaurant ID, date, time, and party size
-    const restaurantSeed = restaurantId.split("").reduce((acc, char, index) => {
-      return acc + char.charCodeAt(0) * (index + 1);
-    }, 0);
-
-    const hour = parseInt(time.split(":")[0]);
-    const minute = parseInt(time.split(":")[1] || "0");
-    const timeValue = hour * 60 + minute;
-
-    // Peak hours: lunch (12-14) and dinner (19-21) have lower availability
-    const isPeakHour =
-      (timeValue >= 12 * 60 && timeValue <= 14 * 60) ||
-      (timeValue >= 19 * 60 && timeValue <= 21 * 60);
-
-    // Weekend factor (Friday/Saturday are busier)
-    const isWeekend = [5, 6].includes(date.getDay());
-
-    // Base availability chance
-    let availabilityChance = 0.8;
-
-    // Reduce for peak hours
-    if (isPeakHour) availabilityChance *= 0.4;
-
-    // Reduce for weekends
-    if (isWeekend) availabilityChance *= 0.6;
-
-    // Reduce for larger parties
-    if (partySize >= 6) availabilityChance *= 0.5;
-    else if (partySize >= 4) availabilityChance *= 0.7;
-
-    // Add some restaurant-specific variation
-    const restaurantFactor = ((restaurantSeed % 100) / 100) * 0.3;
-    availabilityChance = Math.max(
-      0.1,
-      Math.min(0.95, availabilityChance + restaurantFactor),
+    // Get available time slots for the restaurant
+    const availableSlots = await availabilityService.getAvailableTimeSlots(
+      restaurantId,
+      date,
+      partySize,
+      undefined, // No user ID for guest searches
+      false, // Don't preload next day for search results
     );
 
-    // Create deterministic result based on all inputs
-    const seed =
-      restaurantSeed + date.getTime() / 1000000 + timeValue + partySize;
-    const random = (seed % 1000) / 1000;
+    // If no specific time is requested, just check if any slots are available
+    if (!time || time === "any") {
+      return availableSlots.length > 0;
+    }
 
-    return random < availabilityChance;
+    // If a specific time is requested, check if that time slot is available
+    const normalizedTime = normalizeTimeForDatabase(time);
+    return availableSlots.some(
+      (slot) => normalizeTimeForDatabase(slot.time) === normalizedTime,
+    );
   } catch (error) {
-    console.error("Error checking availability:", error);
-    // Return a simple fallback
-    return Math.random() > 0.5;
+    console.error("Error checking restaurant availability:", error);
+
+    // Fallback to basic availability check if AvailabilityService fails
+    try {
+      const dateStr = date.toISOString().split("T")[0];
+      const normalizedTime = normalizeTimeForDatabase(time);
+
+      const { data, error } = await supabase
+        .from("restaurant_availability")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .eq("date", dateStr)
+        .eq("time_slot", normalizedTime)
+        .gte("available_capacity", partySize);
+
+      if (error) {
+        console.log(
+          "Database availability check failed, using conservative fallback",
+        );
+        // Conservative fallback - assume most restaurants have some availability
+        return true;
+      }
+
+      return data && data.length > 0 && data[0].available_capacity >= partySize;
+    } catch (fallbackError) {
+      console.error("Fallback availability check failed:", fallbackError);
+      // Very conservative fallback
+      return true;
+    }
   }
 };
 
@@ -168,10 +154,6 @@ export const sortRestaurants = (
         return a.name.localeCompare(b.name);
       case "distance":
         return (a.distance || Infinity) - (b.distance || Infinity);
-      case "availability":
-        return availableOnly
-          ? 0
-          : (b.isAvailable ? 1 : 0) - (a.isAvailable ? 1 : 0);
       case "recommended":
       default:
         const scoreA =

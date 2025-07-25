@@ -68,7 +68,7 @@ export const useBookingDetails = (bookingId: string) => {
           `
           *,
           restaurant:restaurants (*)
-        `
+        `,
         )
         .eq("id", bookingId)
         .single();
@@ -133,7 +133,7 @@ export const useBookingDetails = (bookingId: string) => {
           }
         } catch (loyaltyError) {
           console.log(
-            "Loyalty activities table not available or no data found"
+            "Loyalty activities table not available or no data found",
           );
         }
       }
@@ -142,7 +142,7 @@ export const useBookingDetails = (bookingId: string) => {
       if (bookingData.applied_offer_id) {
         console.log(
           "Fetching applied offer details for offer ID:",
-          bookingData.applied_offer_id
+          bookingData.applied_offer_id,
         );
 
         try {
@@ -176,7 +176,7 @@ export const useBookingDetails = (bookingId: string) => {
             const estimatedSavings = Math.round(
               bookingData.party_size *
                 ((bookingData.restaurant.price_range || 2) * 30) *
-                (specialOfferData.discount_percentage / 100)
+                (specialOfferData.discount_percentage / 100),
             );
 
             const offerDetails: AppliedOfferDetails = {
@@ -260,7 +260,7 @@ export const useBookingDetails = (bookingId: string) => {
               }
 
               await Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success
+                Haptics.NotificationFeedbackType.Success,
               );
 
               // Refresh booking data
@@ -270,7 +270,7 @@ export const useBookingDetails = (bookingId: string) => {
                 "Success",
                 appliedOfferDetails
                   ? "Your booking has been cancelled and your offer has been restored."
-                  : "Your booking has been cancelled"
+                  : "Your booking has been cancelled",
               );
             } catch (error) {
               console.error("Error cancelling booking:", error);
@@ -280,7 +280,7 @@ export const useBookingDetails = (bookingId: string) => {
             }
           },
         },
-      ]
+      ],
     );
   }, [booking, fetchBookingDetails, appliedOfferDetails]);
 

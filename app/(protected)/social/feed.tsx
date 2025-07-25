@@ -83,7 +83,7 @@ interface Post {
     image_order: number;
   }[];
   tagged_friends: {
-    id:string;
+    id: string;
     full_name: string;
     avatar_url: string;
   }[];
@@ -109,7 +109,9 @@ const PostCard: React.FC<{
       {/* Header */}
       <Pressable
         // Guests cannot navigate to user profiles
-        onPress={() => !isGuest && router.push(`/social/profile/${post.user_id}`)}
+        onPress={() =>
+          !isGuest && router.push(`/social/profile/${post.user_id}`)
+        }
         className="flex-row items-center p-4"
         disabled={isGuest}
       >
@@ -159,7 +161,9 @@ const PostCard: React.FC<{
             {post.tagged_friends.map((friend, index) => (
               <React.Fragment key={friend.id}>
                 <Pressable
-                  onPress={() => !isGuest && router.push(`/social/profile/${friend.id}`)}
+                  onPress={() =>
+                    !isGuest && router.push(`/social/profile/${friend.id}`)
+                  }
                   disabled={isGuest}
                 >
                   <Text className="text-sm text-primary">
@@ -303,7 +307,8 @@ export default function SocialFeedScreen() {
 
         const friendIds =
           friendships?.reduce((acc: string[], friendship) => {
-            if (friendship.user_id === profile.id) acc.push(friendship.friend_id);
+            if (friendship.user_id === profile.id)
+              acc.push(friendship.friend_id);
             else acc.push(friendship.user_id);
             return acc;
           }, []) || [];
@@ -350,11 +355,28 @@ export default function SocialFeedScreen() {
       if (!post) return;
       try {
         if (post.liked_by_user) {
-          await supabase.from("post_likes").delete().match({ post_id: postId, user_id: profile!.id });
-          setPosts(posts.map((p) => (p.id === postId ? { ...p, liked_by_user: false, likes_count: p.likes_count - 1 } : p)));
+          await supabase
+            .from("post_likes")
+            .delete()
+            .match({ post_id: postId, user_id: profile!.id });
+          setPosts(
+            posts.map((p) =>
+              p.id === postId
+                ? { ...p, liked_by_user: false, likes_count: p.likes_count - 1 }
+                : p,
+            ),
+          );
         } else {
-          await supabase.from("post_likes").insert({ post_id: postId, user_id: profile!.id });
-          setPosts(posts.map((p) => (p.id === postId ? { ...p, liked_by_user: true, likes_count: p.likes_count + 1 } : p)));
+          await supabase
+            .from("post_likes")
+            .insert({ post_id: postId, user_id: profile!.id });
+          setPosts(
+            posts.map((p) =>
+              p.id === postId
+                ? { ...p, liked_by_user: true, likes_count: p.likes_count + 1 }
+                : p,
+            ),
+          );
         }
       } catch (error) {
         console.error("Error toggling like:", error);
@@ -367,7 +389,7 @@ export default function SocialFeedScreen() {
       router.push(`/(protected)/social/post/${postId}`);
     }, "comment on posts");
   };
-  
+
   const handleFindFriends = () => {
     runProtectedAction(() => {
       router.push("/(protected)/friends");
@@ -441,7 +463,11 @@ export default function SocialFeedScreen() {
                 ? "Sign up to connect with friends and share your experiences."
                 : "Connect with friends to see their posts here."}
             </Muted>
-            <Button onPress={handleFindFriends} variant="default" className="mt-6">
+            <Button
+              onPress={handleFindFriends}
+              variant="default"
+              className="mt-6"
+            >
               <Text>
                 {isGuest ? "Sign Up to Find Friends" : "Find Friends"}
               </Text>
@@ -450,7 +476,7 @@ export default function SocialFeedScreen() {
         }
         contentContainerStyle={{ flexGrow: 1 }}
       />
-      
+
       {/* MODIFIED: Add GuestPromptModal to the layout */}
       <GuestPromptModal
         visible={showGuestPrompt}

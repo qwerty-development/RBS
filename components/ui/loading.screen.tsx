@@ -1,22 +1,39 @@
 import React from "react";
-import { View, ActivityIndicator } from "react-native";
-import { Muted } from "@/components/ui/typography";
+import { View, ActivityIndicator, Text } from "react-native";
 import { useColorScheme } from "@/lib/useColorScheme";
+import { getActivityIndicatorColor, getThemedColors } from "@/lib/utils";
 
-interface LoadingScreenProps {
+export function LoadingScreen({
+  message = "Loading...",
+}: {
   message?: string;
-}
-
-export function LoadingScreen({ message }: LoadingScreenProps) {
+}) {
   const { colorScheme } = useColorScheme();
+  const themedColors = getThemedColors(colorScheme);
 
   return (
-    <View className="flex-1 items-center justify-center bg-background">
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: themedColors.background,
+      }}
+      className="flex-1 justify-center items-center bg-background"
+    >
       <ActivityIndicator
         size="large"
-        color={colorScheme === "dark" ? "#fff" : "#000"}
+        color={getActivityIndicatorColor(colorScheme)}
       />
-      {message && <Muted className="mt-4">{message}</Muted>}
+      <Text
+        style={{
+          color: themedColors.foreground,
+          marginTop: 16,
+        }}
+        className="text-foreground mt-4"
+      >
+        {message}
+      </Text>
     </View>
   );
 }

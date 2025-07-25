@@ -58,11 +58,17 @@ export function useBookingCreate() {
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [selectedOfferUserId, setSelectedOfferUserId] = useState<string | null>(null);
-  const [availableOffers, setAvailableOffers] = useState<UserOfferWithDetails[]>([]);
+  const [selectedOfferUserId, setSelectedOfferUserId] = useState<string | null>(
+    null,
+  );
+  const [availableOffers, setAvailableOffers] = useState<
+    UserOfferWithDetails[]
+  >([]);
   const [invitedFriends, setInvitedFriends] = useState<string[]>([]);
   const [turnTime, setTurnTime] = useState<number>(120);
-  const [lastFormData, setLastFormData] = useState<BookingFormData | null>(null);
+  const [lastFormData, setLastFormData] = useState<BookingFormData | null>(
+    null,
+  );
 
   // --- Loyalty System State ---
   const [expectedLoyaltyPoints, setExpectedLoyaltyPoints] = useState<number>(0);
@@ -82,7 +88,11 @@ export function useBookingCreate() {
     if (!params.tableIds) return [];
     try {
       const parsed = JSON.parse(params.tableIds);
-      return Array.isArray(parsed) ? parsed.filter(id => typeof id === 'string' || typeof id === 'number') : [];
+      return Array.isArray(parsed)
+        ? parsed.filter(
+            (id) => typeof id === "string" || typeof id === "number",
+          )
+        : [];
     } catch (e) {
       console.error("Error parsing table IDs:", e);
       return [];
@@ -109,7 +119,10 @@ export function useBookingCreate() {
       router.back();
       return;
     }
-    if ((rawDate && !isValidDate(rawDate)) || (rawTime && !isValidTime(rawTime))) {
+    if (
+      (rawDate && !isValidDate(rawDate)) ||
+      (rawTime && !isValidTime(rawTime))
+    ) {
       Alert.alert("Error", "Invalid date or time provided");
       router.back();
       return;
@@ -119,7 +132,14 @@ export function useBookingCreate() {
       router.back();
       return;
     }
-  }, [restaurantId, rawDate, rawTime, requiresCombination, selectedTableIds.length, router]);
+  }, [
+    restaurantId,
+    rawDate,
+    rawTime,
+    requiresCombination,
+    selectedTableIds.length,
+    router,
+  ]);
 
   // --- Data Fetching ---
 
@@ -173,7 +193,12 @@ export function useBookingCreate() {
       setIsRequestBooking(restaurantData.booking_policy === "request");
 
       // Calculate turn time based on base party size
-      const bookingWindow = await calculateBookingWindow(restaurantId, bookingDate, bookingTime, basePartySize);
+      const bookingWindow = await calculateBookingWindow(
+        restaurantId,
+        bookingDate,
+        bookingTime,
+        basePartySize,
+      );
       setTurnTime(bookingWindow.turnTimeMinutes);
 
       // Fetch user's available offers for this restaurant
@@ -186,24 +211,37 @@ export function useBookingCreate() {
         .gte("expires_at", new Date().toISOString());
 
       if (offersError) throw offersError;
-      
-      const validOffers = (offersData as any[]).filter(o => o.special_offer) as UserOfferWithDetails[];
+
+      const validOffers = (offersData as any[]).filter(
+        (o) => o.special_offer,
+      ) as UserOfferWithDetails[];
       setAvailableOffers(validOffers);
 
       if (preselectedOfferId) {
-        const matchingOffer = validOffers.find(o => o.special_offer.id === preselectedOfferId);
+        const matchingOffer = validOffers.find(
+          (o) => o.special_offer.id === preselectedOfferId,
+        );
         if (matchingOffer) {
           setSelectedOfferUserId(matchingOffer.id);
         }
       }
     } catch (error) {
       console.error("Error fetching booking data:", error);
-      Alert.alert("Error", "Failed to load booking details.", [{ text: "OK", onPress: () => router.back() }]);
+      Alert.alert("Error", "Failed to load booking details.", [
+        { text: "OK", onPress: () => router.back() },
+      ]);
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, profile?.id, bookingDate, bookingTime, basePartySize, preselectedOfferId]);
-  
+  }, [
+    restaurantId,
+    profile?.id,
+    bookingDate,
+    bookingTime,
+    basePartySize,
+    preselectedOfferId,
+  ]);
+
   // Initial data fetch
   useEffect(() => {
     fetchData();
@@ -222,39 +260,65 @@ export function useBookingCreate() {
   /**
    * Centralized error handler for all submission types.
    */
-  const handleBookingError = useCallback((error: any) => {
-    console.error("Booking submission error:", error);
-    const errorCode = error?.code;
-    const errorMessage = error?.message || '';
+  const handleBookingError = useCallback(
+    (error: any) => {
+      console.error("Booking submission error:", error);
+      const errorCode = error?.code;
+      const errorMessage = error?.message || "";
 
-    // Handle specific database errors for instant bookings
-    if (errorCode === 'P0001') {
-      if (errorMessage.includes('no longer available')) {
-        Alert.alert("Tables Unavailable", "Sorry, this time was just booked. Please select a different time.", [{ text: "OK", onPress: () => router.back() }]);
-      } else if (errorMessage.includes('not all selected tables can be combined')) {
-        Alert.alert("Invalid Selection", "The selected tables cannot be combined. Please try another time slot.", [{ text: "OK" }]);
-      } else if (errorMessage.includes('do not have enough capacity')) {
-        Alert.alert("Insufficient Capacity", "The tables don't have enough seats for your party. Please select another time.", [{ text: "OK" }]);
+      // Handle specific database errors for instant bookings
+      if (errorCode === "P0001") {
+        if (errorMessage.includes("no longer available")) {
+          Alert.alert(
+            "Tables Unavailable",
+            "Sorry, this time was just booked. Please select a different time.",
+            [{ text: "OK", onPress: () => router.back() }],
+          );
+        } else if (
+          errorMessage.includes("not all selected tables can be combined")
+        ) {
+          Alert.alert(
+            "Invalid Selection",
+            "The selected tables cannot be combined. Please try another time slot.",
+            [{ text: "OK" }],
+          );
+        } else if (errorMessage.includes("do not have enough capacity")) {
+          Alert.alert(
+            "Insufficient Capacity",
+            "The tables don't have enough seats for your party. Please select another time.",
+            [{ text: "OK" }],
+          );
+        } else {
+          Alert.alert("Booking Error", errorMessage);
+        }
+      } else if (errorCode === "23505") {
+        Alert.alert(
+          "Booking Conflict",
+          "A conflicting booking already exists. Please refresh and try again.",
+          [{ text: "OK", onPress: () => router.back() }],
+        );
+      } else if (error.name === "AbortError") {
+        Alert.alert(
+          "Request Timeout",
+          "The request took too long. Please check your connection and try again.",
+          [{ text: "OK" }],
+        );
       } else {
-        Alert.alert("Booking Error", errorMessage);
+        Alert.alert(
+          "Booking Failed",
+          "An unexpected error occurred. Please try again.",
+          [{ text: "OK" }],
+        );
       }
-    } else if (errorCode === '23505') {
-      Alert.alert("Booking Conflict", "A conflicting booking already exists. Please refresh and try again.", [{ text: "OK", onPress: () => router.back() }]);
-    } else if (error.name === 'AbortError') {
-      Alert.alert("Request Timeout", "The request took too long. Please check your connection and try again.", [{ text: "OK" }]);
-    } else {
-      Alert.alert(
-        "Booking Failed",
-        "An unexpected error occurred. Please try again.",
-        [{ text: "OK" }]
-      );
-    }
-  }, [router]);
+    },
+    [router],
+  );
 
   /**
    * The core logic that executes the booking or request after user confirmation.
    */
-  const executeSubmit = useCallback(async (formData: BookingFormData) => {
+  const executeSubmit = useCallback(
+    async (formData: BookingFormData) => {
       if (!profile || !restaurant) return;
 
       setSubmitting(true);
@@ -278,9 +342,16 @@ export function useBookingCreate() {
               p_table_ids: selectedTableIds,
               p_turn_time: turnTime,
               p_special_requests: formData.specialRequests || null,
-              p_occasion: formData.occasion !== "none" ? formData.occasion : null,
-              p_dietary_notes: formData.dietaryRestrictions.length > 0 ? formData.dietaryRestrictions : null,
-              p_table_preferences: formData.tablePreferences.length > 0 ? formData.tablePreferences : null,
+              p_occasion:
+                formData.occasion !== "none" ? formData.occasion : null,
+              p_dietary_notes:
+                formData.dietaryRestrictions.length > 0
+                  ? formData.dietaryRestrictions
+                  : null,
+              p_table_preferences:
+                formData.tablePreferences.length > 0
+                  ? formData.tablePreferences
+                  : null,
               p_is_group_booking: invitedFriends.length > 0,
               p_applied_offer_id: selectedOffer?.special_offer.id || null,
               // New Loyalty System Parameters
@@ -289,30 +360,47 @@ export function useBookingCreate() {
             }
           );
           if (bookingError) throw bookingError;
-          if (!bookingResult?.booking) throw new Error('No booking data returned from RPC.');
+          if (!bookingResult?.booking)
+            throw new Error("No booking data returned from RPC.");
 
           const booking = bookingResult.booking;
-          
+
           // Post-booking side-effects (non-blocking)
           const postBookingPromises = [];
           if (invitedFriends.length > 0) {
-              postBookingPromises.push(supabase.from("booking_invites").insert(
-                  invitedFriends.map(friendId => ({
-                      booking_id: booking.id,
-                      from_user_id: profile.id,
-                      to_user_id: friendId,
-                      message: `Join me at ${restaurant.name}!`
-                  }))
-              ).catch(err => console.error("Failed to send invites:", err)));
+            postBookingPromises.push(
+              supabase
+                .from("booking_invites")
+                .insert(
+                  invitedFriends.map((friendId) => ({
+                    booking_id: booking.id,
+                    from_user_id: profile.id,
+                    to_user_id: friendId,
+                    message: `Join me at ${restaurant.name}!`,
+                  })),
+                )
+                ,
+            );
           }
           if (selectedOffer) {
-              postBookingPromises.push(supabase.from("user_offers").update({ used_at: new Date().toISOString(), booking_id: booking.id }).eq("id", selectedOffer.id).catch(err => console.error("Failed to mark offer as used:", err)));
+            postBookingPromises.push(
+              supabase
+                .from("user_offers")
+                .update({
+                  used_at: new Date().toISOString(),
+                  booking_id: booking.id,
+                })
+                .eq("id", selectedOffer.id)
+               
+            );
           }
           // The old point awarding RPC is removed as it's now handled transactionally within 'create_booking_with_tables'.
           await Promise.allSettled(postBookingPromises);
 
           // Navigate to instant success screen
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          await Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Success,
+          );
           router.replace({
             pathname: "/booking/success",
             params: {
@@ -326,7 +414,7 @@ export function useBookingCreate() {
             },
           });
 
-        // --- REQUEST BOOKING LOGIC ---
+          // --- REQUEST BOOKING LOGIC ---
         } else {
           const { data: booking, error: bookingError } = await supabase
             .from("bookings")
@@ -346,13 +434,15 @@ export function useBookingCreate() {
               applied_loyalty_rule_id: loyaltyRuleId,
               expected_loyalty_points: expectedLoyaltyPoints,
             })
-            .select('id, confirmation_code')
+            .select("id, confirmation_code")
             .single();
 
           if (bookingError) throw bookingError;
-          
+
           // Navigate to request success screen
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          await Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Success,
+          );
           router.replace({
             pathname: "/booking/request-sent",
             params: {
@@ -389,17 +479,26 @@ export function useBookingCreate() {
         Alert.alert("Offer Expired", "This offer is no longer valid.");
         return;
       }
-      if (selectedOffer.special_offer.minimum_party_size && totalPartySize < selectedOffer.special_offer.minimum_party_size) {
-        Alert.alert("Party Size Too Small", `This offer requires a minimum of ${selectedOffer.special_offer.minimum_party_size} guests.`);
+      if (
+        selectedOffer.special_offer.minimum_party_size &&
+        totalPartySize < selectedOffer.special_offer.minimum_party_size
+      ) {
+        Alert.alert(
+          "Party Size Too Small",
+          `This offer requires a minimum of ${selectedOffer.special_offer.minimum_party_size} guests.`,
+        );
         return;
       }
     }
 
     // Tailor confirmation message based on booking type
-    const confirmationTitle = isRequestBooking ? "Send Booking Request?" : "Confirm Your Booking";
-    let confirmationMessage = `You are ${isRequestBooking ? 'requesting' : 'booking'} a table for ${totalPartySize} at ${restaurant?.name} on ${bookingDate.toLocaleDateString()} at ${bookingTime}.`;
+    const confirmationTitle = isRequestBooking
+      ? "Send Booking Request?"
+      : "Confirm Your Booking";
+    let confirmationMessage = `You are ${isRequestBooking ? "requesting" : "booking"} a table for ${totalPartySize} at ${restaurant?.name} on ${bookingDate.toLocaleDateString()} at ${bookingTime}.`;
     if (isRequestBooking) {
-        confirmationMessage += "\n\nThe restaurant will review your request and confirm shortly."
+      confirmationMessage +=
+        "\n\nThe restaurant will review your request and confirm shortly.";
     }
     if (selectedOffer) {
       confirmationMessage += `\n\nOffer Applied: ${selectedOffer.special_offer.title}`;
@@ -407,9 +506,9 @@ export function useBookingCreate() {
 
     Alert.alert(confirmationTitle, confirmationMessage, [
       { text: "Cancel", style: "cancel" },
-      { 
-        text: isRequestBooking ? "Send Request" : "Confirm", 
-        onPress: () => executeSubmit(formData) 
+      {
+        text: isRequestBooking ? "Send Request" : "Confirm",
+        onPress: () => executeSubmit(formData),
       },
     ]);
   };
@@ -418,7 +517,6 @@ export function useBookingCreate() {
   const handleInvitesSent = useCallback((friendIds: string[]) => {
     setInvitedFriends(friendIds);
   }, []);
-
 
   return {
     // State & Data

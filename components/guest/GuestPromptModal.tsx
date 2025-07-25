@@ -1,11 +1,6 @@
 // components/guest/GuestPromptModal.tsx
 import React from "react";
-import {
-  Modal,
-  View,
-  TouchableOpacity,
-  Pressable,
-} from "react-native";
+import { Modal, View, TouchableOpacity, Pressable } from "react-native";
 import { X, UserPlus } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { H3, P } from "@/components/ui/typography";
@@ -42,10 +37,7 @@ export function GuestPromptModal({
             onPress={onClose}
             className="absolute right-4 top-4 p-2"
           >
-            <X
-              size={24}
-              color={colorScheme === "dark" ? "#fff" : "#000"}
-            />
+            <X size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
           </TouchableOpacity>
 
           {/* Icon */}
@@ -58,7 +50,8 @@ export function GuestPromptModal({
           {/* Content */}
           <H3 className="text-center mb-2">Sign Up Required</H3>
           <P className="text-center text-muted-foreground mb-6">
-            Create a free account to {featureName}. Join thousands of food lovers discovering the best restaurants in Lebanon!
+            Create a free account to {featureName}. Join thousands of food
+            lovers discovering the best restaurants in Lebanon!
           </P>
 
           {/* Actions */}

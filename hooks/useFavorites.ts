@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useRef } from "react";
 import { Alert, Animated } from "react-native";
 import * as Haptics from "expo-haptics";

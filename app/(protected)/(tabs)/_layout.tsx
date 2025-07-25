@@ -1,51 +1,48 @@
 // app/(protected)/(tabs)/_layout.tsx
-import React from "react";
-import { Tabs, usePathname } from "expo-router";
-import { Home, Search, Users, Calendar, Heart, User } from "lucide-react-native";
-import { View } from "react-native";
-
+import React, { useRef } from "react";
+import { Tabs } from "expo-router";
+import { Home, Search, Heart, Calendar, User } from "lucide-react-native";
+import { ScrollView } from "react-native";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
-import { homeScrollRef } from "@/app/(protected)/(tabs)/index";
-import { useAuth } from "@/context/supabase-provider";
+import { getThemedColors } from "@/lib/utils";
+
+export const homeScrollRef = useRef<ScrollView>(null);
 
 export default function TabsLayout() {
   const { colorScheme } = useColorScheme();
-  const { isGuest } = useAuth();
-  const pathname = usePathname();
-
-  // Guest indicator badge component
-  const GuestBadge = () => (
-    <View className="absolute -top-1 -right-1 w-2 h-2 bg-orange-500 rounded-full" />
-  );
+  const themedColors = getThemedColors(colorScheme);
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor:
-            colorScheme === "dark"
-              ? colors.dark.background
-              : colors.light.background,
+          backgroundColor: themedColors.card,
           borderTopWidth: 1,
-          borderTopColor:
-            colorScheme === "dark"
-              ? "hsl(240, 3.7%, 25%)" // less white, more subtle than the default border
-              : colors.light.border,
+          borderTopColor: themedColors.border,
           height: 80,
           paddingBottom: 20,
           paddingTop: 8,
-          borderTopLeftRadius: 12, // small rounded corners
-          borderTopRightRadius: 12, // small rounded corners
-          overflow: 'hidden', // ensure corners are clipped
+          borderTopLeftRadius: 12,
+          borderTopRightRadius: 12,
+          overflow: "hidden", // ensure corners are clipped
+          position: "absolute", // Ensure tab bar sits on top
+          bottom: 0,
+          left: 0,
+          right: 0,
+          // Add subtle elevation for better visual hierarchy
+          shadowColor: themedColors.foreground,
+          shadowOffset: {
+            width: 0,
+            height: -2,
+          },
+          shadowOpacity: colorScheme === "dark" ? 0.25 : 0.1,
+          shadowRadius: 8,
+          elevation: 8,
         },
-        tabBarActiveTintColor:
-          colorScheme === "dark" ? colors.dark.primary : colors.light.primary,
-        tabBarInactiveTintColor:
-          colorScheme === "dark"
-            ? colors.dark.mutedForeground
-            : colors.light.mutedForeground,
+        tabBarActiveTintColor: themedColors.primary,
+        tabBarInactiveTintColor: themedColors.mutedForeground,
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: "500",
@@ -84,14 +81,11 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="social"
+        name="favorites"
         options={{
-          title: "Social",
-          tabBarIcon: ({ color, size, focused }) => (
-            <View>
-              <Users size={size} color={color} strokeWidth={2} />
-              {isGuest && focused && <GuestBadge />}
-            </View>
+          title: "Favorites",
+          tabBarIcon: ({ color, size }) => (
+            <Heart size={size} color={color} strokeWidth={2} />
           ),
         }}
       />
@@ -99,23 +93,17 @@ export default function TabsLayout() {
         name="bookings"
         options={{
           title: "Bookings",
-          tabBarIcon: ({ color, size, focused }) => (
-            <View>
-              <Calendar size={size} color={color} strokeWidth={2} />
-              {isGuest && focused && <GuestBadge />}
-            </View>
+          tabBarIcon: ({ color, size }) => (
+            <Calendar size={size} color={color} strokeWidth={2} />
           ),
         }}
       />
       <Tabs.Screen
-        name="favorites"
+        name="social"
         options={{
-          title: "Favorites",
-          tabBarIcon: ({ color, size, focused }) => (
-            <View>
-              <Heart size={size} color={color} strokeWidth={2} />
-              {isGuest && focused && <GuestBadge />}
-            </View>
+          title: "Social",
+          tabBarIcon: ({ color, size }) => (
+            <User size={size} color={color} strokeWidth={2} />
           ),
         }}
       />

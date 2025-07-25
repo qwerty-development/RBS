@@ -3,6 +3,7 @@ import * as React from "react";
 import { Pressable } from "react-native";
 import { cn } from "@/lib/utils";
 import { TextClassContext } from "@/components/ui/text";
+import { useButtonAccessibility } from "@/hooks/useAccessibility";
 
 const buttonVariants = cva(
   "group flex items-center justify-center rounded-3xl web:ring-offset-background web:transition-colors web:focus-visible:outline-none web:focus-visible:ring-2 web:focus-visible:ring-ring web:focus-visible:ring-offset-2",
@@ -60,12 +61,53 @@ const buttonTextVariants = cva(
 );
 
 type ButtonProps = React.ComponentPropsWithoutRef<typeof Pressable> &
-  VariantProps<typeof buttonVariants>;
+  VariantProps<typeof buttonVariants> & {
+    /**
+     * Accessibility label for the button
+     */
+    accessibilityLabel?: string;
+    /**
+     * Accessibility hint for the button
+     */
+    accessibilityHint?: string;
+    /**
+     * Whether the button is in a loading state
+     */
+    loading?: boolean;
+    /**
+     * Whether this is a destructive action
+     */
+    destructive?: boolean;
+  };
 
 const Button = React.forwardRef<
   React.ComponentRef<typeof Pressable>,
   ButtonProps
->(({ className, variant, size, ...props }, ref) => {
+>(({ 
+  className, 
+  variant, 
+  size, 
+  accessibilityLabel,
+  accessibilityHint,
+  loading,
+  destructive,
+  children,
+  ...props 
+}, ref) => {
+  const { getButtonProps } = useButtonAccessibility();
+
+  // Determine button label from children if not provided
+  const buttonLabel = accessibilityLabel || 
+    (typeof children === 'string' ? children : 'Button');
+
+  // Get accessibility props
+  const accessibilityProps = getButtonProps(buttonLabel, {
+    loading,
+    disabled: props.disabled,
+    destructive: destructive || variant === 'destructive',
+    hint: accessibilityHint,
+  });
+
   return (
     <TextClassContext.Provider
       value={buttonTextVariants({
@@ -81,8 +123,11 @@ const Button = React.forwardRef<
         )}
         ref={ref}
         role="button"
+        {...accessibilityProps}
         {...props}
-      />
+      >
+        {children}
+      </Pressable>
     </TextClassContext.Provider>
   );
 });

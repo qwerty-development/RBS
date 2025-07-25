@@ -17,14 +17,14 @@ export interface UserLocation extends LocationCoordinates {}
 export type ViewMode = "list" | "map";
 
 export interface BookingFilters {
-  date: Date;
-  time: string;
-  partySize: number;
+  date: Date | null;
+  time: string | null;
+  partySize: number | null;
   availableOnly: boolean;
 }
 
 export interface GeneralFilters {
-  sortBy: "recommended" | "rating" | "distance" | "name" | "availability";
+  sortBy: "recommended" | "rating" | "distance" | "name";
   cuisines: string[];
   features: string[];
   priceRange: number[];

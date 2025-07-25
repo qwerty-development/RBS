@@ -8,10 +8,18 @@ import React, {
   useRef,
   PropsWithChildren,
 } from "react";
-import NetInfo, { NetInfoState, NetInfoStateType } from "@react-native-community/netinfo";
+import NetInfo, {
+  NetInfoState,
+  NetInfoStateType,
+} from "@react-native-community/netinfo";
 
 // Types
-export type ConnectionQuality = "poor" | "fair" | "good" | "excellent" | "unknown";
+export type ConnectionQuality =
+  | "poor"
+  | "fair"
+  | "good"
+  | "excellent"
+  | "unknown";
 
 export interface NetworkState {
   isConnected: boolean;
@@ -31,10 +39,10 @@ export interface NetworkContextType {
   isOffline: boolean;
   isLoading: boolean;
   hasInitialized: boolean;
-  
+
   // Actions
   refresh: () => Promise<void>;
-  
+
   // Listeners
   addListener: (callback: (state: NetworkState) => void) => () => void;
 }
@@ -53,7 +61,9 @@ const NetworkContext = createContext<NetworkContextType | null>(null);
 
 // Provider component
 export function NetworkProvider({ children }: PropsWithChildren) {
-  const [networkState, setNetworkState] = useState<NetworkState>(DEFAULT_NETWORK_STATE);
+  const [networkState, setNetworkState] = useState<NetworkState>(
+    DEFAULT_NETWORK_STATE,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [hasInitialized, setHasInitialized] = useState(false);
   const listenersRef = useRef<Set<(state: NetworkState) => void>>(new Set());
@@ -61,84 +71,93 @@ export function NetworkProvider({ children }: PropsWithChildren) {
   const initializationRef = useRef<boolean>(false);
 
   // Determine connection quality based on network type
-  const getConnectionQuality = useCallback((state: NetInfoState): ConnectionQuality => {
-    if (!state.isConnected || !state.isInternetReachable) {
-      return "poor";
-    }
+  const getConnectionQuality = useCallback(
+    (state: NetInfoState): ConnectionQuality => {
+      if (!state.isConnected || !state.isInternetReachable) {
+        return "poor";
+      }
 
-    switch (state.type) {
-      case NetInfoStateType.wifi:
-      case NetInfoStateType.ethernet:
-        return "excellent";
-      
-      case NetInfoStateType.cellular:
-        const generation = state.details?.cellularGeneration;
-        if (generation === "5g") return "excellent";
-        if (generation === "4g") return "good";
-        if (generation === "3g") return "fair";
-        return "poor";
-      
-      case NetInfoStateType.bluetooth:
-        return "poor";
-      
-      default:
-        return "unknown";
-    }
-  }, []);
+      switch (state.type) {
+        case NetInfoStateType.wifi:
+        case NetInfoStateType.ethernet:
+          return "excellent";
+
+        case NetInfoStateType.cellular:
+          const generation = state.details?.cellularGeneration;
+          if (generation === "5g") return "excellent";
+          if (generation === "4g") return "good";
+          if (generation === "3g") return "fair";
+          return "poor";
+
+        case NetInfoStateType.bluetooth:
+          return "poor";
+
+        default:
+          return "unknown";
+      }
+    },
+    [],
+  );
 
   // Process NetInfo state into our format
-  const processNetworkState = useCallback((state: NetInfoState): NetworkState => {
-    const quality = getConnectionQuality(state);
-    
-    return {
-      isConnected: state.isConnected ?? false,
-      isInternetReachable: state.isInternetReachable ?? false,
-      type: state.type,
-      quality,
-      details: {
-        cellularGeneration: state.details?.cellularGeneration,
-        isConnectionExpensive: state.details?.isConnectionExpensive,
-      },
-    };
-  }, [getConnectionQuality]);
+  const processNetworkState = useCallback(
+    (state: NetInfoState): NetworkState => {
+      const quality = getConnectionQuality(state);
+
+      return {
+        isConnected: state.isConnected ?? false,
+        isInternetReachable: state.isInternetReachable ?? false,
+        type: state.type,
+        quality,
+        details: {
+          cellularGeneration: state.details?.cellularGeneration,
+          isConnectionExpensive: state.details?.isConnectionExpensive,
+        },
+      };
+    },
+    [getConnectionQuality],
+  );
 
   // Update network state and notify listeners
-  const updateNetworkState = useCallback((state: NetInfoState) => {
-    const newState = processNetworkState(state);
-    
-    // Mark as initialized on first real update
-    if (!initializationRef.current) {
-      initializationRef.current = true;
-      setHasInitialized(true);
-      setIsLoading(false);
-    }
-    
-    setNetworkState(prevState => {
-      // Only update if state actually changed (but always update on first initialization)
-      if (
-        initializationRef.current &&
-        prevState.isConnected === newState.isConnected &&
-        prevState.isInternetReachable === newState.isInternetReachable &&
-        prevState.type === newState.type &&
-        prevState.quality === newState.quality
-      ) {
-        return prevState;
+  const updateNetworkState = useCallback(
+    (state: NetInfoState) => {
+      const newState = processNetworkState(state);
+
+      // Mark as initialized on first real update
+      if (!initializationRef.current) {
+        initializationRef.current = true;
+        setHasInitialized(true);
+        setIsLoading(false);
       }
-      
-      // Notify listeners (only after initialization)
-      if (initializationRef.current) {
-        listenersRef.current.forEach(listener => {
-          try {
-            listener(newState);
-          } catch (error) {
-            console.error("[NetworkProvider] Listener error:", error);
-          }
-        });
-      }
-      
-      return newState;
-    });
-  }, [processNetworkState]);
+
+      setNetworkState((prevState) => {
+        // Only update if state actually changed (but always update on first initialization)
+        if (
+          initializationRef.current &&
+          prevState.isConnected === newState.isConnected &&
+          prevState.isInternetReachable === newState.isInternetReachable &&
+          prevState.type === newState.type &&
+          prevState.quality === newState.quality
+        ) {
+          return prevState;
+        }
+
+        // Notify listeners (only after initialization)
+        if (initializationRef.current) {
+          listenersRef.current.forEach((listener) => {
+            try {
+              listener(newState);
+            } catch (error) {
+              console.error("[NetworkProvider] Listener error:", error);
+            }
+          });
+        }
+
+        return newState;
+      });
+    },
+    [processNetworkState],
+  );
 
   // Manually refresh network state
   const refresh = useCallback(async () => {
@@ -158,7 +177,7 @@ export function NetworkProvider({ children }: PropsWithChildren) {
   // Add listener for network changes
   const addListener = useCallback((callback: (state: NetworkState) => void) => {
     listenersRef.current.add(callback);
-    
+
     // Return cleanup function
     return () => {
       listenersRef.current.delete(callback);
@@ -213,27 +232,26 @@ export function NetworkProvider({ children }: PropsWithChildren) {
   };
 
   return (
-    <NetworkContext.Provider value={value}>
-      {children}
-    </NetworkContext.Provider>
+    <NetworkContext.Provider value={value}>{children}</NetworkContext.Provider>
   );
 }
 
 // Hook to use network context
 export function useNetwork() {
   const context = useContext(NetworkContext);
-  
+
   if (!context) {
     throw new Error("useNetwork must be used within NetworkProvider");
   }
-  
+
   return context;
 }
 
 // Convenience hook for connection status
 export function useConnectionStatus() {
-  const { networkState, isOnline, isOffline, isLoading, hasInitialized } = useNetwork();
-  
+  const { networkState, isOnline, isOffline, isLoading, hasInitialized } =
+    useNetwork();
+
   return {
     isOnline,
     isOffline,

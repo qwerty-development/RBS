@@ -27,13 +27,14 @@ export const BookingCTA: React.FC<BookingCTAProps> = ({
   earnablePoints,
   userTier,
 }) => {
-  const isRequestBooking = bookingPolicy === "request" || bookingPolicy === "approval";
+  const isRequestBooking =
+    bookingPolicy === "request" || bookingPolicy === "approval";
 
   // Different button text and icon based on booking policy
-  const buttonText = isRequestBooking 
-    ? "Send Booking Request" 
+  const buttonText = isRequestBooking
+    ? "Send Booking Request"
     : "Confirm Booking";
-  
+
   const ButtonIcon = isRequestBooking ? Send : Calendar;
 
   return (
@@ -48,7 +49,7 @@ export const BookingCTA: React.FC<BookingCTAProps> = ({
               </Text>
             </View>
           )}
-          
+
           {selectedOfferDiscount && (
             <View className="bg-green-100 dark:bg-green-900/20 rounded-full px-3 py-1">
               <Text className="text-xs text-green-800 dark:text-green-200 font-medium">
@@ -56,7 +57,7 @@ export const BookingCTA: React.FC<BookingCTAProps> = ({
               </Text>
             </View>
           )}
-          
+
           {earnablePoints && earnablePoints > 0 && !isRequestBooking && (
             <View className="bg-amber-100 dark:bg-amber-900/20 rounded-full px-3 py-1">
               <Text className="text-xs text-amber-800 dark:text-amber-200">
@@ -106,16 +107,15 @@ export const BookingCTA: React.FC<BookingCTAProps> = ({
         ) : (
           <View className="flex-row items-center justify-center gap-2">
             <ButtonIcon size={20} color="white" />
-            <Text className="text-white font-bold text-lg">
-              {buttonText}
-            </Text>
+            <Text className="text-white font-bold text-lg">{buttonText}</Text>
           </View>
         )}
       </Button>
 
       {/* Terms Note */}
       <Text className="text-xs text-muted-foreground text-center mt-2">
-        By {isRequestBooking ? "requesting" : "booking"}, you agree to the restaurant's terms and cancellation policy
+        By {isRequestBooking ? "requesting" : "booking"}, you agree to the
+        restaurant's terms and cancellation policy
       </Text>
     </View>
   );

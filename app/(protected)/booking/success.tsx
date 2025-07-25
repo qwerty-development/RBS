@@ -401,9 +401,7 @@ export default function BookingSuccessScreen() {
               <View className="flex-row items-start gap-3">
                 <Calendar size={20} color="#6b7280" className="mt-1" />
                 <View className="flex-1">
-                  <Text className="font-medium">
-                    We'll send you a reminder
-                  </Text>
+                  <Text className="font-medium">We'll send you a reminder</Text>
                   <Muted className="text-sm">
                     You'll receive a notification 2 hours before your
                     reservation
@@ -427,7 +425,8 @@ export default function BookingSuccessScreen() {
                   <View className="flex-1">
                     <Text className="font-medium">Table arrangement</Text>
                     <Muted className="text-sm">
-                      The restaurant will prepare combined tables for your large party
+                      The restaurant will prepare combined tables for your large
+                      party
                     </Muted>
                   </View>
                 </View>
@@ -477,11 +476,7 @@ export default function BookingSuccessScreen() {
         </Button>
 
         <View className="flex-row gap-3">
-          <Button
-            variant="outline"
-            onPress={navigateToHome}
-            className="flex-1"
-          >
+          <Button variant="outline" onPress={navigateToHome} className="flex-1">
             <Home size={20} />
             <Text className="ml-2">Home</Text>
           </Button>

@@ -28,6 +28,60 @@ export const SearchResultsHeader = React.memo(
       return ` in ${location.city}`;
     };
 
+    const getFilterText = () => {
+      if (bookingFilters.availableOnly) {
+        return ` • Showing only available restaurants`;
+      }
+      
+      if (bookingFilters.date === null && 
+          bookingFilters.partySize === null && 
+          bookingFilters.time === null) {
+        return ` • Showing all restaurants`;
+      }
+
+      const parts = [];
+
+      // Add party size info
+      if (bookingFilters.partySize !== null) {
+        parts.push(`party of ${bookingFilters.partySize}`);
+      }
+
+      // Add date/time info
+      if (bookingFilters.date !== null || bookingFilters.time !== null) {
+        let dateTimePart = "";
+        
+        if (bookingFilters.date !== null && bookingFilters.time !== null) {
+          const datePart = bookingFilters.date.toDateString() === new Date().toDateString()
+            ? "today"
+            : bookingFilters.date.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              });
+          dateTimePart = `${datePart} at ${bookingFilters.time}`;
+        } else if (bookingFilters.date !== null) {
+          const datePart = bookingFilters.date.toDateString() === new Date().toDateString()
+            ? "today"
+            : bookingFilters.date.toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              });
+          dateTimePart = `${datePart} at any time`;
+        } else if (bookingFilters.time !== null) {
+          dateTimePart = `any date at ${bookingFilters.time}`;
+        }
+        
+        if (dateTimePart) {
+          parts.push(dateTimePart);
+        }
+      }
+
+      if (parts.length === 0) {
+        return ` • Showing all restaurants`;
+      }
+
+      return ` • Showing availability for ${parts.join(", ")}`;
+    };
+
     return (
       <View className="px-4 py-2 border-b border-border">
         <Text className="text-sm text-muted-foreground">
@@ -37,17 +91,7 @@ export const SearchResultsHeader = React.memo(
             <>
               {restaurantCount} restaurant{restaurantCount !== 1 ? "s" : ""}{" "}
               found{getLocationText()}
-              {bookingFilters.availableOnly
-                ? ` • Showing only available for ${bookingFilters.time}`
-                : ` • Showing availability for ${
-                    bookingFilters.date.toDateString() ===
-                    new Date().toDateString()
-                      ? "today"
-                      : bookingFilters.date.toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                        })
-                  } at ${bookingFilters.time}`}
+              {getFilterText()}
             </>
           )}
         </Text>

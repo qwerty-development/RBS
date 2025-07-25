@@ -4,7 +4,10 @@ import { Stack } from "expo-router";
 import { useAuth } from "@/context/supabase-provider";
 import { GlobalChatTab } from "@/components/ui/global-chat-tab";
 import { View, ActivityIndicator, Text } from "react-native";
-import { NetworkStatusBanner } from "@/components/network/NetworkStatusBanner"; 
+import { NetworkStatusBanner } from "@/components/network/NetworkStatusBanner";
+import { useColorScheme } from "@/lib/useColorScheme";
+import { colors } from "@/constants/colors";
+import { getThemedColors, getActivityIndicatorColor } from "@/lib/utils";
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -12,6 +15,8 @@ export const unstable_settings = {
 
 export default function ProtectedLayout() {
   const { initialized, session, isGuest } = useAuth();
+  const { colorScheme } = useColorScheme();
+  const themedColors = getThemedColors(colorScheme);
 
   // Show loading while auth is initializing
   if (!initialized) {
@@ -21,11 +26,20 @@ export default function ProtectedLayout() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#000",
+          backgroundColor: themedColors.background,
         }}
+        className="bg-background"
       >
-        <ActivityIndicator size="large" color="#fff" />
-        <Text style={{ color: "#fff", marginTop: 16 }}>Loading...</Text>
+        <ActivityIndicator
+          size="large"
+          color={getActivityIndicatorColor(colorScheme)}
+        />
+        <Text
+          style={{ color: themedColors.foreground, marginTop: 16 }}
+          className="text-foreground mt-4"
+        >
+          Loading...
+        </Text>
       </View>
     );
   }
@@ -38,21 +52,33 @@ export default function ProtectedLayout() {
           flex: 1,
           justifyContent: "center",
           alignItems: "center",
-          backgroundColor: "#000",
+          backgroundColor: themedColors.background,
         }}
+        className="bg-background"
       >
-        <ActivityIndicator size="large" color="#fff" />
-        <Text style={{ color: "#fff", marginTop: 16 }}>Redirecting...</Text>
+        <ActivityIndicator
+          size="large"
+          color={getActivityIndicatorColor(colorScheme)}
+        />
+        <Text
+          style={{ color: themedColors.foreground, marginTop: 16 }}
+          className="text-foreground mt-4"
+        >
+          Redirecting...
+        </Text>
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      <NetworkStatusBanner 
-        position="top"
-        autoDismiss={5000}
-      />
+    <View
+      style={{
+        flex: 1,
+        backgroundColor: themedColors.background,
+      }}
+      className="bg-background"
+    >
+      <NetworkStatusBanner position="top" autoDismiss={5000} />
       <Stack
         screenOptions={{
           headerShown: false,

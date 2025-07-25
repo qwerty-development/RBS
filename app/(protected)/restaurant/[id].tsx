@@ -151,7 +151,7 @@ const ImageGallery: React.FC<{
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={(event) => {
           const index = Math.round(
-            event.nativeEvent.contentOffset.x / SCREEN_WIDTH
+            event.nativeEvent.contentOffset.x / SCREEN_WIDTH,
           );
           setActiveIndex(index);
         }}
@@ -260,11 +260,11 @@ const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({
   const isOpen = () => {
     const now = new Date();
     const currentTime = now.getHours() * 100 + now.getMinutes();
-    
+
     if (restaurant.opening_time && restaurant.closing_time) {
-      const openTime = parseInt(restaurant.opening_time.replace(':', ''));
-      const closeTime = parseInt(restaurant.closing_time.replace(':', ''));
-      
+      const openTime = parseInt(restaurant.opening_time.replace(":", ""));
+      const closeTime = parseInt(restaurant.closing_time.replace(":", ""));
+
       if (closeTime < openTime) {
         // Crosses midnight
         return currentTime >= openTime || currentTime <= closeTime;
@@ -272,7 +272,7 @@ const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({
         return currentTime >= openTime && currentTime <= closeTime;
       }
     }
-    
+
     return true; // Default to open if no hours specified
   };
 
@@ -282,7 +282,8 @@ const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({
         <View className="flex-1">
           <H1 className="text-2xl font-bold mb-1">{restaurant.name}</H1>
           <Text className="text-muted-foreground">
-            {restaurant.cuisine_type} • {"$".repeat(restaurant.price_range || 2)}          
+            {restaurant.cuisine_type} •{" "}
+            {"$".repeat(restaurant.price_range || 2)}
           </Text>
         </View>
 
@@ -348,7 +349,9 @@ const AboutSection: React.FC<{ restaurant: Restaurant }> = ({ restaurant }) => {
 
   return (
     <View className="px-4 py-3 border-b border-border/50">
-      <Text className="text-base font-semibold mb-2 text-foreground">About</Text>
+      <Text className="text-base font-semibold mb-2 text-foreground">
+        About
+      </Text>
       <Text className="text-sm text-muted-foreground leading-5 mb-1">
         {displayText}
       </Text>
@@ -369,8 +372,10 @@ const FeaturesSection: React.FC<{ restaurant: Restaurant }> = ({
 }) => {
   const features = [];
 
-  if (restaurant.parking_available) features.push({ icon: Car, text: "Parking" });
-  if (restaurant.outdoor_seating) features.push({ icon: TreePine, text: "Outdoor seating" });
+  if (restaurant.parking_available)
+    features.push({ icon: Car, text: "Parking" });
+  if (restaurant.outdoor_seating)
+    features.push({ icon: TreePine, text: "Outdoor seating" });
   if (restaurant.dietary_options?.includes("vegetarian"))
     features.push({ icon: Leaf, text: "Vegetarian" });
   if (restaurant.dietary_options?.includes("vegan"))
@@ -380,14 +385,21 @@ const FeaturesSection: React.FC<{ restaurant: Restaurant }> = ({
 
   return (
     <View className="px-4 py-3 border-b border-border/50">
-      <Text className="text-base font-semibold mb-3 text-foreground">Features</Text>
+      <Text className="text-base font-semibold mb-3 text-foreground">
+        Features
+      </Text>
       <View className="flex-row flex-wrap gap-2">
         {features.map((feature, index) => {
           const IconComponent = feature.icon;
           return (
-            <View key={index} className="flex-row items-center bg-muted/30 px-3 py-2 rounded-full">
+            <View
+              key={index}
+              className="flex-row items-center bg-muted/30 px-3 py-2 rounded-full"
+            >
               <IconComponent size={14} color="#666" />
-              <Text className="text-sm text-muted-foreground ml-1.5">{feature.text}</Text>
+              <Text className="text-sm text-muted-foreground ml-1.5">
+                {feature.text}
+              </Text>
             </View>
           );
         })}
@@ -410,7 +422,9 @@ const MenuSection: React.FC<{ onViewMenu: () => void }> = ({ onViewMenu }) => {
             <BookOpen size={18} color="#3b82f6" />
           </View>
           <View>
-            <Text className="text-sm font-medium text-foreground">Browse Menu</Text>
+            <Text className="text-sm font-medium text-foreground">
+              Browse Menu
+            </Text>
             <Text className="text-xs text-muted-foreground">
               View dishes & prices
             </Text>
@@ -430,8 +444,10 @@ const ContactInfo: React.FC<{
 }> = ({ restaurant, onCall, onWebsite }) => {
   return (
     <View className="px-4 py-3 border-b border-border/50">
-      <Text className="text-base font-semibold mb-3 text-foreground">Contact</Text>
-      
+      <Text className="text-base font-semibold mb-3 text-foreground">
+        Contact
+      </Text>
+
       <View className="gap-2">
         {restaurant.phone_number && (
           <Pressable
@@ -460,7 +476,9 @@ const ContactInfo: React.FC<{
               <Globe size={16} color="#3b82f6" />
             </View>
             <View className="flex-1">
-              <Text className="text-sm font-medium text-foreground">Website</Text>
+              <Text className="text-sm font-medium text-foreground">
+                Website
+              </Text>
               <Text className="text-xs text-muted-foreground">
                 View online menu
               </Text>
@@ -479,7 +497,7 @@ const LocationMap: React.FC<{
   onDirections: () => void;
 }> = ({ restaurant, onDirections }) => {
   const { address, coordinates, isLoading } = useRestaurantLocation(
-    restaurant.location
+    restaurant.location,
   );
   const [mapReady, setMapReady] = useState(false);
 
@@ -509,7 +527,9 @@ const LocationMap: React.FC<{
   return (
     <View className="px-4 py-3 border-b border-border/50">
       <View className="flex-row items-center justify-between mb-3">
-        <Text className="text-base font-semibold text-foreground">Location</Text>
+        <Text className="text-base font-semibold text-foreground">
+          Location
+        </Text>
         <Pressable
           onPress={onDirections}
           className="flex-row items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-full"
@@ -604,7 +624,8 @@ const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
 
         <View className="flex-1">
           <Text className="text-xs text-muted-foreground mb-1">
-            {restaurant.review_summary?.recommendation_percentage || 95}% recommend
+            {restaurant.review_summary?.recommendation_percentage || 95}%
+            recommend
           </Text>
           <View className="bg-border rounded-full h-1.5">
             <View
@@ -632,7 +653,10 @@ const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
       {/* Recent Reviews */}
       {reviews.length > 0 ? (
         reviews.slice(0, 2).map((review) => (
-          <View key={review.id} className="mb-3 last:mb-0 p-3 bg-muted/10 rounded-xl">
+          <View
+            key={review.id}
+            className="mb-3 last:mb-0 p-3 bg-muted/10 rounded-xl"
+          >
             <View className="flex-row items-center gap-2 mb-2">
               <View className="w-7 h-7 rounded-full bg-primary/20 items-center justify-center">
                 <Text className="text-xs font-medium text-primary">
@@ -713,7 +737,7 @@ export default function RestaurantDetailsScreen() {
   const handleAddToPlaylist = useCallback(() => {
     runProtectedAction(
       () => setShowAddToPlaylist(true),
-      "add restaurants to a playlist"
+      "add restaurants to a playlist",
     );
   }, [runProtectedAction]);
 
@@ -721,7 +745,7 @@ export default function RestaurantDetailsScreen() {
     if (!restaurant) return;
     runProtectedAction(
       () => router.push(`/restaurant/${restaurant.id}/write-review`),
-      "write a review"
+      "write a review",
     );
   }, [runProtectedAction, router, restaurant]);
 
@@ -740,13 +764,16 @@ export default function RestaurantDetailsScreen() {
     runProtectedAction(handleBookTable, "book a table");
   }, [runProtectedAction, handleBookTable]);
 
-  const handleAddToPlaylistSuccess = useCallback((playlistName: string) => {
-    Alert.alert(
-      "Added to Playlist",
-      `${restaurant?.name} has been added to "${playlistName}"`,
-      [{ text: "OK" }]
-    );
-  }, [restaurant?.name]);
+  const handleAddToPlaylistSuccess = useCallback(
+    (playlistName: string) => {
+      Alert.alert(
+        "Added to Playlist",
+        `${restaurant?.name} has been added to "${playlistName}"`,
+        [{ text: "OK" }],
+      );
+    },
+    [restaurant?.name],
+  );
 
   const allImages = React.useMemo(() => {
     if (!restaurant) return [];
@@ -822,7 +849,7 @@ export default function RestaurantDetailsScreen() {
         </SafeAreaView>
       </View>
 
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
       >
@@ -841,7 +868,9 @@ export default function RestaurantDetailsScreen() {
 
         <RestaurantHeaderInfo restaurant={restaurant} />
 
-        {!isGuest && <RestaurantPlaylistIndicator restaurantId={restaurant.id} />}
+        {!isGuest && (
+          <RestaurantPlaylistIndicator restaurantId={restaurant.id} />
+        )}
 
         <AboutSection restaurant={restaurant} />
         <FeaturesSection restaurant={restaurant} />
@@ -910,7 +939,7 @@ export default function RestaurantDetailsScreen() {
                 )}
               </View>
             </Button>
-            
+
             {/* Instant Booking Badge */}
             {restaurant.booking_policy === "instant" && (
               <View className="flex-row items-center justify-center gap-2 mt-2">

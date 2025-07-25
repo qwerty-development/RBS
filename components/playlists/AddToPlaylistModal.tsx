@@ -338,18 +338,18 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
 
             {/* Playlists List */}
             <View className="p-4">
-            <OptimizedList
-              data={filteredPlaylists}
-              renderItem={renderPlaylistItem}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-              showsVerticalScrollIndicator={false}
-              ListEmptyComponent={
-                <View className="items-center justify-center py-8">
-                  <Muted>No playlists found</Muted>
-                </View>
-              }
-            />
+              <OptimizedList
+                data={filteredPlaylists}
+                renderItem={renderPlaylistItem}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+                showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
+                  <View className="items-center justify-center py-8">
+                    <Muted>No playlists found</Muted>
+                  </View>
+                }
+              />
             </View>
 
             {/* Footer Actions */}

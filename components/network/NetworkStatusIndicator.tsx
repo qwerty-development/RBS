@@ -11,16 +11,13 @@ interface NetworkStatusIndicatorProps {
   variant?: "icon" | "badge" | "full";
 }
 
-export function NetworkStatusIndicator({ 
+export function NetworkStatusIndicator({
   showText = false,
   size = "md",
-  variant = "icon"
+  variant = "icon",
 }: NetworkStatusIndicatorProps) {
-  const { 
-    isOnline, 
-    isSlowConnection, 
-    connectionQuality 
-  } = useConnectionStatus();
+  const { isOnline, isSlowConnection, connectionQuality } =
+    useConnectionStatus();
   const { colorScheme } = useColorScheme();
 
   const sizeMap = {
@@ -70,7 +67,9 @@ export function NetworkStatusIndicator({
 
   if (variant === "badge") {
     return (
-      <View className={`${config.bgColor} px-2 py-1 rounded-full flex-row items-center`}>
+      <View
+        className={`${config.bgColor} px-2 py-1 rounded-full flex-row items-center`}
+      >
         <Icon size={12} color={config.color} />
         {showText && (
           <Text className={`${config.textColor} text-xs font-medium ml-1`}>

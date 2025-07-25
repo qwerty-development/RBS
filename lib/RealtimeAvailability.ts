@@ -12,7 +12,7 @@ export class RealtimeAvailability {
    */
   subscribeToRestaurant(
     restaurantId: string,
-    onUpdate: () => void
+    onUpdate: () => void,
   ): () => void {
     const channelKey = `restaurant:${restaurantId}`;
 
@@ -34,51 +34,51 @@ export class RealtimeAvailability {
       const channel = supabase
         .channel(channelKey)
         .on(
-          'postgres_changes',
+          "postgres_changes",
           {
-            event: '*',
-            schema: 'public',
-            table: 'bookings',
+            event: "*",
+            schema: "public",
+            table: "bookings",
             filter: `restaurant_id=eq.${restaurantId}`,
           },
           (payload) => {
-            console.log('Booking change detected:', payload);
+            console.log("Booking change detected:", payload);
             this.notifyListeners(channelKey);
-          }
+          },
         )
         .on(
-          'postgres_changes',
+          "postgres_changes",
           {
-            event: '*',
-            schema: 'public',
-            table: 'booking_tables',
+            event: "*",
+            schema: "public",
+            table: "booking_tables",
           },
           async (payload) => {
             // Properly handle async operation
             try {
               await this.checkAndNotify(restaurantId, payload);
             } catch (error) {
-              console.error('Error processing booking_tables change:', error);
+              console.error("Error processing booking_tables change:", error);
             }
-          }
+          },
         )
         .on(
-          'postgres_changes',
+          "postgres_changes",
           {
-            event: '*',
-            schema: 'public',
-            table: 'restaurant_tables',
+            event: "*",
+            schema: "public",
+            table: "restaurant_tables",
             filter: `restaurant_id=eq.${restaurantId}`,
           },
           (payload) => {
-            console.log('Table configuration change detected:', payload);
+            console.log("Table configuration change detected:", payload);
             this.notifyListeners(channelKey);
-          }
+          },
         )
         .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
+          if (status === "SUBSCRIBED") {
             console.log(`Subscribed to real-time updates for ${channelKey}`);
-          } else if (status === 'CHANNEL_ERROR') {
+          } else if (status === "CHANNEL_ERROR") {
             console.error(`Error subscribing to ${channelKey}`);
             // Retry subscription after delay
             setTimeout(() => {
@@ -97,7 +97,7 @@ export class RealtimeAvailability {
       const listeners = this.listeners.get(channelKey);
       if (listeners) {
         listeners.delete(onUpdate);
-        
+
         // If no more listeners, schedule cleanup (with delay to handle quick resubscribes)
         if (listeners.size === 0) {
           const timeoutId = setTimeout(() => {
@@ -113,7 +113,7 @@ export class RealtimeAvailability {
               this.cleanupTimeouts.delete(channelKey);
             }
           }, 5000); // 5 second delay before cleanup
-          
+
           this.cleanupTimeouts.set(channelKey, timeoutId);
         }
       }
@@ -128,7 +128,7 @@ export class RealtimeAvailability {
     if (channel) {
       await channel.unsubscribe();
       this.channels.delete(channelKey);
-      
+
       // Trigger resubscription by notifying listeners
       // They will create a new subscription
       this.notifyListeners(channelKey);
@@ -142,16 +142,16 @@ export class RealtimeAvailability {
     try {
       if (payload.new?.booking_id || payload.old?.booking_id) {
         const bookingId = payload.new?.booking_id || payload.old?.booking_id;
-        
+
         // Check if this booking is for our restaurant
         const { data, error } = await supabase
-          .from('bookings')
-          .select('restaurant_id')
-          .eq('id', bookingId)
+          .from("bookings")
+          .select("restaurant_id")
+          .eq("id", bookingId)
           .single();
 
         if (error) {
-          console.error('Error checking booking restaurant:', error);
+          console.error("Error checking booking restaurant:", error);
           return;
         }
 
@@ -160,7 +160,7 @@ export class RealtimeAvailability {
         }
       }
     } catch (error) {
-      console.error('Error in checkAndNotify:', error);
+      console.error("Error in checkAndNotify:", error);
     }
   }
 
@@ -172,11 +172,11 @@ export class RealtimeAvailability {
     if (listeners) {
       // Use setTimeout to avoid blocking the event loop
       setTimeout(() => {
-        listeners.forEach(listener => {
+        listeners.forEach((listener) => {
           try {
             listener();
           } catch (error) {
-            console.error('Error in availability listener:', error);
+            console.error("Error in availability listener:", error);
           }
         });
       }, 0);
@@ -187,24 +187,25 @@ export class RealtimeAvailability {
    * Subscribe to global booking changes (for admin dashboards)
    */
   subscribeToGlobal(onUpdate: (restaurantId: string) => void): () => void {
-    const channelKey = 'global:bookings';
+    const channelKey = "global:bookings";
 
     if (!this.channels.has(channelKey)) {
       const channel = supabase
         .channel(channelKey)
         .on(
-          'postgres_changes',
+          "postgres_changes",
           {
-            event: '*',
-            schema: 'public',
-            table: 'bookings',
+            event: "*",
+            schema: "public",
+            table: "bookings",
           },
           (payload) => {
-            const restaurantId = payload.new?.restaurant_id || payload.old?.restaurant_id;
+            const restaurantId =
+              payload.new?.restaurant_id || payload.old?.restaurant_id;
             if (restaurantId) {
               onUpdate(restaurantId);
             }
-          }
+          },
         )
         .subscribe();
 
@@ -223,15 +224,17 @@ export class RealtimeAvailability {
   /**
    * Get subscription status
    */
-  getSubscriptionStatus(restaurantId: string): 'subscribed' | 'subscribing' | 'unsubscribed' {
+  getSubscriptionStatus(
+    restaurantId: string,
+  ): "subscribed" | "subscribing" | "unsubscribed" {
     const channel = this.channels.get(`restaurant:${restaurantId}`);
-    if (!channel) return 'unsubscribed';
-    
+    if (!channel) return "unsubscribed";
+
     // Check the actual channel state
     const state = (channel as any).state;
-    if (state === 'joined') return 'subscribed';
-    if (state === 'joining' || state === 'leaving') return 'subscribing';
-    return 'unsubscribed';
+    if (state === "joined") return "subscribed";
+    if (state === "joining" || state === "leaving") return "subscribing";
+    return "unsubscribed";
   }
 
   /**
@@ -239,22 +242,22 @@ export class RealtimeAvailability {
    */
   cleanup() {
     // Clear all pending timeouts
-    this.cleanupTimeouts.forEach(timeout => clearTimeout(timeout));
+    this.cleanupTimeouts.forEach((timeout) => clearTimeout(timeout));
     this.cleanupTimeouts.clear();
 
     // Unsubscribe all channels
-    this.channels.forEach(channel => {
+    this.channels.forEach((channel) => {
       try {
         channel.unsubscribe();
       } catch (error) {
-        console.error('Error unsubscribing channel:', error);
+        console.error("Error unsubscribing channel:", error);
       }
     });
-    
+
     this.channels.clear();
     this.listeners.clear();
-    
-    console.log('RealtimeAvailability cleaned up');
+
+    console.log("RealtimeAvailability cleaned up");
   }
 }
 
@@ -262,8 +265,8 @@ export class RealtimeAvailability {
 export const realtimeAvailability = new RealtimeAvailability();
 
 // Cleanup on app termination (for React Native)
-if (typeof global !== 'undefined' && global.addEventListener) {
-  global.addEventListener('beforeunload', () => {
+if (typeof global !== "undefined" && global.addEventListener) {
+  global.addEventListener("beforeunload", () => {
     realtimeAvailability.cleanup();
   });
 }

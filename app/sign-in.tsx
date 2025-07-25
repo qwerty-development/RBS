@@ -167,7 +167,10 @@ export default function SignIn() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background p-4" edges={["top", "bottom"]}>
+    <SafeAreaView
+      className="flex-1 bg-background p-4"
+      edges={["top", "bottom"]}
+    >
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -216,7 +219,9 @@ export default function SignIn() {
                 onPress={() => router.push("/password-reset")}
                 className="mt-2 self-end"
               >
-                <Text className="text-primary font-medium">Forgot Password?</Text>
+                <Text className="text-primary font-medium">
+                  Forgot Password?
+                </Text>
               </TouchableOpacity>
             </View>
           </Form>
@@ -297,7 +302,9 @@ export default function SignIn() {
                   ) : (
                     <>
                       <Ionicons name="logo-google" size={20} color="#EA4335" />
-                      <Text className="text-foreground font-medium">Google</Text>
+                      <Text className="text-foreground font-medium">
+                        Google
+                      </Text>
                     </>
                   )}
                 </View>
@@ -306,7 +313,9 @@ export default function SignIn() {
           </View>
 
           <View className="flex-row items-center gap-2 justify-center mt-2">
-            <Text className="text-muted-foreground">Don't have an account?</Text>
+            <Text className="text-muted-foreground">
+              Don't have an account?
+            </Text>
             <Text
               className="text-primary font-medium"
               onPress={() => router.push("/sign-up")}

@@ -62,7 +62,10 @@ export interface VIPBenefits {
 
 // Enhanced cache with LRU and batching
 class EnhancedCache<T> {
-  private cache = new Map<string, { data: T; timestamp: number; hits: number }>();
+  private cache = new Map<
+    string,
+    { data: T; timestamp: number; hits: number }
+  >();
   private maxSize: number;
   private ttl: number;
 
@@ -74,8 +77,8 @@ class EnhancedCache<T> {
   get(key: string): T | null {
     const now = Date.now();
     const entry = this.cache.get(key);
-    
-    if (!entry || (now - entry.timestamp) > this.ttl) {
+
+    if (!entry || now - entry.timestamp > this.ttl) {
       if (entry) this.cache.delete(key);
       return null;
     }
@@ -96,12 +99,15 @@ class EnhancedCache<T> {
   }
 
   private evictLeastUsed(): void {
-    let leastUsedKey = '';
+    let leastUsedKey = "";
     let leastHits = Infinity;
     let oldestTime = Infinity;
 
     for (const [key, entry] of this.cache.entries()) {
-      if (entry.hits < leastHits || (entry.hits === leastHits && entry.timestamp < oldestTime)) {
+      if (
+        entry.hits < leastHits ||
+        (entry.hits === leastHits && entry.timestamp < oldestTime)
+      ) {
         leastUsedKey = key;
         leastHits = entry.hits;
         oldestTime = entry.timestamp;
@@ -139,7 +145,7 @@ class EnhancedCache<T> {
             console.warn(`Prefetch failed for key: ${key}`, error);
           }
         });
-      
+
       await Promise.allSettled(promises);
     }, 100);
   }
@@ -166,19 +172,19 @@ export class AvailabilityService {
   private async getMaxTurnTime(restaurantId: string): Promise<number> {
     const cacheKey = `turn-time:${restaurantId}`;
     let cached = this.restaurantConfigCache.get(cacheKey);
-    
+
     if (cached) return cached;
 
     try {
-      const { data, error } = await supabase.rpc('get_max_turn_time', {
-        p_restaurant_id: restaurantId
+      const { data, error } = await supabase.rpc("get_max_turn_time", {
+        p_restaurant_id: restaurantId,
       });
 
       const turnTime = error || !data ? 240 : data;
       this.restaurantConfigCache.set(cacheKey, turnTime);
       return turnTime;
     } catch (error) {
-      console.error('Error getting max turn time:', error);
+      console.error("Error getting max turn time:", error);
       return 240;
     }
   }
@@ -188,7 +194,7 @@ export class AvailabilityService {
     date: Date,
     partySize: number,
     userId?: string,
-    preloadNextDay: boolean = true
+    preloadNextDay: boolean = true,
   ): Promise<TimeSlotBasic[]> {
     const dateStr = date.toISOString().split("T")[0];
     const cacheKey = `time-slots:${restaurantId}:${dateStr}:${partySize}:${userId || 'guest'}`;
@@ -204,7 +210,9 @@ export class AvailabilityService {
     try {
       const [restaurant, vipBenefits] = await Promise.all([
         this.getRestaurantConfig(restaurantId),
-        userId ? this.getVIPBenefits(restaurantId, userId) : Promise.resolve(null)
+        userId
+          ? this.getVIPBenefits(restaurantId, userId)
+          : Promise.resolve(null),
       ]);
 
       if (!restaurant) return [];
@@ -213,7 +221,9 @@ export class AvailabilityService {
       today.setHours(0, 0, 0, 0);
       const bookingDate = new Date(date);
       bookingDate.setHours(0, 0, 0, 0);
-      const daysDiff = Math.floor((bookingDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      const daysDiff = Math.floor(
+        (bookingDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
+      );
 
       let maxBookingDays = restaurant.booking_window_days || 30;
       if (vipBenefits?.extended_booking_days) {
@@ -235,7 +245,7 @@ export class AvailabilityService {
         date,
         baseSlots,
         turnTime,
-        partySize
+        partySize,
       );
 
       this.timeSlotsCache.set(cacheKey, availableSlots);
@@ -255,7 +265,7 @@ export class AvailabilityService {
     restaurantId: string,
     date: Date,
     time: string,
-    partySize: number
+    partySize: number,
   ): Promise<SlotTableOptions | null> {
     const dateStr = date.toISOString().split("T")[0];
     const cacheKey = `table-options:${restaurantId}:${dateStr}:${time}:${partySize}`;
@@ -292,15 +302,14 @@ export class AvailabilityService {
       }
 
       return this.processTableOptions(
-        time, 
-        availableTables, 
-        restaurantId, 
-        startTime, 
-        endTime, 
-        partySize, 
-        cacheKey
+        time,
+        availableTables,
+        restaurantId,
+        startTime,
+        endTime,
+        partySize,
+        cacheKey,
       );
-
     } catch (error) {
       console.error("Error getting table options for slot:", error);
       return null;
@@ -314,7 +323,7 @@ export class AvailabilityService {
     startTime: Date,
     endTime: Date,
     partySize: number,
-    cacheKey: string
+    cacheKey: string,
   ): Promise<SlotTableOptions | null> {
     // Validate table data
     const validTables = (availableTables || []).filter(table => 
@@ -398,7 +407,7 @@ export class AvailabilityService {
     date: Date,
     baseSlots: { time: string }[],
     turnTime: number,
-    partySize: number
+    partySize: number,
   ): Promise<TimeSlotBasic[]> {
     const dateStr = date.toISOString().split("T")[0];
     const now = new Date();
@@ -421,7 +430,7 @@ export class AvailabilityService {
             restaurantId,
             startTime,
             endTime,
-            partySize
+            partySize,
           );
           this.quickAvailabilityCache.set(cacheKey, hasAvailability);
         }
@@ -430,7 +439,11 @@ export class AvailabilityService {
       });
 
       const batchResults = await Promise.all(batchPromises);
-      availableSlots.push(...batchResults.filter(result => result !== null) as TimeSlotBasic[]);
+      availableSlots.push(
+        ...(batchResults.filter(
+          (result) => result !== null,
+        ) as TimeSlotBasic[]),
+      );
     }
 
     return availableSlots;
@@ -439,7 +452,7 @@ export class AvailabilityService {
   private async getRestaurantConfig(restaurantId: string): Promise<any> {
     const cacheKey = `restaurant:${restaurantId}`;
     let cached = this.restaurantConfigCache.get(cacheKey);
-    
+
     if (cached) return cached;
 
     const { data: restaurant, error } = await supabase
@@ -458,11 +471,11 @@ export class AvailabilityService {
   private async getTurnTimeForParty(
     restaurantId: string,
     partySize: number,
-    date: Date
+    date: Date,
   ): Promise<number> {
     const cacheKey = `turn-time-party:${restaurantId}:${partySize}`;
     let cached = this.restaurantConfigCache.get(cacheKey);
-    
+
     if (cached) return cached;
 
     const { data: turnTimeData } = await supabase.rpc("get_turn_time", {
@@ -473,7 +486,7 @@ export class AvailabilityService {
 
     const turnTime = turnTimeData || this.getDefaultTurnTime(partySize);
     this.restaurantConfigCache.set(cacheKey, turnTime);
-    
+
     return turnTime;
   }
 
@@ -481,14 +494,19 @@ export class AvailabilityService {
     restaurantId: string,
     currentDate: Date,
     partySize: number,
-    userId?: string
+    userId?: string,
   ): void {
     const nextDay = new Date(currentDate);
     nextDay.setDate(currentDate.getDate() + 1);
 
     setTimeout(() => {
-      this.getAvailableTimeSlots(restaurantId, nextDay, partySize, userId, false)
-        .catch(error => console.warn('Background prefetch failed:', error));
+      this.getAvailableTimeSlots(
+        restaurantId,
+        nextDay,
+        partySize,
+        userId,
+        false,
+      ).catch((error) => console.warn("Background prefetch failed:", error));
     }, 500);
   }
 
@@ -496,7 +514,7 @@ export class AvailabilityService {
     restaurantId: string,
     startTime: Date,
     endTime: Date,
-    partySize: number
+    partySize: number,
   ): Promise<boolean> {
     try {
       // For large parties, always check combinations
@@ -505,13 +523,13 @@ export class AvailabilityService {
       }
 
       const { data: availabilityCheck, error } = await supabase.rpc(
-        'quick_availability_check',
+        "quick_availability_check",
         {
           p_restaurant_id: restaurantId,
           p_start_time: startTime.toISOString(),
           p_end_time: endTime.toISOString(),
           p_party_size: partySize,
-        }
+        },
       );
 
       if (!error && availabilityCheck !== undefined) {
@@ -545,7 +563,7 @@ export class AvailabilityService {
     restaurantId: string,
     startTime: Date,
     endTime: Date,
-    partySize: number
+    partySize: number,
   ): Promise<boolean> {
     // Get all combinable tables
     const { data: combinableTables } = await supabase
@@ -818,9 +836,9 @@ export class AvailabilityService {
       const aCapacityDiff = a.totalCapacity - partySize;
       const bCapacityDiff = b.totalCapacity - partySize;
       if (aCapacityDiff !== bCapacityDiff) {
-          return aCapacityDiff - bCapacityDiff;
+        return aCapacityDiff - bCapacityDiff;
       }
-      
+
       const scoreA = this.getExperienceScore(a.tableTypes[0], partySize);
       const scoreB = this.getExperienceScore(b.tableTypes[0], partySize);
       return scoreB - scoreA;
@@ -828,9 +846,9 @@ export class AvailabilityService {
   }
 
   private createAdditionalOptions(
-    tablesByType: Record<string, Table[]>, 
-    partySize: number, 
-    existingTypes: string[]
+    tablesByType: Record<string, Table[]>,
+    partySize: number,
+    existingTypes: string[],
   ): TableOption[] {
     const additionalOptions: TableOption[] = [];
 
@@ -922,26 +940,32 @@ export class AvailabilityService {
       }
     };
 
-    return experiences[tableType] || {
-      title: 'Restaurant Seating',
-      description: 'Quality dining table in a welcoming atmosphere'
-    };
+    return (
+      experiences[tableType] || {
+        title: "Restaurant Seating",
+        description: "Quality dining table in a welcoming atmosphere",
+      }
+    );
   }
 
   private isUniqueExperience(tableType: string, existingTypes: string[]): boolean {
     const experienceGroups: Record<string, string[]> = {
-      'intimate': ['booth', 'window'],
-      'casual': ['standard', 'bar'],
-      'outdoor': ['patio'],
-      'private': ['private']
+      intimate: ["booth", "window"],
+      casual: ["standard", "bar"],
+      outdoor: ["patio"],
+      private: ["private"],
     };
 
-    const newExperienceGroup = Object.entries(experienceGroups)
-      .find(([_, types]) => types.includes(tableType))?.[0] || 'other';
+    const newExperienceGroup =
+      Object.entries(experienceGroups).find(([_, types]) =>
+        types.includes(tableType),
+      )?.[0] || "other";
 
-    const existingExperienceGroups = existingTypes.map(type => 
-      Object.entries(experienceGroups)
-        .find(([_, types]) => types.includes(type))?.[0] || 'other'
+    const existingExperienceGroups = existingTypes.map(
+      (type) =>
+        Object.entries(experienceGroups).find(([_, types]) =>
+          types.includes(type),
+        )?.[0] || "other",
     );
 
     return !existingExperienceGroups.includes(newExperienceGroup);
@@ -949,12 +973,12 @@ export class AvailabilityService {
 
   private getExperienceScore(tableType: string, partySize: number): number {
     const baseScores: Record<string, number> = {
-      'booth': 20,
-      'window': 18,
-      'patio': 16,
-      'private': 15,
-      'standard': 12,
-      'bar': 10,
+      booth: 20,
+      window: 18,
+      patio: 16,
+      private: 15,
+      standard: 12,
+      bar: 10,
     };
 
     let score = baseScores[tableType] || 8;
@@ -983,14 +1007,13 @@ export class AvailabilityService {
   }
 
   private combinationCache = new EnhancedCache<Table[]>(30, 5 * 60 * 1000);
-
   private async getVIPBenefits(
     restaurantId: string,
-    userId: string
+    userId: string,
   ): Promise<VIPBenefits | null> {
     const cacheKey = `vip:${restaurantId}:${userId}`;
     let cached = this.restaurantConfigCache.get(cacheKey);
-    
+
     if (cached) return cached;
 
     const { data } = await supabase
@@ -1067,10 +1090,15 @@ export class AvailabilityService {
     restaurantId: string,
     date: Date,
     partySize: number,
-    userId?: string
+    userId?: string,
   ): Promise<TimeSlot[]> {
     try {
-      const timeSlots = await this.getAvailableTimeSlots(restaurantId, date, partySize, userId);
+      const timeSlots = await this.getAvailableTimeSlots(
+        restaurantId,
+        date,
+        partySize,
+        userId,
+      );
       const fullSlots: TimeSlot[] = [];
   
       const batchSize = 5;
@@ -1081,7 +1109,7 @@ export class AvailabilityService {
             restaurantId,
             date,
             timeSlot.time,
-            partySize
+            partySize,
           );
   
           if (tableOptions && tableOptions.primaryOption) {
@@ -1102,7 +1130,9 @@ export class AvailabilityService {
         });
   
         const batchResults = await Promise.all(batchPromises);
-        fullSlots.push(...batchResults.filter(slot => slot !== null) as TimeSlot[]);
+        fullSlots.push(
+          ...(batchResults.filter((slot) => slot !== null) as TimeSlot[]),
+        );
       }
   
       console.log('Available slots with tables:', fullSlots.map(s => ({
@@ -1121,7 +1151,7 @@ export class AvailabilityService {
   async areTablesAvailable(
     tableIds: string[],
     startTime: Date,
-    endTime: Date
+    endTime: Date,
   ): Promise<boolean> {
     const { data: conflict } = await supabase.rpc("check_booking_overlap", {
       p_table_ids: tableIds,
@@ -1152,16 +1182,22 @@ export class AvailabilityService {
     tomorrow.setDate(today.getDate() + 1);
 
     const dates = [today, tomorrow];
-    
+
     setTimeout(async () => {
       try {
         for (const date of dates) {
           for (const partySize of partySizes) {
-            await this.getAvailableTimeSlots(restaurantId, date, partySize, undefined, false);
+            await this.getAvailableTimeSlots(
+              restaurantId,
+              date,
+              partySize,
+              undefined,
+              false,
+            );
           }
         }
       } catch (error) {
-        console.warn('Preload failed:', error);
+        console.warn("Preload failed:", error);
       }
     }, 1000);
   }

@@ -30,7 +30,9 @@ export const BookingTableInfo: React.FC<BookingTableInfoProps> = ({
       <View className="p-4 border-b border-border">
         <H3 className="mb-3">Table Assignment</H3>
         <View className="bg-muted/30 rounded-lg p-4">
-          <Text className="text-muted-foreground">Loading table information...</Text>
+          <Text className="text-muted-foreground">
+            Loading table information...
+          </Text>
         </View>
       </View>
     );
@@ -55,19 +57,22 @@ export const BookingTableInfo: React.FC<BookingTableInfoProps> = ({
   }
 
   const isCombined = tables.length > 1;
-  const totalCapacity = tables.reduce((sum, table) => sum + (table.capacity || 0), 0);
+  const totalCapacity = tables.reduce(
+    (sum, table) => sum + (table.capacity || 0),
+    0,
+  );
 
   // FIX: Safe table number handling
   const formatTableNumbers = (tables: TableInfo[]) => {
     return tables
-      .map(t => t.table_number || `Table ${t.id.slice(0, 6)}`)
-      .join(' + ');
+      .map((t) => t.table_number || `Table ${t.id.slice(0, 6)}`)
+      .join(" + ");
   };
 
   return (
     <View className="p-4 border-b border-border">
       <H3 className="mb-3">Table Assignment</H3>
-      
+
       {isCombined ? (
         <View className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
           <View className="flex-row items-center gap-2 mb-3">
@@ -76,10 +81,13 @@ export const BookingTableInfo: React.FC<BookingTableInfoProps> = ({
               Combined Tables Arrangement
             </Text>
           </View>
-          
+
           <View className="space-y-2">
             {tables.map((table, index) => (
-              <View key={table.id} className="flex-row items-center justify-between">
+              <View
+                key={table.id}
+                className="flex-row items-center justify-between"
+              >
                 <View className="flex-row items-center gap-2">
                   <TableIcon size={16} color="#666" />
                   <Text className="font-medium">
@@ -87,12 +95,13 @@ export const BookingTableInfo: React.FC<BookingTableInfoProps> = ({
                   </Text>
                 </View>
                 <Text className="text-sm text-muted-foreground">
-                  {getTableTypeDisplayName(table.table_type || 'standard')} • Seats {table.capacity || 0}
+                  {getTableTypeDisplayName(table.table_type || "standard")} •
+                  Seats {table.capacity || 0}
                 </Text>
               </View>
             ))}
           </View>
-          
+
           <View className="mt-3 pt-3 border-t border-blue-200 dark:border-blue-800">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-2">
@@ -106,7 +115,7 @@ export const BookingTableInfo: React.FC<BookingTableInfoProps> = ({
               </Text>
             </View>
           </View>
-          
+
           <Text className="text-xs text-blue-700 dark:text-blue-300 mt-3">
             These tables will be arranged together for your party
           </Text>
@@ -117,16 +126,16 @@ export const BookingTableInfo: React.FC<BookingTableInfoProps> = ({
             <View className="flex-row items-center gap-2">
               <TableIcon size={20} color="#10b981" />
               <Text className="font-semibold text-green-800 dark:text-green-200">
-                {tables[0].table_number || 'Assigned Table'}
+                {tables[0].table_number || "Assigned Table"}
               </Text>
             </View>
             <View className="bg-green-200 dark:bg-green-800 rounded-full px-3 py-1">
               <Text className="text-green-800 dark:text-green-200 text-sm font-medium">
-                {getTableTypeDisplayName(tables[0].table_type || 'standard')}
+                {getTableTypeDisplayName(tables[0].table_type || "standard")}
               </Text>
             </View>
           </View>
-          
+
           <View className="flex-row items-center justify-between">
             <Text className="text-sm text-green-700 dark:text-green-300">
               Capacity: {tables[0].capacity || 0} seats

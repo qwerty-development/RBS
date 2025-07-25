@@ -258,11 +258,11 @@ export default function BookingDetailsScreen() {
   const shareBooking = async () => {
     if (!booking) return;
 
-    const statusText = isPending 
+    const statusText = isPending
       ? "I've requested a table"
       : isDeclined
-      ? "My booking request was declined"
-      : "I have a reservation";
+        ? "My booking request was declined"
+        : "I have a reservation";
 
     const offerText = appliedOfferDetails
       ? ` Plus I saved ${appliedOfferDetails.discount_percentage}% with a special offer!`
@@ -284,8 +284,8 @@ export default function BookingDetailsScreen() {
     ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} for ${
       booking.party_size
     } people.${offerText}${pointsText}${
-      booking.confirmation_code && !isPending 
-        ? ` Confirmation code: ${booking.confirmation_code}` 
+      booking.confirmation_code && !isPending
+        ? ` Confirmation code: ${booking.confirmation_code}`
         : ""
     }`;
 
@@ -402,8 +402,8 @@ export default function BookingDetailsScreen() {
                 </Text>
               </View>
               <Text className="text-sm text-orange-700 dark:text-orange-300">
-                The restaurant typically responds within {timeRemaining} minutes. 
-                We'll notify you immediately when they confirm.
+                The restaurant typically responds within {timeRemaining}{" "}
+                minutes. We'll notify you immediately when they confirm.
               </Text>
               <View className="flex-row items-center gap-2 mt-3">
                 <Bell size={16} color="#f97316" />
@@ -418,12 +418,12 @@ export default function BookingDetailsScreen() {
           {isDeclined && (
             <View className="mt-3 bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
               <Text className="text-sm text-red-700 dark:text-red-300 mb-3">
-                The restaurant couldn't accommodate your request at this time. 
+                The restaurant couldn't accommodate your request at this time.
                 This could be due to full capacity or special events.
               </Text>
-              <Button 
-                variant="default" 
-                size="sm" 
+              <Button
+                variant="default"
+                size="sm"
                 onPress={bookAgain}
                 className="w-full"
               >
@@ -520,10 +520,10 @@ export default function BookingDetailsScreen() {
               <Copy size={20} color="#666" />
             </Pressable>
             <Text className="text-xs text-muted-foreground mt-2">
-              Tap to copy • {isPending 
-                ? "Use this code to reference your request" 
-                : "Show this code at the restaurant"
-              }
+              Tap to copy •{" "}
+              {isPending
+                ? "Use this code to reference your request"
+                : "Show this code at the restaurant"}
             </Text>
           </View>
         </View>

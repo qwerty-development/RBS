@@ -1,9 +1,22 @@
 // components/restaurant/BookingWidget.tsx (Fully Optimized)
-import React, { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+} from "react";
 import { View, ScrollView, Pressable, Alert, Dimensions } from "react-native";
-import { 
-  ArrowLeft, Calendar as CalendarIcon, Users as UsersIcon, 
-  Sparkles, CheckCircle, MapPin, Clock, Zap, Trophy
+import {
+  ArrowLeft,
+  Calendar as CalendarIcon,
+  Users as UsersIcon,
+  Sparkles,
+  CheckCircle,
+  MapPin,
+  Clock,
+  Zap,
+  Trophy,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
@@ -11,7 +24,10 @@ import { Text } from "@/components/ui/text";
 import { H3 } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { Database } from "@/types/supabase";
-import { useAvailability, useAvailabilityPreloader } from "@/hooks/useAvailability";
+import {
+  useAvailability,
+  useAvailabilityPreloader,
+} from "@/hooks/useAvailability";
 import { TimeSlots, TableOptions } from "@/components/booking/TimeSlots";
 import { TableOption } from "@/lib/AvailabilityService";
 
@@ -22,11 +38,11 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 interface BookingWidgetProps {
   restaurant: Restaurant;
   onBookingSuccess: (
-    tableIds: string[], 
-    selectedTime: string, 
-    selectedDate: Date, 
-    partySize: number, 
-    selectedOption: TableOption
+    tableIds: string[],
+    selectedTime: string,
+    selectedDate: Date,
+    partySize: number,
+    selectedOption: TableOption,
   ) => void;
   initialDate?: Date;
   initialPartySize?: number;
@@ -55,14 +71,14 @@ const DateSelector = React.memo<{
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
-    
+
     if (date.toDateString() === today.toDateString()) return "Today";
     if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow";
-    
-    return date.toLocaleDateString("en-US", { 
+
+    return date.toLocaleDateString("en-US", {
       weekday: "short",
-      month: "short", 
-      day: "numeric" 
+      month: "short",
+      day: "numeric",
     });
   }, []);
 
@@ -76,7 +92,8 @@ const DateSelector = React.memo<{
         contentContainerStyle={{ paddingHorizontal: 4 }}
       >
         {dates.map((date, i) => {
-          const isSelected = date.toDateString() === selectedDate.toDateString();
+          const isSelected =
+            date.toDateString() === selectedDate.toDateString();
           const isToday = date.toDateString() === new Date().toDateString();
 
           return (
@@ -92,7 +109,9 @@ const DateSelector = React.memo<{
                   isSelected ? "text-primary-foreground" : ""
                 }`}
               >
-                {date.toLocaleDateString("en-US", { weekday: "short" }).toUpperCase()}
+                {date
+                  .toLocaleDateString("en-US", { weekday: "short" })
+                  .toUpperCase()}
               </Text>
               <Text
                 className={`text-center text-lg font-bold ${
@@ -103,7 +122,9 @@ const DateSelector = React.memo<{
               </Text>
               <Text
                 className={`text-center text-xs ${
-                  isSelected ? "text-primary-foreground/80" : "text-muted-foreground"
+                  isSelected
+                    ? "text-primary-foreground/80"
+                    : "text-muted-foreground"
                 }`}
               >
                 {formatDate(date)}
@@ -122,9 +143,9 @@ const PartySizeSelector = React.memo<{
   onPartySizeChange: (size: number) => void;
   maxSize?: number;
 }>(({ partySize, onPartySizeChange, maxSize = 8 }) => {
-  const sizes = useMemo(() => 
-    Array.from({ length: maxSize }, (_, i) => i + 1),
-    [maxSize]
+  const sizes = useMemo(
+    () => Array.from({ length: maxSize }, (_, i) => i + 1),
+    [maxSize],
   );
 
   return (
@@ -160,14 +181,14 @@ const PartySizeSelector = React.memo<{
 
 // Step indicator component
 const StepIndicator = React.memo<{
-  currentStep: 'config' | 'time' | 'experience';
+  currentStep: "config" | "time" | "experience";
   hasTimeSlots: boolean;
   hasSelectedSlot: boolean;
 }>(({ currentStep, hasTimeSlots, hasSelectedSlot }) => {
   const steps = [
-    { id: 'config', label: 'Date & Size', completed: hasTimeSlots },
-    { id: 'time', label: 'Time', completed: hasSelectedSlot },
-    { id: 'experience', label: 'Experience', completed: false },
+    { id: "config", label: "Date & Size", completed: hasTimeSlots },
+    { id: "time", label: "Time", completed: hasSelectedSlot },
+    { id: "experience", label: "Experience", completed: false },
   ];
 
   return (
@@ -179,8 +200,8 @@ const StepIndicator = React.memo<{
               currentStep === step.id
                 ? "bg-primary"
                 : step.completed
-                ? "bg-green-500"
-                : "bg-muted"
+                  ? "bg-green-500"
+                  : "bg-muted"
             }`}
           >
             <Text
@@ -243,7 +264,7 @@ const QuickStats = React.memo<{
         <View className="flex-row items-center gap-1">
           <Zap size={12} color="#f59e0b" />
           <Text className="text-lg font-bold text-amber-600">
-            {restaurant.booking_policy === 'instant' ? 'Instant' : '2hr'}
+            {restaurant.booking_policy === "instant" ? "Instant" : "2hr"}
           </Text>
         </View>
         <Text className="text-xs text-muted-foreground">Booking</Text>
@@ -252,7 +273,7 @@ const QuickStats = React.memo<{
         <View className="flex-row items-center gap-1">
           <Trophy size={12} color="#10b981" />
           <Text className="text-lg font-bold text-green-600">
-            {restaurant.average_rating?.toFixed(1) || '4.5'}
+            {restaurant.average_rating?.toFixed(1) || "4.5"}
           </Text>
         </View>
         <Text className="text-xs text-muted-foreground">Rating</Text>
@@ -268,13 +289,17 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
   initialPartySize = 2,
 }) => {
   // State management with better defaults
-  const [selectedDate, setSelectedDate] = useState(() => initialDate || new Date());
+  const [selectedDate, setSelectedDate] = useState(
+    () => initialDate || new Date(),
+  );
   const [partySize, setPartySize] = useState(initialPartySize);
-  const [currentStep, setCurrentStep] = useState<'config' | 'time' | 'experience'>('config');
+  const [currentStep, setCurrentStep] = useState<
+    "config" | "time" | "experience"
+  >("config");
 
   // Refs for optimization
   const stepTransitionRef = useRef<NodeJS.Timeout | null>(null);
-  
+
   // Preloader hook for better performance
   const { preloadRestaurant } = useAvailabilityPreloader();
 
@@ -298,7 +323,7 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
     date: selectedDate,
     partySize,
     enableRealtime: true,
-    mode: 'time-first',
+    mode: "time-first",
     preloadNext: true,
   });
 
@@ -308,90 +333,105 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
   }, [restaurant.id, preloadRestaurant, partySize]);
 
   // Handle configuration changes with optimized state updates
-  const handleDateChange = useCallback((date: Date) => {
-    if (date.toDateString() === selectedDate.toDateString()) return;
-    
-    setSelectedDate(date);
-    setCurrentStep('config');
-    clearSelectedSlot();
-    
-    // Clear any pending transitions
-    if (stepTransitionRef.current) {
-      clearTimeout(stepTransitionRef.current);
-    }
-    
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [selectedDate, clearSelectedSlot]);
+  const handleDateChange = useCallback(
+    (date: Date) => {
+      if (date.toDateString() === selectedDate.toDateString()) return;
 
-  const handlePartySizeChange = useCallback((size: number) => {
-    if (size === partySize) return;
-    
-    setPartySize(size);
-    setCurrentStep('config');
-    clearSelectedSlot();
-    
-    if (stepTransitionRef.current) {
-      clearTimeout(stepTransitionRef.current);
-    }
-    
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [partySize, clearSelectedSlot]);
+      setSelectedDate(date);
+      setCurrentStep("config");
+      clearSelectedSlot();
+
+      // Clear any pending transitions
+      if (stepTransitionRef.current) {
+        clearTimeout(stepTransitionRef.current);
+      }
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    },
+    [selectedDate, clearSelectedSlot],
+  );
+
+  const handlePartySizeChange = useCallback(
+    (size: number) => {
+      if (size === partySize) return;
+
+      setPartySize(size);
+      setCurrentStep("config");
+      clearSelectedSlot();
+
+      if (stepTransitionRef.current) {
+        clearTimeout(stepTransitionRef.current);
+      }
+
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    },
+    [partySize, clearSelectedSlot],
+  );
 
   // Step progression with optimized transitions
   const handleContinueToTimeSelection = useCallback(() => {
     if (!hasTimeSlots) return;
-    
-    setCurrentStep('time');
+
+    setCurrentStep("time");
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   }, [hasTimeSlots]);
 
-  const handleTimeSelect = useCallback(async (time: string) => {
-    // Clear any existing timeout
-    if (stepTransitionRef.current) {
-      clearTimeout(stepTransitionRef.current);
-    }
+  const handleTimeSelect = useCallback(
+    async (time: string) => {
+      // Clear any existing timeout
+      if (stepTransitionRef.current) {
+        clearTimeout(stepTransitionRef.current);
+      }
 
-    // Start fetching options immediately
-    await fetchSlotOptions(time);
-    
-    // Transition to experience step with slight delay for better UX
-    stepTransitionRef.current = setTimeout(() => {
-      setCurrentStep('experience');
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    }, 200);
-  }, [fetchSlotOptions]);
+      // Start fetching options immediately
+      await fetchSlotOptions(time);
+
+      // Transition to experience step with slight delay for better UX
+      stepTransitionRef.current = setTimeout(() => {
+        setCurrentStep("experience");
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }, 200);
+    },
+    [fetchSlotOptions],
+  );
 
   const handleBackToConfig = useCallback(() => {
-    setCurrentStep('config');
+    setCurrentStep("config");
     clearSelectedSlot();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [clearSelectedSlot]);
 
   const handleBackToTime = useCallback(() => {
-    setCurrentStep('time');
+    setCurrentStep("time");
     clearSelectedSlot();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [clearSelectedSlot]);
 
-  const handleExperienceConfirm = useCallback((
-    tableIds: string[], 
-    selectedOption: TableOption
-  ) => {
-    if (!selectedSlotOptions) {
-      Alert.alert("Error", "Missing seating information");
-      return;
-    }
+  const handleExperienceConfirm = useCallback(
+    (tableIds: string[], selectedOption: TableOption) => {
+      if (!selectedSlotOptions) {
+        Alert.alert("Error", "Missing seating information");
+        return;
+      }
 
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    onBookingSuccess(tableIds, selectedSlotOptions.time, selectedDate, partySize, selectedOption);
-  }, [selectedSlotOptions, selectedDate, partySize, onBookingSuccess]);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      onBookingSuccess(
+        tableIds,
+        selectedSlotOptions.time,
+        selectedDate,
+        partySize,
+        selectedOption,
+      );
+    },
+    [selectedSlotOptions, selectedDate, partySize, onBookingSuccess],
+  );
 
   // Format date for display
   const formatSelectedDate = useCallback((date: Date) => {
     const today = new Date();
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
-    
+
     if (date.toDateString() === today.toDateString()) return "Today";
     if (date.toDateString() === tomorrow.toDateString()) return "Tomorrow";
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -412,15 +452,15 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
       <H3 className="mb-4">Reserve Your Experience</H3>
 
       {/* Step Indicator */}
-      <StepIndicator 
-        currentStep={currentStep} 
+      <StepIndicator
+        currentStep={currentStep}
         hasTimeSlots={hasTimeSlots}
         hasSelectedSlot={hasSelectedSlot}
       />
 
       {/* Quick Stats */}
-      {currentStep !== 'config' && (
-        <QuickStats 
+      {currentStep !== "config" && (
+        <QuickStats
           restaurant={restaurant}
           timeSlots={timeSlots}
           isLoading={timeSlotsLoading}
@@ -428,7 +468,7 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
       )}
 
       {/* Step 1: Configuration */}
-      {currentStep === 'config' && (
+      {currentStep === "config" && (
         <>
           <DateSelector
             selectedDate={selectedDate}
@@ -442,8 +482,8 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
             maxSize={8}
           />
 
-          <Button 
-            onPress={handleContinueToTimeSelection} 
+          <Button
+            onPress={handleContinueToTimeSelection}
             className="w-full"
             disabled={timeSlotsLoading}
           >
@@ -456,7 +496,7 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
       )}
 
       {/* Step 2: Time Selection */}
-      {currentStep === 'time' && (
+      {currentStep === "time" && (
         <>
           <View className="flex-row items-center justify-between mb-4">
             <Pressable
@@ -476,7 +516,7 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
               <View className="flex-row items-center gap-2 mt-1">
                 <UsersIcon size={12} color="#666" />
                 <Text className="text-xs text-muted-foreground">
-                  {partySize} guest{partySize > 1 ? 's' : ''}
+                  {partySize} guest{partySize > 1 ? "s" : ""}
                 </Text>
               </View>
             </View>
@@ -494,7 +534,7 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
       )}
 
       {/* Step 3: Experience Selection */}
-      {currentStep === 'experience' && (
+      {currentStep === "experience" && (
         <>
           <View className="flex-row items-center justify-between mb-4">
             <Pressable
@@ -514,7 +554,7 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
               <View className="flex-row items-center gap-2 mt-1">
                 <UsersIcon size={12} color="#666" />
                 <Text className="text-xs text-muted-foreground">
-                  {partySize} guest{partySize > 1 ? 's' : ''}
+                  {partySize} guest{partySize > 1 ? "s" : ""}
                 </Text>
               </View>
             </View>

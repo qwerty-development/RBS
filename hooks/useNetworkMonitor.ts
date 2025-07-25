@@ -10,12 +10,12 @@ export interface NetworkMonitorConfig {
   showOnlineAlert?: boolean;
   showSlowConnectionAlert?: boolean;
   alertDelay?: number; // Delay before showing alerts (ms)
-  
+
   // Callbacks
   onOffline?: () => void;
   onOnline?: () => void;
   onConnectionChange?: (quality: string) => void;
-  
+
   // Monitoring options
   checkAppState?: boolean; // Monitor when app comes to foreground
 }
@@ -51,8 +51,15 @@ const ALERT_MESSAGES = {
 // Hook implementation
 export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
   const finalConfig = { ...DEFAULT_CONFIG, ...config };
-  const { isOnline, networkState, addListener, refresh, isLoading, hasInitialized } = useNetwork();
-  
+  const {
+    isOnline,
+    networkState,
+    addListener,
+    refresh,
+    isLoading,
+    hasInitialized,
+  } = useNetwork();
+
   // Refs to track state and timers
   const previousOnlineRef = useRef<boolean | null>(null);
   const previousQualityRef = useRef(networkState.quality);
@@ -60,36 +67,35 @@ export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
   const [canShowAlerts, setCanShowAlerts] = useState(false);
 
   // Show alert with optional delay
-  const showAlert = useCallback((
-    title: string,
-    message: string,
-    delay: number = 0
-  ) => {
-    // Clear any pending alert
-    if (alertTimerRef.current) {
-      clearTimeout(alertTimerRef.current);
-      alertTimerRef.current = null;
-    }
-
-    if (delay > 0) {
-      alertTimerRef.current = setTimeout(() => {
-        Alert.alert(title, message, [{ text: "OK" }]);
+  const showAlert = useCallback(
+    (title: string, message: string, delay: number = 0) => {
+      // Clear any pending alert
+      if (alertTimerRef.current) {
+        clearTimeout(alertTimerRef.current);
         alertTimerRef.current = null;
-      }, delay);
-    } else {
-      Alert.alert(title, message, [{ text: "OK" }]);
-    }
-  }, []);
+      }
+
+      if (delay > 0) {
+        alertTimerRef.current = setTimeout(() => {
+          Alert.alert(title, message, [{ text: "OK" }]);
+          alertTimerRef.current = null;
+        }, delay);
+      } else {
+        Alert.alert(title, message, [{ text: "OK" }]);
+      }
+    },
+    [],
+  );
 
   // Handle offline state
   const handleOffline = useCallback(() => {
     finalConfig.onOffline();
-    
+
     if (finalConfig.showOfflineAlert && canShowAlerts) {
       showAlert(
         ALERT_MESSAGES.offline.title,
         ALERT_MESSAGES.offline.message,
-        finalConfig.alertDelay
+        finalConfig.alertDelay,
       );
     }
   }, [finalConfig, showAlert, canShowAlerts]);
@@ -101,35 +107,39 @@ export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
       clearTimeout(alertTimerRef.current);
       alertTimerRef.current = null;
     }
-    
+
     finalConfig.onOnline();
-    
+
     if (finalConfig.showOnlineAlert && canShowAlerts) {
       showAlert(
         ALERT_MESSAGES.online.title,
         ALERT_MESSAGES.online.message,
-        0 // Show immediately
+        0, // Show immediately
       );
     }
   }, [finalConfig, showAlert, canShowAlerts]);
 
   // Handle connection quality change
-  const handleQualityChange = useCallback((quality: string) => {
-    finalConfig.onConnectionChange(quality);
-    
-    if (
-      finalConfig.showSlowConnectionAlert &&
-      canShowAlerts &&
-      (quality === "poor" || quality === "fair") &&
-      (previousQualityRef.current === "good" || previousQualityRef.current === "excellent")
-    ) {
-      showAlert(
-        ALERT_MESSAGES.slowConnection.title,
-        ALERT_MESSAGES.slowConnection.message,
-        0
-      );
-    }
-  }, [finalConfig, showAlert, canShowAlerts]);
+  const handleQualityChange = useCallback(
+    (quality: string) => {
+      finalConfig.onConnectionChange(quality);
+
+      if (
+        finalConfig.showSlowConnectionAlert &&
+        canShowAlerts &&
+        (quality === "poor" || quality === "fair") &&
+        (previousQualityRef.current === "good" ||
+          previousQualityRef.current === "excellent")
+      ) {
+        showAlert(
+          ALERT_MESSAGES.slowConnection.title,
+          ALERT_MESSAGES.slowConnection.message,
+          0,
+        );
+      }
+    },
+    [finalConfig, showAlert, canShowAlerts],
+  );
 
   // Enable alerts after initialization with delay
   useEffect(() => {
@@ -140,7 +150,7 @@ export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
         // Set the initial previous state after enabling alerts
         previousOnlineRef.current = isOnline;
       }, 2000); // 2 second delay after initialization
-      
+
       return () => clearTimeout(timer);
     }
   }, [hasInitialized, isLoading, isOnline]);
@@ -149,7 +159,7 @@ export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
   useEffect(() => {
     const cleanup = addListener((state) => {
       const currentlyOnline = state.isConnected && state.isInternetReachable;
-      
+
       // Only process changes if we can show alerts and have a previous state
       if (canShowAlerts && previousOnlineRef.current !== null) {
         // Check for online/offline change
@@ -160,20 +170,26 @@ export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
             handleOffline();
           }
         }
-        
+
         // Check for quality change
         if (previousQualityRef.current !== state.quality) {
           handleQualityChange(state.quality);
         }
       }
-      
+
       // Update refs
       previousOnlineRef.current = currentlyOnline;
       previousQualityRef.current = state.quality;
     });
 
     return cleanup;
-  }, [addListener, handleOnline, handleOffline, handleQualityChange, canShowAlerts]);
+  }, [
+    addListener,
+    handleOnline,
+    handleOffline,
+    handleQualityChange,
+    canShowAlerts,
+  ]);
 
   // Monitor app state changes
   useEffect(() => {
@@ -186,7 +202,10 @@ export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
       }
     };
 
-    const subscription = AppState.addEventListener("change", handleAppStateChange);
+    const subscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange,
+    );
 
     return () => {
       subscription.remove();

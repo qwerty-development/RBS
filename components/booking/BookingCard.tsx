@@ -133,11 +133,16 @@ const extractLocationCoordinates = (location: any) => {
 
 const getDefaultCalendar = async () => {
   const { status } = await Calendar.requestCalendarPermissionsAsync();
-  if (status !== 'granted') {
-    throw new Error('Calendar permission not granted');
+  if (status !== "granted") {
+    throw new Error("Calendar permission not granted");
   }
-  const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-  return calendars.find(cal => cal.source.name === 'Default' || cal.isPrimary) || calendars[0];
+  const calendars = await Calendar.getCalendarsAsync(
+    Calendar.EntityTypes.EVENT,
+  );
+  return (
+    calendars.find((cal) => cal.source.name === "Default" || cal.isPrimary) ||
+    calendars[0]
+  );
 };
 
 // --- Main Component ---
@@ -158,7 +163,9 @@ export function BookingCard({
   const bookingDate = new Date(booking.booking_time);
 
   const isToday = bookingDate.toDateString() === new Date().toDateString();
-  const isTomorrow = new Date(bookingDate.setHours(0,0,0,0)).getTime() === new Date(new Date().setDate(new Date().getDate() + 1)).setHours(0,0,0,0);
+  const isTomorrow =
+    new Date(bookingDate.setHours(0, 0, 0, 0)).getTime() ===
+    new Date(new Date().setDate(new Date().getDate() + 1)).setHours(0, 0, 0, 0);
 
   const isPast = variant === "past";
   const isProcessing = processingBookingId === booking.id;
@@ -168,7 +175,9 @@ export function BookingCard({
   const isConfirmed = booking.status === "confirmed";
 
   // Calculate time since request for pending bookings
-  const timeSinceRequest = isPending ? formatTimeAgo(new Date(booking.created_at)) : null;
+  const timeSinceRequest = isPending
+    ? formatTimeAgo(new Date(booking.created_at))
+    : null;
 
   const [hasReview, setHasReview] = useState(false);
 
@@ -197,10 +206,18 @@ export function BookingCard({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onCancel?.(booking.id);
   };
-  const handleQuickCall = async (e: any) => { /* ... original implementation ... */ };
-  const handleDirections = async (e: any) => { /* ... original implementation ... */ };
-  const handleCopyConfirmation = async (e: any) => { /* ... original implementation ... */ };
-  const handleAddToCalendar = async (e: any) => { /* ... original implementation ... */ };
+  const handleQuickCall = async (e: any) => {
+    /* ... original implementation ... */
+  };
+  const handleDirections = async (e: any) => {
+    /* ... original implementation ... */
+  };
+  const handleCopyConfirmation = async (e: any) => {
+    /* ... original implementation ... */
+  };
+  const handleAddToCalendar = async (e: any) => {
+    /* ... original implementation ... */
+  };
   const handleReview = (e: any) => {
     e.stopPropagation();
     onReview?.(booking);
@@ -226,7 +243,10 @@ export function BookingCard({
           contentFit="cover"
         />
         <View className="flex-1 ml-4">
-          <Pressable onPress={handleRestaurantPress} className="flex-row items-start justify-between">
+          <Pressable
+            onPress={handleRestaurantPress}
+            className="flex-row items-start justify-between"
+          >
             <View className="flex-1">
               <H3 className="mb-1 text-lg">{booking.restaurant.name}</H3>
               <Text className="text-muted-foreground text-sm">
@@ -246,7 +266,9 @@ export function BookingCard({
               {statusConfig.label}
             </Text>
             {isPending && timeSinceRequest && (
-               <Text className="text-xs text-muted-foreground">• {timeSinceRequest}</Text>
+              <Text className="text-xs text-muted-foreground">
+                • {timeSinceRequest}
+              </Text>
             )}
           </View>
         </View>
@@ -257,16 +279,18 @@ export function BookingCard({
         {/* --- Contextual Messages for Pending/Declined --- */}
         {isPending && (
           <View className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 mb-3 border border-orange-200">
-             <Text className="text-sm text-center text-orange-800 dark:text-orange-200">
-              The restaurant will confirm your request shortly. We'll notify you as soon as they respond.
-             </Text>
+            <Text className="text-sm text-center text-orange-800 dark:text-orange-200">
+              The restaurant will confirm your request shortly. We'll notify you
+              as soon as they respond.
+            </Text>
           </View>
         )}
         {isDeclined && (
           <View className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 mb-3 border border-red-200">
-             <Text className="text-sm text-center text-red-800 dark:text-red-200">
-              Unfortunately, the restaurant couldn't accommodate this request. Please try another time.
-             </Text>
+            <Text className="text-sm text-center text-red-800 dark:text-red-200">
+              Unfortunately, the restaurant couldn't accommodate this request.
+              Please try another time.
+            </Text>
           </View>
         )}
 
@@ -276,13 +300,24 @@ export function BookingCard({
             <View className="flex-row items-center gap-2">
               <CalendarIcon size={16} color="#666" />
               <Text className="font-medium text-sm">
-                {isToday ? "Today" : isTomorrow ? "Tomorrow" : bookingDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                {isToday
+                  ? "Today"
+                  : isTomorrow
+                    ? "Tomorrow"
+                    : bookingDate.toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
               </Text>
             </View>
             <View className="flex-row items-center gap-2">
               <Clock size={16} color="#666" />
               <Text className="font-medium text-sm">
-                {bookingDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                {bookingDate.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </Text>
             </View>
           </View>
@@ -290,7 +325,8 @@ export function BookingCard({
             <View className="flex-row items-center gap-2">
               <Users size={16} color="#666" />
               <Text className="text-sm text-muted-foreground">
-                {booking.party_size} {booking.party_size === 1 ? "Guest" : "Guests"}
+                {booking.party_size}{" "}
+                {booking.party_size === 1 ? "Guest" : "Guests"}
               </Text>
             </View>
             {booking.confirmation_code && !isPending && (
@@ -320,7 +356,12 @@ export function BookingCard({
           <View className="flex-row gap-2 flex-wrap">
             {/* Add to Calendar: Show for confirmed or pending */}
             {!isPast && (isConfirmed || isPending) && (
-              <Button size="sm" variant="outline" onPress={handleAddToCalendar} className="flex-1 min-w-[100px]">
+              <Button
+                size="sm"
+                variant="outline"
+                onPress={handleAddToCalendar}
+                className="flex-1 min-w-[100px]"
+              >
                 <View className="flex-row items-center gap-1">
                   <CalendarPlus size={14} color="#3b82f6" />
                   <Text className="text-xs">Add to Calendar</Text>
@@ -331,14 +372,24 @@ export function BookingCard({
             {/* Directions & Call: Show only for confirmed */}
             {!isPast && isConfirmed && (
               <>
-                <Button size="sm" variant="outline" onPress={handleDirections} className="flex-1 min-w-[100px]">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onPress={handleDirections}
+                  className="flex-1 min-w-[100px]"
+                >
                   <View className="flex-row items-center gap-1">
                     <Navigation size={14} color="#3b82f6" />
                     <Text className="text-xs">Directions</Text>
                   </View>
                 </Button>
                 {booking.restaurant.phone_number && (
-                  <Button size="sm" variant="outline" onPress={handleQuickCall} className="flex-1 min-w-[100px]">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onPress={handleQuickCall}
+                    className="flex-1 min-w-[100px]"
+                  >
                     <View className="flex-row items-center gap-1">
                       <Phone size={14} color="#10b981" />
                       <Text className="text-xs">Call</Text>
@@ -347,22 +398,37 @@ export function BookingCard({
                 )}
               </>
             )}
-            
+
             {/* Cancel: Show for pending or confirmed */}
             {!isPast && (isConfirmed || isPending) && (
-                 <Button size="sm" variant="destructive" onPress={handleCancelBooking} disabled={isProcessing} className="flex-1 min-w-[100px]">
-                  {isProcessing ? ( <ActivityIndicator size="small" color="#fff" /> ) : (
-                    <View className="flex-row items-center gap-1">
-                      <XCircle size={14} color="#fff" />
-                      <Text className="text-xs text-white">{isPending ? "Cancel Request" : "Cancel Booking"}</Text>
-                    </View>
-                  )}
-                </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onPress={handleCancelBooking}
+                disabled={isProcessing}
+                className="flex-1 min-w-[100px]"
+              >
+                {isProcessing ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <View className="flex-row items-center gap-1">
+                    <XCircle size={14} color="#fff" />
+                    <Text className="text-xs text-white">
+                      {isPending ? "Cancel Request" : "Cancel Booking"}
+                    </Text>
+                  </View>
+                )}
+              </Button>
             )}
 
             {/* Actions for Past / Declined Bookings */}
             {isPast && isCompleted && !hasReview && onReview && (
-              <Button size="sm" variant="default" onPress={handleReview} className="flex-1">
+              <Button
+                size="sm"
+                variant="default"
+                onPress={handleReview}
+                className="flex-1"
+              >
                 <View className="flex-row items-center gap-1">
                   <Star size={14} color="#fff" />
                   <Text className="text-xs text-white">Rate Experience</Text>
@@ -370,7 +436,12 @@ export function BookingCard({
               </Button>
             )}
             {(isPast || isDeclined) && onRebook && (
-              <Button size="sm" variant="secondary" onPress={handleRebook} className="flex-1">
+              <Button
+                size="sm"
+                variant="secondary"
+                onPress={handleRebook}
+                className="flex-1"
+              >
                 <View className="flex-row items-center gap-1">
                   <RotateCcw size={14} color="#000" />
                   <Text className="text-xs">Book Again</Text>
