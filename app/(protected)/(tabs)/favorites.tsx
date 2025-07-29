@@ -1,5 +1,5 @@
 // app/(protected)/(tabs)/favorites.tsx
-import React, { useEffect, useCallback, useState } from "react";
+import React, { useEffect, useCallback, useState, useMemo } from "react";
 import {
   View,
   FlatList,
@@ -21,7 +21,7 @@ import {
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
-import { H2, H3, Muted, P } from "@/components/ui/typography";
+import { H2, H3, P } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { SectionHeader } from "@/components/ui/section-header";
 import { PageHeader } from "@/components/ui/page-header";
@@ -95,9 +95,6 @@ export default function FavoritesScreen() {
   } = useFavorites();
 
   // Playlists hooks with error handling
-  // We let the hook surface its own error state instead of catching here –
-  // calling setState inside render causes an infinite re-render loop and the
-  // `commitLayoutEffectOnFiber` stack you were seeing.
   const playlistsHook = usePlaylists();
 
   // Reflect hook-level error in local UI state *after* the commit phase.
@@ -188,7 +185,7 @@ export default function FavoritesScreen() {
     hasActiveFilters,
   } = useFavoritesFilters(favorites);
 
-  // Navigation functions
+  // Navigation functions - memoized to prevent re-renders
   const navigateToRestaurant = useCallback(
     (restaurantId: string) => {
       try {
@@ -249,18 +246,20 @@ export default function FavoritesScreen() {
     }
   }, [router]);
 
-  // Refresh handler
-  const handleRefresh = useCallback(() => {
-    try {
-      if (activeTab === "favorites") {
-        resetBannerOnRefresh();
-        originalHandleRefresh();
-      } else {
-        handlePlaylistsRefresh?.();
+  // Memoized refresh handler to prevent circular dependencies
+  const handleRefresh = useMemo(() => {
+    return () => {
+      try {
+        if (activeTab === "favorites") {
+          resetBannerOnRefresh();
+          originalHandleRefresh();
+        } else if (handlePlaylistsRefresh) {
+          handlePlaylistsRefresh();
+        }
+      } catch (error) {
+        console.error("Refresh error:", error);
       }
-    } catch (error) {
-      console.error("Refresh error:", error);
-    }
+    };
   }, [
     activeTab,
     resetBannerOnRefresh,
@@ -312,9 +311,9 @@ export default function FavoritesScreen() {
     }
   }, [activeTab, fetchFavorites]);
 
-  // Render functions
-  const renderGridRow = useCallback(
-    ({ item }: any) => {
+  // Memoized render functions to prevent re-creation on every render
+  const renderGridRow = useMemo(() => {
+    return ({ item }: any) => {
       try {
         return (
           <FavoritesGridRow
@@ -330,21 +329,22 @@ export default function FavoritesScreen() {
         console.error("Render grid row error:", error);
         return null;
       }
-    },
-    [navigateToRestaurant, removeFavorite, removingId, fadeAnim, scaleAnim],
-  );
+    };
+  }, [navigateToRestaurant, removeFavorite, removingId, fadeAnim, scaleAnim]);
 
-  const renderSectionHeader = useCallback(({ section }: any) => {
-    try {
-      return <SectionHeader title={section.title} />;
-    } catch (error) {
-      console.error("Render section header error:", error);
-      return null;
-    }
+  const renderSectionHeader = useMemo(() => {
+    return ({ section }: any) => {
+      try {
+        return <SectionHeader title={section.title} />;
+      } catch (error) {
+        console.error("Render section header error:", error);
+        return null;
+      }
+    };
   }, []);
 
-  const renderPlaylistItem = useCallback(
-    ({ item }: { item: any }) => {
+  const renderPlaylistItem = useMemo(() => {
+    return ({ item }: { item: any }) => {
       try {
         if (!item || !item.id) {
           return null;
@@ -352,7 +352,9 @@ export default function FavoritesScreen() {
 
         // Optimistic delete handler
         const handleDelete = (playlistId: string) => {
-          removePlaylistFromState(playlistId); // Optimistically remove from UI
+          if (removePlaylistFromState) {
+            removePlaylistFromState(playlistId); // Optimistically remove from UI
+          }
         };
 
         return (
@@ -383,12 +385,11 @@ export default function FavoritesScreen() {
           </View>
         );
       }
-    },
-    [navigateToPlaylist, removePlaylistFromState],
-  );
+    };
+  }, [navigateToPlaylist, removePlaylistFromState]);
 
-  const PlaylistHeaderActions = useCallback(
-    () => (
+  const PlaylistHeaderActions = useMemo(() => {
+    return () => (
       <View className="flex-row items-center gap-2">
         {!invitationError && (
           <Pressable
@@ -399,7 +400,7 @@ export default function FavoritesScreen() {
             {pendingCount > 0 && (
               <View className="absolute -top-1 -right-1 bg-primary rounded-full min-w-5 h-5 items-center justify-center px-1">
                 <Text className="text-white text-xs font-bold">
-                  {pendingCount > 9 ? "9+" : pendingCount}
+                  {pendingCount > 9 ? "9+" : String(pendingCount)}
                 </Text>
               </View>
             )}
@@ -421,15 +422,14 @@ export default function FavoritesScreen() {
           <Plus size={20} color="#fff" />
         </Pressable>
       </View>
-    ),
-    [
-      navigateToInvitations,
-      navigateToJoinPlaylist,
-      colorScheme,
-      pendingCount,
-      invitationError,
-    ],
-  );
+    );
+  }, [
+    navigateToInvitations,
+    navigateToJoinPlaylist,
+    colorScheme,
+    pendingCount,
+    invitationError,
+  ]);
 
   const loading =
     activeTab === "favorites" ? favoritesLoading : playlistsLoading;
@@ -453,9 +453,9 @@ export default function FavoritesScreen() {
         <View className="flex-1 items-center justify-center px-8">
           <FolderPlus size={64} color="#6b7280" className="mb-4" />
           <H3 className="text-center mb-2">Unable to Load Playlists</H3>
-          <Muted className="text-center mb-6">
+          <Text className="text-center text-muted-foreground mb-6">
             There was an issue loading your playlists. Please try again.
-          </Muted>
+          </Text>
           <Button onPress={() => handleTabSwitch("favorites")}>
             <Text className="text-white">Go to Favorites</Text>
           </Button>
@@ -541,7 +541,7 @@ export default function FavoritesScreen() {
             {pendingCount > 0 && !invitationError && (
               <View className="absolute -top-1 -right-1 bg-primary rounded-full min-w-5 h-5 items-center justify-center px-1">
                 <Text className="text-white text-xs font-bold">
-                  {pendingCount > 9 ? "9+" : pendingCount}
+                  {pendingCount > 9 ? "9+" : String(pendingCount)}
                 </Text>
               </View>
             )}
@@ -554,10 +554,10 @@ export default function FavoritesScreen() {
         fallback={
           <View className="flex-1 items-center justify-center px-8">
             <H3 className="text-center mb-2">Something went wrong</H3>
-            <Muted className="text-center mb-6">
+            <Text className="text-center text-muted-foreground mb-6">
               Please try switching back to favorites and then to playlists
               again.
-            </Muted>
+            </Text>
             <Button onPress={() => handleTabSwitch("favorites")}>
               <Text className="text-white">Go to Favorites</Text>
             </Button>
@@ -581,7 +581,7 @@ export default function FavoritesScreen() {
             (favorites?.length || 0) === 0 ? (
               <FavoritesEmptyState onDiscoverPress={navigateToSearch} />
             ) : groupBy === "none" ? (
-              <View className="p-2 pb-20">
+              <View className="p-2 pb-24">
                 {processedFavorites?.[0]?.data?.map((item: any, index: number) => (
                   <View key={`${item?.[0]?.id || index}-${index}`}>
                     {renderGridRow({ item })}
@@ -589,7 +589,7 @@ export default function FavoritesScreen() {
                 ))}
               </View>
             ) : (
-              <View className="pb-20">
+              <View className="pb-24">
                 {processedFavorites?.map((section: any, sectionIndex: number) => (
                   <View key={section.title}>
                     {renderSectionHeader({ section })}
@@ -609,10 +609,10 @@ export default function FavoritesScreen() {
             <View className="flex-1 items-center justify-center px-8">
               <FolderPlus size={64} color="#6b7280" className="mb-4" />
               <H3 className="text-center mb-2">No Playlists Yet</H3>
-              <Muted className="text-center mb-6">
+              <Text className="text-center text-muted-foreground mb-6">
                 Create playlists to organize your favorite restaurants by theme,
                 occasion, or any way you like!
-              </Muted>
+              </Text>
               <View className="flex-row gap-3">
                 <Button
                   variant="outline"
@@ -624,7 +624,7 @@ export default function FavoritesScreen() {
                       size={16}
                       color={colorScheme === "dark" ? "#fff" : "#000"}
                     />
-                    <Text>Join Playlist</Text>
+                    <Text className="text-foreground">Join Playlist</Text>
                   </View>
                 </Button>
                 <Button
@@ -639,9 +639,9 @@ export default function FavoritesScreen() {
               </View>
             </View>
           ) : (
-            <View className="pb-20">
-              {playlists?.map((item: any) => (
-                <View key={item?.id || Math.random().toString()}>
+            <View className="pb-24">
+              {playlists?.map((item: any, index: number) => (
+                <View key={item?.id || `playlist-${index}`}>
                   {renderPlaylistItem({ item })}
                 </View>
               ))}

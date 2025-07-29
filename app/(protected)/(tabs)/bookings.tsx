@@ -146,7 +146,7 @@ export default function BookingsScreen() {
             />
           )
         ) : (
-          <View className="p-4 pb-20">
+          <View className="p-4 pb-24">
             {currentBookings.map((item) => (
               <BookingCard
                 key={item.id}

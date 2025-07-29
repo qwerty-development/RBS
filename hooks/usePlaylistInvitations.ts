@@ -1,5 +1,5 @@
 // hooks/usePlaylistInvitations.ts
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Alert } from "react-native";
 import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
@@ -33,6 +33,9 @@ export const usePlaylistInvitations = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Use ref to track if component is mounted to prevent state updates after unmount
+  const isMountedRef = useRef(true);
 
   // Fetch pending invitations for the current user
   const fetchInvitations = useCallback(async () => {
@@ -99,14 +102,21 @@ export const usePlaylistInvitations = () => {
         },
       }));
 
-      setInvitations(invitationsWithCounts);
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setInvitations(invitationsWithCounts);
+      }
     } catch (error) {
       console.error("Error fetching invitations:", error);
-      Alert.alert("Error", "Failed to load invitations");
-      setError("Failed to load invitations");
+      if (isMountedRef.current) {
+        Alert.alert("Error", "Failed to load invitations");
+        setError("Failed to load invitations");
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [profile?.id]);
 
@@ -126,9 +136,11 @@ export const usePlaylistInvitations = () => {
         if (error) throw error;
 
         // Remove from local state
-        setInvitations((prev: any[]) =>
-          prev.filter((inv: { id: string }) => inv.id !== invitationId),
-        );
+        if (isMountedRef.current) {
+          setInvitations((prev: any[]) =>
+            prev.filter((inv: { id: string }) => inv.id !== invitationId),
+          );
+        }
 
         await Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success,
@@ -157,9 +169,11 @@ export const usePlaylistInvitations = () => {
         if (error) throw error;
 
         // Remove from local state
-        setInvitations((prev: any[]) =>
-          prev.filter((inv: { id: string }) => inv.id !== invitationId),
-        );
+        if (isMountedRef.current) {
+          setInvitations((prev: any[]) =>
+            prev.filter((inv: { id: string }) => inv.id !== invitationId),
+          );
+        }
 
         return true;
       } catch (error) {
@@ -171,16 +185,28 @@ export const usePlaylistInvitations = () => {
     [],
   );
 
-  // Refresh handler
+  // Refresh handler - memoized to prevent circular dependencies
   const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchInvitations();
+    if (isMountedRef.current) {
+      setRefreshing(true);
+      await fetchInvitations();
+    }
   }, [fetchInvitations]);
+
+  // Cleanup effect to prevent memory leaks
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Auto-fetch on mount and user change
   useEffect(() => {
-    fetchInvitations();
-  }, [fetchInvitations]);
+    if (profile?.id) {
+      fetchInvitations();
+    }
+  }, [profile?.id, fetchInvitations]);
 
   return {
     invitations,

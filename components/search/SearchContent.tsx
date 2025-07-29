@@ -167,7 +167,7 @@ export const SearchContent = ({
       contentContainerStyle={{
         paddingTop: 4,
         paddingHorizontal: 16,
-        paddingBottom: 100,
+        paddingBottom: 120,
       }}
     >
       {restaurants.map((restaurant) => (

@@ -342,7 +342,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
                 data={filteredPlaylists}
                 renderItem={renderPlaylistItem}
                 keyExtractor={(item) => item.id}
-                contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+                contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
                 showsVerticalScrollIndicator={false}
                 ListEmptyComponent={
                   <View className="items-center justify-center py-8">

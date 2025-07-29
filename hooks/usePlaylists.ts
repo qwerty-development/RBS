@@ -1,5 +1,5 @@
 // hooks/usePlaylists.ts
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Alert } from "react-native";
 import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
@@ -68,6 +68,9 @@ export const usePlaylists = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Use ref to track if component is mounted to prevent state updates after unmount
+  const isMountedRef = useRef(true);
 
   // Fetch all playlists (own, collaborative, and public)
   const fetchPlaylists = useCallback(async () => {
@@ -151,14 +154,21 @@ export const usePlaylists = () => {
         new Map(allPlaylists.map((p) => [p.id, p])).values(),
       );
 
-      setPlaylists(uniquePlaylists as Playlist[]);
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setPlaylists(uniquePlaylists as Playlist[]);
+      }
     } catch (error) {
       console.error("Error fetching playlists:", error);
-      Alert.alert("Error", "Failed to load playlists");
-      setError(String(error));
+      if (isMountedRef.current) {
+        Alert.alert("Error", "Failed to load playlists");
+        setError(String(error));
+      }
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [profile?.id]);
 
@@ -232,23 +242,35 @@ export const usePlaylists = () => {
     [fetchPlaylists],
   );
 
-  // Refresh handler
+  // Refresh handler - memoized to prevent circular dependencies
   const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchPlaylists();
+    if (isMountedRef.current) {
+      setRefreshing(true);
+      await fetchPlaylists();
+    }
   }, [fetchPlaylists]);
 
+  // Cleanup effect to prevent memory leaks
   useEffect(() => {
-    fetchPlaylists();
-  }, [fetchPlaylists]);
-
-  // ONLY ADD THIS ONE FUNCTION to your existing usePlaylists hook:
-
-  const removePlaylistFromState = useCallback((playlistId: string) => {
-    setPlaylists((prev) => prev.filter((p) => p.id !== playlistId));
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
-  // ... keep all your existing functions (fetchPlaylists, createPlaylist, etc.) ...
+  // Initial fetch
+  useEffect(() => {
+    if (profile?.id) {
+      fetchPlaylists();
+    }
+  }, [profile?.id, fetchPlaylists]);
+
+  // Optimistic playlist removal from state
+  const removePlaylistFromState = useCallback((playlistId: string) => {
+    if (isMountedRef.current) {
+      setPlaylists((prev) => prev.filter((p) => p.id !== playlistId));
+    }
+  }, []);
 
   return {
     playlists,
@@ -258,7 +280,7 @@ export const usePlaylists = () => {
     createPlaylist,
     updatePlaylist,
     handleRefresh,
-    removePlaylistFromState, // ADD this to your return statement
+    removePlaylistFromState,
     error,
   };
 };

@@ -260,7 +260,8 @@ export default function HomeScreen() {
             colorScheme={colorScheme}
           />
         )}
-        <View className="h-4" />
+        {/* Add bottom padding to account for tab bar */}
+        <View className="h-24" />
       </Animated.ScrollView>
 
       {/* Guest Prompt Modal */}

@@ -55,6 +55,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
     await deletePlaylist(playlist.id, playlist.name);
   };
 
+  // List variant
   if (variant === "list") {
     return (
       <Pressable
@@ -63,19 +64,19 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
           "flex-row items-center p-4 bg-white dark:bg-gray-800",
           "border-b border-gray-200 dark:border-gray-700",
           "active:bg-gray-50 dark:active:bg-gray-700",
-          className,
+          className || "",
         )}
       >
         {/* Emoji Icon */}
         <View className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-700 items-center justify-center mr-3">
-          <Text className="text-2xl">{playlist.emoji}</Text>
+          <Text className="text-2xl">{playlist.emoji || "📍"}</Text>
         </View>
 
         {/* Content */}
         <View className="flex-1">
           <View className="flex-row items-center mb-1">
             <H4 className="flex-1" numberOfLines={1}>
-              {playlist.name}
+              {playlist.name || "Untitled Playlist"}
             </H4>
             {playlist.is_public ? (
               <Globe size={14} color="#6b7280" />
@@ -85,22 +86,22 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
           </View>
 
           {playlist.description && (
-            <Muted className="text-sm mb-1" numberOfLines={1}>
-              {playlist.description}
-            </Muted>
+            <Text className="text-sm text-muted-foreground mb-1" numberOfLines={1}>
+              {playlist.description || ""}
+            </Text>
           )}
 
           <View className="flex-row items-center gap-3">
-            <Muted className="text-xs">
-              {playlist.item_count || 0} restaurants
-            </Muted>
+            <Text className="text-xs text-muted-foreground">
+              {`${String(playlist.item_count || 0)} restaurants`}
+            </Text>
             {playlist?.collaborator_count &&
               playlist.collaborator_count > 0 && (
                 <View className="flex-row items-center gap-1">
                   <Users size={12} color="#6b7280" />
-                  <Muted className="text-xs">
-                    {playlist.collaborator_count}
-                  </Muted>
+                  <Text className="text-xs text-muted-foreground">
+                    {String(playlist.collaborator_count)}
+                  </Text>
                 </View>
               )}
             {playlist.is_collaborative && (
@@ -142,7 +143,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
         "bg-white dark:bg-gray-800 rounded-2xl overflow-hidden",
         "shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700",
         "active:scale-95 transition-transform",
-        className,
+        className || "",
       )}
     >
       {/* Cover Image */}
@@ -160,7 +161,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
           </ImageBackground>
         ) : (
           <View className="flex-1 items-center justify-center">
-            <Text className="text-4xl">{playlist.emoji}</Text>
+            <Text className="text-4xl">{playlist.emoji || "📍"}</Text>
           </View>
         )}
 
@@ -203,31 +204,31 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
       {/* Content */}
       <View className="p-3">
         <H4 numberOfLines={1} className="mb-1">
-          {playlist.name}
+          {playlist.name || "Untitled Playlist"}
         </H4>
 
         {playlist.description && (
-          <Muted className="text-sm mb-2" numberOfLines={2}>
-            {playlist.description}
-          </Muted>
+          <Text className="text-sm text-muted-foreground mb-2" numberOfLines={2}>
+            {playlist.description || ""}
+          </Text>
         )}
 
         <View className="flex-row items-center justify-between">
-          <Muted className="text-xs">
-            {playlist.item_count || 0} restaurants
-          </Muted>
+          <Text className="text-xs text-muted-foreground">
+            {`${String(playlist.item_count || 0)} restaurants`}
+          </Text>
 
           {playlist?.collaborator_count && playlist.collaborator_count > 0 && (
             <View className="flex-row items-center gap-1">
               <Users size={12} color="#6b7280" />
-              <Muted className="text-xs">+{playlist.collaborator_count}</Muted>
+              <Text className="text-xs text-muted-foreground">+{String(playlist.collaborator_count)}</Text>
             </View>
           )}
         </View>
 
         {playlist.owner && !playlist.is_collaborative && (
           <View className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
-            <Muted className="text-xs">by {playlist.owner.full_name}</Muted>
+            <Text className="text-xs text-muted-foreground">{`by ${playlist.owner.full_name || "Unknown"}`}</Text>
           </View>
         )}
       </View>

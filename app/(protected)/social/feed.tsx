@@ -474,7 +474,7 @@ export default function SocialFeedScreen() {
             </Button>
           </View>
         ) : (
-          <View className="pb-20">
+          <View className="pb-24">
             {posts.map((item) => (
               <PostCard
                 key={item.id}

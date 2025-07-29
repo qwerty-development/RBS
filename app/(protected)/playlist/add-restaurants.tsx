@@ -267,7 +267,7 @@ export default function AddRestaurantsScreen() {
           data={restaurants}
           renderItem={renderRestaurantItem}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
           showsVerticalScrollIndicator={false}
         />
       )}

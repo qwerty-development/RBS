@@ -3,7 +3,8 @@ import { twMerge } from "tailwind-merge";
 import { colors } from "@/constants/colors";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
+  const filteredInputs = inputs.filter(input => input != null);
+  return twMerge(clsx(filteredInputs));
 }
 
 /**

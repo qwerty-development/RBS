@@ -451,7 +451,7 @@ export default function PlaylistDetailScreen() {
               reorderItems(from, to);
             }
           }}
-          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
