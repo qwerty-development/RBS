@@ -27,10 +27,12 @@ import { LoyaltyPointsCard } from "@/components/ui/loyalty-points-card";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { supabase } from "@/config/supabase";
 import { LoyaltyRuleDetails } from '@/hooks/useRestaurantLoyalty';
+import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 
 interface BookingSuccessParams {
   bookingId: string;
   restaurantName: string;
+  restaurantId?: string;
   confirmationCode: string;
   earnedPoints?: string;
   appliedOffer?: string;
@@ -108,6 +110,7 @@ export default function BookingSuccessScreen() {
     title: string;
   } | null>(null);
   const [loyaltyDataFetched, setLoyaltyDataFetched] = useState(false);
+  const [restaurantData, setRestaurantData] = useState<any>(null);
 
   // Parse params once
   const parsedParams = useMemo(() => ({
@@ -141,6 +144,39 @@ export default function BookingSuccessScreen() {
       setLoyaltyDataFetched(true);
     }
   }, [params.restaurantLoyaltyPoints, params.loyaltyRuleId, params.loyaltyRuleName]);
+
+  // Fetch restaurant data for directions
+  useEffect(() => {
+    if (!params.bookingId) return;
+
+    const fetchRestaurantData = async () => {
+      try {
+        const { data: bookingData, error: bookingError } = await supabase
+          .from('bookings')
+          .select(`
+            restaurant_id,
+            restaurant:restaurants (
+              id,
+              name,
+              address,
+              location,
+              staticCoordinates,
+              coordinates
+            )
+          `)
+          .eq('id', params.bookingId)
+          .single();
+
+        if (!bookingError && bookingData?.restaurant) {
+          setRestaurantData(bookingData.restaurant);
+        }
+      } catch (err) {
+        console.error('Error fetching restaurant data:', err);
+      }
+    };
+
+    fetchRestaurantData();
+  }, [params.bookingId]);
 
   // Fetch detailed loyalty rule information if not provided in params
   useEffect(() => {
@@ -416,6 +452,20 @@ export default function BookingSuccessScreen() {
                   <Muted className="text-sm">
                     Check the booking details for maps and contact info
                   </Muted>
+                  {restaurantData && (
+                    <View className="mt-2">
+                      <DirectionsButton
+                        restaurant={restaurantData}
+                        variant="button"
+                        size="sm"
+                        backgroundColor="bg-primary/10"
+                        borderColor="border-primary/20"
+                        iconColor="#3b82f6"
+                        textColor="text-primary"
+                        className="w-fit"
+                      />
+                    </View>
+                  )}
                 </View>
               </View>
 

@@ -197,6 +197,8 @@ export function RestaurantCard({
                   onDirections={onDirections}
                   variant="icon"
                   size="md"
+                  backgroundColor="bg-black/50"
+                  iconColor="white"
                 />
               )}
               {showAddToPlaylistButton && (

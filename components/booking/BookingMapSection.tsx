@@ -1,16 +1,20 @@
 import React from "react";
 import { View, Pressable, Alert, Platform, Linking } from "react-native";
-import { Navigation, MapPin } from "lucide-react-native";
+import { MapPin } from "lucide-react-native";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 
 import { Text } from "@/components/ui/text";
 import { H3 } from "@/components/ui/typography";
+import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 
 interface BookingMapSectionProps {
   restaurant: {
+    id: string;
     name: string;
     address: string;
     location: any;
+    staticCoordinates?: { lat: number; lng: number };
+    coordinates?: { latitude: number; longitude: number };
   };
 }
 
@@ -45,33 +49,7 @@ export const BookingMapSection: React.FC<BookingMapSectionProps> = ({
     return null;
   };
 
-  const openDirections = async () => {
-    const coords = extractLocationCoordinates(restaurant.location);
-    if (!coords) {
-      Alert.alert("Error", "Location data not available");
-      return;
-    }
 
-    const scheme = Platform.select({
-      ios: "maps:0,0?q=",
-      android: "geo:0,0?q=",
-    });
-
-    const latLng = `${coords.latitude},${coords.longitude}`;
-    const label = encodeURIComponent(restaurant.name);
-    const url = Platform.select({
-      ios: `${scheme}${label}@${latLng}`,
-      android: `${scheme}${latLng}(${label})`,
-    });
-
-    if (url) {
-      try {
-        await Linking.openURL(url);
-      } catch (error) {
-        Alert.alert("Error", "Unable to open maps");
-      }
-    }
-  };
 
   const mapCoordinates = extractLocationCoordinates(restaurant.location) || {
     latitude: 33.8938,
@@ -81,10 +59,7 @@ export const BookingMapSection: React.FC<BookingMapSectionProps> = ({
   return (
     <View className="p-4 border-b border-border">
       <H3 className="mb-3">Location</H3>
-      <Pressable
-        onPress={openDirections}
-        className="bg-card rounded-lg overflow-hidden border border-border"
-      >
+      <View className="bg-card rounded-lg overflow-hidden border border-border">
         <MapView
           style={{ height: 200 }}
           provider={PROVIDER_GOOGLE}
@@ -107,12 +82,19 @@ export const BookingMapSection: React.FC<BookingMapSectionProps> = ({
           <View className="flex-1">
             <Text className="font-medium">{restaurant.address}</Text>
             <Text className="text-sm text-muted-foreground mt-1">
-              Tap for directions
+              Get directions
             </Text>
           </View>
-          <Navigation size={20} color="#3b82f6" />
+          <DirectionsButton
+            restaurant={restaurant}
+            variant="icon"
+            size="md"
+            backgroundColor="bg-primary/10"
+            iconColor="#3b82f6"
+            className="p-2"
+          />
         </View>
-      </Pressable>
+      </View>
     </View>
   );
 };

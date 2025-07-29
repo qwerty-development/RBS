@@ -18,6 +18,7 @@ import * as Clipboard from "expo-clipboard";
 
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 
 interface BookingActionsBarProps {
   booking: {
@@ -27,10 +28,13 @@ interface BookingActionsBarProps {
     booking_time: string;
     party_size: number;
     restaurant: {
+      id: string;
       name: string;
       phone_number?: string | null;
       whatsapp_number?: string | null;
       location: any;
+      staticCoordinates?: { lat: number; lng: number };
+      coordinates?: { latitude: number; longitude: number };
     };
   };
   appliedOfferDetails?: {
@@ -65,33 +69,7 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
   onNavigateToOffers,
   onEdit,
 }) => {
-  // Extract coordinates from PostGIS geography type
-  const extractLocationCoordinates = (location: any) => {
-    if (!location) return null;
 
-    if (typeof location === "string" && location.startsWith("POINT(")) {
-      const coords = location.match(/POINT\(([^)]+)\)/);
-      if (coords && coords[1]) {
-        const [lng, lat] = coords[1].split(" ").map(Number);
-        return { latitude: lat, longitude: lng };
-      }
-    }
-
-    if (location.type === "Point" && Array.isArray(location.coordinates)) {
-      const [lng, lat] = location.coordinates;
-      return { latitude: lat, longitude: lng };
-    }
-
-    if (location.lat && location.lng) {
-      return { latitude: location.lat, longitude: location.lng };
-    }
-
-    if (location.latitude && location.longitude) {
-      return { latitude: location.latitude, longitude: location.longitude };
-    }
-
-    return null;
-  };
 
   const callRestaurant = async () => {
     if (!booking.restaurant.phone_number) return;
@@ -136,33 +114,7 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
     }
   };
 
-  const openDirections = async () => {
-    const coords = extractLocationCoordinates(booking.restaurant.location);
-    if (!coords) {
-      Alert.alert("Error", "Location data not available");
-      return;
-    }
 
-    const scheme = Platform.select({
-      ios: "maps:0,0?q=",
-      android: "geo:0,0?q=",
-    });
-
-    const latLng = `${coords.latitude},${coords.longitude}`;
-    const label = encodeURIComponent(booking.restaurant.name);
-    const url = Platform.select({
-      ios: `${scheme}${label}@${latLng}`,
-      android: `${scheme}${latLng}(${label})`,
-    });
-
-    if (url) {
-      try {
-        await Linking.openURL(url);
-      } catch (error) {
-        Alert.alert("Error", "Unable to open maps");
-      }
-    }
-  };
 
   const shareBooking = async () => {
     const offerText = appliedOfferDetails
@@ -205,16 +157,18 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
       {isUpcoming &&
         (booking.status === "pending" || booking.status === "confirmed") && (
           <View className="flex-row gap-3 mb-3">
-            <Button
-              variant="outline"
-              onPress={openDirections}
-              className="flex-1"
-            >
-              <View className="flex-row items-center gap-2">
-                <Navigation size={16} />
-                <Text>Directions</Text>
-              </View>
-            </Button>
+            <View className="flex-1">
+              <DirectionsButton
+                restaurant={booking.restaurant}
+                variant="button"
+                size="sm"
+                backgroundColor="bg-background"
+                borderColor="border-border"
+                iconColor="#3b82f6"
+                textColor="text-primary"
+                className="w-full h-10 justify-center"
+              />
+            </View>
 
             <Button
               variant="destructive"

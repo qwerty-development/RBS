@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/button";
 import { Database } from "@/types/supabase";
 import { supabase } from "@/config/supabase";
 import { cn } from "@/lib/utils";
+import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 
 type Booking = Database["public"]["Tables"]["bookings"]["Row"] & {
   restaurant: Database["public"]["Tables"]["restaurants"]["Row"];
@@ -210,7 +211,37 @@ export function BookingCard({
     /* ... original implementation ... */
   };
   const handleDirections = async (e: any) => {
-    /* ... original implementation ... */
+    e.stopPropagation();
+    
+    if (!booking.restaurant) return;
+
+    // Extract coordinates from restaurant location
+    const coords = extractLocationCoordinates(booking.restaurant.location);
+    
+    if (!coords) {
+      Alert.alert("Error", "Location information not available");
+      return;
+    }
+
+    const scheme = Platform.select({
+      ios: "maps:0,0?q=",
+      android: "geo:0,0?q=",
+    });
+    const latLng = `${coords.latitude},${coords.longitude}`;
+    const label = encodeURIComponent(booking.restaurant.name);
+    const url = Platform.select({
+      ios: `${scheme}${label}@${latLng}`,
+      android: `${scheme}${latLng}(${label})`,
+    });
+
+    if (url) {
+      try {
+        await Linking.openURL(url);
+      } catch (error) {
+        console.error("Error opening maps:", error);
+        Alert.alert("Error", "Unable to open maps application");
+      }
+    }
   };
   const handleCopyConfirmation = async (e: any) => {
     /* ... original implementation ... */
@@ -372,17 +403,18 @@ export function BookingCard({
             {/* Directions & Call: Show only for confirmed */}
             {!isPast && isConfirmed && (
               <>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onPress={handleDirections}
-                  className="flex-1 min-w-[100px]"
-                >
-                  <View className="flex-row items-center gap-1">
-                    <Navigation size={14} color="#3b82f6" />
-                    <Text className="text-xs">Directions</Text>
-                  </View>
-                </Button>
+                <View className="flex-1 min-w-[100px]">
+                  <DirectionsButton
+                    restaurant={booking.restaurant}
+                    variant="button"
+                    size="sm"
+                    className="w-full h-8 justify-center"
+                    backgroundColor="bg-background"
+                    borderColor="border-border"
+                    iconColor="#3b82f6"
+                    textColor="text-primary"
+                  />
+                </View>
                 {booking.restaurant.phone_number && (
                   <Button
                     size="sm"

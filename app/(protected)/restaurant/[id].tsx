@@ -53,6 +53,7 @@ import { RestaurantLoyaltyRules } from '@/components/booking/LoyaltyPointsDispla
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { useRestaurant } from "@/hooks/useRestaurant";
+import { useRestaurantReviews } from "@/hooks/useRestaurantReviews";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import { RestaurantPlaylistIndicator } from "@/components/restaurant/RestaurantPlaylistIndicator";
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
@@ -721,6 +722,9 @@ export default function RestaurantDetailsScreen() {
     handleCall,
   } = useRestaurant(id);
 
+  // Restaurant reviews hook for write review functionality
+  const { handleWriteReview: handleWriteReviewFromReviews } = useRestaurantReviews(id!);
+
 
 
   // Action Handlers with Guest Guard
@@ -738,10 +742,10 @@ export default function RestaurantDetailsScreen() {
   const handleWriteReview = useCallback(() => {
     if (!restaurant) return;
     runProtectedAction(
-      () => router.push(`/restaurant/${restaurant.id}/write-review`),
+      () => handleWriteReviewFromReviews(),
       "write a review",
     );
-  }, [runProtectedAction, router, restaurant]);
+  }, [runProtectedAction, handleWriteReviewFromReviews, restaurant]);
 
   const handleBookTable = useCallback(() => {
     if (!restaurant) return;
