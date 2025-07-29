@@ -405,12 +405,17 @@ interface BookingState {
     };
   };
   
+  // Bookings lists
+  upcomingBookings: any[];
+  pastBookings: any[];
+  
   // Booking history
   recentBookings: any[];
   
   // Loading states
   isCreating: boolean;
   availabilityLoading: boolean;
+  bookingsLoading: boolean;
 
   // Actions
   setBookingData: (data: Partial<BookingState['currentBooking']>) => void;
@@ -418,6 +423,12 @@ interface BookingState {
   addRecentBooking: (booking: any) => void;
   setCreating: (creating: boolean) => void;
   setAvailabilityLoading: (loading: boolean) => void;
+  setBookingsLoading: (loading: boolean) => void;
+  setUpcomingBookings: (bookings: any[]) => void;
+  setPastBookings: (bookings: any[]) => void;
+  addNewBooking: (booking: any) => void;
+  updateBooking: (bookingId: string, updates: any) => void;
+  removeBooking: (bookingId: string) => void;
 }
 
 export const useBookingStore = create<BookingState>()(
@@ -427,9 +438,12 @@ export const useBookingStore = create<BookingState>()(
         immer((set, get) => ({
           // Initial state
           currentBooking: {},
+          upcomingBookings: [],
+          pastBookings: [],
           recentBookings: [],
           isCreating: false,
           availabilityLoading: false,
+          bookingsLoading: false,
 
           // Actions
           setBookingData: (data) => set((state) => {
@@ -451,6 +465,83 @@ export const useBookingStore = create<BookingState>()(
 
           setAvailabilityLoading: (loading) => set((state) => {
             state.availabilityLoading = loading;
+          }),
+
+          setBookingsLoading: (loading) => set((state) => {
+            state.bookingsLoading = loading;
+          }),
+
+          setUpcomingBookings: (bookings) => set((state) => {
+            state.upcomingBookings = bookings;
+          }),
+
+          setPastBookings: (bookings) => set((state) => {
+            state.pastBookings = bookings;
+          }),
+
+          addNewBooking: (booking) => set((state) => {
+            // Add to recent bookings
+            state.recentBookings.unshift(booking);
+            state.recentBookings = state.recentBookings.slice(0, 50);
+            
+            // Add to appropriate list based on status and date
+            const bookingDate = new Date(booking.booking_time);
+            const now = new Date();
+            
+            if ((booking.status === 'pending' || booking.status === 'confirmed') && bookingDate >= now) {
+              // Add to upcoming bookings in chronological order
+              state.upcomingBookings.push(booking);
+              state.upcomingBookings.sort((a, b) => new Date(a.booking_time).getTime() - new Date(b.booking_time).getTime());
+            } else {
+              // Add to past bookings in reverse chronological order
+              state.pastBookings.unshift(booking);
+              state.pastBookings = state.pastBookings.slice(0, 50); // Keep only 50 recent
+            }
+          }),
+
+          updateBooking: (bookingId, updates) => set((state) => {
+            // Update in upcoming bookings
+            const upcomingIndex = state.upcomingBookings.findIndex(b => b.id === bookingId);
+            if (upcomingIndex !== -1) {
+              const updatedBooking = { ...state.upcomingBookings[upcomingIndex], ...updates };
+              
+              // Check if booking should be moved to past bookings
+              const bookingDate = new Date(updatedBooking.booking_time);
+              const now = new Date();
+              const shouldMoveToPast = updatedBooking.status === 'completed' || 
+                                      updatedBooking.status === 'cancelled_by_user' ||
+                                      updatedBooking.status === 'declined_by_restaurant' ||
+                                      updatedBooking.status === 'no_show' ||
+                                      bookingDate < now;
+              
+              if (shouldMoveToPast) {
+                state.upcomingBookings.splice(upcomingIndex, 1);
+                state.pastBookings.unshift(updatedBooking);
+                state.pastBookings = state.pastBookings.slice(0, 50);
+              } else {
+                state.upcomingBookings[upcomingIndex] = updatedBooking;
+                // Re-sort upcoming bookings
+                state.upcomingBookings.sort((a, b) => new Date(a.booking_time).getTime() - new Date(b.booking_time).getTime());
+              }
+            } else {
+              // Update in past bookings
+              const pastIndex = state.pastBookings.findIndex(b => b.id === bookingId);
+              if (pastIndex !== -1) {
+                state.pastBookings[pastIndex] = { ...state.pastBookings[pastIndex], ...updates };
+              }
+            }
+            
+            // Update in recent bookings
+            const recentIndex = state.recentBookings.findIndex(b => b.id === bookingId);
+            if (recentIndex !== -1) {
+              state.recentBookings[recentIndex] = { ...state.recentBookings[recentIndex], ...updates };
+            }
+          }),
+
+          removeBooking: (bookingId) => set((state) => {
+            state.upcomingBookings = state.upcomingBookings.filter(b => b.id !== bookingId);
+            state.pastBookings = state.pastBookings.filter(b => b.id !== bookingId);
+            state.recentBookings = state.recentBookings.filter(b => b.id !== bookingId);
           }),
         })),
         {
@@ -513,6 +604,18 @@ export const useCurrentBooking = () => useBookingStore((state) => ({
   isCreating: state.isCreating,
   setBookingData: state.setBookingData,
   clearCurrentBooking: state.clearCurrentBooking,
+}));
+
+export const useBookingsStore = () => useBookingStore((state) => ({
+  upcomingBookings: state.upcomingBookings,
+  pastBookings: state.pastBookings,
+  bookingsLoading: state.bookingsLoading,
+  setUpcomingBookings: state.setUpcomingBookings,
+  setPastBookings: state.setPastBookings,
+  setBookingsLoading: state.setBookingsLoading,
+  addNewBooking: state.addNewBooking,
+  updateBooking: state.updateBooking,
+  removeBooking: state.removeBooking,
 }));
 
 /**

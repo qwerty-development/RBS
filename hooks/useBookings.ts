@@ -5,6 +5,7 @@ import * as Haptics from "expo-haptics";
 
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
+import { useBookingsStore } from "@/stores";
 import { Database } from "@/types/supabase";
 
 type Booking = Database["public"]["Tables"]["bookings"]["Row"] & {
@@ -17,18 +18,30 @@ export function useBookings() {
   const router = useRouter();
   const { profile } = useAuth();
 
+  // Use store instead of local state
+  const {
+    upcomingBookings,
+    pastBookings,
+    bookingsLoading,
+    setUpcomingBookings,
+    setPastBookings,
+    setBookingsLoading,
+    updateBooking,
+  } = useBookingsStore();
+
   const [activeTab, setActiveTab] = useState<TabType>("upcoming");
-  const [bookings, setBookings] = useState<{
-    upcoming: Booking[];
-    past: Booking[];
-  }>({ upcoming: [], past: [] });
-  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [processingBookingId, setProcessingBookingId] = useState<string | null>(
     null,
   );
 
   const hasInitialLoad = useRef(false);
+
+  // Use store data for bookings
+  const bookings = {
+    upcoming: upcomingBookings,
+    past: pastBookings,
+  };
 
   // Data Fetching Functions
   const fetchBookings = useCallback(async () => {
@@ -71,18 +84,17 @@ export function useBookings() {
 
       if (pastError) throw pastError;
 
-      setBookings({
-        upcoming: upcomingData || [],
-        past: pastData || [],
-      });
+      // Update store instead of local state
+      setUpcomingBookings(upcomingData || []);
+      setPastBookings(pastData || []);
     } catch (error) {
       console.error("Error fetching bookings:", error);
       Alert.alert("Error", "Failed to load bookings");
     } finally {
-      setLoading(false);
+      setBookingsLoading(false);
       setRefreshing(false);
     }
-  }, [profile?.id]);
+  }, [profile?.id, setUpcomingBookings, setPastBookings, setBookingsLoading]);
 
   // Navigation Functions
   const navigateToBookingDetails = useCallback(
@@ -109,7 +121,6 @@ export function useBookings() {
     router.push("/search");
   }, [router]);
 
-  // Quick Actions
   const cancelBooking = useCallback(
     async (bookingId: string) => {
       Alert.alert(
@@ -138,7 +149,12 @@ export function useBookings() {
                   Haptics.NotificationFeedbackType.Success,
                 );
 
-                fetchBookings();
+                // Update store instead of refetching
+                updateBooking(bookingId, {
+                  status: "cancelled_by_user",
+                  updated_at: new Date().toISOString(),
+                });
+
                 Alert.alert("Success", "Your booking has been cancelled");
               } catch (error) {
                 console.error("Error cancelling booking:", error);
@@ -151,7 +167,7 @@ export function useBookings() {
         ],
       );
     },
-    [fetchBookings],
+    [updateBooking],
   );
 
   const rebookRestaurant = useCallback(
@@ -192,17 +208,18 @@ export function useBookings() {
   // Lifecycle Management
   useEffect(() => {
     if (!hasInitialLoad.current && profile) {
+      setBookingsLoading(true);
       fetchBookings();
       hasInitialLoad.current = true;
     }
-  }, [profile, fetchBookings]);
+  }, [profile, fetchBookings, setBookingsLoading]);
 
   return {
     // State
     activeTab,
     setActiveTab,
     bookings,
-    loading,
+    loading: bookingsLoading,
     refreshing,
     processingBookingId,
 

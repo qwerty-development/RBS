@@ -5,6 +5,7 @@ import { Alert } from "react-native";
 import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
+import { useBookingsStore } from "@/stores";
 import { Database } from "@/types/supabase";
 import {
   isValidDate,

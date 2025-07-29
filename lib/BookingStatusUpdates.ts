@@ -3,6 +3,7 @@ import { supabase } from "@/config/supabase";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import * as Notifications from "expo-notifications";
 import { router } from "expo-router";
+import { useBookingStore } from "@/stores";
 
 export class BookingStatusUpdates {
   private channel: RealtimeChannel | null = null;
@@ -73,6 +74,9 @@ export class BookingStatusUpdates {
       .single();
 
     if (!booking) return;
+
+    // Update the store with the new booking data
+    useBookingStore.getState().updateBooking(bookingId, booking);
 
     // Handle different status transitions
     if (oldStatus === "pending" && newStatus === "confirmed") {
@@ -180,7 +184,7 @@ export class BookingStatusUpdates {
         if (data.bookingId) {
           router.push({
             pathname: "/booking/[id]",
-            params: { id: data.bookingId },
+            params: { id: data.bookingId as string },
           });
         }
         break;
@@ -188,7 +192,7 @@ export class BookingStatusUpdates {
         if (data.restaurantId) {
           router.push({
             pathname: "/restaurant/[id]",
-            params: { id: data.restaurantId },
+            params: { id: data.restaurantId as string },
           });
         }
         break;

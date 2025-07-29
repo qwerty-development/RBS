@@ -1,8 +1,9 @@
 // app/(protected)/(tabs)/bookings.tsx
-import React from "react";
+import React, { useEffect } from "react";
 import { View, RefreshControl, ScrollView } from "react-native";
 import { Calendar, Clock, UserPlus } from "lucide-react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
@@ -42,6 +43,14 @@ export default function BookingsScreen() {
 
   const currentBookings =
     activeTab === "upcoming" ? bookings.upcoming : bookings.past;
+
+  // Refresh bookings when the tab becomes focused (handles Android back navigation)
+  useFocusEffect(
+    useCallback(() => {
+      console.log('🔥 Bookings tab focused - refreshing data');
+      handleRefresh();
+    }, [handleRefresh])
+  );
 
   // --- Guest View ---
   // If the user is a guest, show a call-to-action screen to sign up.
