@@ -34,6 +34,8 @@ import {
   Dimensions,
   StatusBar,
   Modal,
+  Platform,
+  Linking,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -46,10 +48,7 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { H1, H2, H3, P, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
-import {
-  postgisToAddress,
-  parsePostGISGeometry,
-} from "../../../lib/locationConverter";
+import { LocationService } from "@/lib/locationService";
 import { RestaurantLoyaltyRules } from '@/components/booking/LoyaltyPointsDisplay';
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
@@ -67,11 +66,15 @@ type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
   outdoor_seating?: boolean | null;
   average_rating?: number | null;
   total_reviews?: number | null;
+  staticCoordinates?: { lat: number; lng: number };
+  coordinates?: { latitude: number; longitude: number };
   review_summary?: {
     average_rating: number;
     total_reviews: number;
     recommendation_percentage: number;
   } | null;
+  // Add any additional fields that might be missing
+  [key: string]: any;
 };
 
 type Review = Database["public"]["Tables"]["reviews"]["Row"] & {
@@ -79,6 +82,7 @@ type Review = Database["public"]["Tables"]["reviews"]["Row"] & {
     full_name: string;
     avatar_url?: string | null;
   };
+  overall_rating?: number; // Add this field to match the usage
 };
 
 type Coordinates = {
@@ -86,47 +90,33 @@ type Coordinates = {
   longitude: number;
 };
 
-// Custom hook for restaurant location
-const useRestaurantLocation = (postgisGeometry: string | null) => {
+// Custom hook for restaurant location - Updated to handle different location formats
+const useRestaurantLocation = (location: any) => {
   const [address, setAddress] = useState<string>("Loading...");
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
-    if (postgisGeometry) {
-      setIsLoading(true);
+    setIsLoading(true);
 
-      // First get coordinates for map
-      try {
-        const coords = parsePostGISGeometry(postgisGeometry);
-
-        if (coords && !isNaN(coords.latitude) && !isNaN(coords.longitude)) {
-          const coordinatesObj = {
-            latitude: coords.latitude,
-            longitude: coords.longitude,
-          };
-          setCoordinates(coordinatesObj);
-        }
-      } catch (error) {
-        console.error("Error parsing coordinates:", error);
-      }
-
-      // Then get readable address
-      postgisToAddress(postgisGeometry)
-        .then((result) => {
-          setAddress(result);
-          setIsLoading(false);
-        })
-        .catch((error) => {
-          console.error("Address error:", error);
-          setAddress("Location unavailable");
-          setIsLoading(false);
-        });
+    // Use LocationService to extract coordinates from any format
+    const coords = LocationService.extractCoordinates(location);
+    
+    if (coords) {
+      setCoordinates(coords);
     } else {
-      setAddress("No location data");
-      setIsLoading(false);
+      // Default to Beirut coordinates if no valid coordinates found
+      setCoordinates({
+        latitude: 33.8938,
+        longitude: 35.5018,
+      });
     }
-  }, [postgisGeometry]);
+
+    // For now, use a simple address display
+    // In a real app, you might want to reverse geocode the coordinates
+    setAddress("Restaurant Location");
+    setIsLoading(false);
+  }, [location]);
 
   return { address, coordinates, isLoading };
 };
@@ -672,7 +662,7 @@ const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
                     key={star}
                     size={12}
                     color="#f59e0b"
-                    fill={star <= review.overall_rating ? "#f59e0b" : "none"}
+                    fill={star <= (review.overall_rating || 0) ? "#f59e0b" : "none"}
                   />
                 ))}
               </View>
@@ -726,8 +716,42 @@ export default function RestaurantDetailsScreen() {
     toggleFavorite,
     handleShare,
     handleCall,
-    openDirections,
   } = useRestaurant(id);
+
+  // Directions handler - follows the same pattern as RestaurantCard
+  const handleDirections = useCallback(async () => {
+    if (!restaurant) return;
+
+    // Use processed coordinates like in RestaurantCard
+    const coords = restaurant.staticCoordinates || 
+      (restaurant.coordinates ? {
+        lat: restaurant.coordinates.latitude,
+        lng: restaurant.coordinates.longitude,
+      } : {
+        lat: 33.8938, // Default Beirut coordinates
+        lng: 35.5018,
+      });
+
+    const scheme = Platform.select({
+      ios: "maps:0,0?q=",
+      android: "geo:0,0?q=",
+    });
+    const latLng = `${coords.lat},${coords.lng}`;
+    const label = encodeURIComponent(restaurant.name);
+    const url = Platform.select({
+      ios: `${scheme}${label}@${latLng}`,
+      android: `${scheme}${latLng}(${label})`,
+    });
+
+    if (url) {
+      try {
+        await Linking.openURL(url);
+      } catch (error) {
+        console.error("Error opening maps:", error);
+        Alert.alert("Error", "Unable to open maps application");
+      }
+    }
+  }, [restaurant]);
 
   // Action Handlers with Guest Guard
   const handleToggleFavorite = useCallback(() => {
@@ -861,7 +885,7 @@ export default function RestaurantDetailsScreen() {
           onToggleFavorite={handleToggleFavorite}
           onShare={handleShare}
           onCall={() => handleCall(restaurant)}
-          onDirections={() => openDirections(restaurant)}
+          onDirections={handleDirections}
           colorScheme={colorScheme}
           onAddToPlaylist={handleAddToPlaylist}
         />
@@ -883,7 +907,7 @@ export default function RestaurantDetailsScreen() {
         <MenuSection onViewMenu={handleViewMenu} />
         <LocationMap
           restaurant={restaurant}
-          onDirections={() => openDirections(restaurant)}
+          onDirections={handleDirections}
         />
         <ReviewsSummary
           restaurant={restaurant}

@@ -1,6 +1,6 @@
 // components/restaurant/RestaurantCard.tsx
-import React, { useState } from "react";
-import { View, Pressable } from "react-native";
+import React, { useState, useCallback } from "react";
+import { View, Pressable, Platform, Linking, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import {
   Star,
@@ -9,6 +9,7 @@ import {
   Clock,
   Heart,
   FolderPlus,
+  Navigation,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
@@ -24,6 +25,8 @@ type BaseRestaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 // Support flexible restaurant types
 type Restaurant = BaseRestaurant & {
   tags?: string[];
+  staticCoordinates?: { lat: number; lng: number };
+  coordinates?: { latitude: number; longitude: number };
   // Add any additional fields that might be missing
   [key: string]: any;
 };
@@ -34,10 +37,12 @@ interface RestaurantCardProps {
   variant?: "default" | "compact" | "featured" | "horizontal";
   onPress?: (restaurantId: string) => void;
   onFavoritePress?: () => void;
+  onDirections?: (restaurant: Restaurant) => void; // New prop for directions
   isFavorite?: boolean;
   className?: string;
   showFavorite?: boolean;
   showAddToPlaylistButton?: boolean; // New prop for playlist feature
+  showDirections?: boolean; // New prop to control directions button visibility
 }
 
 export function RestaurantCard({
@@ -46,10 +51,12 @@ export function RestaurantCard({
   variant = "default",
   onPress,
   onFavoritePress,
+  onDirections,
   isFavorite = false,
   className,
   showFavorite = true,
   showAddToPlaylistButton = true, // Default to true
+  showDirections = true, // Default to true
 }: RestaurantCardProps) {
   const router = useRouter();
   const [isPlaylistModalVisible, setPlaylistModalVisible] = useState(false);
@@ -83,6 +90,45 @@ export function RestaurantCard({
     console.log(`Added ${restaurantData.name} to ${playlistName}`);
     setPlaylistModalVisible(false);
   };
+
+  // Directions handler - follows the same pattern as search functionality
+  const handleDirections = useCallback(async () => {
+    if (onDirections) {
+      // Use the provided onDirections handler if available
+      onDirections(restaurantData);
+      return;
+    }
+
+    // Default directions implementation using processed coordinates
+    const coords = restaurantData.staticCoordinates || 
+      (restaurantData.coordinates ? {
+        lat: restaurantData.coordinates.latitude,
+        lng: restaurantData.coordinates.longitude,
+      } : {
+        lat: 33.8938, // Default Beirut coordinates
+        lng: 35.5018,
+      });
+
+    const scheme = Platform.select({
+      ios: "maps:0,0?q=",
+      android: "geo:0,0?q=",
+    });
+    const latLng = `${coords.lat},${coords.lng}`;
+    const label = encodeURIComponent(restaurantData.name);
+    const url = Platform.select({
+      ios: `${scheme}${label}@${latLng}`,
+      android: `${scheme}${latLng}(${label})`,
+    });
+
+    if (url) {
+      try {
+        await Linking.openURL(url);
+      } catch (error) {
+        console.error("Error opening maps:", error);
+        Alert.alert("Error", "Unable to open maps application");
+      }
+    }
+  }, [restaurantData, onDirections]);
 
   const renderStars = (rating: number) => (
     <View className="flex-row items-center gap-1">
@@ -181,6 +227,18 @@ export function RestaurantCard({
             />
             {/* Action Buttons */}
             <View className="absolute top-3 right-3 flex-row gap-2">
+              {showDirections && (
+                <Pressable
+                  onPress={(e) => {
+                    e.stopPropagation(); // Prevent card press
+                    handleDirections();
+                  }}
+                  className="bg-black/50 rounded-full p-2"
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Navigation size={20} color="white" />
+                </Pressable>
+              )}
               {showAddToPlaylistButton && (
                 <Pressable
                   onPress={handleAddToPlaylistPress}
@@ -254,6 +312,17 @@ export function RestaurantCard({
                 </View>
                 {/* Action Buttons */}
                 <View className="flex-row items-center gap-2">
+                  {showDirections && (
+                    <Pressable
+                      onPress={(e) => {
+                        e.stopPropagation(); // Prevent card press
+                        handleDirections();
+                      }}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Navigation size={20} color="#666" />
+                    </Pressable>
+                  )}
                   {showAddToPlaylistButton && (
                     <Pressable
                       onPress={(e) => {
