@@ -55,6 +55,7 @@ import { useAuth } from "@/context/supabase-provider";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import { RestaurantPlaylistIndicator } from "@/components/restaurant/RestaurantPlaylistIndicator";
+import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 import RestaurantDetailsScreenSkeleton from "@/components/skeletons/RestaurantDetailsScreenSkeleton";
 import { Database } from "@/types/supabase";
 
@@ -193,7 +194,6 @@ const QuickActionsBar: React.FC<{
   onToggleFavorite: () => void;
   onShare: () => void;
   onCall: () => void;
-  onDirections: () => void;
   onAddToPlaylist: () => void;
   colorScheme: any;
 }> = ({
@@ -202,7 +202,6 @@ const QuickActionsBar: React.FC<{
   onToggleFavorite,
   onShare,
   onCall,
-  onDirections,
   onAddToPlaylist,
   colorScheme,
 }) => {
@@ -237,6 +236,13 @@ const QuickActionsBar: React.FC<{
           <Text className="text-xs text-muted-foreground">Call</Text>
         </Pressable>
       )}
+
+      <DirectionsButton
+        restaurant={restaurant}
+        variant="text"
+        size="sm"
+        showText={true}
+      />
     </View>
   );
 };
@@ -484,8 +490,7 @@ const ContactInfo: React.FC<{
 // Location Map
 const LocationMap: React.FC<{
   restaurant: Restaurant;
-  onDirections: () => void;
-}> = ({ restaurant, onDirections }) => {
+}> = ({ restaurant }) => {
   const { address, coordinates, isLoading } = useRestaurantLocation(
     restaurant.location,
   );
@@ -520,13 +525,11 @@ const LocationMap: React.FC<{
         <Text className="text-base font-semibold text-foreground">
           Location
         </Text>
-        <Pressable
-          onPress={onDirections}
-          className="flex-row items-center gap-1 bg-primary/10 px-3 py-1.5 rounded-full"
-        >
-          <Navigation size={14} color="#3b82f6" />
-          <Text className="text-primary text-sm font-medium">Directions</Text>
-        </Pressable>
+        <DirectionsButton
+          restaurant={restaurant}
+          variant="button"
+          size="sm"
+        />
       </View>
 
       <View className="rounded-xl overflow-hidden h-40 mb-2 bg-gray-100 border border-border/50">
@@ -718,40 +721,7 @@ export default function RestaurantDetailsScreen() {
     handleCall,
   } = useRestaurant(id);
 
-  // Directions handler - follows the same pattern as RestaurantCard
-  const handleDirections = useCallback(async () => {
-    if (!restaurant) return;
 
-    // Use processed coordinates like in RestaurantCard
-    const coords = restaurant.staticCoordinates || 
-      (restaurant.coordinates ? {
-        lat: restaurant.coordinates.latitude,
-        lng: restaurant.coordinates.longitude,
-      } : {
-        lat: 33.8938, // Default Beirut coordinates
-        lng: 35.5018,
-      });
-
-    const scheme = Platform.select({
-      ios: "maps:0,0?q=",
-      android: "geo:0,0?q=",
-    });
-    const latLng = `${coords.lat},${coords.lng}`;
-    const label = encodeURIComponent(restaurant.name);
-    const url = Platform.select({
-      ios: `${scheme}${label}@${latLng}`,
-      android: `${scheme}${latLng}(${label})`,
-    });
-
-    if (url) {
-      try {
-        await Linking.openURL(url);
-      } catch (error) {
-        console.error("Error opening maps:", error);
-        Alert.alert("Error", "Unable to open maps application");
-      }
-    }
-  }, [restaurant]);
 
   // Action Handlers with Guest Guard
   const handleToggleFavorite = useCallback(() => {
@@ -885,7 +855,6 @@ export default function RestaurantDetailsScreen() {
           onToggleFavorite={handleToggleFavorite}
           onShare={handleShare}
           onCall={() => handleCall(restaurant)}
-          onDirections={handleDirections}
           colorScheme={colorScheme}
           onAddToPlaylist={handleAddToPlaylist}
         />
@@ -907,7 +876,6 @@ export default function RestaurantDetailsScreen() {
         <MenuSection onViewMenu={handleViewMenu} />
         <LocationMap
           restaurant={restaurant}
-          onDirections={handleDirections}
         />
         <ReviewsSummary
           restaurant={restaurant}

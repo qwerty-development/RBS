@@ -19,6 +19,7 @@ import { P, Muted, H3 } from "@/components/ui/typography";
 import { Database } from "@/types/supabase";
 import { cn } from "@/lib/utils";
 import { AddToPlaylistModal } from "@/components/playlists/AddToPlaylistModal"; // Assuming this path is correct
+import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 
 type BaseRestaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -91,44 +92,7 @@ export function RestaurantCard({
     setPlaylistModalVisible(false);
   };
 
-  // Directions handler - follows the same pattern as search functionality
-  const handleDirections = useCallback(async () => {
-    if (onDirections) {
-      // Use the provided onDirections handler if available
-      onDirections(restaurantData);
-      return;
-    }
 
-    // Default directions implementation using processed coordinates
-    const coords = restaurantData.staticCoordinates || 
-      (restaurantData.coordinates ? {
-        lat: restaurantData.coordinates.latitude,
-        lng: restaurantData.coordinates.longitude,
-      } : {
-        lat: 33.8938, // Default Beirut coordinates
-        lng: 35.5018,
-      });
-
-    const scheme = Platform.select({
-      ios: "maps:0,0?q=",
-      android: "geo:0,0?q=",
-    });
-    const latLng = `${coords.lat},${coords.lng}`;
-    const label = encodeURIComponent(restaurantData.name);
-    const url = Platform.select({
-      ios: `${scheme}${label}@${latLng}`,
-      android: `${scheme}${latLng}(${label})`,
-    });
-
-    if (url) {
-      try {
-        await Linking.openURL(url);
-      } catch (error) {
-        console.error("Error opening maps:", error);
-        Alert.alert("Error", "Unable to open maps application");
-      }
-    }
-  }, [restaurantData, onDirections]);
 
   const renderStars = (rating: number) => (
     <View className="flex-row items-center gap-1">
@@ -228,16 +192,12 @@ export function RestaurantCard({
             {/* Action Buttons */}
             <View className="absolute top-3 right-3 flex-row gap-2">
               {showDirections && (
-                <Pressable
-                  onPress={(e) => {
-                    e.stopPropagation(); // Prevent card press
-                    handleDirections();
-                  }}
-                  className="bg-black/50 rounded-full p-2"
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Navigation size={20} color="white" />
-                </Pressable>
+                <DirectionsButton
+                  restaurant={restaurantData}
+                  onDirections={onDirections}
+                  variant="icon"
+                  size="md"
+                />
               )}
               {showAddToPlaylistButton && (
                 <Pressable
@@ -313,15 +273,12 @@ export function RestaurantCard({
                 {/* Action Buttons */}
                 <View className="flex-row items-center gap-2">
                   {showDirections && (
-                    <Pressable
-                      onPress={(e) => {
-                        e.stopPropagation(); // Prevent card press
-                        handleDirections();
-                      }}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      <Navigation size={20} color="#666" />
-                    </Pressable>
+                    <DirectionsButton
+                      restaurant={restaurantData}
+                      onDirections={onDirections}
+                      variant="text"
+                      size="md"
+                    />
                   )}
                   {showAddToPlaylistButton && (
                     <Pressable
