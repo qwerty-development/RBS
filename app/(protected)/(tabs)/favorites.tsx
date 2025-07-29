@@ -31,6 +31,7 @@ import { useFavorites } from "@/hooks/useFavorites";
 import { usePlaylists } from "@/hooks/usePlaylists";
 import { useFavoritesFilters } from "@/hooks/useFavoritesFilters";
 import { usePlaylistInvitations } from "@/hooks/usePlaylistInvitations";
+import { getRefreshControlColor } from "@/lib/utils";
 import {
   FavoritesGridRow,
   FavoritesEmptyState,
@@ -40,7 +41,6 @@ import {
 import { PlaylistCard } from "@/components/playlists/PlaylistCard";
 import { CreatePlaylistModal } from "@/components/playlists/CreatePlaylistModal";
 import FavoritesScreenSkeleton from "@/components/skeletons/FavoritesScreenSkeleton";
-import { OptimizedList } from "@/components/ui/optimized-list";
 
 // Error boundary component for playlists
 class PlaylistErrorBoundary extends React.Component<
@@ -72,6 +72,49 @@ export default function FavoritesScreen() {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const { isGuest, convertGuestToUser } = useAuth();
+
+  // --- All hooks must be called before any early returns ---
+  const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
+  const [activeTab, setActiveTab] = useState<"favorites" | "playlists">(
+    "favorites",
+  );
+  const [playlistError, setPlaylistError] = useState(false);
+  const [invitationError, setInvitationError] = useState(false);
+
+  // Favorites hooks
+  const {
+    favorites,
+    loading: favoritesLoading,
+    refreshing: favoritesRefreshing,
+    removingId,
+    fadeAnim,
+    scaleAnim,
+    fetchFavorites,
+    removeFavorite,
+    handleRefresh: originalHandleRefresh,
+  } = useFavorites();
+
+  // Playlists hooks with error handling
+  // We let the hook surface its own error state instead of catching here –
+  // calling setState inside render causes an infinite re-render loop and the
+  // `commitLayoutEffectOnFiber` stack you were seeing.
+  const playlistsHook = usePlaylists();
+
+  // Reflect hook-level error in local UI state *after* the commit phase.
+  useEffect(() => {
+    if (playlistsHook.error) {
+      setPlaylistError(true);
+    }
+  }, [playlistsHook.error]);
+
+  const {
+    playlists = [],
+    loading: playlistsLoading = false,
+    refreshing: playlistsRefreshing = false,
+    createPlaylist,
+    handleRefresh: handlePlaylistsRefresh,
+    removePlaylistFromState,
+  } = playlistsHook;
 
   // --- Guest View ---
   if (isGuest) {
@@ -118,64 +161,15 @@ export default function FavoritesScreen() {
     );
   }
 
-  // --- Authenticated User View ---
-  const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
-  const [activeTab, setActiveTab] = useState<"favorites" | "playlists">(
-    "favorites",
-  );
-  const [playlistError, setPlaylistError] = useState(false);
-  const [invitationError, setInvitationError] = useState(false);
+  // Invitations hook (same pattern as above – keep side-effects out of render)
+  const invitationsHook = usePlaylistInvitations();
 
-  // Favorites hooks
-  const {
-    favorites,
-    loading: favoritesLoading,
-    refreshing: favoritesRefreshing,
-    removingId,
-    fadeAnim,
-    scaleAnim,
-    fetchFavorites,
-    removeFavorite,
-    handleRefresh: originalHandleRefresh,
-  } = useFavorites();
-
-  // Playlists hooks with error handling
-  const playlistsHook = (() => {
-    try {
-      return usePlaylists();
-    } catch (error) {
-      console.error("Playlists hook error:", error);
-      setPlaylistError(true);
-      return {
-        playlists: [],
-        loading: false,
-        refreshing: false,
-        createPlaylist: async () => null,
-        handleRefresh: () => {},
-        removePlaylistFromState: () => {},
-      };
-    }
-  })();
-
-  const {
-    playlists = [],
-    loading: playlistsLoading = false,
-    refreshing: playlistsRefreshing = false,
-    createPlaylist,
-    handleRefresh: handlePlaylistsRefresh,
-    removePlaylistFromState,
-  } = playlistsHook;
-
-  // Invitations hook with error handling
-  const invitationsHook = (() => {
-    try {
-      return usePlaylistInvitations();
-    } catch (error) {
-      console.error("Invitations hook error:", error);
+  useEffect(() => {
+    if (invitationsHook.error) {
       setInvitationError(true);
-      return { pendingCount: 0 };
     }
-  })();
+  }, [invitationsHook.error]);
+
   const { pendingCount = 0 } = invitationsHook;
 
   // Filters hook
@@ -555,7 +549,7 @@ export default function FavoritesScreen() {
         </View>
       </View>
 
-      {/* Content */}
+      {/* Content with ScrollView for pull-to-refresh */}
       <PlaylistErrorBoundary
         fallback={
           <View className="flex-1 items-center justify-center px-8">
@@ -570,100 +564,90 @@ export default function FavoritesScreen() {
           </View>
         }
       >
-        {activeTab === "favorites" ? (
-          // Favorites content
-          (favorites?.length || 0) === 0 ? (
-            <FavoritesEmptyState onDiscoverPress={navigateToSearch} />
-          ) : groupBy === "none" ? (
-            <OptimizedList
-              data={processedFavorites?.[0]?.data || []}
-              renderItem={renderGridRow}
-              keyExtractor={(item, index) =>
-                `${item?.[0]?.id || index}-${index}`
-              }
-              contentContainerStyle={{ padding: 8, paddingBottom: 100 }}
-              showsVerticalScrollIndicator={false}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={handleRefresh}
-                  tintColor={colorScheme === "dark" ? "#fff" : "#000"}
-                />
-              }
+        <ScrollView
+          className="flex-1"
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={getRefreshControlColor(colorScheme)}
             />
-          ) : (
-            <SectionList
-              sections={processedFavorites || []}
-              renderItem={renderGridRow}
-              renderSectionHeader={renderSectionHeader}
-              keyExtractor={(item, index) =>
-                `${item?.[0]?.id || index}-${index}`
-              }
-              contentContainerStyle={{
-                padding: 8,
-                paddingBottom: 100,
-              }}
-              showsVerticalScrollIndicator={false}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={handleRefresh}
-                  tintColor={colorScheme === "dark" ? "#fff" : "#000"}
-                />
-              }
-              stickySectionHeadersEnabled
-            />
-          )
-        ) : // Playlists content
-        (playlists?.length || 0) === 0 ? (
-          <View className="flex-1 items-center justify-center px-8">
-            <FolderPlus size={64} color="#6b7280" className="mb-4" />
-            <H3 className="text-center mb-2">No Playlists Yet</H3>
-            <Muted className="text-center mb-6">
-              Create playlists to organize your favorite restaurants by theme,
-              occasion, or any way you like!
-            </Muted>
-            <View className="flex-row gap-3">
-              <Button
-                variant="outline"
-                onPress={navigateToJoinPlaylist}
-                className="flex-1"
-              >
-                <View className="flex-row items-center justify-center gap-2">
-                  <UserPlus
-                    size={16}
-                    color={colorScheme === "dark" ? "#fff" : "#000"}
-                  />
-                  <Text>Join Playlist</Text>
-                </View>
-              </Button>
-              <Button
-                onPress={() => setShowCreatePlaylist(true)}
-                className="flex-1"
-              >
-                <View className="flex-row items-center justify-center gap-2">
-                  <Plus size={16} color="#fff" />
-                  <Text className="text-white">Create Playlist</Text>
-                </View>
-              </Button>
+          }
+          contentContainerStyle={{ flexGrow: 1 }}
+        >
+          {activeTab === "favorites" ? (
+            // Favorites content
+            (favorites?.length || 0) === 0 ? (
+              <FavoritesEmptyState onDiscoverPress={navigateToSearch} />
+            ) : groupBy === "none" ? (
+              <View className="p-2 pb-20">
+                {processedFavorites?.[0]?.data?.map((item: any, index: number) => (
+                  <View key={`${item?.[0]?.id || index}-${index}`}>
+                    {renderGridRow({ item })}
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View className="pb-20">
+                {processedFavorites?.map((section: any, sectionIndex: number) => (
+                  <View key={section.title}>
+                    {renderSectionHeader({ section })}
+                    <View className="p-2">
+                      {section.data?.map((item: any, index: number) => (
+                        <View key={`${item?.[0]?.id || index}-${index}`}>
+                          {renderGridRow({ item })}
+                        </View>
+                      ))}
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )
+          ) : // Playlists content
+          (playlists?.length || 0) === 0 ? (
+            <View className="flex-1 items-center justify-center px-8">
+              <FolderPlus size={64} color="#6b7280" className="mb-4" />
+              <H3 className="text-center mb-2">No Playlists Yet</H3>
+              <Muted className="text-center mb-6">
+                Create playlists to organize your favorite restaurants by theme,
+                occasion, or any way you like!
+              </Muted>
+              <View className="flex-row gap-3">
+                <Button
+                  variant="outline"
+                  onPress={navigateToJoinPlaylist}
+                  className="flex-1"
+                >
+                  <View className="flex-row items-center justify-center gap-2">
+                    <UserPlus
+                      size={16}
+                      color={colorScheme === "dark" ? "#fff" : "#000"}
+                    />
+                    <Text>Join Playlist</Text>
+                  </View>
+                </Button>
+                <Button
+                  onPress={() => setShowCreatePlaylist(true)}
+                  className="flex-1"
+                >
+                  <View className="flex-row items-center justify-center gap-2">
+                    <Plus size={16} color="#fff" />
+                    <Text className="text-white">Create Playlist</Text>
+                  </View>
+                </Button>
+              </View>
             </View>
-          </View>
-        ) : (
-          <OptimizedList
-            data={playlists || []}
-            renderItem={renderPlaylistItem}
-            keyExtractor={(item) => item?.id || Math.random().toString()}
-            contentContainerStyle={{ paddingBottom: 100 }}
-            showsVerticalScrollIndicator={false}
-            refreshControl={
-              <RefreshControl
-                refreshing={refreshing}
-                onRefresh={handleRefresh}
-                tintColor={colorScheme === "dark" ? "#fff" : "#000"}
-              />
-            }
-          />
-        )}
+          ) : (
+            <View className="pb-20">
+              {playlists?.map((item: any) => (
+                <View key={item?.id || Math.random().toString()}>
+                  {renderPlaylistItem({ item })}
+                </View>
+              ))}
+            </View>
+          )}
+        </ScrollView>
       </PlaylistErrorBoundary>
 
       {/* Insights Banner */}

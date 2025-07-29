@@ -32,6 +32,7 @@ export const usePlaylistInvitations = () => {
   const [invitations, setInvitations] = useState<any>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch pending invitations for the current user
   const fetchInvitations = useCallback(async () => {
@@ -102,6 +103,7 @@ export const usePlaylistInvitations = () => {
     } catch (error) {
       console.error("Error fetching invitations:", error);
       Alert.alert("Error", "Failed to load invitations");
+      setError("Failed to load invitations");
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -189,5 +191,6 @@ export const usePlaylistInvitations = () => {
     rejectInvitation,
     handleRefresh,
     pendingCount: invitations.length,
+    error,
   };
 };

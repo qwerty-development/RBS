@@ -46,6 +46,7 @@ import { Image } from "@/components/image";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useOffers } from "@/hooks/useOffers";
 import OffersScreenSkeleton from "@/components/skeletons/OffersScreenSkeleton";
+import { getRefreshControlColor } from "@/lib/utils";
 import { OptimizedList } from "@/components/ui/optimized-list";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -856,7 +857,7 @@ export default function SpecialOffersScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={colorScheme === "dark" ? "#fff" : "#000"}
+            tintColor={getRefreshControlColor(colorScheme)}
           />
         }
       />

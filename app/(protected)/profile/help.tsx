@@ -45,6 +45,7 @@ import { H2, H3, P, Muted } from "@/components/ui/typography";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
+import { getRefreshControlColor } from "@/lib/utils";
 
 // 1. Type Definitions for Help System
 interface FAQItem {
@@ -575,7 +576,7 @@ export default function HelpScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={colorScheme === "dark" ? "#fff" : "#000"}
+            tintColor={getRefreshControlColor(colorScheme)}
           />
         }
       >

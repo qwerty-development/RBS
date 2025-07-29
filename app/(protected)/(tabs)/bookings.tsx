@@ -1,6 +1,6 @@
 // app/(protected)/(tabs)/bookings.tsx
 import React from "react";
-import { View, RefreshControl } from "react-native";
+import { View, RefreshControl, ScrollView } from "react-native";
 import { Calendar, Clock, UserPlus } from "lucide-react-native";
 import { useRouter } from "expo-router";
 
@@ -16,11 +16,32 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { useBookings } from "@/hooks/useBookings";
 import { useAuth } from "@/context/supabase-provider";
 import BookingsScreenSkeleton from "@/components/skeletons/BookingsScreenSkeleton";
-import { OptimizedList } from "@/components/ui/optimized-list";
+import { getRefreshControlColor } from "@/lib/utils";
 
 export default function BookingsScreen() {
   const router = useRouter();
   const { isGuest, convertGuestToUser } = useAuth();
+  const { colorScheme } = useColorScheme();
+  
+  // --- Authenticated User Hooks (must be called before any early returns) ---
+  const {
+    activeTab,
+    setActiveTab,
+    bookings,
+    loading,
+    refreshing,
+    processingBookingId,
+    handleRefresh,
+    navigateToBookingDetails,
+    navigateToRestaurant,
+    navigateToSearch,
+    cancelBooking,
+    rebookRestaurant,
+    reviewBooking,
+  } = useBookings();
+
+  const currentBookings =
+    activeTab === "upcoming" ? bookings.upcoming : bookings.past;
 
   // --- Guest View ---
   // If the user is a guest, show a call-to-action screen to sign up.
@@ -66,28 +87,7 @@ export default function BookingsScreen() {
     );
   }
 
-  // --- Authenticated User View ---
-  // The original component logic runs only for authenticated users.
-  const { colorScheme } = useColorScheme();
-  const {
-    activeTab,
-    setActiveTab,
-    bookings,
-    loading,
-    refreshing,
-    processingBookingId,
-    handleRefresh,
-    navigateToBookingDetails,
-    navigateToRestaurant,
-    navigateToSearch,
-    cancelBooking,
-    rebookRestaurant,
-    reviewBooking,
-  } = useBookings();
-
-  const currentBookings =
-    activeTab === "upcoming" ? bookings.upcoming : bookings.past;
-
+  // --- Loading State ---
   if (loading) {
     return <BookingsScreenSkeleton />;
   }
@@ -116,35 +116,20 @@ export default function BookingsScreen() {
         />
       </View>
 
-      {/* Content */}
-      <OptimizedList
-        data={currentBookings}
-        renderItem={({ item }) => (
-          <BookingCard
-            booking={item}
-            variant={activeTab}
-            onPress={() => navigateToBookingDetails(item.id)}
-            onCancel={cancelBooking}
-            onRebook={rebookRestaurant}
-            onReview={reviewBooking}
-            onNavigateToRestaurant={navigateToRestaurant}
-            processingBookingId={processingBookingId}
-          />
-        )}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{
-          padding: 16,
-          paddingBottom: 100,
-        }}
+      {/* Content with ScrollView for pull-to-refresh */}
+      <ScrollView
+        className="flex-1"
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={colorScheme === "dark" ? "#fff" : "#000"}
+            tintColor={getRefreshControlColor(colorScheme)}
           />
         }
-        ListEmptyComponent={
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
+        {currentBookings.length === 0 ? (
           activeTab === "upcoming" ? (
             <EmptyState
               icon={Calendar}
@@ -160,8 +145,24 @@ export default function BookingsScreen() {
               subtitle="Your completed bookings will appear here"
             />
           )
-        }
-      />
+        ) : (
+          <View className="p-4 pb-20">
+            {currentBookings.map((item) => (
+              <BookingCard
+                key={item.id}
+                booking={item}
+                variant={activeTab}
+                onPress={() => navigateToBookingDetails(item.id)}
+                onCancel={cancelBooking}
+                onRebook={rebookRestaurant}
+                onReview={reviewBooking}
+                onNavigateToRestaurant={navigateToRestaurant}
+                processingBookingId={processingBookingId}
+              />
+            ))}
+          </View>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 }

@@ -67,6 +67,7 @@ export const usePlaylists = () => {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch all playlists (own, collaborative, and public)
   const fetchPlaylists = useCallback(async () => {
@@ -154,6 +155,7 @@ export const usePlaylists = () => {
     } catch (error) {
       console.error("Error fetching playlists:", error);
       Alert.alert("Error", "Failed to load playlists");
+      setError(String(error));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -190,6 +192,7 @@ export const usePlaylists = () => {
       } catch (error) {
         console.error("Error creating playlist:", error);
         Alert.alert("Error", "Failed to create playlist");
+        setError("Failed to create playlist");
         return null;
       }
     },
@@ -222,6 +225,7 @@ export const usePlaylists = () => {
       } catch (error) {
         console.error("Error updating playlist:", error);
         Alert.alert("Error", "Failed to update playlist");
+        setError("Failed to update playlist");
         return false;
       }
     },
@@ -255,5 +259,6 @@ export const usePlaylists = () => {
     updatePlaylist,
     handleRefresh,
     removePlaylistFromState, // ADD this to your return statement
+    error,
   };
 };

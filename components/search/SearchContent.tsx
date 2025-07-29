@@ -5,6 +5,7 @@ import {
   FlatList,
   RefreshControl,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import MapView, { Region, Marker } from "react-native-maps";
 
@@ -51,17 +52,6 @@ export const SearchContent = ({
   onMapRegionChange,
   onScroll,
 }: SearchContentProps) => {
-  // Render restaurant item for list view
-  const renderRestaurantItem = ({ item }: { item: Restaurant }) => (
-    <RestaurantSearchCard
-      restaurant={item}
-      isFavorite={favorites.has(item.id)}
-      onPress={() => onRestaurantPress(item.id)}
-      onToggleFavorite={() => onToggleFavorite(item.id)}
-      onOpenDirections={() => onDirections(item)}
-    />
-  );
-
   // Loading state
   if (loading && restaurants.length === 0) {
     return (
@@ -160,43 +150,36 @@ export const SearchContent = ({
     );
   }
 
-  // List view with optimized scroll handling
+  // List view with ScrollView for pull-to-refresh
   return (
-    <View className="flex-1">
-      <FlatList
-        data={restaurants}
-        renderItem={renderRestaurantItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={{
-          paddingTop: 4, // Minimal top padding for seamless feel
-          paddingHorizontal: 16,
-          paddingBottom: 100,
-        }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={getRefreshControlColor(colorScheme)}
-          />
-        }
-        onScroll={onScroll} // Pass scroll event to parent
-        scrollEventThrottle={8} // Higher frequency for smoother response
-        getItemLayout={(data, index) => ({
-          length: 120, // Approximate height of RestaurantSearchCard
-          offset: 120 * index,
-          index,
-        })}
-        removeClippedSubviews={true}
-        initialNumToRender={8} // Reduced for better initial performance
-        maxToRenderPerBatch={3} // Smaller batches for smoother scrolling
-        windowSize={8} // Smaller window size
-        updateCellsBatchingPeriod={30} // Faster batching for smoother experience
-        maintainVisibleContentPosition={{
-          minIndexForVisible: 0,
-          autoscrollToTopThreshold: 100,
-        }}
-      />
-    </View>
+    <ScrollView
+      className="flex-1"
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor={getRefreshControlColor(colorScheme)}
+        />
+      }
+      onScroll={onScroll}
+      scrollEventThrottle={8}
+      contentContainerStyle={{
+        paddingTop: 4,
+        paddingHorizontal: 16,
+        paddingBottom: 100,
+      }}
+    >
+      {restaurants.map((restaurant) => (
+        <RestaurantSearchCard
+          key={restaurant.id}
+          restaurant={restaurant}
+          isFavorite={favorites.has(restaurant.id)}
+          onPress={() => onRestaurantPress(restaurant.id)}
+          onToggleFavorite={() => onToggleFavorite(restaurant.id)}
+          onOpenDirections={() => onDirections(restaurant)}
+        />
+      ))}
+    </ScrollView>
   );
 };

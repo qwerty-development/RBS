@@ -8,6 +8,7 @@ import {
   RefreshControl,
   Alert,
   Modal,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -32,7 +33,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
-import { OptimizedList } from "@/components/ui/optimized-list";
+import { getRefreshControlColor } from "@/lib/utils";
 
 // --- New Guest Prompt Modal ---
 const GuestPromptModal = ({
@@ -256,6 +257,7 @@ const PostCard: React.FC<{
 
 export default function SocialFeedScreen() {
   const router = useRouter();
+  const { colorScheme } = useColorScheme();
   const { profile, isGuest, convertGuestToUser } = useAuth();
 
   const [posts, setPosts] = useState<Post[]>([]);
@@ -437,22 +439,20 @@ export default function SocialFeedScreen() {
         className="border-b border-border"
       />
 
-      <OptimizedList
-        data={posts}
-        renderItem={({ item }) => (
-          <PostCard
-            post={item}
-            isGuest={isGuest}
-            onLike={handleLike}
-            onComment={handleComment}
-            onShare={handleShare}
-          />
-        )}
-        keyExtractor={(item) => item.id}
+      {/* Content with ScrollView for pull-to-refresh */}
+      <ScrollView
+        className="flex-1"
+        showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh}
+            tintColor={getRefreshControlColor(colorScheme)}
+          />
         }
-        ListEmptyComponent={
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
+        {posts.length === 0 ? (
           <View className="flex-1 items-center justify-center py-20">
             <Camera size={48} color="#666" />
             <H3 className="mt-4">
@@ -473,9 +473,21 @@ export default function SocialFeedScreen() {
               </Text>
             </Button>
           </View>
-        }
-        contentContainerStyle={{ flexGrow: 1 }}
-      />
+        ) : (
+          <View className="pb-20">
+            {posts.map((item) => (
+              <PostCard
+                key={item.id}
+                post={item}
+                isGuest={isGuest}
+                onLike={handleLike}
+                onComment={handleComment}
+                onShare={handleShare}
+              />
+            ))}
+          </View>
+        )}
+      </ScrollView>
 
       {/* MODIFIED: Add GuestPromptModal to the layout */}
       <GuestPromptModal

@@ -20,6 +20,7 @@ import { LoyaltyWidget } from "@/components/home/LoyaltyWidget";
 import { HomeHeader } from "@/components/home/HomeHeader";
 import { SpecialOfferBannerCarousel } from "@/components/home/SpecialOfferBannerCarousel";
 import { Button } from "@/components/ui/button";
+import { getRefreshControlColor } from "@/lib/utils";
 
 import { useHomeScreenLogic } from "@/hooks/useHomeScreenLogic";
 import { useOffers } from "@/hooks/useOffers";
@@ -127,7 +128,7 @@ export default function HomeScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={colorScheme === "dark" ? "#fff" : "#000"}
+            tintColor={getRefreshControlColor(colorScheme)}
             progressViewOffset={totalHeaderHeight}
           />
         }
