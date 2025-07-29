@@ -345,42 +345,81 @@ export default function FavoritesScreen() {
 
   const renderPlaylistItem = useMemo(() => {
     return ({ item }: { item: any }) => {
+      console.log("🎵 [renderPlaylistItem] Starting to render playlist item:", {
+        id: item?.id,
+        name: item?.name,
+        hasItem: !!item,
+        itemType: typeof item
+      });
+      
       try {
-        if (!item || !item.id) {
+        // Add more thorough validation
+        if (!item || typeof item !== 'object' || !item.id) {
+          console.warn("⚠️ [renderPlaylistItem] Invalid playlist item, returning null:", item);
           return null;
         }
 
+        // Log the playlist data for debugging
+        console.log("📋 [renderPlaylistItem] Valid playlist data:", {
+          id: item.id,
+          name: item.name,
+          item_count: item.item_count,
+          collaborator_count: item.collaborator_count,
+          is_collaborative: item.is_collaborative,
+          user_permission: item.user_permission,
+          user_id: item.user_id,
+          emoji: item.emoji,
+          description: item.description
+        });
+
         // Optimistic delete handler
         const handleDelete = (playlistId: string) => {
+          console.log("🗑️ [renderPlaylistItem] Delete handler called for:", playlistId);
           if (removePlaylistFromState) {
             removePlaylistFromState(playlistId); // Optimistically remove from UI
+          } else {
+            console.warn("⚠️ [renderPlaylistItem] removePlaylistFromState not available");
           }
         };
+
+        console.log("🎨 [renderPlaylistItem] About to render PlaylistCard with data for:", item.name);
 
         return (
           <PlaylistErrorBoundary
             fallback={
               <View className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg m-2">
                 <Text className="text-center text-gray-500">
-                  Unable to load playlist
+                  Unable to load playlist: {item.name || 'Unknown'}
                 </Text>
               </View>
             }
           >
             <PlaylistCard
               playlist={item}
-              onPress={() => navigateToPlaylist(item.id)}
+              onPress={() => {
+                console.log("🎯 [renderPlaylistItem] Navigation handler called for:", item.name);
+                navigateToPlaylist(item.id);
+              }}
               onDelete={handleDelete}
               variant="list"
             />
           </PlaylistErrorBoundary>
         );
       } catch (error) {
-        console.error("Render playlist item error:", error);
+        console.error("💥 [renderPlaylistItem] Error rendering playlist item:", error);
+        console.error("💥 [renderPlaylistItem] Error details:", {
+          errorMessage: error instanceof Error ? error.message : String(error),
+          errorStack: error instanceof Error ? error.stack : undefined,
+          playlistId: item?.id,
+          playlistName: item?.name
+        });
         return (
           <View className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg m-2">
             <Text className="text-center text-gray-500">
-              Unable to load playlist
+              Unable to load playlist: {item?.name || 'Unknown'}
+            </Text>
+            <Text className="text-center text-xs text-gray-400 mt-1">
+              Error: {error instanceof Error ? error.message : String(error)}
             </Text>
           </View>
         );
@@ -640,11 +679,55 @@ export default function FavoritesScreen() {
             </View>
           ) : (
             <View className="pb-24">
-              {playlists?.map((item: any, index: number) => (
-                <View key={item?.id || `playlist-${index}`}>
-                  {renderPlaylistItem({ item })}
-                </View>
-              ))}
+              {(() => {
+                console.log("🎭 [FavoritesScreen] Starting to render playlists");
+                console.log("🎭 [FavoritesScreen] Playlists data:", playlists);
+                console.log("🎭 [FavoritesScreen] Number of playlists:", playlists?.length);
+                
+                if (!playlists || playlists.length === 0) {
+                  console.warn("⚠️ [FavoritesScreen] No playlists to render");
+                  return null;
+                }
+                
+                return playlists.map((item: any, index: number) => {
+                  console.log(`🎯 [FavoritesScreen] Processing playlist ${index + 1}/${playlists.length}:`, {
+                    id: item?.id,
+                    name: item?.name,
+                    hasValidId: !!item?.id,
+                    hasValidName: !!item?.name,
+                    itemKeys: item ? Object.keys(item) : 'N/A'
+                  });
+                  
+                  if (!item || !item.id) {
+                    console.error(`❌ [FavoritesScreen] Invalid playlist at index ${index}:`, item);
+                    return (
+                      <View key={`invalid-playlist-${index}`} className="p-4 bg-yellow-50 dark:bg-yellow-900 rounded-lg m-2">
+                        <Text className="text-center text-yellow-800 dark:text-yellow-200">
+                          Invalid playlist data at position {index + 1}
+                        </Text>
+                      </View>
+                    );
+                  }
+                  
+                  try {
+                    console.log(`✅ [FavoritesScreen] About to render valid playlist: ${item.name}`);
+                    return (
+                      <View key={item.id}>
+                        {renderPlaylistItem({ item })}
+                      </View>
+                    );
+                  } catch (renderError) {
+                    console.error(`💥 [FavoritesScreen] Error rendering playlist ${item.name}:`, renderError);
+                    return (
+                      <View key={`error-playlist-${item.id}`} className="p-4 bg-red-50 dark:bg-red-900 rounded-lg m-2">
+                        <Text className="text-center text-red-600 dark:text-red-300">
+                          Error rendering playlist: {item.name || 'Unknown'}
+                        </Text>
+                      </View>
+                    );
+                  }
+                });
+              })()}
             </View>
           )}
         </ScrollView>
