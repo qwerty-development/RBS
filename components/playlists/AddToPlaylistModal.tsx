@@ -22,6 +22,7 @@ import { CreatePlaylistModal } from "./CreatePlaylistModal";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { OptimizedList } from "../ui/optimized-list";
+import { playlistEventEmitter, PLAYLIST_EVENTS } from "@/lib/eventEmitter";
 
 interface AddToPlaylistModalProps {
   visible: boolean;
@@ -153,12 +154,14 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
     setAddingToPlaylists(true);
     let successCount = 0;
     let addedPlaylistName = "";
+    const successfulPlaylistIds = new Set<string>();
 
     try {
       for (const playlistId of selectedPlaylists) {
         const success = await addRestaurantToPlaylist(playlistId, restaurantId);
         if (success) {
           successCount++;
+          successfulPlaylistIds.add(playlistId);
           const playlist = playlists.find((p) => p.id === playlistId);
           if (playlist && !addedPlaylistName) {
             addedPlaylistName = playlist.name;
@@ -170,6 +173,21 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
         await Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success,
         );
+        
+        // Update playlist states to reflect the additions immediately
+        const newPlaylistStates = new Map(playlistStates);
+        for (const playlistId of successfulPlaylistIds) {
+          newPlaylistStates.set(playlistId, true);
+        }
+        setPlaylistStates(newPlaylistStates);
+        
+        // Emit event to notify all components about playlist updates
+        playlistEventEmitter.emit(PLAYLIST_EVENTS.RESTAURANT_ADDED, {
+          restaurantId,
+          playlistIds: Array.from(successfulPlaylistIds),
+          successCount,
+        });
+        
         if (onSuccess) {
           onSuccess(
             successCount > 1 ? `${successCount} playlists` : addedPlaylistName,
@@ -189,6 +207,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
     onSuccess,
     onClose,
     profile?.id,
+    playlistStates,
   ]);
 
   // Handle create new playlist

@@ -6,6 +6,7 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -82,8 +83,7 @@ const PostCard: React.FC<{
       {/* Images */}
       {post.images.length > 0 && (
         <View>
-          <FlatList
-            data={post.images}
+          <ScrollView
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
@@ -94,15 +94,16 @@ const PostCard: React.FC<{
               );
               setImageIndex(index);
             }}
-            renderItem={({ item }) => (
+          >
+            {post.images.map((image) => (
               <Image
-                source={{ uri: item.image_url }}
+                key={image.id}
+                source={{ uri: image.image_url }}
                 className="w-screen h-60"
                 contentFit="cover"
               />
-            )}
-            keyExtractor={(item) => item.id}
-          />
+            ))}
+          </ScrollView>
           {post.images.length > 1 && (
             <View className="absolute bottom-2 right-2 bg-black/60 px-2 py-1 rounded">
               <Text className="text-white text-xs">

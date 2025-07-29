@@ -3,6 +3,7 @@ import { Alert } from "react-native";
 import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
+import { playlistEventEmitter, PLAYLIST_EVENTS } from "@/lib/eventEmitter";
 
 interface UseDeletePlaylistOptions {
   onSuccess?: (playlistId: string) => void;
@@ -62,6 +63,12 @@ export const useDeletePlaylist = (options?: UseDeletePlaylistOptions) => {
                     .eq("user_id", profile.id); // Extra safety check
 
                   if (deleteError) throw deleteError;
+
+                  // Emit event to notify all components about playlist deletion
+                  playlistEventEmitter.emit(PLAYLIST_EVENTS.DELETED, {
+                    playlistId,
+                    playlistName,
+                  });
 
                   await Haptics.notificationAsync(
                     Haptics.NotificationFeedbackType.Success,
@@ -124,6 +131,11 @@ export const useDeletePlaylist = (options?: UseDeletePlaylistOptions) => {
           .eq("user_id", profile.id);
 
         if (deleteError) throw deleteError;
+
+        // Emit event to notify all components about playlist deletion
+        playlistEventEmitter.emit(PLAYLIST_EVENTS.DELETED, {
+          playlistId,
+        });
 
         if (options?.onSuccess) {
           options.onSuccess(playlistId);

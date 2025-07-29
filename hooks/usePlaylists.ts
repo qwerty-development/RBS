@@ -5,6 +5,7 @@ import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
+import { playlistEventEmitter, PLAYLIST_EVENTS } from "@/lib/eventEmitter";
 
 export type Playlist = {
   id: string;
@@ -77,8 +78,6 @@ export const usePlaylists = () => {
     if (!profile?.id) return;
 
     try {
-      console.log("🎵 [usePlaylists] Starting to fetch playlists for user:", profile.id);
-      
       // Fetch user's own playlists
       const { data: ownPlaylists, error: ownError } = await supabase
         .from("restaurant_playlists")
@@ -87,11 +86,9 @@ export const usePlaylists = () => {
         .order("created_at", { ascending: false });
 
       if (ownError) {
-        console.error("❌ [usePlaylists] Error fetching own playlists:", ownError);
+        console.error("Error fetching own playlists:", ownError);
         throw ownError;
       }
-
-      console.log("✅ [usePlaylists] Fetched own playlists:", ownPlaylists);
 
       // Fetch playlists user collaborates on (get playlist IDs first)
       const { data: collaborations, error: collabError } = await supabase
@@ -101,11 +98,9 @@ export const usePlaylists = () => {
         .not("accepted_at", "is", null);
 
       if (collabError) {
-        console.error("❌ [usePlaylists] Error fetching collaborations:", collabError);
+        console.error("Error fetching collaborations:", collabError);
         throw collabError;
       }
-
-      console.log("✅ [usePlaylists] Fetched collaborations:", collaborations);
 
       let collaborativePlaylists: any[] = [];
 
@@ -114,8 +109,6 @@ export const usePlaylists = () => {
         const collaborativePlaylistIds = collaborations.map(
           (c) => c.playlist_id,
         );
-
-        console.log("🔗 [usePlaylists] Collaborative playlist IDs:", collaborativePlaylistIds);
 
         // Fetch full playlist data for collaborative playlists
         const { data: collabPlaylistsData, error: collabPlaylistsError } =
@@ -126,11 +119,9 @@ export const usePlaylists = () => {
             .order("created_at", { ascending: false });
 
         if (collabPlaylistsError) {
-          console.error("❌ [usePlaylists] Error fetching collaborative playlists:", collabPlaylistsError);
+          console.error("Error fetching collaborative playlists:", collabPlaylistsError);
           throw collabPlaylistsError;
         }
-
-        console.log("✅ [usePlaylists] Fetched collaborative playlists data:", collabPlaylistsData);
 
         // Fetch owner data for collaborative playlists
         const ownerIds = [
@@ -145,11 +136,10 @@ export const usePlaylists = () => {
             .in("id", ownerIds);
 
           if (ownersError) {
-            console.error("❌ [usePlaylists] Error fetching owners:", ownersError);
+            console.error("Error fetching owners:", ownersError);
             throw ownersError;
           }
           ownersData = owners || [];
-          console.log("✅ [usePlaylists] Fetched owners data:", ownersData);
         }
 
         // Add collaborative metadata to each playlist
@@ -165,30 +155,20 @@ export const usePlaylists = () => {
             owner: owner || null,
           };
         });
-
-        console.log("✅ [usePlaylists] Processed collaborative playlists:", collaborativePlaylists);
       }
 
       // Combine and deduplicate playlists
       const allPlaylists = [...(ownPlaylists || []), ...collaborativePlaylists];
-      console.log("🔄 [usePlaylists] Combined all playlists:", allPlaylists);
 
       // Remove duplicates (in case user owns and collaborates on same playlist)
       const uniquePlaylists = Array.from(
         new Map(allPlaylists.map((p) => [p.id, p])).values(),
       );
 
-      console.log("🔄 [usePlaylists] Unique playlists before stats:", uniquePlaylists);
-
       // Fetch item counts and collaborator counts for all playlists
       const playlistsWithStats = await Promise.all(
         uniquePlaylists.map(async (playlist, index) => {
           try {
-            console.log(`📊 [usePlaylists] Fetching stats for playlist ${index + 1}/${uniquePlaylists.length}:`, {
-              id: playlist.id,
-              name: playlist.name
-            });
-
             // Get item count
             const { count: itemCount, error: itemError } = await supabase
               .from("playlist_items")
@@ -196,9 +176,7 @@ export const usePlaylists = () => {
               .eq("playlist_id", playlist.id);
 
             if (itemError) {
-              console.error(`❌ [usePlaylists] Error fetching item count for playlist ${playlist.id}:`, itemError);
-            } else {
-              console.log(`✅ [usePlaylists] Item count for playlist ${playlist.id}:`, itemCount);
+              console.error(`Error fetching item count for playlist ${playlist.id}:`, itemError);
             }
 
             // Get collaborator count
@@ -209,9 +187,7 @@ export const usePlaylists = () => {
               .not("accepted_at", "is", null);
 
             if (collabError) {
-              console.error(`❌ [usePlaylists] Error fetching collaborator count for playlist ${playlist.id}:`, collabError);
-            } else {
-              console.log(`✅ [usePlaylists] Collaborator count for playlist ${playlist.id}:`, collaboratorCount);
+              console.error(`Error fetching collaborator count for playlist ${playlist.id}:`, collabError);
             }
 
             const playlistWithStats = {
@@ -220,32 +196,27 @@ export const usePlaylists = () => {
               collaborator_count: collaboratorCount || 0,
             };
 
-            console.log(`🎯 [usePlaylists] Final playlist data for ${playlist.name}:`, playlistWithStats);
             return playlistWithStats;
           } catch (statsError) {
-            console.error(`💥 [usePlaylists] Error fetching stats for playlist ${playlist.id}:`, statsError);
+            console.error(`Error fetching stats for playlist ${playlist.id}:`, statsError);
             // Return playlist with default stats if there's an error
             const fallbackPlaylist = {
               ...playlist,
               item_count: 0,
               collaborator_count: 0,
             };
-            console.log(`🔄 [usePlaylists] Using fallback data for ${playlist.name}:`, fallbackPlaylist);
             return fallbackPlaylist;
           }
         })
       );
 
-      console.log("🎉 [usePlaylists] Final playlists with stats:", playlistsWithStats);
-
       // Only update state if component is still mounted
       if (isMountedRef.current) {
         setPlaylists(playlistsWithStats as Playlist[]);
         setError(null); // Clear any previous errors
-        console.log("✅ [usePlaylists] Successfully updated playlists state");
       }
     } catch (error) {
-      console.error("💥 [usePlaylists] Error fetching playlists:", error);
+      console.error("Error fetching playlists:", error);
       if (isMountedRef.current) {
         Alert.alert("Error", "Failed to load playlists");
         setError(String(error));
@@ -254,7 +225,6 @@ export const usePlaylists = () => {
       if (isMountedRef.current) {
         setLoading(false);
         setRefreshing(false);
-        console.log("🏁 [usePlaylists] Fetch playlists completed");
       }
     }
   }, [profile?.id]);
@@ -283,6 +253,11 @@ export const usePlaylists = () => {
           .single();
 
         if (error) throw error;
+
+        // Emit event to notify all components about playlist creation
+        playlistEventEmitter.emit(PLAYLIST_EVENTS.CREATED, {
+          playlist: data,
+        });
 
         await fetchPlaylists();
         return data;
@@ -316,6 +291,12 @@ export const usePlaylists = () => {
           .eq("id", playlistId);
 
         if (error) throw error;
+
+        // Emit event to notify all components about playlist update
+        playlistEventEmitter.emit(PLAYLIST_EVENTS.UPDATED, {
+          playlistId,
+          updates,
+        });
 
         await fetchPlaylists();
         return true;
@@ -351,6 +332,31 @@ export const usePlaylists = () => {
       fetchPlaylists();
     }
   }, [profile?.id, fetchPlaylists]);
+
+  // Listen for playlist events and refresh data
+  useEffect(() => {
+    const handlePlaylistUpdate = () => {
+      if (isMountedRef.current && profile?.id) {
+        fetchPlaylists();
+      }
+    };
+
+    // Listen for all playlist events that should trigger a refresh
+    playlistEventEmitter.on(PLAYLIST_EVENTS.UPDATED, handlePlaylistUpdate);
+    playlistEventEmitter.on(PLAYLIST_EVENTS.CREATED, handlePlaylistUpdate);
+    playlistEventEmitter.on(PLAYLIST_EVENTS.DELETED, handlePlaylistUpdate);
+    playlistEventEmitter.on(PLAYLIST_EVENTS.RESTAURANT_ADDED, handlePlaylistUpdate);
+    playlistEventEmitter.on(PLAYLIST_EVENTS.RESTAURANT_REMOVED, handlePlaylistUpdate);
+
+    // Cleanup event listeners
+    return () => {
+      playlistEventEmitter.off(PLAYLIST_EVENTS.UPDATED, handlePlaylistUpdate);
+      playlistEventEmitter.off(PLAYLIST_EVENTS.CREATED, handlePlaylistUpdate);
+      playlistEventEmitter.off(PLAYLIST_EVENTS.DELETED, handlePlaylistUpdate);
+      playlistEventEmitter.off(PLAYLIST_EVENTS.RESTAURANT_ADDED, handlePlaylistUpdate);
+      playlistEventEmitter.off(PLAYLIST_EVENTS.RESTAURANT_REMOVED, handlePlaylistUpdate);
+    };
+  }, [fetchPlaylists, profile?.id]);
 
   // Optimistic playlist removal from state
   const removePlaylistFromState = useCallback((playlistId: string) => {

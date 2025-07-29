@@ -5,6 +5,7 @@ import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { PlaylistItem } from "./usePlaylists";
+import { playlistEventEmitter, PLAYLIST_EVENTS } from "@/lib/eventEmitter";
 
 export const usePlaylistItems = (playlistId: string | null) => {
   const { profile } = useAuth();
@@ -85,6 +86,14 @@ export const usePlaylistItems = (playlistId: string | null) => {
           throw error;
         }
 
+        // Emit event to notify all components about playlist updates
+        playlistEventEmitter.emit(PLAYLIST_EVENTS.RESTAURANT_ADDED, {
+          restaurantId,
+          playlistIds: [playlistId],
+          successCount: 1,
+        });
+        
+        // Also refresh local items
         await fetchItems();
         return true;
       } catch (error) {
@@ -109,6 +118,18 @@ export const usePlaylistItems = (playlistId: string | null) => {
 
         if (error) throw error;
 
+        // Get the restaurant ID before filtering for event emission
+        const removedItem = items.find(item => item.id === itemId);
+        
+        // Emit event to notify all components about restaurant removal
+        if (removedItem && playlistId) {
+          playlistEventEmitter.emit(PLAYLIST_EVENTS.RESTAURANT_REMOVED, {
+            restaurantId: removedItem.restaurant_id,
+            playlistIds: [playlistId],
+            itemId,
+          });
+        }
+
         setItems((prev) => prev.filter((item) => item.id !== itemId));
         return true;
       } catch (error) {
@@ -117,7 +138,7 @@ export const usePlaylistItems = (playlistId: string | null) => {
         return false;
       }
     },
-    [],
+    [items, playlistId],
   );
 
   // Update item note
@@ -202,6 +223,39 @@ export const usePlaylistItems = (playlistId: string | null) => {
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
+
+  // Listen for playlist events and refresh items if this playlist is affected
+  useEffect(() => {
+    const handlePlaylistItemUpdate = (eventData: any) => {
+      // Check if this event affects the current playlist
+      if (!playlistId) return;
+      
+      const { playlistIds } = eventData;
+      if (playlistIds && playlistIds.includes(playlistId)) {
+        // This playlist was affected, refresh the items
+        fetchItems();
+      }
+    };
+
+    const handlePlaylistUpdate = () => {
+      // For general playlist updates, always refresh to be safe
+      if (playlistId) {
+        fetchItems();
+      }
+    };
+
+    // Listen for events that affect playlist items
+    playlistEventEmitter.on(PLAYLIST_EVENTS.RESTAURANT_ADDED, handlePlaylistItemUpdate);
+    playlistEventEmitter.on(PLAYLIST_EVENTS.RESTAURANT_REMOVED, handlePlaylistItemUpdate);
+    playlistEventEmitter.on(PLAYLIST_EVENTS.UPDATED, handlePlaylistUpdate);
+
+    // Cleanup event listeners
+    return () => {
+      playlistEventEmitter.off(PLAYLIST_EVENTS.RESTAURANT_ADDED, handlePlaylistItemUpdate);
+      playlistEventEmitter.off(PLAYLIST_EVENTS.RESTAURANT_REMOVED, handlePlaylistItemUpdate);
+      playlistEventEmitter.off(PLAYLIST_EVENTS.UPDATED, handlePlaylistUpdate);
+    };
+  }, [fetchItems, playlistId]);
 
   return {
     items,

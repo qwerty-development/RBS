@@ -27,3 +27,15 @@ export class EventEmitter {
     }
   }
 }
+
+// Global playlist event emitter
+export const playlistEventEmitter = new EventEmitter();
+
+// Playlist event constants
+export const PLAYLIST_EVENTS = {
+  UPDATED: 'playlist_updated',
+  CREATED: 'playlist_created',
+  DELETED: 'playlist_deleted',
+  RESTAURANT_ADDED: 'playlist_restaurant_added',
+  RESTAURANT_REMOVED: 'playlist_restaurant_removed',
+} as const;

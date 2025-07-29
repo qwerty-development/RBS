@@ -40,22 +40,10 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
   const isDark = colorScheme === "dark";
   const { profile } = useAuth();
 
-  // Add comprehensive logging for each playlist card
-  console.log("🎴 [PlaylistCard] Rendering playlist card:", {
-    id: playlist?.id,
-    name: playlist?.name,
-    variant,
-    hasPlaylist: !!playlist,
-    playlistKeys: playlist ? Object.keys(playlist) : 'N/A'
-  });
-
   // Add safety checks for playlist data
   if (!playlist || !playlist.id) {
-    console.warn("⚠️ [PlaylistCard] Invalid playlist data, skipping render:", playlist);
     return null;
   }
-
-  console.log("📊 [PlaylistCard] Full playlist data for", playlist.name, ":", playlist);
 
   // Sanitize all text values to prevent rendering errors
   const safeName = String(playlist.name || "Untitled Playlist");
@@ -64,19 +52,8 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
   const safeItemCount = Number(playlist.item_count) || 0;
   const safeCollaboratorCount = Number(playlist.collaborator_count) || 0;
 
-  console.log("🧹 [PlaylistCard] Sanitized data for", safeName, ":", {
-    safeName,
-    safeDescription,
-    safeEmoji,
-    safeItemCount,
-    safeCollaboratorCount,
-    descriptionLength: safeDescription?.length,
-    emojiLength: safeEmoji.length
-  });
-
   const { deletePlaylist, isDeleting } = useDeletePlaylist({
     onSuccess: (playlistId) => {
-      console.log("🗑️ [PlaylistCard] Playlist deleted successfully:", playlistId);
       if (onDelete) {
         onDelete(playlistId);
       }
@@ -84,29 +61,18 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
   });
 
   const isOwner = playlist.user_id === profile?.id;
-  console.log("👤 [PlaylistCard] Ownership check for", safeName, ":", {
-    playlistUserId: playlist.user_id,
-    currentUserId: profile?.id,
-    isOwner
-  });
 
   const handleDeletePress = async (e: any) => {
     e.stopPropagation();
-    console.log("🗑️ [PlaylistCard] Delete pressed for:", safeName);
     await deletePlaylist(playlist.id, safeName);
   };
 
   // List variant
   if (variant === "list") {
-    console.log("📋 [PlaylistCard] Rendering list variant for:", safeName);
-    
     try {
       return (
         <Pressable
-          onPress={() => {
-            console.log("👆 [PlaylistCard] Pressed playlist:", safeName);
-            onPress();
-          }}
+          onPress={onPress}
           className={cn(
             "flex-row items-center p-4 bg-white dark:bg-gray-800",
             "border-b border-gray-200 dark:border-gray-700",
@@ -180,19 +146,11 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
         </Pressable>
       );
     } catch (error) {
-      console.error("💥 [PlaylistCard] Error rendering list variant for", safeName, ":", error);
-      console.error("💥 [PlaylistCard] Error details:", {
-        errorMessage: error instanceof Error ? error.message : String(error),
-        errorStack: error instanceof Error ? error.stack : undefined,
-        playlistData: playlist
-      });
+      console.error("Error rendering playlist:", error);
       return (
         <View className="p-4 bg-red-50 dark:bg-red-900 rounded-lg m-2">
           <Text className="text-center text-red-600 dark:text-red-300">
             Error rendering playlist: {safeName}
-          </Text>
-          <Text className="text-center text-xs text-red-500 mt-1">
-            {error instanceof Error ? error.message : String(error)}
           </Text>
         </View>
       );
@@ -200,15 +158,10 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
   }
 
   // Grid variant
-  console.log("🔲 [PlaylistCard] Rendering grid variant for:", safeName);
-  
   try {
     return (
       <Pressable
-        onPress={() => {
-          console.log("👆 [PlaylistCard] Pressed playlist (grid):", safeName);
-          onPress();
-        }}
+        onPress={onPress}
         className={cn(
           "bg-white dark:bg-gray-800 rounded-2xl overflow-hidden",
           "shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700",
@@ -307,19 +260,11 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
       </Pressable>
     );
   } catch (error) {
-    console.error("💥 [PlaylistCard] Error rendering grid variant for", safeName, ":", error);
-    console.error("💥 [PlaylistCard] Error details:", {
-      errorMessage: error instanceof Error ? error.message : String(error),
-      errorStack: error instanceof Error ? error.stack : undefined,
-      playlistData: playlist
-    });
+    console.error("Error rendering playlist:", error);
     return (
       <View className="p-4 bg-red-50 dark:bg-red-900 rounded-lg m-2">
         <Text className="text-center text-red-600 dark:text-red-300">
           Error rendering playlist: {safeName}
-        </Text>
-        <Text className="text-center text-xs text-red-500 mt-1">
-          {error instanceof Error ? error.message : String(error)}
         </Text>
       </View>
     );
