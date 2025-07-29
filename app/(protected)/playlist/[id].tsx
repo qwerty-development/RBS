@@ -243,6 +243,27 @@ export default function PlaylistDetailScreen() {
     ({ item, drag, isActive }: RenderItemParams<PlaylistItem>) => {
       const canEdit = userPermission === "edit";
 
+      const handleDeleteRestaurant = async (restaurantId: string) => {
+        Alert.alert(
+          "Remove Restaurant",
+          `Are you sure you want to remove "${item.restaurant.name}" from this playlist?`,
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Remove",
+              style: "destructive",
+              onPress: async () => {
+                try {
+                  await removeRestaurant(item.id);
+                } catch (error) {
+                  console.error("Error removing restaurant from playlist:", error);
+                }
+              },
+            },
+          ],
+        );
+      };
+
       return (
         <ScaleDecorator>
           <Pressable
@@ -255,6 +276,9 @@ export default function PlaylistDetailScreen() {
               onPress={() => handleRestaurantPress(item.restaurant.id)}
               variant="compact"
               showActions={false}
+              showDeleteButton={canEdit}
+              onDelete={handleDeleteRestaurant}
+              isDeleting={false} // You can add state to track individual item deletion if needed
             />
             {item.note && (
               <View className="mt-1 mx-2">
@@ -265,7 +289,7 @@ export default function PlaylistDetailScreen() {
         </ScaleDecorator>
       );
     },
-    [handleRestaurantPress, userPermission],
+    [handleRestaurantPress, userPermission, removeRestaurant],
   );
 
   // Loading state

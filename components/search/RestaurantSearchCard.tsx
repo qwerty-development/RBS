@@ -1,6 +1,6 @@
 // components/search/RestaurantSearchCard.tsx
 import React from "react";
-import { View, Pressable } from "react-native";
+import { View, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import {
   Star,
@@ -9,6 +9,7 @@ import {
   Clock,
   Navigation,
   Heart,
+  Trash2,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { Image } from "@/components/image";
@@ -52,6 +53,9 @@ interface SearchScreenProps {
   disabled?: never;
   className?: never;
   restaurant?: never;
+  onDelete?: never;
+  isDeleting?: never;
+  showDeleteButton?: never;
 }
 
 // New interface for playlist/other screens
@@ -62,6 +66,9 @@ interface PlaylistScreenProps {
   showActions?: boolean;
   disabled?: boolean;
   className?: string;
+  onDelete?: (restaurantId: string) => Promise<void>;
+  isDeleting?: boolean;
+  showDeleteButton?: boolean;
   item?: never;
   bookingFilters?: never;
   favorites?: never;
@@ -83,6 +90,8 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
   const showActions = isSearchScreen ? true : props.showActions !== false;
   const disabled = isSearchScreen ? false : props.disabled || false;
   const className = isSearchScreen ? "" : props.className || "";
+  const showDeleteButton = isSearchScreen ? false : props.showDeleteButton || false;
+  const isDeleting = isSearchScreen ? false : props.isDeleting || false;
 
   // Safety check
   if (!restaurant) {
@@ -110,6 +119,13 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
     e.stopPropagation();
     if (isSearchScreen && props.onDirections) {
       props.onDirections(restaurant);
+    }
+  };
+
+  const handleDeletePress = (e: any) => {
+    e.stopPropagation();
+    if (!isSearchScreen && props.onDelete) {
+      props.onDelete(restaurant.id);
     }
   };
 
@@ -150,9 +166,25 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
           </Pressable>
         )}
 
+        {/* Delete button overlay - only show in playlist context */}
+        {!isSearchScreen && showDeleteButton && (
+          <Pressable
+            onPress={handleDeletePress}
+            disabled={isDeleting}
+            className="absolute top-3 right-3 bg-red-500/90 rounded-full p-2"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            {isDeleting ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Trash2 size={16} color="#fff" />
+            )}
+          </Pressable>
+        )}
+
         {/* Booking policy badge */}
         {restaurant.booking_policy && (
-          <View className="absolute top-3 right-3">
+          <View className="absolute top-3 left-3">
             <View
               className={`px-2 py-1 rounded-full ${
                 restaurant.booking_policy === "instant"
