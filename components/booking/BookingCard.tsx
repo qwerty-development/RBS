@@ -7,6 +7,8 @@ import {
   Alert,
   Linking,
   Platform,
+  Modal,
+  ScrollView,
 } from "react-native";
 import {
   Calendar as CalendarIcon,
@@ -24,6 +26,8 @@ import {
   CalendarPlus,
   Timer, // Added for pending status
   RotateCcw, // Added for rebooking
+  X,
+  Check,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
@@ -146,6 +150,107 @@ const getDefaultCalendar = async () => {
   );
 };
 
+// --- Calendar Selection Modal Component ---
+interface CalendarSelectionModalProps {
+  visible: boolean;
+  onClose: () => void;
+  onSelectCalendar: (calendar: Calendar.Calendar) => void;
+  calendars: Calendar.Calendar[];
+  isLoading: boolean;
+}
+
+function CalendarSelectionModal({
+  visible,
+  onClose,
+  onSelectCalendar,
+  calendars,
+  isLoading,
+}: CalendarSelectionModalProps) {
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <View className="flex-1 bg-background">
+        {/* Header */}
+        <View className="flex-row items-center justify-between p-4 border-b border-border">
+          <View className="flex-row items-center gap-3">
+            <CalendarPlus size={24} color="#3b82f6" />
+            <View>
+              <Text className="text-lg font-semibold">Add to Calendar</Text>
+              <Text className="text-sm text-muted-foreground">
+                Choose your calendar
+              </Text>
+            </View>
+          </View>
+          <Pressable
+            onPress={onClose}
+            className="p-2 rounded-full bg-muted"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <X size={20} color="#666" />
+          </Pressable>
+        </View>
+
+        {/* Content */}
+        <ScrollView className="flex-1 p-4">
+          {isLoading ? (
+            <View className="flex-1 justify-center items-center py-20">
+              <ActivityIndicator size="large" color="#3b82f6" />
+              <Text className="text-muted-foreground mt-4">
+                Loading calendars...
+              </Text>
+            </View>
+          ) : (
+            <View className="space-y-3">
+              {calendars.map((calendar) => (
+                <Pressable
+                  key={calendar.id}
+                  onPress={() => onSelectCalendar(calendar)}
+                  className="bg-card rounded-xl p-4 border border-border active:bg-muted/50"
+                >
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-1">
+                      <View className="flex-row items-center gap-3 mb-2">
+                        <View
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: calendar.color || "#3b82f6" }}
+                        />
+                        <Text className="font-semibold text-base">
+                          {calendar.title}
+                        </Text>
+                      </View>
+                      {calendar.source?.name && (
+                        <Text className="text-sm text-muted-foreground ml-7">
+                          {calendar.source.name}
+                        </Text>
+                      )}
+                    </View>
+                    <ChevronRight size={20} color="#666" />
+                  </View>
+                </Pressable>
+              ))}
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Footer */}
+        <View className="p-4 border-t border-border">
+          <Button
+            variant="outline"
+            onPress={onClose}
+            className="w-full"
+          >
+            <Text>Cancel</Text>
+          </Button>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // --- Main Component ---
 export function BookingCard({
   booking,
@@ -181,6 +286,13 @@ export function BookingCard({
     : null;
 
   const [hasReview, setHasReview] = useState(false);
+  const [isAddingToCalendar, setIsAddingToCalendar] = useState(false);
+  const [addedToCalendar, setAddedToCalendar] = useState(false);
+  
+  // Calendar selection modal state
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
+  const [availableCalendars, setAvailableCalendars] = useState<Calendar.Calendar[]>([]);
+  const [isLoadingCalendars, setIsLoadingCalendars] = useState(false);
 
   useEffect(() => {
     const checkReview = async () => {
@@ -208,7 +320,26 @@ export function BookingCard({
     onCancel?.(booking.id);
   };
   const handleQuickCall = async (e: any) => {
-    /* ... original implementation ... */
+    e.stopPropagation();
+    
+    if (!booking.restaurant.phone_number) {
+      Alert.alert("No Phone Number", "Phone number is not available for this restaurant");
+      return;
+    }
+    
+    const phoneUrl = `tel:${booking.restaurant.phone_number}`;
+    
+    try {
+      const canOpen = await Linking.canOpenURL(phoneUrl);
+      if (canOpen) {
+        await Linking.openURL(phoneUrl);
+      } else {
+        Alert.alert("Error", "Unable to open phone application");
+      }
+    } catch (error) {
+      console.error("Error making phone call:", error);
+      Alert.alert("Error", "Unable to make phone call");
+    }
   };
   const handleDirections = async (e: any) => {
     e.stopPropagation();
@@ -244,10 +375,197 @@ export function BookingCard({
     }
   };
   const handleCopyConfirmation = async (e: any) => {
-    /* ... original implementation ... */
+    e.stopPropagation();
+    
+    if (!booking.confirmation_code) return;
+    
+    try {
+      await Clipboard.setStringAsync(booking.confirmation_code);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      Alert.alert("Copied", "Confirmation code copied to clipboard");
+    } catch (error) {
+      console.error("Error copying confirmation code:", error);
+      Alert.alert("Error", "Unable to copy confirmation code");
+    }
   };
+
   const handleAddToCalendar = async (e: any) => {
-    /* ... original implementation ... */
+    e.stopPropagation();
+    
+    if (isAddingToCalendar) return;
+    
+    try {
+      // Request calendar permissions using Expo Calendar
+      const { status } = await Calendar.requestCalendarPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert(
+          "Calendar Access Required", 
+          "We need access to your calendar to add this reservation. You can enable this in your device settings.",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Open Settings", onPress: () => Linking.openSettings() }
+          ]
+        );
+        return;
+      }
+
+      // Load available calendars
+      setIsLoadingCalendars(true);
+      const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+      
+      // Filter to only writable calendars
+      const writableCalendars = calendars.filter(cal => cal.allowsModifications);
+      
+      if (writableCalendars.length === 0) {
+        Alert.alert(
+          "No Available Calendars", 
+          "No writable calendars found on your device. Please check your calendar settings."
+        );
+        return;
+      }
+
+      // If only one writable calendar, use it directly
+      if (writableCalendars.length === 1) {
+        await createCalendarEvent(writableCalendars[0]);
+        return;
+      }
+
+      // Show modern calendar selection modal
+      setAvailableCalendars(writableCalendars);
+      setShowCalendarModal(true);
+
+    } catch (error) {
+      console.error("Error loading calendars:", error);
+      Alert.alert(
+        "Calendar Error", 
+        "Unable to access your calendar. Please try again or add the event manually."
+      );
+    } finally {
+      setIsLoadingCalendars(false);
+    }
+  };
+
+  const handleCalendarSelection = async (calendar: Calendar.Calendar) => {
+    setShowCalendarModal(false);
+    await createCalendarEvent(calendar);
+  };
+
+  const createCalendarEvent = async (calendar: Calendar.Calendar) => {
+    setIsAddingToCalendar(true);
+    
+    try {
+      // Prepare event details with smart duration calculation
+      const bookingDate = new Date(booking.booking_time);
+      const hour = bookingDate.getHours();
+      
+      // Smart duration based on meal time
+      let durationHours = 2; // Default
+      if (hour >= 6 && hour < 11) {
+        durationHours = 1.5; // Breakfast/Brunch
+      } else if (hour >= 11 && hour < 16) {
+        durationHours = 1.5; // Lunch
+      } else if (hour >= 16 && hour < 22) {
+        durationHours = 2.5; // Dinner
+      } else {
+        durationHours = 2; // Late night
+      }
+      
+      const endDate = new Date(bookingDate.getTime() + (durationHours * 60 * 60 * 1000));
+      
+      // Determine meal type for title
+      const getMealType = (hour: number) => {
+        if (hour >= 6 && hour < 11) return "Breakfast";
+        if (hour >= 11 && hour < 16) return "Lunch";
+        if (hour >= 16 && hour < 22) return "Dinner";
+        return "Late Night";
+      };
+      
+      const mealType = getMealType(hour);
+      
+      // Create comprehensive event details
+      const eventDetails = {
+        title: `${mealType} at ${booking.restaurant.name}`,
+        startDate: bookingDate,
+        endDate: endDate,
+        location: booking.restaurant.address || booking.restaurant.name,
+        notes: [
+          `🍽️ Table reservation for ${booking.party_size} ${booking.party_size === 1 ? 'guest' : 'guests'}`,
+          booking.confirmation_code ? `📋 Confirmation Code: ${booking.confirmation_code}` : '',
+          `🏪 Restaurant: ${booking.restaurant.name}`,
+          booking.restaurant.cuisine_type ? `🍜 Cuisine: ${booking.restaurant.cuisine_type}` : '',
+          booking.restaurant.phone_number ? `📞 Phone: ${booking.restaurant.phone_number}` : '',
+          booking.special_requests ? `💬 Special Requests: ${booking.special_requests}` : '',
+          booking.occasion ? `🎉 Occasion: ${booking.occasion}` : '',
+          '',
+          '⏰ Please arrive 10-15 minutes early',
+          '📱 Booked via TableReserve'
+        ].filter(Boolean).join('\n'),
+        alarms: [
+          { relativeOffset: -120 }, // 2 hours before
+          { relativeOffset: -60 },  // 1 hour before
+          { relativeOffset: -15 }   // 15 minutes before
+        ]
+      };
+
+      // Create the event
+      const eventId = await Calendar.createEventAsync(calendar.id, eventDetails);
+      
+      // Mark as added to calendar
+      setAddedToCalendar(true);
+      
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      
+      Alert.alert(
+        "📅 Added to Calendar!", 
+        `Your reservation at ${booking.restaurant.name} has been added to ${calendar.title}.\n\nReminders set for:\n• 2 hours before\n• 1 hour before\n• 15 minutes before`,
+        [
+          { 
+            text: "View in Calendar", 
+            onPress: () => {
+              // Try to open the calendar app
+              const calendarUrl = Platform.select({
+                ios: "calshow:",
+                android: "content://com.android.calendar/time",
+              });
+              if (calendarUrl) {
+                Linking.canOpenURL(calendarUrl).then(supported => {
+                  if (supported) {
+                    Linking.openURL(calendarUrl);
+                  }
+                });
+              }
+            }
+          },
+          { text: "Done", style: "default" }
+        ]
+      );
+      
+    } catch (error) {
+      console.error("Error creating calendar event:", error);
+      
+      // More specific error handling
+      let errorMessage = "Unable to create calendar event. Please try again.";
+      
+      if (error instanceof Error) {
+        if (error.message?.includes("permission")) {
+          errorMessage = "Calendar permission was revoked. Please check your settings.";
+        } else if (error.message?.includes("calendar")) {
+          errorMessage = "The selected calendar is not available. Please try a different calendar.";
+        }
+      }
+      
+      Alert.alert("Calendar Error", errorMessage, [
+        { text: "Try Again", onPress: () => {
+            setIsAddingToCalendar(false);
+            setTimeout(() => handleAddToCalendar({ stopPropagation: () => {} }), 100);
+          }
+        },
+        { text: "Cancel", style: "cancel" }
+      ]);
+    } finally {
+      setIsAddingToCalendar(false);
+    }
   };
   const handleReview = (e: any) => {
     e.stopPropagation();
@@ -259,237 +577,261 @@ export function BookingCard({
   };
 
   return (
-    <Pressable
-      onPress={handlePress}
-      className={cn(
-        "bg-card rounded-xl overflow-hidden mb-4 border border-border shadow-sm",
-        className,
-      )}
-    >
-      {/* Restaurant Header */}
-      <View className="flex-row p-4">
-        <Image
-          source={{ uri: booking.restaurant.main_image_url }}
-          className="w-20 h-20 rounded-lg"
-          contentFit="cover"
-        />
-        <View className="flex-1 ml-4">
-          <Pressable
-            onPress={handleRestaurantPress}
-            className="flex-row items-start justify-between"
-          >
-            <View className="flex-1">
-              <H3 className="mb-1 text-lg">{booking.restaurant.name}</H3>
-              <Text className="text-muted-foreground text-sm">
-                {booking.restaurant.cuisine_type}
-              </Text>
-            </View>
-            <ChevronRight size={20} color="#666" />
-          </Pressable>
-
-          {/* Status Badge */}
-          <View className="flex-row items-center gap-2 mt-2">
-            <StatusIcon size={16} color={statusConfig.color} />
-            <Text
-              className="text-sm font-medium"
-              style={{ color: statusConfig.color }}
+    <>
+      <Pressable
+        onPress={handlePress}
+        className={cn(
+          "bg-card rounded-xl overflow-hidden mb-4 border border-border shadow-sm",
+          className,
+        )}
+      >
+        {/* Restaurant Header */}
+        <View className="flex-row p-4">
+          <Image
+            source={{ uri: booking.restaurant.main_image_url }}
+            className="w-20 h-20 rounded-lg"
+            contentFit="cover"
+          />
+          <View className="flex-1 ml-4">
+            <Pressable
+              onPress={handleRestaurantPress}
+              className="flex-row items-start justify-between"
             >
-              {statusConfig.label}
-            </Text>
-            {isPending && timeSinceRequest && (
-              <Text className="text-xs text-muted-foreground">
-                • {timeSinceRequest}
-              </Text>
-            )}
-          </View>
-        </View>
-      </View>
-
-      {/* Booking Details */}
-      <View className="px-4 pb-4">
-        {/* --- Contextual Messages for Pending/Declined --- */}
-        {isPending && (
-          <View className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 mb-3 border border-orange-200">
-            <Text className="text-sm text-center text-orange-800 dark:text-orange-200">
-              The restaurant will confirm your request shortly. We'll notify you
-              as soon as they respond.
-            </Text>
-          </View>
-        )}
-        {isDeclined && (
-          <View className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 mb-3 border border-red-200">
-            <Text className="text-sm text-center text-red-800 dark:text-red-200">
-              Unfortunately, the restaurant couldn't accommodate this request.
-              Please try another time.
-            </Text>
-          </View>
-        )}
-
-        {/* --- Core Details Section --- */}
-        <View className="bg-muted/50 rounded-lg p-3 mb-3">
-          <View className="flex-row justify-between items-center mb-2">
-            <View className="flex-row items-center gap-2">
-              <CalendarIcon size={16} color="#666" />
-              <Text className="font-medium text-sm">
-                {isToday
-                  ? "Today"
-                  : isTomorrow
-                    ? "Tomorrow"
-                    : bookingDate.toLocaleDateString(undefined, {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-2">
-              <Clock size={16} color="#666" />
-              <Text className="font-medium text-sm">
-                {bookingDate.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </Text>
-            </View>
-          </View>
-          <View className="flex-row justify-between items-center">
-            <View className="flex-row items-center gap-2">
-              <Users size={16} color="#666" />
-              <Text className="text-sm text-muted-foreground">
-                {booking.party_size}{" "}
-                {booking.party_size === 1 ? "Guest" : "Guests"}
-              </Text>
-            </View>
-            {booking.confirmation_code && !isPending && (
-              <Pressable
-                onPress={handleCopyConfirmation}
-                className="flex-row items-center gap-2 bg-background px-2 py-1 rounded border border-border"
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Copy size={14} color="#666" />
-                <Text className="text-sm font-mono font-medium">
-                  {booking.confirmation_code}
+              <View className="flex-1">
+                <H3 className="mb-1 text-lg">{booking.restaurant.name}</H3>
+                <Text className="text-muted-foreground text-sm">
+                  {booking.restaurant.cuisine_type}
                 </Text>
-              </Pressable>
-            )}
+              </View>
+              <ChevronRight size={20} color="#666" />
+            </Pressable>
+
+            {/* Status Badge */}
+            <View className="flex-row items-center gap-2 mt-2">
+              <StatusIcon size={16} color={statusConfig.color} />
+              <Text
+                className="text-sm font-medium"
+                style={{ color: statusConfig.color }}
+              >
+                {statusConfig.label}
+              </Text>
+              {isPending && timeSinceRequest && (
+                <Text className="text-xs text-muted-foreground">
+                  • {timeSinceRequest}
+                </Text>
+              )}
+            </View>
           </View>
         </View>
 
-        {/* Special Requests / Notes Preview */}
-        {(booking.special_requests || booking.occasion) && (
-          <View className="bg-muted/30 rounded-lg p-3 mb-3">
-            {/* ... original implementation ... */}
+        {/* Booking Details */}
+        <View className="px-4 pb-4">
+          {/* --- Contextual Messages for Pending/Declined --- */}
+          {isPending && (
+            <View className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 mb-3 border border-orange-200">
+              <Text className="text-sm text-center text-orange-800 dark:text-orange-200">
+                The restaurant will confirm your request shortly. We'll notify you
+                as soon as they respond.
+              </Text>
+            </View>
+          )}
+          {isDeclined && (
+            <View className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 mb-3 border border-red-200">
+              <Text className="text-sm text-center text-red-800 dark:text-red-200">
+                Unfortunately, the restaurant couldn't accommodate this request.
+                Please try another time.
+              </Text>
+            </View>
+          )}
+
+          {/* --- Core Details Section --- */}
+          <View className="bg-muted/50 rounded-lg p-3 mb-3">
+            <View className="flex-row justify-between items-center mb-2">
+              <View className="flex-row items-center gap-2">
+                <CalendarIcon size={16} color="#666" />
+                <Text className="font-medium text-sm">
+                  {isToday
+                    ? "Today"
+                    : isTomorrow
+                      ? "Tomorrow"
+                      : bookingDate.toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                </Text>
+              </View>
+              <View className="flex-row items-center gap-2">
+                <Clock size={16} color="#666" />
+                <Text className="font-medium text-sm">
+                  {bookingDate.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </Text>
+              </View>
+            </View>
+            <View className="flex-row justify-between items-center">
+              <View className="flex-row items-center gap-2">
+                <Users size={16} color="#666" />
+                <Text className="text-sm text-muted-foreground">
+                  {booking.party_size}{" "}
+                  {booking.party_size === 1 ? "Guest" : "Guests"}
+                </Text>
+              </View>
+              {booking.confirmation_code && !isPending && (
+                <Pressable
+                  onPress={handleCopyConfirmation}
+                  className="flex-row items-center gap-2 bg-background px-2 py-1 rounded border border-border"
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Copy size={14} color="#666" />
+                  <Text className="text-sm font-mono font-medium">
+                    {booking.confirmation_code}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
           </View>
-        )}
 
-        {/* --- Quick Action Buttons (with updated logic) --- */}
-        {showQuickActions && (
-          <View className="flex-row gap-2 flex-wrap">
-            {/* Add to Calendar: Show for confirmed or pending */}
-            {!isPast && (isConfirmed || isPending) && (
-              <Button
-                size="sm"
-                variant="outline"
-                onPress={handleAddToCalendar}
-                className="flex-1 min-w-[100px]"
-              >
-                <View className="flex-row items-center gap-1">
-                  <CalendarPlus size={14} color="#3b82f6" />
-                  <Text className="text-xs">Add to Calendar</Text>
-                </View>
-              </Button>
-            )}
+          {/* Special Requests / Notes Preview */}
+          {(booking.special_requests || booking.occasion) && (
+            <View className="bg-muted/30 rounded-lg p-3 mb-3">
+              {/* ... original implementation ... */}
+            </View>
+          )}
 
-            {/* Directions & Call: Show only for confirmed */}
-            {!isPast && isConfirmed && (
-              <>
-                <View className="flex-1 min-w-[100px]">
-                  <DirectionsButton
-                    restaurant={booking.restaurant}
-                    variant="button"
-                    size="sm"
-                    className="w-full h-8 justify-center"
-                    backgroundColor="bg-background"
-                    borderColor="border-border"
-                    iconColor="#3b82f6"
-                    textColor="text-primary"
-                  />
-                </View>
-                {booking.restaurant.phone_number && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onPress={handleQuickCall}
-                    className="flex-1 min-w-[100px]"
-                  >
+          {/* --- Quick Action Buttons (with updated logic) --- */}
+          {showQuickActions && (
+            <View className="flex-row gap-2 flex-wrap">
+              {/* Add to Calendar: Show for confirmed or pending */}
+              {!isPast && (isConfirmed || isPending) && (
+                <Button
+                  size="sm"
+                  variant={addedToCalendar ? "secondary" : "outline"}
+                  onPress={handleAddToCalendar}
+                  disabled={isAddingToCalendar}
+                  className="flex-1 min-w-[100px]"
+                >
+                  {isAddingToCalendar ? (
                     <View className="flex-row items-center gap-1">
-                      <Phone size={14} color="#10b981" />
-                      <Text className="text-xs">Call</Text>
+                      <ActivityIndicator size="small" color="#3b82f6" />
+                      <Text className="text-xs">Adding...</Text>
                     </View>
-                  </Button>
-                )}
-              </>
-            )}
+                  ) : addedToCalendar ? (
+                    <View className="flex-row items-center gap-1">
+                      <CheckCircle size={14} color="#10b981" />
+                      <Text className="text-xs">Added ✓</Text>
+                    </View>
+                  ) : (
+                    <View className="flex-row items-center gap-1">
+                      <CalendarPlus size={14} color="#3b82f6" />
+                      <Text className="text-xs">Add to Calendar</Text>
+                    </View>
+                  )}
+                </Button>
+              )}
 
-            {/* Cancel: Show for pending or confirmed */}
-            {!isPast && (isConfirmed || isPending) && (
-              <Button
-                size="sm"
-                variant="destructive"
-                onPress={handleCancelBooking}
-                disabled={isProcessing}
-                className="flex-1 min-w-[100px]"
-              >
-                {isProcessing ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <View className="flex-row items-center gap-1">
-                    <XCircle size={14} color="#fff" />
-                    <Text className="text-xs text-white">
-                      {isPending ? "Cancel Request" : "Cancel Booking"}
-                    </Text>
+              {/* Directions & Call: Show only for confirmed */}
+              {!isPast && isConfirmed && (
+                <>
+                  <View className="flex-1 min-w-[100px]">
+                    <DirectionsButton
+                      restaurant={booking.restaurant}
+                      variant="button"
+                      size="sm"
+                      className="w-full h-8 justify-center"
+                      backgroundColor="bg-background"
+                      borderColor="border-border"
+                      iconColor="#3b82f6"
+                      textColor="text-primary"
+                    />
                   </View>
-                )}
-              </Button>
-            )}
+                  {booking.restaurant.phone_number && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onPress={handleQuickCall}
+                      className="flex-1 min-w-[100px]"
+                    >
+                      <View className="flex-row items-center gap-1">
+                        <Phone size={14} color="#10b981" />
+                        <Text className="text-xs">Call</Text>
+                      </View>
+                    </Button>
+                  )}
+                </>
+              )}
 
-            {/* Actions for Past / Declined Bookings */}
-            {isPast && isCompleted && !hasReview && onReview && (
-              <Button
-                size="sm"
-                variant="default"
-                onPress={handleReview}
-                className="flex-1"
-              >
-                <View className="flex-row items-center gap-1">
-                  <Star size={14} color="#fff" />
-                  <Text className="text-xs text-white">Rate Experience</Text>
-                </View>
-              </Button>
-            )}
-            {(isPast || isDeclined) && onRebook && (
-              <Button
-                size="sm"
-                variant="secondary"
-                onPress={handleRebook}
-                className="flex-1"
-              >
-                <View className="flex-row items-center gap-1">
-                  <RotateCcw size={14} color="#000" />
-                  <Text className="text-xs">Book Again</Text>
-                </View>
-              </Button>
-            )}
+              {/* Cancel: Show for pending or confirmed */}
+              {!isPast && (isConfirmed || isPending) && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onPress={handleCancelBooking}
+                  disabled={isProcessing}
+                  className="flex-1 min-w-[100px]"
+                >
+                  {isProcessing ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <View className="flex-row items-center gap-1">
+                      <XCircle size={14} color="#fff" />
+                      <Text className="text-xs text-white">
+                        {isPending ? "Cancel Request" : "Cancel Booking"}
+                      </Text>
+                    </View>
+                  )}
+                </Button>
+              )}
+
+              {/* Actions for Past / Declined Bookings */}
+              {isPast && isCompleted && !hasReview && onReview && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  onPress={handleReview}
+                  className="flex-1"
+                >
+                  <View className="flex-row items-center gap-1">
+                    <Star size={14} color="#fff" />
+                    <Text className="text-xs text-white">Rate Experience</Text>
+                  </View>
+                </Button>
+              )}
+              {(isPast || isDeclined) && onRebook && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onPress={handleRebook}
+                  className="flex-1"
+                >
+                  <View className="flex-row items-center gap-1">
+                    <RotateCcw size={14} color="#000" />
+                    <Text className="text-xs">Book Again</Text>
+                  </View>
+                </Button>
+              )}
+            </View>
+          )}
+
+          {/* Tap for Details Hint */}
+          <View className="mt-3 pt-3 border-t border-border">
+            <Text className="text-xs text-center text-muted-foreground">
+              Tap for full booking details
+            </Text>
           </View>
-        )}
-
-        {/* Tap for Details Hint */}
-        <View className="mt-3 pt-3 border-t border-border">
-          <Text className="text-xs text-center text-muted-foreground">
-            Tap for full booking details
-          </Text>
         </View>
-      </View>
-    </Pressable>
+      </Pressable>
+
+      {/* Calendar Selection Modal */}
+      <CalendarSelectionModal
+        visible={showCalendarModal}
+        onClose={() => setShowCalendarModal(false)}
+        onSelectCalendar={handleCalendarSelection}
+        calendars={availableCalendars}
+        isLoading={isLoadingCalendars}
+      />
+    </>
   );
 }
