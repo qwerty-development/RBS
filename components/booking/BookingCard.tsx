@@ -7,8 +7,6 @@ import {
   Alert,
   Linking,
   Platform,
-  Modal,
-  ScrollView,
 } from "react-native";
 import {
   Calendar as CalendarIcon,
@@ -150,107 +148,6 @@ const getDefaultCalendar = async () => {
   );
 };
 
-// --- Calendar Selection Modal Component ---
-interface CalendarSelectionModalProps {
-  visible: boolean;
-  onClose: () => void;
-  onSelectCalendar: (calendar: Calendar.Calendar) => void;
-  calendars: Calendar.Calendar[];
-  isLoading: boolean;
-}
-
-function CalendarSelectionModal({
-  visible,
-  onClose,
-  onSelectCalendar,
-  calendars,
-  isLoading,
-}: CalendarSelectionModalProps) {
-  return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="pageSheet"
-      onRequestClose={onClose}
-    >
-      <View className="flex-1 bg-background">
-        {/* Header */}
-        <View className="flex-row items-center justify-between p-4 border-b border-border">
-          <View className="flex-row items-center gap-3">
-            <CalendarPlus size={24} color="#3b82f6" />
-            <View>
-              <Text className="text-lg font-semibold">Add to Calendar</Text>
-              <Text className="text-sm text-muted-foreground">
-                Choose your calendar
-              </Text>
-            </View>
-          </View>
-          <Pressable
-            onPress={onClose}
-            className="p-2 rounded-full bg-muted"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <X size={20} color="#666" />
-          </Pressable>
-        </View>
-
-        {/* Content */}
-        <ScrollView className="flex-1 p-4">
-          {isLoading ? (
-            <View className="flex-1 justify-center items-center py-20">
-              <ActivityIndicator size="large" color="#3b82f6" />
-              <Text className="text-muted-foreground mt-4">
-                Loading calendars...
-              </Text>
-            </View>
-          ) : (
-            <View className="space-y-3">
-              {calendars.map((calendar) => (
-                <Pressable
-                  key={calendar.id}
-                  onPress={() => onSelectCalendar(calendar)}
-                  className="bg-card rounded-xl p-4 border border-border active:bg-muted/50"
-                >
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-1">
-                      <View className="flex-row items-center gap-3 mb-2">
-                        <View
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: calendar.color || "#3b82f6" }}
-                        />
-                        <Text className="font-semibold text-base">
-                          {calendar.title}
-                        </Text>
-                      </View>
-                      {calendar.source?.name && (
-                        <Text className="text-sm text-muted-foreground ml-7">
-                          {calendar.source.name}
-                        </Text>
-                      )}
-                    </View>
-                    <ChevronRight size={20} color="#666" />
-                  </View>
-                </Pressable>
-              ))}
-            </View>
-          )}
-        </ScrollView>
-
-        {/* Footer */}
-        <View className="p-4 border-t border-border">
-          <Button
-            variant="outline"
-            onPress={onClose}
-            className="w-full"
-          >
-            <Text>Cancel</Text>
-          </Button>
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
 // --- Main Component ---
 export function BookingCard({
   booking,
@@ -288,11 +185,6 @@ export function BookingCard({
   const [hasReview, setHasReview] = useState(false);
   const [isAddingToCalendar, setIsAddingToCalendar] = useState(false);
   const [addedToCalendar, setAddedToCalendar] = useState(false);
-  
-  // Calendar selection modal state
-  const [showCalendarModal, setShowCalendarModal] = useState(false);
-  const [availableCalendars, setAvailableCalendars] = useState<Calendar.Calendar[]>([]);
-  const [isLoadingCalendars, setIsLoadingCalendars] = useState(false);
 
   useEffect(() => {
     const checkReview = async () => {
@@ -410,48 +302,25 @@ export function BookingCard({
         return;
       }
 
-      // Load available calendars
-      setIsLoadingCalendars(true);
-      const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
-      
-      // Filter to only writable calendars
-      const writableCalendars = calendars.filter(cal => cal.allowsModifications);
-      
-      if (writableCalendars.length === 0) {
-        Alert.alert(
-          "No Available Calendars", 
-          "No writable calendars found on your device. Please check your calendar settings."
-        );
-        return;
-      }
-
-      // If only one writable calendar, use it directly
-      if (writableCalendars.length === 1) {
-        await createCalendarEvent(writableCalendars[0]);
-        return;
-      }
-
-      // Show modern calendar selection modal
-      setAvailableCalendars(writableCalendars);
-      setShowCalendarModal(true);
+      // Directly open the system calendar UI with pre-filled event data
+      await openCalendarUIWithEvent();
 
     } catch (error) {
-      console.error("Error loading calendars:", error);
+      console.error("Error opening calendar:", error);
       Alert.alert(
         "Calendar Error", 
-        "Unable to access your calendar. Please try again or add the event manually."
+        "Unable to open your calendar. Please try again or add the event manually."
       );
-    } finally {
-      setIsLoadingCalendars(false);
     }
   };
 
-  const handleCalendarSelection = async (calendar: Calendar.Calendar) => {
-    setShowCalendarModal(false);
-    await createCalendarEvent(calendar);
-  };
-
-  const createCalendarEvent = async (calendar: Calendar.Calendar) => {
+  /**
+   * Opens the system calendar UI with pre-filled event data.
+   * This provides a user-friendly experience where they can review and edit
+   * the event details before saving to their preferred calendar.
+   * Uses Calendar.createEventInCalendarAsync() for iOS/Android system UI.
+   */
+  const openCalendarUIWithEvent = async () => {
     setIsAddingToCalendar(true);
     
     try {
@@ -483,7 +352,7 @@ export function BookingCard({
       
       const mealType = getMealType(hour);
       
-      // Create comprehensive event details
+      // Create comprehensive event details for the calendar UI
       const eventDetails = {
         title: `${mealType} at ${booking.restaurant.name}`,
         startDate: bookingDate,
@@ -508,50 +377,56 @@ export function BookingCard({
         ]
       };
 
-      // Create the event
-      const eventId = await Calendar.createEventAsync(calendar.id, eventDetails);
+      // Open the system calendar UI with pre-filled event data
+      const result = await Calendar.createEventInCalendarAsync(eventDetails);
       
-      // Mark as added to calendar
-      setAddedToCalendar(true);
-      
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-      
-      Alert.alert(
-        "📅 Added to Calendar!", 
-        `Your reservation at ${booking.restaurant.name} has been added to ${calendar.title}.\n\nReminders set for:\n• 2 hours before\n• 1 hour before\n• 15 minutes before`,
-        [
-          { 
-            text: "View in Calendar", 
-            onPress: () => {
-              // Try to open the calendar app
-              const calendarUrl = Platform.select({
-                ios: "calshow:",
-                android: "content://com.android.calendar/time",
-              });
-              if (calendarUrl) {
-                Linking.canOpenURL(calendarUrl).then(supported => {
-                  if (supported) {
-                    Linking.openURL(calendarUrl);
-                  }
+      // Handle the result based on user action
+      if (result.action === 'saved') {
+        // User saved the event
+        setAddedToCalendar(true);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+        
+        Alert.alert(
+          "📅 Added to Calendar!", 
+          `Your reservation at ${booking.restaurant.name} has been successfully added to your calendar!\n\nReminders have been set for:\n• 2 hours before\n• 1 hour before\n• 15 minutes before`,
+          [
+            { 
+              text: "View in Calendar", 
+              onPress: () => {
+                // Try to open the calendar app
+                const calendarUrl = Platform.select({
+                  ios: "calshow:",
+                  android: "content://com.android.calendar/time",
                 });
+                if (calendarUrl) {
+                  Linking.canOpenURL(calendarUrl).then(supported => {
+                    if (supported) {
+                      Linking.openURL(calendarUrl);
+                    }
+                  });
+                }
               }
-            }
-          },
-          { text: "Done", style: "default" }
-        ]
-      );
+            },
+            { text: "Done", style: "default" }
+          ]
+        );
+      } else if (result.action === 'canceled') {
+        // User canceled without saving
+        // No need to show an alert, just give subtle feedback
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
       
     } catch (error) {
-      console.error("Error creating calendar event:", error);
+      console.error("Error opening calendar UI:", error);
       
       // More specific error handling
-      let errorMessage = "Unable to create calendar event. Please try again.";
+      let errorMessage = "Unable to open calendar. Please try again.";
       
       if (error instanceof Error) {
         if (error.message?.includes("permission")) {
           errorMessage = "Calendar permission was revoked. Please check your settings.";
         } else if (error.message?.includes("calendar")) {
-          errorMessage = "The selected calendar is not available. Please try a different calendar.";
+          errorMessage = "Calendar is not available. Please try again later.";
         }
       }
       
@@ -566,6 +441,12 @@ export function BookingCard({
     } finally {
       setIsAddingToCalendar(false);
     }
+  };
+
+  const handleCalendarSelection = async () => {
+    // This function is no longer needed since we're using the system UI
+    // But keeping it for backward compatibility
+    await openCalendarUIWithEvent();
   };
   const handleReview = (e: any) => {
     e.stopPropagation();
@@ -716,7 +597,7 @@ export function BookingCard({
                   {isAddingToCalendar ? (
                     <View className="flex-row items-center gap-1">
                       <ActivityIndicator size="small" color="#3b82f6" />
-                      <Text className="text-xs">Adding...</Text>
+                      <Text className="text-xs">Opening...</Text>
                     </View>
                   ) : addedToCalendar ? (
                     <View className="flex-row items-center gap-1">
@@ -824,14 +705,6 @@ export function BookingCard({
         </View>
       </Pressable>
 
-      {/* Calendar Selection Modal */}
-      <CalendarSelectionModal
-        visible={showCalendarModal}
-        onClose={() => setShowCalendarModal(false)}
-        onSelectCalendar={handleCalendarSelection}
-        calendars={availableCalendars}
-        isLoading={isLoadingCalendars}
-      />
     </>
   );
 }
