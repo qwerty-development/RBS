@@ -51,7 +51,10 @@ npm run android        # Run on Android
 npm run ios           # Run on iOS  
 npm run lint          # ESLint with auto-fix
 npm run test          # Jest tests
+npm run test:watch     # Jest in watch mode
+npm run test:coverage  # Jest with coverage reports
 npm run type-check    # TypeScript checking
+npm run generate-colors # Generate color constants from Tailwind
 ```
 
 ### Testing Strategy
@@ -97,6 +100,67 @@ export const useAuthStore = create<AuthState>()(
 );
 ```
 
+## �️ Database Schema & Patterns
+
+### Core Entity Relationships
+```
+profiles (auth.users) ← bookings → restaurants
+                    ↓
+                 reviews, favorites, loyalty_activities
+                    ↓
+            restaurant_playlists → playlist_items
+                    ↓
+              friends, friend_requests
+```
+
+### Key Tables & Business Logic
+
+**Bookings Flow:**
+- `bookings` - Core reservation data with status tracking
+- `booking_attendees` - Group booking participants  
+- `booking_invites` - Social sharing invitations
+- `booking_status_history` - Audit trail for status changes
+- `booking_archive` - Completed/cancelled booking history
+
+**Restaurant Management:**
+- `restaurants` - Core restaurant data with PostGIS location
+- `restaurant_tables` - Table layout with x/y positioning
+- `table_availability` - Real-time availability tracking
+- `restaurant_availability` - Capacity management by time slot
+- `menu_categories` + `menu_items` - Full menu system
+
+**Loyalty & Rewards:**
+- `loyalty_activities` - Point earning events
+- `restaurant_loyalty_rules` - Configurable point rules per restaurant
+- `loyalty_rewards` - Redeemable rewards catalog
+- `loyalty_redemptions` - Redemption tracking with codes
+
+**Social Features:**
+- `restaurant_playlists` - User-created restaurant lists
+- `playlist_collaborators` - Shared playlist permissions
+- `posts` - Social sharing of dining experiences
+- `friends` + `friend_requests` - Social connections
+
+### Database Access Patterns
+```tsx
+// Always use typed queries with joins
+const { data, error } = await supabase
+  .from('bookings')
+  .select(`
+    *,
+    restaurant:restaurants(*),
+    user:profiles(*),
+    booking_attendees(*, user:profiles(*))
+  `)
+  .eq('user_id', userId);
+
+// Use RLS-aware queries 
+const { data } = await supabase
+  .from('favorites')
+  .select('*, restaurant:restaurants(*)')
+  .eq('user_id', userId); // RLS auto-enforces this
+```
+
 ## 🔐 Authentication & Data Patterns
 
 ### Supabase Integration
@@ -104,18 +168,6 @@ export const useAuthStore = create<AuthState>()(
 - **Row Level Security** enforced on all tables
 - **Guest mode support** (useGuestGuard hook)
 - **Auto-refresh tokens** with PKCE flow
-
-### Database Access Pattern
-```tsx
-// Always use typed queries
-const { data, error } = await supabase
-  .from('bookings')
-  .select(`
-    *,
-    restaurant:restaurants(*)
-  `)
-  .eq('user_id', userId);
-```
 
 ### Error Handling
 - **Network-aware requests** (useNetworkAwareRequest)
@@ -129,23 +181,27 @@ const { data, error } = await supabase
 - `expo-calendar` for calendar integration
 - `expo-location` for restaurant directions  
 - `expo-haptics` for feedback
-- `expo-secure-store` for auth tokens
+- `expo-secure-store` for auth tokens with memory fallback
 - `expo-notifications` for booking updates
+- `@react-native-community/netinfo` for network monitoring
+- `@sentry/react-native` for error tracking
 
 ### Navigation Pattern
 ```tsx
 // File-based routing with protection
-app/(protected)/bookings.tsx  // Requires auth
-app/sign-in.tsx              // Public route
+app/(protected)/bookings.tsx  # Requires auth
+app/sign-in.tsx              # Public route
+app/(protected)/(tabs)/      # Tab-based protected routes
 ```
 
 ## 🤖 AI Integration
 
 **Restaurant assistant** at `/ai/AI_Agent.py`:
-- LangChain + Google Generative AI
-- Specialized for restaurant recommendations
+- LangChain + Google Generative AI with LangGraph state management
+- Specialized for restaurant recommendations with Supabase integration
 - Custom response format: `RESTAURANTS_TO_SHOW: id1,id2,id3`
-- Direct Supabase integration for restaurant data
+- Direct Supabase integration for real-time restaurant data
+- TypeScript interface available at `/ai/AI_Agent.ts` for frontend integration
 
 ## ⚠️ Common Patterns & Gotchas
 
@@ -153,12 +209,14 @@ app/sign-in.tsx              // Public route
 - **Generate types** from Supabase schema regularly
 - **Database type**: Use `Database["public"]["Tables"]["table_name"]["Row"]`
 - **Compound types**: Restaurant + booking joins are common
+- **Key relationships**: `bookings` → `restaurants` + `profiles`, `reviews` → `bookings`
 
 ### Performance
-- **Optimized lists** with `useOptimizedList` hook
+- **Network-aware requests** with `useNetworkAwareRequest` hook for offline handling
 - **Image optimization** with expo-image's `contentFit`
 - **Debounced search** for restaurant filtering
-- **Background network monitoring** with state persistence
+- **Background network monitoring** with state persistence and quality detection
+- **PostGIS location queries** for restaurant proximity searches
 
 ### Calendar Integration
 - **Always check permissions first** (Calendar.requestCalendarPermissionsAsync)
