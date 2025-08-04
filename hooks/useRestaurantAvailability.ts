@@ -1,5 +1,5 @@
 // hooks/useRestaurantAvailability.ts
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/config/supabase'
 import { format, addDays, startOfDay } from 'date-fns'
 
@@ -82,50 +82,7 @@ export function useRestaurantAvailability(restaurantId: string) {
     }
   }
 
-  const findNextOpenTime = useCallback((fromDate: Date): { date: Date; time: string } | undefined => {
-    // Look up to 7 days ahead
-    for (let i = 1; i <= 7; i++) {
-      const checkDate = addDays(fromDate, i)
-      const dateStr = format(checkDate, 'yyyy-MM-dd')
-      const dayOfWeek = format(checkDate, 'EEEE').toLowerCase()
-
-      // Check closures first (without calling checkAvailability to avoid recursion)
-      const closure = closures.find(c => 
-        dateStr >= c.start_date && dateStr <= c.end_date
-      )
-      if (closure) {
-        continue // Skip this day
-      }
-
-      // Check special hours
-      const special = specialHours.find(s => s.date === dateStr)
-      if (special) {
-        if (special.is_closed) {
-          continue // Skip this day
-        }
-        
-        if (special.open_time && special.close_time) {
-          return {
-            date: checkDate,
-            time: special.open_time
-          }
-        }
-      }
-
-      // Check regular hours
-      const regular = regularHours.find(h => h.day_of_week === dayOfWeek)
-      if (regular && regular.is_open && regular.open_time) {
-        return {
-          date: checkDate,
-          time: regular.open_time
-        }
-      }
-    }
-    
-    return undefined
-  }, [regularHours, specialHours, closures])
-
-  const checkAvailability = useCallback((date: Date, time?: string): AvailabilityStatus => {
+  const checkAvailability = (date: Date, time?: string): AvailabilityStatus => {
     const dateStr = format(date, 'yyyy-MM-dd')
     const dayOfWeek = format(date, 'EEEE').toLowerCase()
 
@@ -188,7 +145,24 @@ export function useRestaurantAvailability(restaurantId: string) {
     }
 
     return { isOpen: true }
-  }, [regularHours, specialHours, closures])
+  }
+
+  const findNextOpenTime = (fromDate: Date): { date: Date; time: string } | undefined => {
+    // Look up to 7 days ahead
+    for (let i = 1; i <= 7; i++) {
+      const checkDate = addDays(fromDate, i)
+      const status = checkAvailability(checkDate)
+      
+      if (status.isOpen && status.hours) {
+        return {
+          date: checkDate,
+          time: status.hours.open
+        }
+      }
+    }
+    
+    return undefined
+  }
 
   const getAvailableTimeSlots = (
     date: Date,

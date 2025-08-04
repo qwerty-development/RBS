@@ -72,7 +72,6 @@ export function useBookingCreate() {
   );
 
   // --- Loyalty System State ---
-  // Note: Loyalty system is in development, placeholder for future implementation
   const [expectedLoyaltyPoints, setExpectedLoyaltyPoints] = useState<number>(0);
   const [loyaltyRuleId, setLoyaltyRuleId] = useState<string | null>(null);
 
@@ -147,15 +146,28 @@ export function useBookingCreate() {
 
   /**
    * Fetches the applicable loyalty rule and expected points for the current booking details.
-   * This is a placeholder for future loyalty system implementation.
+   * This is a separate callback as it needs to be re-run when party size changes.
    */
   const fetchLoyaltyRule = useCallback(async () => {
     if (!restaurantId || !bookingDate || !bookingTime) return;
     try {
-      // TODO: Implement loyalty system RPC function when available
-      // For now, set default values
-      setExpectedLoyaltyPoints(0);
-      setLoyaltyRuleId(null);
+      // This is a hypothetical RPC function to calculate points based on various rules.
+      // It encapsulates the business logic on the server.
+      const { data, error } = await supabase.rpc('get_applicable_loyalty_rule', {
+        p_restaurant_id: restaurantId,
+        p_booking_time: `${bookingDate.toISOString().split('T')[0]}T${bookingTime}:00`,
+        p_party_size: totalPartySize,
+        p_user_tier: userTier
+      });
+
+      if (error) {
+        console.warn("Could not fetch or apply loyalty rule:", error.message);
+        setExpectedLoyaltyPoints(0);
+        setLoyaltyRuleId(null);
+      } else if (data) {
+        setExpectedLoyaltyPoints(data.points || 0);
+        setLoyaltyRuleId(data.rule_id || null);
+      }
     } catch (err) {
       console.error("Error fetching loyalty rule:", err);
       setExpectedLoyaltyPoints(0);
@@ -343,6 +355,9 @@ export function useBookingCreate() {
                   : null,
               p_is_group_booking: invitedFriends.length > 0,
               p_applied_offer_id: selectedOffer?.special_offer.id || null,
+              // New Loyalty System Parameters
+              p_applied_loyalty_rule_id: loyaltyRuleId,
+              p_expected_loyalty_points: expectedLoyaltyPoints,
             }
           );
           if (bookingError) throw bookingError;
@@ -393,7 +408,7 @@ export function useBookingCreate() {
               bookingId: booking.id,
               confirmationCode: booking.confirmation_code,
               restaurantName: restaurant.name,
-              earnedPoints: "0", // Placeholder until loyalty system is implemented
+              earnedPoints: expectedLoyaltyPoints.toString(), // Use new loyalty points state
               appliedOffer: selectedOffer ? "true" : "false",
               offerTitle: selectedOffer?.special_offer.title,
               invitedFriends: invitedFriends.length.toString(),
@@ -416,7 +431,9 @@ export function useBookingCreate() {
               applied_offer_id: selectedOffer?.special_offer.id || null,
               is_group_booking: invitedFriends.length > 0,
               turn_time_minutes: turnTime,
-              // Note: Loyalty system fields removed until database function supports them
+              // New Loyalty System Fields: Stored for later processing upon confirmation
+              applied_loyalty_rule_id: loyaltyRuleId,
+              expected_loyalty_points: expectedLoyaltyPoints,
             })
             .select("id, confirmation_code")
             .single();
@@ -447,7 +464,7 @@ export function useBookingCreate() {
     [
       profile, restaurant, bookingDate, bookingTime, totalPartySize,
       isRequestBooking, selectedTableIds, turnTime, invitedFriends,
-      selectedOffer, // Removed loyalty parameters until implemented
+      selectedOffer, expectedLoyaltyPoints, loyaltyRuleId, // Added new loyalty state
       handleBookingError, router
     ]
   );

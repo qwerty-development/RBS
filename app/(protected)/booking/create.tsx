@@ -62,7 +62,7 @@ export default function BookingCreateScreen() {
     bookingTime,
     partySize,
     totalPartySize,
-    expectedLoyaltyPoints, // Updated from earnablePoints
+    earnablePoints,
     submitBooking,
     setSelectedOfferUserId,
     handleInvitesSent,
@@ -140,7 +140,7 @@ export default function BookingCreateScreen() {
           <LoyaltyTierDisplay
             userTier={userTier}
             userPoints={userPoints}
-            earnablePoints={expectedLoyaltyPoints}
+            earnablePoints={earnablePoints}
           />
 
           {/* Offers Selection */}
@@ -195,7 +195,7 @@ export default function BookingCreateScreen() {
           selectedOfferDiscount={
             selectedOffer?.special_offer.discount_percentage
           }
-          earnablePoints={expectedLoyaltyPoints}
+          earnablePoints={earnablePoints}
           userTier={TIER_CONFIG[userTier].name}
         />
       </KeyboardAvoidingView>
