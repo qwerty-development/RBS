@@ -16,7 +16,7 @@ type TabType = "upcoming" | "past";
 
 export function useBookings() {
   const router = useRouter();
-  const { profile } = useAuth();
+  const { profile, user, isGuest } = useAuth();
 
   // Use store instead of local state
   const {
@@ -34,20 +34,103 @@ export function useBookings() {
   const [processingBookingId, setProcessingBookingId] = useState<string | null>(
     null,
   );
+  const [error, setError] = useState<Error | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const hasInitialLoad = useRef(false);
+  const profileCheckAttempts = useRef(0);
+  const MAX_PROFILE_CHECK_ATTEMPTS = 5;
 
   // Use store data for bookings
   const bookings = {
-    upcoming: upcomingBookings,
-    past: pastBookings,
+    upcoming: upcomingBookings || [],
+    past: pastBookings || [],
   };
+
+  // Check and create profile if needed for new users
+  const ensureProfileExists = useCallback(async () => {
+    if (!user?.id || isGuest) {
+      console.log("No user or guest user, skipping profile check");
+      return false;
+    }
+
+    try {
+      // Check if profile exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", user.id)
+        .single();
+
+      if (existingProfile) {
+        console.log("Profile exists for user:", user.id);
+        return true;
+      }
+
+      if (checkError && checkError.code === 'PGRST116') {
+        // Profile doesn't exist, create it
+        console.log("Creating profile for new user:", user.id);
+        
+        const { error: createError } = await supabase
+          .from("profiles")
+          .insert({
+            id: user.id,
+            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || "New User",
+            email: user.email,
+            created_at: new Date().toISOString(),
+          });
+
+        if (createError) {
+          console.error("Error creating profile:", createError);
+          throw createError;
+        }
+
+        console.log("Profile created successfully");
+        
+        // Give the database a moment to process
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        return true;
+      }
+
+      throw checkError;
+    } catch (err) {
+      console.error("Error in ensureProfileExists:", err);
+      profileCheckAttempts.current += 1;
+      
+      // Retry if we haven't exceeded max attempts
+      if (profileCheckAttempts.current < MAX_PROFILE_CHECK_ATTEMPTS) {
+        console.log(`Retrying profile check (attempt ${profileCheckAttempts.current})...`);
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        return ensureProfileExists();
+      }
+      
+      return false;
+    }
+  }, [user, isGuest]);
 
   // Data Fetching Functions
   const fetchBookings = useCallback(async () => {
-    if (!profile?.id) return;
+    // Don't fetch if guest or no user
+    if (!user?.id || isGuest) {
+      console.log("Skipping bookings fetch - no user or guest");
+      setBookingsLoading(false);
+      setRefreshing(false);
+      return;
+    }
+
+    // Ensure profile exists before fetching bookings
+    const profileExists = await ensureProfileExists();
+    if (!profileExists) {
+      console.error("Cannot fetch bookings - profile does not exist");
+      setError(new Error("Profile not found. Please try logging in again."));
+      setBookingsLoading(false);
+      setRefreshing(false);
+      return;
+    }
 
     try {
+      setError(null);
       const now = new Date().toISOString();
 
       // Fetch upcoming bookings (pending, confirmed)
@@ -59,12 +142,15 @@ export function useBookings() {
           restaurant:restaurants (*)
         `,
         )
-        .eq("user_id", profile.id)
+        .eq("user_id", user.id)
         .in("status", ["pending", "confirmed"])
         .gte("booking_time", now)
         .order("booking_time", { ascending: true });
 
-      if (upcomingError) throw upcomingError;
+      if (upcomingError) {
+        console.error("Error fetching upcoming bookings:", upcomingError);
+        throw upcomingError;
+      }
 
       // Fetch past bookings (all statuses, past dates or completed/cancelled)
       const { data: pastData, error: pastError } = await supabase
@@ -75,54 +161,82 @@ export function useBookings() {
           restaurant:restaurants (*)
         `,
         )
-        .eq("user_id", profile.id)
+        .eq("user_id", user.id)
         .or(
           `booking_time.lt.${now},status.in.(completed,cancelled_by_user,declined_by_restaurant,no_show)`,
         )
         .order("booking_time", { ascending: false })
         .limit(50);
 
-      if (pastError) throw pastError;
+      if (pastError) {
+        console.error("Error fetching past bookings:", pastError);
+        throw pastError;
+      }
 
-      // Update store instead of local state
+      // Update store with fetched data
       setUpcomingBookings(upcomingData || []);
       setPastBookings(pastData || []);
+      
+      console.log(`Fetched ${upcomingData?.length || 0} upcoming and ${pastData?.length || 0} past bookings`);
     } catch (error) {
       console.error("Error fetching bookings:", error);
-      Alert.alert("Error", "Failed to load bookings");
+      setError(error as Error);
+      
+      // Only show alert if not during initial load
+      if (hasInitialLoad.current) {
+        Alert.alert("Error", "Failed to load bookings. Please try again.");
+      }
     } finally {
       setBookingsLoading(false);
       setRefreshing(false);
+      setIsInitialized(true);
     }
-  }, [profile?.id, setUpcomingBookings, setPastBookings, setBookingsLoading]);
+  }, [user?.id, isGuest, setUpcomingBookings, setPastBookings, setBookingsLoading, ensureProfileExists]);
 
-  // Navigation Functions
+  // Navigation Functions with error handling
   const navigateToBookingDetails = useCallback(
     (bookingId: string) => {
-      router.push({
-        pathname: "/booking/[id]",
-        params: { id: bookingId },
-      });
+      try {
+        router.push({
+          pathname: "/booking/[id]",
+          params: { id: bookingId },
+        });
+      } catch (err) {
+        console.error("Navigation error:", err);
+      }
     },
     [router],
   );
 
   const navigateToRestaurant = useCallback(
     (restaurantId: string) => {
-      router.push({
-        pathname: "/restaurant/[id]",
-        params: { id: restaurantId },
-      });
+      try {
+        router.push({
+          pathname: "/restaurant/[id]",
+          params: { id: restaurantId },
+        });
+      } catch (err) {
+        console.error("Navigation error:", err);
+      }
     },
     [router],
   );
 
   const navigateToSearch = useCallback(() => {
-    router.push("/search");
+    try {
+      router.push("/search");
+    } catch (err) {
+      console.error("Navigation error:", err);
+    }
   }, [router]);
 
   const cancelBooking = useCallback(
     async (bookingId: string) => {
+      if (!user?.id) {
+        Alert.alert("Error", "Please log in to cancel bookings");
+        return;
+      }
+
       Alert.alert(
         "Cancel Booking",
         "Are you sure you want to cancel this booking?",
@@ -141,7 +255,8 @@ export function useBookings() {
                     status: "cancelled_by_user",
                     updated_at: new Date().toISOString(),
                   })
-                  .eq("id", bookingId);
+                  .eq("id", bookingId)
+                  .eq("user_id", user.id); // Extra safety check
 
                 if (error) throw error;
 
@@ -167,34 +282,52 @@ export function useBookings() {
         ],
       );
     },
-    [updateBooking],
+    [updateBooking, user?.id],
   );
 
   const rebookRestaurant = useCallback(
     (booking: Booking) => {
-      router.push({
-        pathname: "/booking/create",
-        params: {
-          restaurantId: booking.restaurant_id,
-          restaurantName: booking.restaurant.name,
-          partySize: booking.party_size.toString(),
-          quickBook: "true",
-        },
-      });
+      if (!booking?.restaurant) {
+        console.error("Invalid booking data for rebooking");
+        return;
+      }
+
+      try {
+        router.push({
+          pathname: "/booking/create",
+          params: {
+            restaurantId: booking.restaurant_id,
+            restaurantName: booking.restaurant.name,
+            partySize: booking.party_size.toString(),
+            quickBook: "true",
+          },
+        });
+      } catch (err) {
+        console.error("Navigation error:", err);
+      }
     },
     [router],
   );
 
   const reviewBooking = useCallback(
     (booking: Booking) => {
-      router.push({
-        pathname: "/review/create",
-        params: {
-          bookingId: booking.id,
-          restaurantId: booking.restaurant_id,
-          restaurantName: booking.restaurant.name,
-        },
-      });
+      if (!booking?.restaurant) {
+        console.error("Invalid booking data for review");
+        return;
+      }
+
+      try {
+        router.push({
+          pathname: "/review/create",
+          params: {
+            bookingId: booking.id,
+            restaurantId: booking.restaurant_id,
+            restaurantName: booking.restaurant.name,
+          },
+        });
+      } catch (err) {
+        console.error("Navigation error:", err);
+      }
     },
     [router],
   );
@@ -202,17 +335,26 @@ export function useBookings() {
   // Refresh Handler
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
+    profileCheckAttempts.current = 0; // Reset attempts on manual refresh
     fetchBookings();
   }, [fetchBookings]);
 
   // Lifecycle Management
   useEffect(() => {
-    if (!hasInitialLoad.current && profile) {
+    if (!hasInitialLoad.current && user && !isGuest) {
+      console.log("Initial load for user:", user.id);
       setBookingsLoading(true);
       fetchBookings();
       hasInitialLoad.current = true;
+    } else if (isGuest || !user) {
+      // Reset state for guest users
+      setUpcomingBookings([]);
+      setPastBookings([]);
+      setBookingsLoading(false);
+      setIsInitialized(true);
+      hasInitialLoad.current = false;
     }
-  }, [profile, fetchBookings, setBookingsLoading]);
+  }, [user, isGuest, fetchBookings, setBookingsLoading, setUpcomingBookings, setPastBookings]);
 
   return {
     // State
@@ -222,6 +364,8 @@ export function useBookings() {
     loading: bookingsLoading,
     refreshing,
     processingBookingId,
+    error,
+    isInitialized,
 
     // Actions
     fetchBookings,

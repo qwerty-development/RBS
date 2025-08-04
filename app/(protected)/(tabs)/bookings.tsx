@@ -1,6 +1,6 @@
 // app/(protected)/(tabs)/bookings.tsx
 import React, { useEffect } from "react";
-import { View, RefreshControl, ScrollView } from "react-native";
+import { View, RefreshControl, ScrollView, Alert } from "react-native";
 import { Calendar, Clock, UserPlus } from "lucide-react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
@@ -21,7 +21,7 @@ import { getRefreshControlColor } from "@/lib/utils";
 
 export default function BookingsScreen() {
   const router = useRouter();
-  const { isGuest, convertGuestToUser } = useAuth();
+  const { isGuest, convertGuestToUser, user } = useAuth();
   const { colorScheme } = useColorScheme();
   
   // --- Authenticated User Hooks (must be called before any early returns) ---
@@ -32,6 +32,8 @@ export default function BookingsScreen() {
     loading,
     refreshing,
     processingBookingId,
+    error,
+    isInitialized,
     handleRefresh,
     navigateToBookingDetails,
     navigateToRestaurant,
@@ -47,9 +49,11 @@ export default function BookingsScreen() {
   // Refresh bookings when the tab becomes focused (handles Android back navigation)
   useFocusEffect(
     useCallback(() => {
-      console.log('🔥 Bookings tab focused - refreshing data');
-      handleRefresh();
-    }, [handleRefresh])
+      if (user && !isGuest && isInitialized) {
+        console.log('🔥 Bookings tab focused - refreshing data');
+        handleRefresh();
+      }
+    }, [handleRefresh, user, isGuest, isInitialized])
   );
 
   // --- Guest View ---
@@ -97,8 +101,29 @@ export default function BookingsScreen() {
   }
 
   // --- Loading State ---
-  if (loading) {
+  if (loading || !isInitialized) {
     return <BookingsScreenSkeleton />;
+  }
+
+  // --- Error State ---
+  if (error && !refreshing) {
+    return (
+      <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+        <PageHeader title="My Bookings" />
+        <View className="flex-1 items-center justify-center px-6">
+          <View className="w-24 h-24 rounded-full bg-destructive/10 items-center justify-center mb-6">
+            <Calendar size={48} className="text-destructive" />
+          </View>
+          <H2 className="text-center mb-2">Unable to Load Bookings</H2>
+          <P className="text-center text-muted-foreground mb-6">
+            {error.message || "Something went wrong. Please try again."}
+          </P>
+          <Button onPress={handleRefresh} variant="default" size="lg">
+            <Text>Try Again</Text>
+          </Button>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   return (
