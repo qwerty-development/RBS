@@ -1,5 +1,5 @@
 // app/(protected)/restaurant/[id].tsx
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   BookOpen,
   FolderPlus,
@@ -259,7 +259,11 @@ const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({
   const { address, isLoading } = useRestaurantLocation(restaurant.location);
   const { checkAvailability } = useRestaurantAvailability(restaurant.id);
 
-  const availabilityStatus = checkAvailability(new Date());
+  // Memoize the availability check to prevent infinite re-renders
+  const availabilityStatus = useMemo(() => {
+    return checkAvailability(new Date());
+  }, [checkAvailability]);
+  
   const isOpen = availabilityStatus.isOpen;
 
   return (
