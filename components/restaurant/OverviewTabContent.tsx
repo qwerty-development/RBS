@@ -24,8 +24,7 @@ interface Restaurant {
   image_urls?: string[] | null;
   cuisine_type: string;
   tags?: string[] | null;
-  opening_time: string;
-  closing_time: string;
+
   booking_policy: "instant" | "request";
   price_range: number;
   average_rating?: number;
@@ -96,7 +95,7 @@ export const OverviewTabContent = ({
   onWhatsApp,
   onDirectionsPress,
   isRestaurantOpen,
-}: OverviewTabContentProps) => {
+}: any) => {
   return (
     <>
       {/* Booking Widget */}

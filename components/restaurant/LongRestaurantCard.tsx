@@ -16,6 +16,7 @@ import { Text } from "@/components/ui/text";
 import { H3, P, Muted } from "@/components/ui/typography";
 import { Database } from "@/types/supabase";
 import { cn } from "@/lib/utils";
+import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -41,6 +42,13 @@ export function EnhancedRestaurantCard({
   showQuickActions = false,
 }: EnhancedRestaurantCardProps) {
   const router = useRouter();
+  
+  // Use the availability hook
+  const { 
+    formatOperatingHours, 
+    checkAvailability,
+    loading: availabilityLoading 
+  } = useRestaurantAvailability(restaurant.id);
 
   const handlePress = () => {
     if (onPress) {
@@ -261,11 +269,22 @@ export function EnhancedRestaurantCard({
               </Text>
             </View>
 
-            {restaurant.opening_time && restaurant.closing_time && (
+            {!availabilityLoading && (
               <View className="flex-row items-center gap-2">
-                <Clock size={16} color="#666" />
+                <Clock 
+                  size={16} 
+                  color={checkAvailability(new Date()).isOpen ? "#10b981" : "#ef4444"} 
+                />
+                <Text 
+                  className={cn(
+                    "text-sm font-medium",
+                    checkAvailability(new Date()).isOpen ? "text-green-600" : "text-red-600"
+                  )}
+                >
+                  {checkAvailability(new Date()).isOpen ? "Open" : "Closed"}
+                </Text>
                 <Text className="text-sm text-muted-foreground">
-                  Open {restaurant.opening_time} - {restaurant.closing_time}
+                  • {formatOperatingHours()}
                 </Text>
               </View>
             )}
@@ -403,11 +422,22 @@ export function EnhancedRestaurantCard({
         </View>
 
         <View className="flex-row items-center justify-between">
-          {restaurant.opening_time && restaurant.closing_time && (
+          {!availabilityLoading && (
             <View className="flex-row items-center gap-1">
-              <Clock size={14} color="#666" />
+              <Clock 
+                size={14} 
+                color={checkAvailability(new Date()).isOpen ? "#10b981" : "#ef4444"} 
+              />
+              <Text 
+                className={cn(
+                  "text-xs font-medium",
+                  checkAvailability(new Date()).isOpen ? "text-green-600" : "text-red-600"
+                )}
+              >
+                {checkAvailability(new Date()).isOpen ? "Open" : "Closed"}
+              </Text>
               <Text className="text-xs text-muted-foreground">
-                {restaurant.opening_time} - {restaurant.closing_time}
+                • {formatOperatingHours()}
               </Text>
             </View>
           )}

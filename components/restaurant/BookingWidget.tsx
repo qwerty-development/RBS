@@ -17,8 +17,11 @@ import {
   Clock,
   Zap,
   Trophy,
+  XCircle,
+  AlertTriangle,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
+import { format, addDays, isSameDay } from "date-fns";
 
 import { Text } from "@/components/ui/text";
 import { H3 } from "@/components/ui/typography";
@@ -28,6 +31,7 @@ import {
   useAvailability,
   useAvailabilityPreloader,
 } from "@/hooks/useAvailability";
+import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
 import { TimeSlots, TableOptions } from "@/components/booking/TimeSlots";
 import { TableOption } from "@/lib/AvailabilityService";
 
@@ -53,7 +57,8 @@ const DateSelector = React.memo<{
   selectedDate: Date;
   onDateChange: (date: Date) => void;
   maxDays?: number;
-}>(({ selectedDate, onDateChange, maxDays = 14 }) => {
+  getDateStatus: (date: Date) => { type: 'closed' | 'special'; reason: string } | null;
+}>(({ selectedDate, onDateChange, maxDays = 14, getDateStatus }) => {
   const dates = useMemo(() => {
     const today = new Date();
     const datesArray = [];
@@ -95,18 +100,32 @@ const DateSelector = React.memo<{
           const isSelected =
             date.toDateString() === selectedDate.toDateString();
           const isToday = date.toDateString() === new Date().toDateString();
+          const dateStatus = getDateStatus(date);
+          const isClosed = dateStatus?.type === 'closed';
+          const isSpecial = dateStatus?.type === 'special';
 
           return (
             <Pressable
               key={date.toISOString()}
-              onPress={() => onDateChange(date)}
-              className={`px-4 py-3 rounded-lg mr-2 min-w-[70px] ${
-                isSelected ? "bg-primary" : "bg-muted"
+              onPress={() => !isClosed && onDateChange(date)}
+              disabled={isClosed}
+              className={`px-4 py-3 rounded-lg mr-2 min-w-[70px] relative ${
+                isSelected 
+                  ? "bg-primary" 
+                  : isClosed 
+                    ? "bg-muted/50 opacity-50" 
+                    : isSpecial 
+                      ? "bg-amber-50 dark:bg-amber-900/20 border border-amber-500"
+                      : "bg-muted"
               }`}
             >
               <Text
                 className={`text-center font-medium text-xs ${
-                  isSelected ? "text-primary-foreground" : ""
+                  isSelected 
+                    ? "text-primary-foreground" 
+                    : isClosed 
+                      ? "text-muted-foreground"
+                      : ""
                 }`}
               >
                 {date
@@ -115,7 +134,11 @@ const DateSelector = React.memo<{
               </Text>
               <Text
                 className={`text-center text-lg font-bold ${
-                  isSelected ? "text-primary-foreground" : ""
+                  isSelected 
+                    ? "text-primary-foreground" 
+                    : isClosed 
+                      ? "text-muted-foreground"
+                      : ""
                 }`}
               >
                 {date.getDate()}
@@ -124,15 +147,59 @@ const DateSelector = React.memo<{
                 className={`text-center text-xs ${
                   isSelected
                     ? "text-primary-foreground/80"
-                    : "text-muted-foreground"
+                    : isClosed
+                      ? "text-muted-foreground"
+                      : "text-muted-foreground"
                 }`}
               >
                 {formatDate(date)}
               </Text>
+              
+              {/* Status indicators */}
+              {isClosed && (
+                <View className="absolute top-1 right-1">
+                  <XCircle size={12} color="#ef4444" />
+                </View>
+              )}
+              {isSpecial && !isClosed && (
+                <View className="absolute top-1 right-1">
+                  <Sparkles size={12} color="#f59e0b" />
+                </View>
+              )}
             </Pressable>
           );
         })}
       </ScrollView>
+    </View>
+  );
+});
+
+// Date status message component
+const DateStatusMessage = React.memo<{
+  dateStatus: { type: 'closed' | 'special'; reason: string } | null;
+}>(({ dateStatus }) => {
+  if (!dateStatus) return null;
+
+  return (
+    <View className={`p-3 rounded-lg mb-4 ${
+      dateStatus.type === 'closed' 
+        ? "bg-red-50 dark:bg-red-900/20" 
+        : "bg-amber-50 dark:bg-amber-900/20"
+    }`}>
+      <View className="flex-row items-center gap-2">
+        {dateStatus.type === 'closed' ? (
+          <AlertTriangle size={16} color="#ef4444" />
+        ) : (
+          <Sparkles size={16} color="#f59e0b" />
+        )}
+        <Text className={`text-sm font-medium ${
+          dateStatus.type === 'closed'
+            ? "text-red-800 dark:text-red-200"
+            : "text-amber-800 dark:text-amber-200"
+        }`}>
+          {dateStatus.reason}
+        </Text>
+      </View>
     </View>
   );
 });
@@ -298,7 +365,7 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
   >("config");
 
   // Refs for optimization
-  const stepTransitionRef = useRef<NodeJS.Timeout | null>(null);
+  const stepTransitionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Preloader hook for better performance
   const { preloadRestaurant } = useAvailabilityPreloader();
@@ -327,10 +394,60 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
     preloadNext: true,
   });
 
+  // Restaurant hours availability hook
+  const {
+    loading: hoursLoading,
+    checkAvailability,
+    specialHours,
+    closures,
+  } = useRestaurantAvailability(restaurant.id);
+
   // Preload restaurant data when component mounts
   useEffect(() => {
     preloadRestaurant(restaurant.id, [2, 4, partySize]);
   }, [restaurant.id, preloadRestaurant, partySize]);
+
+  // Helper function to check date status based on restaurant hours
+  const getDateStatus = useCallback((date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    
+    // Check if it's a closure
+    const closure = closures.find(c => 
+      dateStr >= c.start_date && dateStr <= c.end_date
+    );
+    if (closure) {
+      return {
+        type: 'closed' as const,
+        reason: closure.reason || 'Temporarily closed'
+      };
+    }
+
+    // Check for special hours
+    const special = specialHours.find(s => s.date === dateStr);
+    if (special) {
+      if (special.is_closed) {
+        return {
+          type: 'closed' as const,
+          reason: special.reason || 'Closed for special occasion'
+        };
+      }
+      return {
+        type: 'special' as const,
+        reason: special.reason || 'Special hours'
+      };
+    }
+
+    // Check regular availability
+    const availability = checkAvailability(date);
+    if (!availability.isOpen) {
+      return {
+        type: 'closed' as const,
+        reason: availability.reason || 'Closed today'
+      };
+    }
+
+    return null;
+  }, [closures, specialHours, checkAvailability]);
 
   // Handle configuration changes with optimized state updates
   const handleDateChange = useCallback(
@@ -370,11 +487,21 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
 
   // Step progression with optimized transitions
   const handleContinueToTimeSelection = useCallback(() => {
+    // Check if the selected date is available according to restaurant hours
+    const dateStatus = getDateStatus(selectedDate);
+    if (dateStatus?.type === 'closed') {
+      Alert.alert(
+        "Restaurant Closed", 
+        `${dateStatus.reason}. Please select a different date.`
+      );
+      return;
+    }
+
     if (!hasTimeSlots) return;
 
     setCurrentStep("time");
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  }, [hasTimeSlots]);
+  }, [hasTimeSlots, getDateStatus, selectedDate]);
 
   const handleTimeSelect = useCallback(
     async (time: string) => {
@@ -474,7 +601,11 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
             selectedDate={selectedDate}
             onDateChange={handleDateChange}
             maxDays={14}
+            getDateStatus={getDateStatus}
           />
+
+          {/* Date Status Message */}
+          <DateStatusMessage dateStatus={getDateStatus(selectedDate)} />
 
           <PartySizeSelector
             partySize={partySize}
@@ -485,7 +616,7 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
           <Button
             onPress={handleContinueToTimeSelection}
             className="w-full"
-            disabled={timeSlotsLoading}
+            disabled={timeSlotsLoading || hoursLoading}
           >
             <CalendarIcon size={20} color="white" />
             <Text className="text-white font-semibold ml-2">

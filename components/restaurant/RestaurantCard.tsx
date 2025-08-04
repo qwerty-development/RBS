@@ -20,6 +20,7 @@ import { Database } from "@/types/supabase";
 import { cn } from "@/lib/utils";
 import { AddToPlaylistModal } from "@/components/playlists/AddToPlaylistModal"; // Assuming this path is correct
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
+import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
 
 type BaseRestaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -44,6 +45,7 @@ interface RestaurantCardProps {
   showFavorite?: boolean;
   showAddToPlaylistButton?: boolean; // New prop for playlist feature
   showDirections?: boolean; // New prop to control directions button visibility
+  showAvailability?: boolean; // New prop to show/hide availability status
 }
 
 export function RestaurantCard({
@@ -58,12 +60,20 @@ export function RestaurantCard({
   showFavorite = true,
   showAddToPlaylistButton = true, // Default to true
   showDirections = true, // Default to true
+  showAvailability = true, // Default to true
 }: RestaurantCardProps) {
   const router = useRouter();
   const [isPlaylistModalVisible, setPlaylistModalVisible] = useState(false);
 
   // Support both restaurant and item props for backward compatibility
   const restaurantData = restaurant || item;
+
+  // Use the availability hook
+  const { 
+    formatOperatingHours, 
+    checkAvailability,
+    loading: availabilityLoading 
+  } = useRestaurantAvailability(restaurantData?.id || '');
 
   if (!restaurantData || !restaurantData.id) {
     console.warn("Invalid restaurant data:", restaurantData);
@@ -90,6 +100,33 @@ export function RestaurantCard({
     // You can add a Toast notification here for better UX
     console.log(`Added ${restaurantData.name} to ${playlistName}`);
     setPlaylistModalVisible(false);
+  };
+
+  // Render availability status
+  const renderAvailabilityStatus = () => {
+    if (!showAvailability || availabilityLoading) return null;
+    
+    const today = new Date();
+    const availability = checkAvailability(today);
+    
+    return (
+      <View className="flex-row items-center gap-1 mt-1">
+        <Clock size={12} color={availability.isOpen ? "#10b981" : "#ef4444"} />
+        <Text 
+          className={cn(
+            "text-xs font-medium",
+            availability.isOpen ? "text-green-600" : "text-red-600"
+          )}
+        >
+          {availability.isOpen ? "Open" : "Closed"}
+        </Text>
+        {!availabilityLoading && (
+          <Text className="text-xs text-muted-foreground">
+            • {formatOperatingHours()}
+          </Text>
+        )}
+      </View>
+    );
   };
 
 
@@ -171,6 +208,7 @@ export function RestaurantCard({
               {renderStars(restaurantData.average_rating)}
               {renderPriceRange(restaurantData.price_range)}
             </View>
+            {renderAvailabilityStatus()}
           </View>
         </Pressable>
       )}
@@ -243,6 +281,7 @@ export function RestaurantCard({
               {renderPriceRange(restaurantData.price_range)}
             </View>
             {renderTags(restaurantData.tags)}
+            {renderAvailabilityStatus()}
           </View>
         </Pressable>
       )}
@@ -343,6 +382,7 @@ export function RestaurantCard({
                 </Text>
               )}
 
+              {renderAvailabilityStatus()}
               {renderTags(restaurantData.tags)}
             </View>
           </View>

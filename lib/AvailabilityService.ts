@@ -1,5 +1,6 @@
 // lib/availability/AvailabilityService.ts (Fixed for large groups)
 import { supabase } from "@/config/supabase";
+import { format } from "date-fns";
 
 export interface TimeSlot {
   time: string;
@@ -235,8 +236,17 @@ export class AvailabilityService {
         return [];
       }
 
+      // Get operating hours for the specific date
+      const operatingHours = this.getOperatingHoursForDate(restaurant, date);
+      
+      // If restaurant is closed on this date, return empty slots
+      if (operatingHours.isClosed) {
+        this.timeSlotsCache.set(cacheKey, []);
+        return [];
+      }
+
       const [baseSlots, turnTime] = await Promise.all([
-        this.generate15MinuteSlots(restaurant.opening_time, restaurant.closing_time, restaurantId, partySize),
+        this.generate15MinuteSlots(operatingHours.openTime, operatingHours.closeTime, restaurantId, partySize),
         this.getTurnTimeForParty(restaurantId, partySize, date)
       ]);
 
@@ -455,17 +465,101 @@ export class AvailabilityService {
 
     if (cached) return cached;
 
-    const { data: restaurant, error } = await supabase
-      .from("restaurants")
-      .select("opening_time, closing_time, booking_window_days")
-      .eq("id", restaurantId)
-      .single();
+    // Fetch restaurant basic config and hours data
+    const [restaurantResult, hoursResult, specialHoursResult, closuresResult] = await Promise.all([
+      supabase
+        .from("restaurants")
+        .select("booking_window_days, opening_time, closing_time") // Keep legacy fields as fallback
+        .eq("id", restaurantId)
+        .single(),
+      
+      supabase
+        .from("restaurant_hours")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .order("day_of_week"),
+      
+      supabase
+        .from("restaurant_special_hours")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .gte("date", format(new Date(), "yyyy-MM-dd"))
+        .order("date"),
+      
+      supabase
+        .from("restaurant_closures")
+        .select("*")
+        .eq("restaurant_id", restaurantId)
+        .gte("end_date", format(new Date(), "yyyy-MM-dd"))
+        .order("start_date")
+    ]);
 
-    if (!error && restaurant) {
-      this.restaurantConfigCache.set(cacheKey, restaurant);
+    if (restaurantResult.error) {
+      return null;
     }
 
-    return error ? null : restaurant;
+    const config = {
+      ...restaurantResult.data,
+      regularHours: hoursResult.data || [],
+      specialHours: specialHoursResult.data || [],
+      closures: closuresResult.data || []
+    };
+
+    this.restaurantConfigCache.set(cacheKey, config);
+    return config;
+  }
+
+  private getOperatingHoursForDate(restaurantConfig: any, date: Date): { openTime: string; closeTime: string; isClosed: boolean } {
+    const dateStr = format(date, "yyyy-MM-dd");
+    const dayOfWeek = date.getDay();
+    
+    // Check for closures first
+    const closure = restaurantConfig.closures?.find((closure: any) => 
+      dateStr >= closure.start_date && dateStr <= closure.end_date
+    );
+    
+    if (closure) {
+      return { openTime: "00:00", closeTime: "00:00", isClosed: true };
+    }
+    
+    // Check for special hours
+    const specialHours = restaurantConfig.specialHours?.find((special: any) => 
+      special.date === dateStr
+    );
+    
+    if (specialHours) {
+      if (specialHours.is_closed) {
+        return { openTime: "00:00", closeTime: "00:00", isClosed: true };
+      }
+      return {
+        openTime: specialHours.open_time || "11:00",
+        closeTime: specialHours.close_time || "22:00",
+        isClosed: false
+      };
+    }
+    
+    // Use regular hours for the day of week
+    const regularHours = restaurantConfig.regularHours?.find((hours: any) => 
+      hours.day_of_week === dayOfWeek
+    );
+    
+    if (regularHours) {
+      if (!regularHours.is_open) {
+        return { openTime: "00:00", closeTime: "00:00", isClosed: true };
+      }
+      return {
+        openTime: regularHours.open_time || "11:00",
+        closeTime: regularHours.close_time || "22:00",
+        isClosed: false
+      };
+    }
+    
+    // Fallback to legacy fields
+    return {
+      openTime: restaurantConfig.opening_time || "11:00",
+      closeTime: restaurantConfig.closing_time || "22:00",
+      isClosed: false
+    };
   }
 
   private async getTurnTimeForParty(

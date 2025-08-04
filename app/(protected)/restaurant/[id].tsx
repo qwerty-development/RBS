@@ -38,11 +38,14 @@ import {
   Linking,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { format } from "date-fns";
 import * as Haptics from "expo-haptics";
 import MapView, { Marker } from "react-native-maps";
 import { RestaurantPosts } from "@/components/restaurant/RestaurantPosts";
 import { AddToPlaylistModal } from "@/components/playlists/AddToPlaylistModal";
 import { GuestPromptModal } from "@/components/guest/GuestPromptModal";
+import { RestaurantHoursDisplay } from "@/components/restaurant/RestaurantHoursDisplay";
+import { BookingWidget } from "@/components/restaurant/BookingWidget";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
@@ -55,6 +58,7 @@ import { useAuth } from "@/context/supabase-provider";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { useRestaurantReviews } from "@/hooks/useRestaurantReviews";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
+import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
 import { RestaurantPlaylistIndicator } from "@/components/restaurant/RestaurantPlaylistIndicator";
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 import RestaurantDetailsScreenSkeleton from "@/components/skeletons/RestaurantDetailsScreenSkeleton";
@@ -253,25 +257,10 @@ const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({
   restaurant,
 }) => {
   const { address, isLoading } = useRestaurantLocation(restaurant.location);
+  const { checkAvailability } = useRestaurantAvailability(restaurant.id);
 
-  const isOpen = () => {
-    const now = new Date();
-    const currentTime = now.getHours() * 100 + now.getMinutes();
-
-    if (restaurant.opening_time && restaurant.closing_time) {
-      const openTime = parseInt(restaurant.opening_time.replace(":", ""));
-      const closeTime = parseInt(restaurant.closing_time.replace(":", ""));
-
-      if (closeTime < openTime) {
-        // Crosses midnight
-        return currentTime >= openTime || currentTime <= closeTime;
-      } else {
-        return currentTime >= openTime && currentTime <= closeTime;
-      }
-    }
-
-    return true; // Default to open if no hours specified
-  };
+  const availabilityStatus = checkAvailability(new Date());
+  const isOpen = availabilityStatus.isOpen;
 
   return (
     <View className="p-4 bg-background">
@@ -296,15 +285,15 @@ const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({
           </View>
           <View
             className={`px-2 py-1 rounded-full ${
-              isOpen() ? "bg-green-100" : "bg-red-100"
+              isOpen ? "bg-green-100" : "bg-red-100"
             }`}
           >
             <Text
               className={`text-xs font-medium ${
-                isOpen() ? "text-green-800" : "text-red-800"
+                isOpen ? "text-green-800" : "text-red-800"
               }`}
             >
-              {isOpen() ? "Open now" : "Closed"}
+              {isOpen ? "Open now" : "Closed"}
             </Text>
           </View>
         </View>
@@ -700,6 +689,7 @@ export default function RestaurantDetailsScreen() {
 
   // State for non-protected UI elements
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
+  const [isBookingWidgetVisible, setIsBookingWidgetVisible] = useState(false);
 
   // Guest Guard Hook
   const {
@@ -747,20 +737,42 @@ export default function RestaurantDetailsScreen() {
     );
   }, [runProtectedAction, handleWriteReviewFromReviews, restaurant]);
 
-  const handleBookTable = useCallback(() => {
-    if (!restaurant) return;
+  // Enhanced booking confirm handler for the new BookingWidget
+  const handleBookingConfirm = useCallback((bookingDetails: {
+    date: Date;
+    time: string;
+    partySize: number;
+    experience: any;
+  }) => {
+    // Navigate to booking creation with the enhanced details
     router.push({
-      pathname: "/booking/availability",
+      pathname: "/booking/create",
       params: {
-        restaurantId: id!,
-        restaurantName: restaurant.name,
+        restaurantId: restaurant!.id,
+        restaurantName: restaurant!.name,
+        date: format(bookingDetails.date, "yyyy-MM-dd"),
+        time: bookingDetails.time,
+        partySize: bookingDetails.partySize.toString(),
+        experienceId: bookingDetails.experience.id,
+        experienceName: bookingDetails.experience.name,
       },
     });
-  }, [router, id, restaurant]);
+  }, [router, restaurant]);
+
+  const handleBookTable = useCallback(() => {
+    if (!restaurant) return;
+    setIsBookingWidgetVisible(true);
+  }, [restaurant]);
 
   const handleAttemptBooking = useCallback(() => {
-    runProtectedAction(handleBookTable, "book a table");
-  }, [runProtectedAction, handleBookTable]);
+    if (isBookingWidgetVisible) {
+      // Hide the booking widget if it's currently visible
+      setIsBookingWidgetVisible(false);
+    } else {
+      // Show the booking widget, but protect with guest guard
+      runProtectedAction(handleBookTable, "book a table");
+    }
+  }, [runProtectedAction, handleBookTable, isBookingWidgetVisible]);
 
   const handleAddToPlaylistSuccess = useCallback(
     (playlistName: string) => {
@@ -877,6 +889,13 @@ export default function RestaurantDetailsScreen() {
           onCall={() => handleCall(restaurant)}
           onWebsite={handleWebsite}
         />
+        
+        {/* Operating Hours Section */}
+        <RestaurantHoursDisplay 
+          restaurantId={restaurant.id} 
+          className="mb-6"
+        />
+        
         <MenuSection onViewMenu={handleViewMenu} />
         <LocationMap
           restaurant={restaurant}
@@ -887,6 +906,22 @@ export default function RestaurantDetailsScreen() {
           onViewAllReviews={handleViewAllReviews}
           onWriteReview={handleWriteReview}
         />
+        
+        {/* Enhanced Booking Widget */}
+        {isBookingWidgetVisible && (
+          <BookingWidget
+            restaurant={restaurant}
+            onBookingSuccess={(tableIds, selectedTime, selectedDate, partySize, selectedOption) => {
+              handleBookingConfirm({
+                date: selectedDate,
+                time: selectedTime,
+                partySize,
+                experience: selectedOption,
+              });
+            }}
+          />
+        )}
+        
         <RestaurantPosts
           restaurantId={restaurant.id}
           restaurantName={restaurant.name}
@@ -918,7 +953,14 @@ export default function RestaurantDetailsScreen() {
 
             <Button onPress={handleAttemptBooking} size="lg" className="w-full">
               <View className="flex-row items-center justify-center gap-2">
-                {restaurant.booking_policy === "request" ? (
+                {isBookingWidgetVisible ? (
+                  <>
+                    <ChevronLeft size={20} color="white" />
+                    <Text className="text-white font-bold text-lg">
+                      Hide Booking
+                    </Text>
+                  </>
+                ) : restaurant.booking_policy === "request" ? (
                   <>
                     <Send size={20} color="white" />
                     <Text className="text-white font-bold text-lg">

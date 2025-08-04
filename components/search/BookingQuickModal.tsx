@@ -7,8 +7,9 @@ import {
   ScrollView,
   Dimensions,
   FlatList,
+  Switch,
 } from "react-native";
-import { X, Users, Check } from "lucide-react-native";
+import { X, Users, Check, Clock } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { H3 } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
@@ -279,6 +280,22 @@ export const BookingQuickModal = ({
                   </Pressable>
                 ))}
               </ScrollView>
+              
+              {/* Open Now Toggle */}
+              <View className="flex-row items-center justify-between mt-4 p-3 bg-muted rounded-lg">
+                <View className="flex-row items-center gap-2">
+                  <Clock size={16} color="#666" />
+                  <Text className="text-base font-medium">Open now</Text>
+                </View>
+                <Switch
+                  value={localFilters.availableOnly}
+                  onValueChange={(value) =>
+                    setLocalFilters({ ...localFilters, availableOnly: value })
+                  }
+                  trackColor={{ false: "#e5e5e5", true: "#2563eb" }}
+                  thumbColor={localFilters.availableOnly ? "#ffffff" : "#f4f3f4"}
+                />
+              </View>
             </View>
 
             {/* Date and Time Section */}
@@ -341,13 +358,15 @@ export const BookingQuickModal = ({
             {/* Show All Button - only show if any filters are applied */}
             {(localFilters.partySize !== null || 
               selectedDateId !== "date-any" || 
-              selectedTimeId !== "time-any") && (
+              selectedTimeId !== "time-any" ||
+              localFilters.availableOnly) && (
                               <Button 
                 onPress={() => {
                   // Reset all filters to "Any"
                   setLocalFilters({ 
                     ...localFilters, 
-                    partySize: null 
+                    partySize: null,
+                    availableOnly: false
                   });
                   setSelectedDateId("date-any");
                   setSelectedTimeId("time-any");
@@ -358,6 +377,7 @@ export const BookingQuickModal = ({
                     partySize: null,
                     date: null, // "Any date" 
                     time: null, // "Any time" 
+                    availableOnly: false,
                   });
                 }} 
                 variant="outline" 

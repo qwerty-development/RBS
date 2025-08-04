@@ -4,6 +4,7 @@ import { supabase } from "@/config/supabase";
 import { Database } from "@/types/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { useLocation } from "@/hooks/useLocation";
+import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
 
 // 1. Type Definitions for Recommendation System
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
@@ -179,9 +180,9 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
         const userProfile: UserProfile = {
           cuisinePreferences,
           priceRangePreference,
-          ambiancePreferences: profile.preferred_ambiance || [],
-          dietaryRestrictions: profile.dietary_restrictions || [],
-          averagePartySize: profile.preferred_party_size || 2,
+          ambiancePreferences: [], // TODO: Add ambiance preferences to profile schema
+          dietaryRestrictions: [], // TODO: Add dietary restrictions to profile schema
+          averagePartySize: 2, // Default party size
           bookingPatterns: {
             preferredDays,
             preferredTimes,
@@ -200,13 +201,134 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
       }
     }, [profile?.id]);
 
-  // 4. Calculate Restaurant Recommendation Score
+  // 4. Helper Functions
+  const calculateDistance = (
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number,
+  ): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos((lat1 * Math.PI) / 180) *
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
+  const getRestaurantHoursForDay = useCallback(async (
+    restaurant: Restaurant,
+    dayOfWeek: number,
+    date?: Date,
+  ): Promise<{ open: string; close: string; isOpen: boolean }> => {
+    try {
+      // Use enhanced availability system to get accurate hours for the specific date
+      const checkDate = date || new Date();
+      
+      // Fetch restaurant hours data
+      const [hoursResult, specialHoursResult, closuresResult] = await Promise.all([
+        supabase
+          .from("restaurant_hours")
+          .select("*")
+          .eq("restaurant_id", restaurant.id)
+          .eq("day_of_week", dayOfWeek)
+          .single(),
+        
+        supabase
+          .from("restaurant_special_hours")
+          .select("*")
+          .eq("restaurant_id", restaurant.id)
+          .eq("date", checkDate.toISOString().split("T")[0])
+          .single(),
+        
+        supabase
+          .from("restaurant_closures")
+          .select("*")
+          .eq("restaurant_id", restaurant.id)
+          .lte("start_date", checkDate.toISOString().split("T")[0])
+          .gte("end_date", checkDate.toISOString().split("T")[0])
+          .single()
+      ]);
+
+      // Check for closures first
+      if (closuresResult.data) {
+        return { open: "00:00", close: "00:00", isOpen: false };
+      }
+
+      // Check for special hours
+      if (specialHoursResult.data) {
+        if (specialHoursResult.data.is_closed) {
+          return { open: "00:00", close: "00:00", isOpen: false };
+        }
+        return {
+          open: specialHoursResult.data.open_time || "11:00",
+          close: specialHoursResult.data.close_time || "22:00",
+          isOpen: true,
+        };
+      }
+
+      // Use regular hours
+      if (hoursResult.data) {
+        if (!hoursResult.data.is_open) {
+          return { open: "00:00", close: "00:00", isOpen: false };
+        }
+        return {
+          open: hoursResult.data.open_time || "11:00",
+          close: hoursResult.data.close_time || "22:00",
+          isOpen: true,
+        };
+      }
+
+      // Fallback to legacy fields
+      return {
+        open: restaurant.opening_time || "11:00",
+        close: restaurant.closing_time || "22:00",
+        isOpen: true,
+      };
+    } catch (error) {
+      console.warn("Error getting restaurant hours:", error);
+      // Fallback to legacy fields
+      return {
+        open: restaurant.opening_time || "11:00",
+        close: restaurant.closing_time || "22:00",
+        isOpen: true,
+      };
+    }
+  }, []);
+
+  const isOpenAtTime = (
+    hours: { open: string; close: string },
+    timeOfDay: string,
+  ): boolean => {
+    // Simplified implementation
+    const timeRanges: Record<string, { start: number; end: number }> = {
+      breakfast: { start: 6, end: 11 },
+      lunch: { start: 11, end: 15 },
+      dinner: { start: 17, end: 22 },
+      late_night: { start: 22, end: 2 },
+    };
+
+    const range = timeRanges[timeOfDay];
+    if (!range) return false; // Handle unknown time periods
+    
+    const [openHour] = hours.open.split(":").map(Number);
+    const [closeHour] = hours.close.split(":").map(Number);
+
+    return openHour <= range.start && closeHour >= range.end;
+  };
+
+  // 5. Calculate Restaurant Recommendation Score
   const calculateRecommendationScore = useCallback(
-    (
+    async (
       restaurant: Restaurant,
       userProfile: UserProfile,
       context: RecommendationContext,
-    ): RecommendationScore => {
+    ): Promise<RecommendationScore> => {
       const reasons: RecommendationReason[] = [];
       let totalScore = 0;
       let totalWeight = 0;
@@ -287,28 +409,41 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
         }
       }
 
-      // 4.5 Time-Based Recommendations (Weight: 10%)
-      const restaurantHours = getRestaurantHoursForDay(
-        restaurant,
-        context.dayOfWeek,
-      );
-      if (isOpenAtTime(restaurantHours, context.timeOfDay)) {
-        const weight = 0.1;
-        totalScore += weight;
-        totalWeight += weight;
+      // 4.5 Enhanced Time-Based Recommendations (Weight: 10%)
+      try {
+        const restaurantHours = await getRestaurantHoursForDay(
+          restaurant,
+          context.dayOfWeek,
+          context.date,
+        );
+        
+        if (restaurantHours.isOpen && isOpenAtTime(restaurantHours, context.timeOfDay)) {
+          const weight = 0.1;
+          totalScore += weight;
+          totalWeight += weight;
 
-        // Special breakfast/brunch recommendations
-        if (
-          context.timeOfDay === "breakfast" &&
-          restaurant.tags?.includes("brunch")
-        ) {
-          totalScore += 0.05;
-          reasons.push({
-            type: "time_based",
-            weight: weight + 0.05,
-            description: "Great for brunch",
-          });
+          // Special breakfast/brunch recommendations
+          if (
+            context.timeOfDay === "breakfast" &&
+            restaurant.tags?.includes("brunch")
+          ) {
+            totalScore += 0.05;
+            reasons.push({
+              type: "time_based",
+              weight: weight + 0.05,
+              description: "Great for brunch",
+            });
+          } else {
+            reasons.push({
+              type: "time_based",
+              weight,
+              description: `Open for ${context.timeOfDay}`,
+            });
+          }
         }
+      } catch (error) {
+        console.warn("Error checking restaurant hours for recommendations:", error);
+        // Continue without time-based scoring if hours check fails
       }
 
       // 4.6 Weather-Based Adjustments
@@ -370,58 +505,8 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
         confidence,
       };
     },
-    [location],
+    [location, getRestaurantHoursForDay],
   );
-
-  // 5. Helper Functions
-  const calculateDistance = (
-    lat1: number,
-    lon1: number,
-    lat2: number,
-    lon2: number,
-  ): number => {
-    const R = 6371; // Earth's radius in km
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos((lat1 * Math.PI) / 180) *
-        Math.cos((lat2 * Math.PI) / 180) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  const getRestaurantHoursForDay = (
-    restaurant: Restaurant,
-    dayOfWeek: number,
-  ) => {
-    // Simplified - would need to handle special hours
-    return {
-      open: restaurant.opening_time,
-      close: restaurant.closing_time,
-    };
-  };
-
-  const isOpenAtTime = (
-    hours: { open: string; close: string },
-    timeOfDay: string,
-  ): boolean => {
-    // Simplified implementation
-    const timeRanges = {
-      breakfast: { start: 6, end: 11 },
-      lunch: { start: 11, end: 15 },
-      dinner: { start: 17, end: 22 },
-      late_night: { start: 22, end: 2 },
-    };
-
-    const range = timeRanges[timeOfDay];
-    const [openHour] = hours.open.split(":").map(Number);
-    const [closeHour] = hours.close.split(":").map(Number);
-
-    return openHour <= range.start && closeHour >= range.end;
-  };
 
   const getCurrentContext = (): RecommendationContext => {
     const now = new Date();
@@ -475,17 +560,18 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
 
       if (restaurantsError) throw restaurantsError;
 
-      // 6.3 Score all restaurants
+      // 6.3 Score all restaurants with async scoring
       const currentContext = getCurrentContext();
-      const scoredRestaurants = (restaurants || [])
-        .map((restaurant) => ({
+      const scoringPromises = (restaurants || []).map(async (restaurant) => ({
+        restaurant,
+        scoreData: await calculateRecommendationScore(
           restaurant,
-          scoreData: calculateRecommendationScore(
-            restaurant,
-            userProfileRef.current!,
-            currentContext,
-          ),
-        }))
+          userProfileRef.current!,
+          currentContext,
+        ),
+      }));
+
+      const scoredRestaurants = (await Promise.all(scoringPromises))
         .filter((item) => item.scoreData.score > 0.1) // Minimum threshold
         .sort((a, b) => b.scoreData.score - a.scoreData.score)
         .slice(0, 20); // Top 20 recommendations

@@ -35,7 +35,7 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { supabase } from "@/config/supabase";
 import { Database } from "@/types/supabase";
 import type { Restaurant } from "@/types/search";
-import { OptimizedList } from "@/components/ui/optimized-list";
+import { checkRestaurantAvailability } from "@/lib/searchUtils";
 
 // Type Definitions
 type DatabaseRestaurant = Database["public"]["Tables"]["restaurants"]["Row"];
@@ -187,32 +187,27 @@ export default function CuisineScreen() {
         );
       }
 
-      // Apply client-side filtering for open now using opening_time and closing_time
+      // Apply client-side filtering for open now using enhanced availability checking
       if (filters.openNow) {
         const now = new Date();
-        const currentTime = now.getHours() * 60 + now.getMinutes(); // Current time in minutes
-
-        processedRestaurants = processedRestaurants.filter((restaurant) => {
-          if (!restaurant.opening_time || !restaurant.closing_time) return true;
-
-          // Convert time strings to minutes
-          const [openHour, openMin] = restaurant.opening_time
-            .split(":")
-            .map(Number);
-          const [closeHour, closeMin] = restaurant.closing_time
-            .split(":")
-            .map(Number);
-
-          const openTime = openHour * 60 + openMin;
-          const closeTime = closeHour * 60 + closeMin;
-
-          // Handle overnight hours (e.g., open until 2 AM)
-          if (closeTime < openTime) {
-            return currentTime >= openTime || currentTime <= closeTime;
-          }
-
-          return currentTime >= openTime && currentTime <= closeTime;
-        });
+        const availabilityChecks = await Promise.all(
+          processedRestaurants.map(async (restaurant) => {
+            try {
+              const isOpen = await checkRestaurantAvailability(
+                restaurant.id,
+                now,
+                "19:00", // Default time check
+                2 // Default party size
+              );
+              return { ...restaurant, isCurrentlyOpen: isOpen };
+            } catch (error) {
+              console.error('Error checking availability for restaurant:', restaurant.id, error);
+              return { ...restaurant, isCurrentlyOpen: true }; // Conservative fallback
+            }
+          })
+        );
+        
+        processedRestaurants = availabilityChecks.filter(restaurant => restaurant.isCurrentlyOpen);
       }
 
       // Sort restaurants
@@ -416,7 +411,7 @@ export default function CuisineScreen() {
       )}
 
       {/* Restaurant List */}
-      <OptimizedList
+      <FlatList
         data={restaurants}
         renderItem={({ item }) => (
           <RestaurantSearchCard

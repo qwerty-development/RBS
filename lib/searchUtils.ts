@@ -1,6 +1,7 @@
 import { LEBANON_BOUNDS, FEATURES } from "@/constants/searchConstants";
 import { supabase } from "@/config/supabase";
 import { AvailabilityService } from "@/lib/AvailabilityService";
+import { format } from "date-fns";
 import type {
   Restaurant,
   UserLocation,
@@ -74,7 +75,7 @@ export const normalizeTimeForDatabase = (time: string): string => {
   return time;
 };
 
-// Check restaurant availability using the optimized AvailabilityService
+// Check restaurant availability using enhanced restaurant hours checking
 export const checkRestaurantAvailability = async (
   restaurantId: string,
   date: Date,
@@ -82,10 +83,14 @@ export const checkRestaurantAvailability = async (
   partySize: number,
 ): Promise<boolean> => {
   try {
-    // Get the AvailabilityService instance
-    const availabilityService = AvailabilityService.getInstance();
+    // First, check restaurant hours (closures, special hours, regular hours)
+    const isOpenByHours = await checkRestaurantHours(restaurantId, date, time);
+    if (!isOpenByHours) {
+      return false; // Restaurant is closed, no need to check table availability
+    }
 
-    // Get available time slots for the restaurant
+    // If restaurant is open by hours, then check table availability using AvailabilityService
+    const availabilityService = AvailabilityService.getInstance();
     const availableSlots = await availabilityService.getAvailableTimeSlots(
       restaurantId,
       date,
@@ -136,6 +141,88 @@ export const checkRestaurantAvailability = async (
     }
   }
 };
+
+// Helper function to check restaurant hours (closures, special hours, regular hours)
+async function checkRestaurantHours(
+  restaurantId: string,
+  date: Date,
+  time: string
+): Promise<boolean> {
+  try {
+    // Get restaurant with all hours data
+    const { data: restaurant, error } = await supabase
+      .from("restaurants")
+      .select(`
+        *,
+        restaurant_hours!left(*),
+        restaurant_special_hours!left(*),
+        restaurant_closures!left(*)
+      `)
+      .eq("id", restaurantId)
+      .single();
+
+    if (error || !restaurant) {
+      console.error("Error fetching restaurant hours:", error);
+      return true; // Conservative fallback - assume open
+    }
+
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const dayOfWeek = format(date, 'EEEE').toLowerCase();
+
+    // Check closures
+    const closure = restaurant.restaurant_closures?.find((c: any) =>
+      dateStr >= c.start_date && dateStr <= c.end_date
+    );
+    if (closure) return false;
+
+    // Check special hours
+    const special = restaurant.restaurant_special_hours?.find(
+      (s: any) => s.date === dateStr
+    );
+    if (special) {
+      if (special.is_closed) return false;
+      if (special.open_time && special.close_time) {
+        return isTimeWithinRange(time, special.open_time, special.close_time);
+      }
+    }
+
+    // Check regular hours
+    const regular = restaurant.restaurant_hours?.find(
+      (h: any) => h.day_of_week === dayOfWeek
+    );
+    if (!regular || !regular.is_open) return false;
+    
+    if (regular.open_time && regular.close_time) {
+      return isTimeWithinRange(time, regular.open_time, regular.close_time);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error checking restaurant hours:", error);
+    return true; // Conservative fallback
+  }
+}
+
+// Helper function for time range checking
+function isTimeWithinRange(
+  time: string,
+  openTime: string,
+  closeTime: string
+): boolean {
+  const [hour, minute] = time.split(':').map(Number);
+  const [openHour, openMinute] = openTime.split(':').map(Number);
+  const [closeHour, closeMinute] = closeTime.split(':').map(Number);
+
+  const currentMinutes = hour * 60 + minute;
+  const openMinutes = openHour * 60 + openMinute;
+  const closeMinutes = closeHour * 60 + closeMinute;
+
+  if (closeMinutes < openMinutes) {
+    return currentMinutes >= openMinutes || currentMinutes < closeMinutes;
+  }
+
+  return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
+}
 
 // Sort restaurants based on the selected criteria
 export const sortRestaurants = (

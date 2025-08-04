@@ -7,6 +7,7 @@ import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
 import { AvailabilityService, TimeSlot } from "@/lib/AvailabilityService";
+import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
 
 // Core Types
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
@@ -91,6 +92,14 @@ export function useRestaurant(
   const [loading, setLoading] = useState(true);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  
+  // Use the enhanced availability hook
+  const { 
+    checkAvailability,
+    formatOperatingHours,
+    loading: availabilityLoading
+  } = useRestaurantAvailability(restaurantId || '');
+  
   useEffect(() => {
     return () => {
       // Clean up on unmount
@@ -146,21 +155,12 @@ export function useRestaurant(
   );
 
   const isRestaurantOpen = useCallback((restaurant: Restaurant): boolean => {
-    if (!restaurant?.opening_time || !restaurant?.closing_time) return false;
-
-    const now = new Date();
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-    const [openHour, openMinute] = restaurant.opening_time
-      .split(":")
-      .map(Number);
-    const [closeHour, closeMinute] = restaurant.closing_time
-      .split(":")
-      .map(Number);
-    const openTime = openHour * 60 + openMinute;
-    const closeTime = closeHour * 60 + closeMinute;
-
-    return currentTime >= openTime && currentTime <= closeTime;
-  }, []);
+    if (!restaurant?.id) return false;
+    
+    const today = new Date();
+    const availability = checkAvailability(today);
+    return availability.isOpen;
+  }, [checkAvailability]);
 
   const getDistanceText = useCallback((distance: number): string => {
     if (distance < 1) return `${(distance * 1000).toFixed(0)}m`;
