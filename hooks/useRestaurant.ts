@@ -93,10 +93,9 @@ export function useRestaurant(
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   
-  // Use the enhanced availability hook
+  // Use the enhanced availability hook for restaurant hours
   const { 
     checkAvailability,
-    formatOperatingHours,
     loading: availabilityLoading
   } = useRestaurantAvailability(restaurantId || '');
   
@@ -154,6 +153,7 @@ export function useRestaurant(
     [],
   );
 
+  // FIXED: Use new restaurant hours system
   const isRestaurantOpen = useCallback((restaurant: Restaurant): boolean => {
     if (!restaurant?.id) return false;
     

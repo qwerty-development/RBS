@@ -1,4 +1,4 @@
-// lib/availability/AvailabilityService.ts (Fixed for large groups)
+// lib/AvailabilityService.ts (Fixed for restaurant hours and large groups)
 import { supabase } from "@/config/supabase";
 import { format } from "date-fns";
 
@@ -459,6 +459,7 @@ export class AvailabilityService {
     return availableSlots;
   }
 
+  // FIXED: Enhanced to fetch restaurant hours data
   private async getRestaurantConfig(restaurantId: string): Promise<any> {
     const cacheKey = `restaurant:${restaurantId}`;
     let cached = this.restaurantConfigCache.get(cacheKey);
@@ -509,9 +510,10 @@ export class AvailabilityService {
     return config;
   }
 
+  // FIXED: New method to get operating hours for a specific date
   private getOperatingHoursForDate(restaurantConfig: any, date: Date): { openTime: string; closeTime: string; isClosed: boolean } {
     const dateStr = format(date, "yyyy-MM-dd");
-    const dayOfWeek = date.getDay();
+    const dayOfWeek = format(date, "EEEE").toLowerCase();
     
     // Check for closures first
     const closure = restaurantConfig.closures?.find((closure: any) => 
@@ -1101,6 +1103,7 @@ export class AvailabilityService {
   }
 
   private combinationCache = new EnhancedCache<Table[]>(30, 5 * 60 * 1000);
+  
   private async getVIPBenefits(
     restaurantId: string,
     userId: string,

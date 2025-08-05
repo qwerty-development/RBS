@@ -1,5 +1,5 @@
 // app/(protected)/restaurant/[id].tsx
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import {
   BookOpen,
   FolderPlus,
@@ -45,7 +45,6 @@ import { RestaurantPosts } from "@/components/restaurant/RestaurantPosts";
 import { AddToPlaylistModal } from "@/components/playlists/AddToPlaylistModal";
 import { GuestPromptModal } from "@/components/guest/GuestPromptModal";
 import { RestaurantHoursDisplay } from "@/components/restaurant/RestaurantHoursDisplay";
-import { BookingWidget } from "@/components/restaurant/BookingWidget";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
@@ -252,14 +251,22 @@ const QuickActionsBar: React.FC<{
   );
 };
 
-// Restaurant Header Info
-const RestaurantHeaderInfo: React.FC<{ restaurant: Restaurant }> = ({
+// Restaurant Header Info - Updated to use new hours system
+const RestaurantHeaderInfo: React.FC<{ 
+  restaurant: Restaurant;
+  restaurantId: string;
+}> = ({
   restaurant,
+  restaurantId,
 }) => {
   const { address, isLoading } = useRestaurantLocation(restaurant.location);
-  const { checkAvailability } = useRestaurantAvailability(restaurant.id);
+  const { checkAvailability } = useRestaurantAvailability(restaurantId);
 
-  const availabilityStatus = checkAvailability(new Date());
+  // Use the new availability check
+  const availabilityStatus = useMemo(() => {
+    return checkAvailability(new Date());
+  }, [checkAvailability]);
+  
   const isOpen = availabilityStatus.isOpen;
 
   return (
@@ -689,7 +696,6 @@ export default function RestaurantDetailsScreen() {
 
   // State for non-protected UI elements
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
-  const [isBookingWidgetVisible, setIsBookingWidgetVisible] = useState(false);
 
   // Guest Guard Hook
   const {
@@ -715,8 +721,6 @@ export default function RestaurantDetailsScreen() {
   // Restaurant reviews hook for write review functionality
   const { handleWriteReview: handleWriteReviewFromReviews } = useRestaurantReviews(id!);
 
-
-
   // Action Handlers with Guest Guard
   const handleToggleFavorite = useCallback(() => {
     runProtectedAction(toggleFavorite, "save restaurants");
@@ -737,42 +741,21 @@ export default function RestaurantDetailsScreen() {
     );
   }, [runProtectedAction, handleWriteReviewFromReviews, restaurant]);
 
-  // Enhanced booking confirm handler for the new BookingWidget
-  const handleBookingConfirm = useCallback((bookingDetails: {
-    date: Date;
-    time: string;
-    partySize: number;
-    experience: any;
-  }) => {
-    // Navigate to booking creation with the enhanced details
-    router.push({
-      pathname: "/booking/create",
-      params: {
-        restaurantId: restaurant!.id,
-        restaurantName: restaurant!.name,
-        date: format(bookingDetails.date, "yyyy-MM-dd"),
-        time: bookingDetails.time,
-        partySize: bookingDetails.partySize.toString(),
-        experienceId: bookingDetails.experience.id,
-        experienceName: bookingDetails.experience.name,
-      },
-    });
-  }, [router, restaurant]);
-
+  // FIXED: Navigate to availability screen instead of using BookingWidget
   const handleBookTable = useCallback(() => {
     if (!restaurant) return;
-    setIsBookingWidgetVisible(true);
-  }, [restaurant]);
+    router.push({
+      pathname: "/booking/availability",
+      params: {
+        restaurantId: id!,
+        restaurantName: restaurant.name,
+      },
+    });
+  }, [router, id, restaurant]);
 
   const handleAttemptBooking = useCallback(() => {
-    if (isBookingWidgetVisible) {
-      // Hide the booking widget if it's currently visible
-      setIsBookingWidgetVisible(false);
-    } else {
-      // Show the booking widget, but protect with guest guard
-      runProtectedAction(handleBookTable, "book a table");
-    }
-  }, [runProtectedAction, handleBookTable, isBookingWidgetVisible]);
+    runProtectedAction(handleBookTable, "book a table");
+  }, [runProtectedAction, handleBookTable]);
 
   const handleAddToPlaylistSuccess = useCallback(
     (playlistName: string) => {
@@ -796,7 +779,7 @@ export default function RestaurantDetailsScreen() {
 
   const handleWebsite = useCallback(() => {
     if (restaurant?.website_url) {
-      // Logic to open website
+      Linking.openURL(restaurant.website_url);
     }
   }, [restaurant?.website_url]);
 
@@ -875,7 +858,7 @@ export default function RestaurantDetailsScreen() {
           onAddToPlaylist={handleAddToPlaylist}
         />
 
-        <RestaurantHeaderInfo restaurant={restaurant} />
+        <RestaurantHeaderInfo restaurant={restaurant} restaurantId={id!} />
 
         {!isGuest && (
           <RestaurantPlaylistIndicator restaurantId={restaurant.id} />
@@ -907,21 +890,6 @@ export default function RestaurantDetailsScreen() {
           onWriteReview={handleWriteReview}
         />
         
-        {/* Enhanced Booking Widget */}
-        {isBookingWidgetVisible && (
-          <BookingWidget
-            restaurant={restaurant}
-            onBookingSuccess={(tableIds, selectedTime, selectedDate, partySize, selectedOption) => {
-              handleBookingConfirm({
-                date: selectedDate,
-                time: selectedTime,
-                partySize,
-                experience: selectedOption,
-              });
-            }}
-          />
-        )}
-        
         <RestaurantPosts
           restaurantId={restaurant.id}
           restaurantName={restaurant.name}
@@ -930,7 +898,7 @@ export default function RestaurantDetailsScreen() {
         <View className="h-24" />
       </ScrollView>
 
-      {/* Floating Book Button */}
+      {/* Floating Book Button - No BookingWidget */}
       <View className="absolute bottom-0 left-0 right-0 mt-5">
         <SafeAreaView edges={["bottom"]}>
           <View className="p-4 bg-background border-t border-border">
@@ -953,14 +921,7 @@ export default function RestaurantDetailsScreen() {
 
             <Button onPress={handleAttemptBooking} size="lg" className="w-full">
               <View className="flex-row items-center justify-center gap-2">
-                {isBookingWidgetVisible ? (
-                  <>
-                    <ChevronLeft size={20} color="white" />
-                    <Text className="text-white font-bold text-lg">
-                      Hide Booking
-                    </Text>
-                  </>
-                ) : restaurant.booking_policy === "request" ? (
+                {restaurant.booking_policy === "request" ? (
                   <>
                     <Send size={20} color="white" />
                     <Text className="text-white font-bold text-lg">
