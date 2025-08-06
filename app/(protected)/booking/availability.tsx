@@ -26,6 +26,7 @@ import {
   Zap,
   Clock,
   Timer,
+  Search,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
@@ -48,6 +49,10 @@ import { useOffers } from "@/hooks/useOffers";
 import { LoyaltyPointsDisplay } from '@/components/booking/LoyaltyPointsDisplay';
 import { useBookingConfirmation } from "@/hooks/useBookingConfirmation";
 import { PotentialLoyaltyPoints, useRestaurantLoyalty } from '@/hooks/useRestaurantLoyalty';
+
+// Time Range Search imports
+import { TimeRangeSelector, TimeRangeResult } from '@/components/booking/TimeRangeSelector';
+import { useTimeRangeSearch } from '@/hooks/useTimeRangeSearch';
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -551,8 +556,12 @@ export default function AvailabilitySelectionScreen() {
   // Loyalty points state
   const [selectedLoyaltyPoints, setSelectedLoyaltyPoints] = useState<PotentialLoyaltyPoints | null>(null);
 
+  // Time Range Search state
+  const [showTimeRangeSelector, setShowTimeRangeSelector] = useState(false);
+  const { createSearchFunction } = useTimeRangeSearch();
+
   // Refs for cleanup and optimization
-  const stepTransitionRef = useRef<NodeJS.Timeout | null>(null);
+  const stepTransitionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Enhanced hooks with optimizations
   const { restaurant, loading: restaurantLoading } = useRestaurant(
@@ -831,6 +840,33 @@ export default function AvailabilitySelectionScreen() {
     );
   }, []);
 
+  // Time Range Search handlers
+  const handleOpenTimeRangeSearch = useCallback(() => {
+    setShowTimeRangeSelector(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
+
+  const handleCloseTimeRangeSearch = useCallback(() => {
+    setShowTimeRangeSelector(false);
+  }, []);
+
+  const handleTimeRangeSearchResult = useCallback(async (result: TimeRangeResult) => {
+    try {
+      // Set the selected time to match the search result
+      await fetchSlotOptions(result.timeSlot);
+      
+      // Smooth transition to experience step
+      stepTransitionRef.current = setTimeout(() => {
+        setCurrentStep('experience');
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      }, 200);
+      
+    } catch (error) {
+      console.error('Error handling time range result:', error);
+      Alert.alert('Error', 'Failed to load the selected time slot. Please try again.');
+    }
+  }, [fetchSlotOptions]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -948,6 +984,35 @@ export default function AvailabilitySelectionScreen() {
                 showLiveIndicator={true}
                 error={error}
               />
+
+              {/* Time Range Search Button */}
+              <View className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                <View className="flex-row items-center justify-between mb-3">
+                  <View className="flex-row items-center gap-3 flex-1">
+                    <Search size={20} color="#3b82f6" />
+                    <View className="flex-1">
+                      <Text className="font-semibold text-lg text-blue-800 dark:text-blue-200">
+                        Advanced Time Search
+                      </Text>
+                      <Text className="text-sm text-blue-700 dark:text-blue-300">
+                        Search within a time range and filter by table types
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+                
+                <Button
+                  onPress={handleOpenTimeRangeSearch}
+                  disabled={timeSlotsLoading}
+                  variant="outline"
+                  className="flex-row items-center justify-center gap-2 border-blue-300 dark:border-blue-700"
+                >
+                  <Clock size={16} color="#3b82f6" />
+                  <Text className="text-blue-700 dark:text-blue-300 font-medium">
+                    Search Time Range
+                  </Text>
+                </Button>
+              </View>
 
               {/* Error message */}
               {error && (
@@ -1178,6 +1243,17 @@ export default function AvailabilitySelectionScreen() {
           )}
         </View>
       </View>
+
+      {/* Time Range Selector Modal */}
+      <TimeRangeSelector
+        visible={showTimeRangeSelector}
+        onClose={handleCloseTimeRangeSearch}
+        onSearch={createSearchFunction(params.restaurantId || '')}
+        onSelectResult={handleTimeRangeSearchResult}
+        initialPartySize={partySize}
+        selectedDate={selectedDate}
+        restaurantName={restaurant?.name || 'Restaurant'}
+      />
     </SafeAreaView>
   );
 }

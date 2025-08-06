@@ -921,28 +921,9 @@ export class AvailabilityService {
   }
 
   private createOptimizedTableOptions(availableTables: Table[], partySize: number): TableOption[] {
-    const exactCapacityTables = availableTables.filter(table => table.capacity === partySize);
-
-    if (exactCapacityTables.length > 0) {
-        const exactFitOptions = exactCapacityTables.map(table => {
-            const experience = this.getTableExperience(table, partySize);
-            return {
-                tables: [table],
-                requiresCombination: false,
-                totalCapacity: table.capacity,
-                tableTypes: [table.table_type],
-                experienceTitle: experience.title,
-                experienceDescription: experience.description,
-                isPerfectFit: true,
-            };
-        });
-        return exactFitOptions.sort((a, b) => {
-            const scoreA = this.getExperienceScore(a.tableTypes[0], partySize);
-            const scoreB = this.getExperienceScore(b.tableTypes[0], partySize);
-            return scoreB - scoreA;
-        });
-    }
-
+    const allOptions: TableOption[] = [];
+    
+    // Group tables by type to ensure we get variety in options
     const tablesByType = availableTables.reduce((groups, table) => {
       const type = table.table_type;
       if (!groups[type]) groups[type] = [];
@@ -950,13 +931,46 @@ export class AvailabilityService {
       return groups;
     }, {} as Record<string, Table[]>);
 
-    const additionalOptions = this.createAdditionalOptions(
-      tablesByType,
-      partySize,
-      []
-    );
+    // Create options for each table type
+    Object.entries(tablesByType).forEach(([tableType, tables]) => {
+      // Sort tables by how well they fit the party size
+      const sortedTables = tables.sort((a, b) => {
+        const aDiff = Math.abs(a.capacity - partySize);
+        const bDiff = Math.abs(b.capacity - partySize);
+        if (aDiff !== bDiff) return aDiff - bDiff;
+        return b.priority_score - a.priority_score;
+      });
 
-    return additionalOptions.sort((a, b) => {
+      // Take the best table for this type
+      const bestTable = sortedTables[0];
+      if (bestTable && bestTable.capacity >= partySize) {
+        const experience = this.getTableExperience(bestTable, partySize);
+        const isExactFit = bestTable.capacity === partySize;
+        
+        allOptions.push({
+          tables: [bestTable],
+          requiresCombination: false,
+          totalCapacity: bestTable.capacity,
+          tableTypes: [bestTable.table_type],
+          experienceTitle: experience.title,
+          experienceDescription: experience.description,
+          isPerfectFit: isExactFit,
+        });
+      }
+    });
+
+    // If no single tables work, try additional combinations
+    if (allOptions.length === 0) {
+      const additionalOptions = this.createAdditionalOptions(
+        tablesByType,
+        partySize,
+        []
+      );
+      allOptions.push(...additionalOptions);
+    }
+
+    // Sort options: perfect fits first, then by capacity difference, then by experience score
+    return allOptions.sort((a, b) => {
       if (a.isPerfectFit && !b.isPerfectFit) return -1;
       if (!a.isPerfectFit && b.isPerfectFit) return 1;
 
@@ -1288,6 +1302,110 @@ export class AvailabilityService {
     });
 
     return !conflict;
+  }
+
+  /**
+   * Search for available tables within a specific time range
+   * with optional table type filtering
+   */
+  async searchTimeRange(params: {
+    restaurantId: string;
+    date: Date;
+    startTime: string;
+    endTime: string;
+    partySize: number;
+    tableTypes?: string[];
+    userId?: string;
+  }): Promise<{
+    timeSlot: string;
+    tables: Table[];
+    tableOptions: TableOption[];
+    matchingTypes: string[];
+    totalCapacity: number;
+    requiresCombination: boolean;
+  }[]> {
+    const { restaurantId, date, startTime, endTime, partySize, tableTypes = [], userId } = params;
+    
+    try {
+      // Get all available time slots for the day
+      const allTimeSlots = await this.getAvailableTimeSlots(restaurantId, date, partySize, userId, false);
+      
+      // Filter slots within the specified time range
+      const timeRangeSlots = allTimeSlots.filter(slot => {
+        return slot.available && slot.time >= startTime && slot.time <= endTime;
+      });
+
+      if (timeRangeSlots.length === 0) {
+        return [];
+      }
+
+      // Get detailed options for each time slot in the range
+      const results = [];
+      
+      for (const slot of timeRangeSlots) {
+        try {
+          const slotOptions = await this.getTableOptionsForSlot(
+            restaurantId,
+            date,
+            slot.time,
+            partySize
+          );
+
+          if (slotOptions && slotOptions.options.length > 0) {
+            // Filter options by table types if specified
+            let filteredOptions = slotOptions.options;
+            
+            if (tableTypes.length > 0) {
+              // Try to find options that match the selected table types
+              const exactMatches = slotOptions.options.filter((option: TableOption) =>
+                option.tableTypes.some((type: string) => tableTypes.includes(type))
+              );
+              
+              // If we found exact matches, use them; otherwise, be lenient and show all options
+              // This ensures users always see results even if table type filtering is too restrictive
+              if (exactMatches.length > 0) {
+                filteredOptions = exactMatches;
+              } else {
+                // No exact matches found - show all available options with a note
+                filteredOptions = slotOptions.options;
+              }
+            }
+
+            if (filteredOptions.length > 0) {
+              // Use the primary option for capacity and table info
+              const primaryOption = filteredOptions[0];
+              
+              // Get matching table types (only include types that were actually requested)
+              const matchingTypes = tableTypes.length > 0 
+                ? primaryOption.tableTypes.filter((type: string) => tableTypes.includes(type))
+                : primaryOption.tableTypes;
+
+              results.push({
+                timeSlot: slot.time,
+                tables: primaryOption.tables,
+                tableOptions: filteredOptions,
+                matchingTypes,
+                totalCapacity: primaryOption.totalCapacity,
+                requiresCombination: primaryOption.requiresCombination,
+              });
+            }
+          }
+        } catch (error) {
+          console.warn(`Failed to get options for slot ${slot.time}:`, error);
+          // Continue with next slot instead of failing completely
+          continue;
+        }
+      }
+
+      // Sort results by time
+      results.sort((a, b) => a.timeSlot.localeCompare(b.timeSlot));
+      
+      return results;
+      
+    } catch (error) {
+      console.error('Time range search error:', error);
+      throw new Error('Failed to search time range. Please try again.');
+    }
   }
 
   clearCombinationCache(restaurantId?: string) {
