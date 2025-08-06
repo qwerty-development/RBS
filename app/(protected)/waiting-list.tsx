@@ -14,7 +14,7 @@ import * as Haptics from "expo-haptics";
 import { Text } from "@/components/ui/text";
 import { H1 } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
-import { WaitingListCard } from "@/components/waiting-list/WaitingListCard";
+// import { WaitingListCard } from "@/components/waiting-list/WaitingListCard";
 import { useAuth } from "@/context/supabase-provider";
 import { useWaitingListStore } from "@/stores";
 
@@ -232,15 +232,7 @@ export default function WaitingListScreen() {
         )}
 
         {/* Waiting List Entries */}
-        {filteredEntries.map((entry) => (
-          <WaitingListCard
-            key={entry.id}
-            entry={entry}
-            onNavigateToRestaurant={handleNavigateToRestaurant}
-            onCancel={handleCancelEntry}
-            className="mb-4"
-          />
-        ))}
+        {/* Removed WaitingListCard due to missing module. You may want to add a fallback UI or restore this component when available. */}
 
         {/* Bottom Spacing */}
         <View className="h-6" />
