@@ -363,31 +363,7 @@ CREATE TABLE public.special_offers (
 );
 ```
 
-#### waiting_list
-Waitlist for unavailable times.
-```sql
-CREATE TABLE public.waiting_list (
-  id uuid NOT NULL DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL,
-  restaurant_id uuid NOT NULL,
-  requested_date date NOT NULL,
-  requested_time time without time zone,
-  party_size integer NOT NULL CHECK (party_size > 0),
-  status text NOT NULL DEFAULT 'active'::text CHECK (status = ANY (ARRAY['active'::text, 'notified'::text, 'converted'::text, 'cancelled'::text, 'expired'::text])),
-  special_requests text,
-  occasion text,
-  dietary_notes ARRAY DEFAULT '{}'::text[],
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  notification_sent_at timestamp with time zone,
-  converted_booking_id uuid,
-  time_slot_start time without time zone NOT NULL DEFAULT '12:00:00'::time without time zone,
-  time_slot_end time without time zone NOT NULL DEFAULT '14:00:00'::time without time zone,
-  min_party_size integer NOT NULL DEFAULT 1,
-  max_party_size integer,
-  CONSTRAINT waiting_list_pkey PRIMARY KEY (id)
-);
-```
+
 
 ## Key Features
 

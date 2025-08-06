@@ -26,11 +26,6 @@
 **Function**: `validate_restaurant_loyalty_balance()`  
 **Purpose**: Validates restaurant has sufficient loyalty points before booking creation.
 
-### booking_cancelled_notify_waitlist
-**Table**: `public.bookings`  
-**Event**: `AFTER UPDATE`  
-**Function**: `notify_waiting_list()`  
-**Purpose**: Notifies waiting list users when bookings are cancelled.
 
 ### trigger_manage_restaurant_customers
 **Table**: `public.bookings`  
@@ -170,7 +165,6 @@
 
 ### Business Logic Automation
 - `booking_status_change_trigger` - Handles loyalty point lifecycle
-- `booking_cancelled_notify_waitlist` - Implements waitlist notifications
 - `trigger_manage_restaurant_customers` - Automates customer record management
 
 ### Performance Optimization

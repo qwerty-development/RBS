@@ -194,11 +194,7 @@ final_rating := GREATEST(1.0, LEAST(5.0,
 4. **Special Events**: Holiday closures, private events
 5. **Maintenance Windows**: Scheduled downtime
 
-### Waitlist Management
-- **Automatic Notification**: When tables become available
-- **Time Window Matching**: Flexible time slot preferences
-- **Priority Queue**: First-come, first-served basis
-- **Conversion Tracking**: Waitlist to booking success rate
+
 
 ## Review System
 
