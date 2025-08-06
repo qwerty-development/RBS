@@ -181,26 +181,37 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
           {weeklySchedule.map(({ day, isOpen, hours }) => (
             <View
               key={day}
-              className="flex-row items-center justify-between py-2"
+              className="py-2"
             >
-              <Text
-                className={cn(
-                  "text-sm capitalize",
-                  !isOpen && "text-muted-foreground"
-                )}
-              >
-                {formatDayName(day)}
-              </Text>
-              <Text
-                className={cn(
-                  "text-sm",
-                  isOpen ? "text-foreground" : "text-muted-foreground"
-                )}
-              >
-                {isOpen && hours
-                  ? `${formatTime(hours.open)} - ${formatTime(hours.close)}`
-                  : "Closed"}
-              </Text>
+              <View className="flex-row items-start justify-between">
+                <Text
+                  className={cn(
+                    "text-sm capitalize",
+                    !isOpen && "text-muted-foreground"
+                  )}
+                >
+                  {formatDayName(day)}
+                </Text>
+                <View className="flex-1 items-end">
+                  {isOpen && Array.isArray(hours) && hours.length > 0 ? (
+                    hours.map((shift, index) => (
+                      <Text
+                        key={index}
+                        className={cn(
+                          "text-sm text-foreground",
+                          index > 0 && "mt-1"
+                        )}
+                      >
+                        {formatTime(shift.open)} - {formatTime(shift.close)}
+                      </Text>
+                    ))
+                  ) : (
+                    <Text className="text-sm text-muted-foreground">
+                      Closed
+                    </Text>
+                  )}
+                </View>
+              </View>
             </View>
           ))}
         </View>

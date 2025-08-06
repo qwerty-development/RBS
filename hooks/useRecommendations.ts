@@ -225,10 +225,11 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
     restaurant: Restaurant,
     dayOfWeek: number,
     date?: Date,
-  ): Promise<{ open: string; close: string; isOpen: boolean }> => {
+  ): Promise<{ shifts: Array<{ open: string; close: string }>; isOpen: boolean }> => {
     try {
       // Use enhanced availability system to get accurate hours for the specific date
       const checkDate = date || new Date();
+      const dayName = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][dayOfWeek];
       
       // Fetch restaurant hours data
       const [hoursResult, specialHoursResult, closuresResult] = await Promise.all([
@@ -236,15 +237,16 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
           .from("restaurant_hours")
           .select("*")
           .eq("restaurant_id", restaurant.id)
-          .eq("day_of_week", dayOfWeek)
-          .single(),
+          .eq("day_of_week", dayName)
+          .eq("is_open", true)
+          .order("open_time"),  // UPDATED: Get all shifts, ordered by open time
         
         supabase
           .from("restaurant_special_hours")
           .select("*")
           .eq("restaurant_id", restaurant.id)
           .eq("date", checkDate.toISOString().split("T")[0])
-          .single(),
+          .maybeSingle(),  // Special hours still single per date
         
         supabase
           .from("restaurant_closures")
@@ -252,57 +254,69 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
           .eq("restaurant_id", restaurant.id)
           .lte("start_date", checkDate.toISOString().split("T")[0])
           .gte("end_date", checkDate.toISOString().split("T")[0])
-          .single()
+          .maybeSingle()  // Closures still single per date range
       ]);
 
       // Check for closures first
       if (closuresResult.data) {
-        return { open: "00:00", close: "00:00", isOpen: false };
+        return { shifts: [], isOpen: false };
       }
 
       // Check for special hours
       if (specialHoursResult.data) {
         if (specialHoursResult.data.is_closed) {
-          return { open: "00:00", close: "00:00", isOpen: false };
+          return { shifts: [], isOpen: false };
         }
         return {
-          open: specialHoursResult.data.open_time || "11:00",
-          close: specialHoursResult.data.close_time || "22:00",
+          shifts: [{
+            open: specialHoursResult.data.open_time || "11:00",
+            close: specialHoursResult.data.close_time || "22:00",
+          }],
           isOpen: true,
         };
       }
 
-      // Use regular hours
-      if (hoursResult.data) {
-        if (!hoursResult.data.is_open) {
-          return { open: "00:00", close: "00:00", isOpen: false };
-        }
+      // UPDATED: Use ALL regular hour shifts
+      if (hoursResult.data && hoursResult.data.length > 0) {
+        const shifts = hoursResult.data
+          .filter(h => h.open_time && h.close_time)
+          .map(h => ({
+            open: h.open_time!,
+            close: h.close_time!
+          }));
+        
         return {
-          open: hoursResult.data.open_time || "11:00",
-          close: hoursResult.data.close_time || "22:00",
-          isOpen: true,
+          shifts: shifts.length > 0 ? shifts : [{
+            open: "11:00",
+            close: "22:00"
+          }],
+          isOpen: shifts.length > 0,
         };
       }
 
       // Fallback to legacy fields
       return {
-        open: restaurant.opening_time || "11:00",
-        close: restaurant.closing_time || "22:00",
+        shifts: [{
+          open: restaurant.opening_time || "11:00",
+          close: restaurant.closing_time || "22:00",
+        }],
         isOpen: true,
       };
     } catch (error) {
       console.warn("Error getting restaurant hours:", error);
       // Fallback to legacy fields
       return {
-        open: restaurant.opening_time || "11:00",
-        close: restaurant.closing_time || "22:00",
+        shifts: [{
+          open: restaurant.opening_time || "11:00",
+          close: restaurant.closing_time || "22:00",
+        }],
         isOpen: true,
       };
     }
   }, []);
 
   const isOpenAtTime = (
-    hours: { open: string; close: string },
+    shifts: Array<{ open: string; close: string }>,
     timeOfDay: string,
   ): boolean => {
     // Simplified implementation
@@ -316,10 +330,27 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
     const range = timeRanges[timeOfDay];
     if (!range) return false; // Handle unknown time periods
     
-    const [openHour] = hours.open.split(":").map(Number);
-    const [closeHour] = hours.close.split(":").map(Number);
+    // Check if ANY shift covers the time period
+    for (const shift of shifts) {
+      const [openHour] = shift.open.split(":").map(Number);
+      const [closeHour] = shift.close.split(":").map(Number);
 
-    return openHour <= range.start && closeHour >= range.end;
+      // Check if this shift covers the required time range
+      if (openHour <= range.start && closeHour >= range.end) {
+        return true;
+      }
+      
+      // For late night, handle wrap-around
+      if (timeOfDay === "late_night") {
+        if (closeHour < openHour) { // Closes after midnight
+          if (openHour <= range.start || closeHour >= range.end) {
+            return true;
+          }
+        }
+      }
+    }
+    
+    return false;
   };
 
   // 5. Calculate Restaurant Recommendation Score
@@ -409,7 +440,7 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
         }
       }
 
-      // 4.5 Enhanced Time-Based Recommendations (Weight: 10%)
+      // 4.5 Enhanced Time-Based Recommendations (Weight: 10%) - UPDATED
       try {
         const restaurantHours = await getRestaurantHoursForDay(
           restaurant,
@@ -417,7 +448,7 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
           context.date,
         );
         
-        if (restaurantHours.isOpen && isOpenAtTime(restaurantHours, context.timeOfDay)) {
+        if (restaurantHours.isOpen && isOpenAtTime(restaurantHours.shifts, context.timeOfDay)) {
           const weight = 0.1;
           totalScore += weight;
           totalWeight += weight;
@@ -434,11 +465,20 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
               description: "Great for brunch",
             });
           } else {
-            reasons.push({
-              type: "time_based",
-              weight,
-              description: `Open for ${context.timeOfDay}`,
-            });
+            // Check if restaurant has multiple shifts (split service)
+            if (restaurantHours.shifts.length > 1) {
+              reasons.push({
+                type: "time_based",
+                weight,
+                description: `Open for ${context.timeOfDay} service`,
+              });
+            } else {
+              reasons.push({
+                type: "time_based",
+                weight,
+                description: `Open for ${context.timeOfDay}`,
+              });
+            }
           }
         }
       } catch (error) {
