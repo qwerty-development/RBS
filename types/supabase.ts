@@ -509,6 +509,7 @@ export interface Database {
           desired_date: string;
           desired_time_range: string;
           party_size: number;
+          table_type: "any" | "booth" | "window" | "patio" | "standard" | "bar" | "private";
           status: "active" | "notified" | "booked" | "expired";
           created_at: string;
         };
@@ -519,6 +520,7 @@ export interface Database {
           desired_date: string;
           desired_time_range: string;
           party_size: number;
+          table_type?: "any" | "booth" | "window" | "patio" | "standard" | "bar" | "private";
           status?: "active" | "notified" | "booked" | "expired";
           created_at?: string;
         };
@@ -529,6 +531,7 @@ export interface Database {
           desired_date?: string;
           desired_time_range?: string;
           party_size?: number;
+          table_type?: "any" | "booth" | "window" | "patio" | "standard" | "bar" | "private";
           status?: "active" | "notified" | "booked" | "expired";
           created_at?: string;
         };

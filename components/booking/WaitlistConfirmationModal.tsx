@@ -22,7 +22,7 @@ import * as Haptics from "expo-haptics";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { H3, Muted } from "@/components/ui/typography";
-import { TimeRangeSearchParams } from "./TimeRangeSelector";
+import { TimeRangeSearchParams, TABLE_TYPES, TableType } from "./TimeRangeSelector";
 
 export interface WaitlistEntry {
   restaurantId: string;
@@ -30,8 +30,7 @@ export interface WaitlistEntry {
   desiredDate: string;
   desiredTimeRange: string;
   partySize: number;
-  tableTypes?: string[];
-  specialRequests?: string;
+  table_type: TableType;
 }
 
 interface WaitlistConfirmationModalProps {
@@ -42,7 +41,6 @@ interface WaitlistConfirmationModalProps {
   restaurantId: string;
   restaurantName: string;
   userId: string;
-  selectedTableTypes: string[];
   loading?: boolean;
 }
 
@@ -56,12 +54,11 @@ export const WaitlistConfirmationModal: React.FC<
   restaurantId,
   restaurantName,
   userId,
-  selectedTableTypes,
   loading = false,
 }) => {
   // Editable state
   const [partySize, setPartySize] = useState(searchParams.partySize);
-  const [specialRequests, setSpecialRequests] = useState("");
+  const [selectedTableType, setSelectedTableType] = useState<TableType>("any");
   const [submitting, setSubmitting] = useState(false);
 
   // Format time range for display and database
@@ -107,16 +104,14 @@ export const WaitlistConfirmationModal: React.FC<
           searchParams.timeRange.endTime,
         ),
         partySize,
-        tableTypes:
-          selectedTableTypes.length > 0 ? selectedTableTypes : undefined,
-        specialRequests: specialRequests.trim() || undefined,
+        table_type: selectedTableType,
       };
 
       await onConfirm(waitlistEntry);
 
       // Reset form
       setPartySize(searchParams.partySize);
-      setSpecialRequests("");
+      setSelectedTableType("any");
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onClose();
@@ -132,11 +127,10 @@ export const WaitlistConfirmationModal: React.FC<
     }
   }, [
     partySize,
-    specialRequests,
+    selectedTableType,
     restaurantId,
     userId,
     searchParams,
-    selectedTableTypes,
     formatTimeRange,
     onConfirm,
     onClose,
@@ -214,25 +208,16 @@ export const WaitlistConfirmationModal: React.FC<
                   <Text className="font-medium">{restaurantName}</Text>
                 </View>
 
-                {selectedTableTypes.length > 0 && (
-                  <View className="flex-row items-start gap-3">
-                    <Text className="text-sm text-muted-foreground mt-1">
-                      Table Types:
+                <View className="flex-row items-center gap-3">
+                  <Text className="text-sm text-muted-foreground">
+                    Table Type:
+                  </Text>
+                  <View className="bg-primary/10 rounded-full px-2 py-1">
+                    <Text className="text-xs text-primary font-medium">
+                      {TABLE_TYPES[selectedTableType].icon} {TABLE_TYPES[selectedTableType].label}
                     </Text>
-                    <View className="flex-1 flex-row flex-wrap gap-1">
-                      {selectedTableTypes.map((type, index) => (
-                        <View
-                          key={type}
-                          className="bg-primary/10 rounded-full px-2 py-1"
-                        >
-                          <Text className="text-xs text-primary font-medium">
-                            {type}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
                   </View>
-                )}
+                </View>
               </View>
             </View>
 
@@ -262,24 +247,50 @@ export const WaitlistConfirmationModal: React.FC<
                 </View>
               </View>
 
-              {/* Special Requests */}
-              <View>
+              {/* Table Type Selection */}
+              <View className="mb-4">
                 <Text className="text-sm font-medium mb-2 text-muted-foreground">
-                  Special Requests (Optional)
+                  Preferred Table Type
                 </Text>
-                <TextInput
-                  value={specialRequests}
-                  onChangeText={setSpecialRequests}
-                  multiline
-                  numberOfLines={3}
-                  className="bg-card border border-border rounded-lg p-3"
-                  placeholder="Any special requests or notes..."
-                  textAlignVertical="top"
-                  maxLength={500}
-                />
-                <Text className="text-xs text-muted-foreground mt-1">
-                  {specialRequests.length}/500 characters
-                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View className="flex-row gap-2">
+                    {(Object.keys(TABLE_TYPES) as TableType[]).map((type) => (
+                      <Pressable
+                        key={type}
+                        onPress={() => setSelectedTableType(type)}
+                        className={`flex-row items-center gap-2 p-3 rounded-lg border ${
+                          selectedTableType === type
+                            ? "bg-primary border-primary"
+                            : "bg-card border-border"
+                        }`}
+                      >
+                        <Text className="text-lg">
+                          {TABLE_TYPES[type].icon}
+                        </Text>
+                        <View>
+                          <Text
+                            className={`font-medium ${
+                              selectedTableType === type
+                                ? "text-primary-foreground"
+                                : "text-foreground"
+                            }`}
+                          >
+                            {TABLE_TYPES[type].label}
+                          </Text>
+                          <Text
+                            className={`text-xs ${
+                              selectedTableType === type
+                                ? "text-primary-foreground/70"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {TABLE_TYPES[type].description}
+                          </Text>
+                        </View>
+                      </Pressable>
+                    ))}
+                  </View>
+                </ScrollView>
               </View>
             </View>
 

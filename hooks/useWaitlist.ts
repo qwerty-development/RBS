@@ -52,6 +52,7 @@ export const useWaitlist = () => {
         desired_date: desiredDate,
         desired_time_range: timeRange,
         party_size: entry.partySize,
+        table_type: entry.table_type,
         status: "active",
       };
 

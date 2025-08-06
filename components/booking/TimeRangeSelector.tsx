@@ -34,6 +34,7 @@ import { useAuth } from "@/context/supabase-provider";
 
 // Table type definitions with user-friendly labels
 export const TABLE_TYPES = {
+  any: { label: "Any", icon: "🍽️", description: "No preference" },
   booth: { label: "Booth", icon: "🛋️", description: "Cozy enclosed seating" },
   window: { label: "Window", icon: "🪟", description: "Tables with a view" },
   patio: { label: "Patio", icon: "🌿", description: "Outdoor dining" },
@@ -46,7 +47,8 @@ export const TABLE_TYPES = {
   private: { label: "Private", icon: "🔒", description: "Private dining room" },
 } as const;
 
-export type TableType = keyof typeof TABLE_TYPES;
+// Database table_type enum values
+export type TableType = "any" | "booth" | "window" | "patio" | "standard" | "bar" | "private";
 
 export interface TimeRange {
   startTime: string;
@@ -865,9 +867,6 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
         restaurantId={restaurantId}
         restaurantName={restaurantName}
         userId={user?.id || ""}
-        selectedTableTypes={selectedTableTypes.map(
-          (type) => TABLE_TYPES[type].label,
-        )}
       />
     </Modal>
   );

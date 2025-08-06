@@ -10,8 +10,7 @@ const mockWaitlistEntry: WaitlistEntry = {
   desiredDate: "2025-08-07",
   desiredTimeRange: "[18:00,20:00)",
   partySize: 4,
-  tableTypes: ["booth", "window"],
-  specialRequests: "Anniversary dinner, quiet table please",
+  table_type: "booth",
 };
 
 console.log("Mock waitlist entry:", mockWaitlistEntry);
