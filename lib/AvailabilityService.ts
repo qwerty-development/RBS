@@ -236,24 +236,38 @@ export class AvailabilityService {
         return [];
       }
 
-      // Get operating hours for the specific date
+      // UPDATED: Get operating hours with multiple shifts
       const operatingHours = this.getOperatingHoursForDate(restaurant, date);
       
       // If restaurant is closed on this date, return empty slots
-      if (operatingHours.isClosed) {
+      if (operatingHours.isClosed || operatingHours.shifts.length === 0) {
         this.timeSlotsCache.set(cacheKey, []);
         return [];
       }
 
-      const [baseSlots, turnTime] = await Promise.all([
-        this.generate15MinuteSlots(operatingHours.openTime, operatingHours.closeTime, restaurantId, partySize),
-        this.getTurnTimeForParty(restaurantId, partySize, date)
-      ]);
+      // UPDATED: Generate slots for ALL shifts
+      const allBaseSlots: { time: string }[] = [];
+      for (const shift of operatingHours.shifts) {
+        const shiftSlots = await this.generate15MinuteSlots(
+          shift.openTime, 
+          shift.closeTime, 
+          restaurantId, 
+          partySize
+        );
+        allBaseSlots.push(...shiftSlots);
+      }
+
+      // Remove duplicates and sort
+      const uniqueSlots = Array.from(new Set(allBaseSlots.map(s => s.time)))
+        .sort()
+        .map(time => ({ time }));
+
+      const turnTime = await this.getTurnTimeForParty(restaurantId, partySize, date);
 
       const availableSlots = await this.batchQuickAvailabilityChecks(
         restaurantId,
         date,
-        baseSlots,
+        uniqueSlots,
         turnTime,
         partySize,
       );
@@ -510,8 +524,14 @@ export class AvailabilityService {
     return config;
   }
 
-  // FIXED: New method to get operating hours for a specific date
-  private getOperatingHoursForDate(restaurantConfig: any, date: Date): { openTime: string; closeTime: string; isClosed: boolean } {
+  // FIXED: Updated getOperatingHoursForDate to handle multiple shifts
+  private getOperatingHoursForDate(
+    restaurantConfig: any, 
+    date: Date
+  ): { 
+    shifts: Array<{ openTime: string; closeTime: string }>; 
+    isClosed: boolean 
+  } {
     const dateStr = format(date, "yyyy-MM-dd");
     const dayOfWeek = format(date, "EEEE").toLowerCase();
     
@@ -521,7 +541,7 @@ export class AvailabilityService {
     );
     
     if (closure) {
-      return { openTime: "00:00", closeTime: "00:00", isClosed: true };
+      return { shifts: [], isClosed: true };
     }
     
     // Check for special hours
@@ -531,35 +551,46 @@ export class AvailabilityService {
     
     if (specialHours) {
       if (specialHours.is_closed) {
-        return { openTime: "00:00", closeTime: "00:00", isClosed: true };
+        return { shifts: [], isClosed: true };
       }
       return {
-        openTime: specialHours.open_time || "11:00",
-        closeTime: specialHours.close_time || "22:00",
+        shifts: [{
+          openTime: specialHours.open_time || "11:00",
+          closeTime: specialHours.close_time || "22:00",
+        }],
         isClosed: false
       };
     }
     
-    // Use regular hours for the day of week
-    const regularHours = restaurantConfig.regularHours?.find((hours: any) => 
-      hours.day_of_week === dayOfWeek
+    // UPDATED: Get ALL regular hour shifts for the day
+    const regularShifts = restaurantConfig.regularHours?.filter((hours: any) => 
+      hours.day_of_week === dayOfWeek && hours.is_open
     );
     
-    if (regularHours) {
-      if (!regularHours.is_open) {
-        return { openTime: "00:00", closeTime: "00:00", isClosed: true };
-      }
+    if (regularShifts && regularShifts.length > 0) {
+      const shifts = regularShifts
+        .filter((h: any) => h.open_time && h.close_time)
+        .map((h: any) => ({
+          openTime: h.open_time,
+          closeTime: h.close_time
+        }))
+        .sort((a: any, b: any) => a.openTime.localeCompare(b.openTime));
+      
       return {
-        openTime: regularHours.open_time || "11:00",
-        closeTime: regularHours.close_time || "22:00",
-        isClosed: false
+        shifts: shifts.length > 0 ? shifts : [{
+          openTime: "11:00",
+          closeTime: "22:00"
+        }],
+        isClosed: shifts.length === 0
       };
     }
     
     // Fallback to legacy fields
     return {
-      openTime: restaurantConfig.opening_time || "11:00",
-      closeTime: restaurantConfig.closing_time || "22:00",
+      shifts: [{
+        openTime: restaurantConfig.opening_time || "11:00",
+        closeTime: restaurantConfig.closing_time || "22:00",
+      }],
       isClosed: false
     };
   }
@@ -1271,6 +1302,37 @@ export class AvailabilityService {
       this.tableOptionsCache.invalidate();
       this.quickAvailabilityCache.invalidate();
     }
+  }
+
+  /**
+   * Clear all availability caches for a specific restaurant
+   * This should be called after bookings are made or cancelled
+   */
+  clearRestaurantCache(restaurantId: string) {
+    console.log(`Clearing availability cache for restaurant: ${restaurantId}`);
+    
+    // Clear all cache types for this restaurant
+    this.clearCombinationCache(restaurantId);
+    
+    // Also clear restaurant config cache to ensure fresh data
+    this.restaurantConfigCache.invalidate(restaurantId);
+    
+    console.log(`Availability cache cleared for restaurant: ${restaurantId}`);
+  }
+
+  /**
+   * Clear caches for a specific date and restaurant
+   * More targeted cache clearing for better performance
+   */
+  clearRestaurantCacheForDate(restaurantId: string, date: Date) {
+    const dateStr = date.toISOString().split("T")[0];
+    console.log(`Clearing availability cache for restaurant ${restaurantId} on ${dateStr}`);
+    
+    // For now, clear all caches for the restaurant since we don't have selective clear
+    // This is still better than clearing all restaurants
+    this.clearRestaurantCache(restaurantId);
+    
+    console.log(`Targeted cache cleared for restaurant ${restaurantId} on ${dateStr}`);
   }
 
   async preloadPopularSlots(restaurantId: string, partySizes: number[] = [2, 4]): Promise<void> {

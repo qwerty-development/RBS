@@ -60,6 +60,16 @@ export interface RestaurantHours {
   updated_at: string
 }
 
+// Helper interface for working with multiple shifts
+export interface DayShifts {
+  day: string
+  shifts: Array<{
+    open: string
+    close: string
+  }>
+  isOpen: boolean
+}
+
 export interface SpecialHours {
   id: string
   restaurant_id: string

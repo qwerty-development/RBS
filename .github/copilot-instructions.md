@@ -102,6 +102,8 @@ export const useAuthStore = create<AuthState>()(
 
 ## �️ Database Schema & Patterns
 
+- **Schema Verification**: Always use the `db/schema.sql` file as the source of truth for the database schema. Reference it to validate table definitions, columns, types, constraints, and relationships before writing queries or defining types.
+
 ### Core Entity Relationships
 ```
 profiles (auth.users) ← bookings → restaurants
@@ -229,3 +231,12 @@ When working on this codebase:
 3. **Maintain type safety with generated Supabase types** 
 4. **Test permission flows for native APIs**
 5. **Handle network states and offline scenarios**
+
+## 🛡️ Critical Rules - DO NOT VIOLATE
+
+- **NEVER create mock/simplified components** - fix existing code
+- **NEVER replace complex components** - debug and fix root cause
+- **ALWAYS work with existing codebase** - no new simplified alternatives
+- **ALWAYS add explicit TypeScript types** to all parameters and return values
+- **Fix all linter/TypeScript errors immediately**
+- **When in doubt, always ask first**

@@ -5,6 +5,7 @@ import { supabase } from '@/config/supabase';
 import { useAuth } from '@/context/supabase-provider';
 import { useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
+import { AvailabilityService } from '@/lib/AvailabilityService';
 
 interface BookingConfirmationProps {
   restaurantId: string;
@@ -310,6 +311,17 @@ export const useBookingConfirmation = () => {
       // Success feedback
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
+      // CRITICAL: Clear availability cache after successful booking
+      // This ensures time slots and tables are immediately updated for other users
+      try {
+        const availabilityService = AvailabilityService.getInstance();
+        availabilityService.clearRestaurantCacheForDate(restaurantId, bookingTime);
+        console.log('Availability cache cleared after successful booking');
+      } catch (cacheError) {
+        console.warn('Failed to clear availability cache:', cacheError);
+        // Don't fail the booking if cache clearing fails
+      }
+
       // Navigate based on booking type
       if (bookingPolicy === 'instant') {
         router.replace({
@@ -326,11 +338,11 @@ export const useBookingConfirmation = () => {
           }
         });
       } else {
-        // For request bookings, navigate to pending screen or booking form
+        // For request bookings, navigate to request-sent screen or booking form
         if (parsedTableIds.length > 0) {
-          // Already have table selection, go to pending
+          // Already have table selection, go to request-sent
           router.replace({
-            pathname: '/booking/pending',
+            pathname: '/booking/request-sent',
             params: {
               bookingId: bookingResult.booking.id,
               restaurantName: bookingResult.booking.restaurant_name || 'Restaurant',
