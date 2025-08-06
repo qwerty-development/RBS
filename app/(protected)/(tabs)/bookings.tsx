@@ -23,7 +23,7 @@ export default function BookingsScreen() {
   const router = useRouter();
   const { isGuest, convertGuestToUser, user } = useAuth();
   const { colorScheme } = useColorScheme();
-  
+
   // --- Authenticated User Hooks (must be called before any early returns) ---
   const {
     activeTab,
@@ -50,10 +50,10 @@ export default function BookingsScreen() {
   useFocusEffect(
     useCallback(() => {
       if (user && !isGuest && isInitialized) {
-        console.log('🔥 Bookings tab focused - refreshing data');
+        console.log("🔥 Bookings tab focused - refreshing data");
         handleRefresh();
       }
-    }, [handleRefresh, user, isGuest, isInitialized])
+    }, [handleRefresh, user, isGuest, isInitialized]),
   );
 
   // --- Guest View ---

@@ -52,12 +52,12 @@ export interface Restaurant {
   staticCoordinates?: { lat: number; lng: number };
   isAvailable?: boolean;
   featured?: boolean;
-  restaurant_hours?: Array<{
+  restaurant_hours?: {
     day_of_week: string;
     is_open: boolean;
     open_time: string | null;
     close_time: string | null;
-  }>;
+  }[];
 }
 
 export interface SearchState {

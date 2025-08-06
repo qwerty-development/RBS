@@ -1,22 +1,22 @@
-import 'react-native-gesture-handler/jestSetup';
-import mockAsyncStorage from '@react-native-async-storage/async-storage/jest/async-storage-mock';
+import "react-native-gesture-handler/jestSetup";
+import mockAsyncStorage from "@react-native-async-storage/async-storage/jest/async-storage-mock";
 
 // Mock AsyncStorage
-jest.mock('@react-native-async-storage/async-storage', () => mockAsyncStorage);
+jest.mock("@react-native-async-storage/async-storage", () => mockAsyncStorage);
 
 // Mock Expo modules
-jest.mock('expo-constants', () => ({
+jest.mock("expo-constants", () => ({
   default: {
     expoConfig: {
       extra: {
-        EXPO_PUBLIC_SUPABASE_URL: 'https://test.supabase.co',
-        EXPO_PUBLIC_SUPABASE_ANON_KEY: 'test-key',
+        EXPO_PUBLIC_SUPABASE_URL: "https://test.supabase.co",
+        EXPO_PUBLIC_SUPABASE_ANON_KEY: "test-key",
       },
     },
   },
 }));
 
-jest.mock('expo-router', () => ({
+jest.mock("expo-router", () => ({
   useRouter: () => ({
     push: jest.fn(),
     replace: jest.fn(),
@@ -30,25 +30,25 @@ jest.mock('expo-router', () => ({
   },
 }));
 
-jest.mock('expo-haptics', () => ({
+jest.mock("expo-haptics", () => ({
   impactAsync: jest.fn(),
   notificationAsync: jest.fn(),
   selectionAsync: jest.fn(),
   ImpactFeedbackStyle: {
-    Light: 'light',
-    Medium: 'medium',
-    Heavy: 'heavy',
+    Light: "light",
+    Medium: "medium",
+    Heavy: "heavy",
   },
   NotificationFeedbackType: {
-    Success: 'success',
-    Warning: 'warning',
-    Error: 'error',
+    Success: "success",
+    Warning: "warning",
+    Error: "error",
   },
 }));
 
-jest.mock('expo-location', () => ({
+jest.mock("expo-location", () => ({
   requestForegroundPermissionsAsync: jest.fn(() =>
-    Promise.resolve({ status: 'granted' })
+    Promise.resolve({ status: "granted" }),
   ),
   getCurrentPositionAsync: jest.fn(() =>
     Promise.resolve({
@@ -57,28 +57,34 @@ jest.mock('expo-location', () => ({
         longitude: 35.5018,
         accuracy: 5,
       },
-    })
+    }),
   ),
   reverseGeocodeAsync: jest.fn(() =>
     Promise.resolve([
       {
-        city: 'Beirut',
-        region: 'Beirut',
-        country: 'Lebanon',
+        city: "Beirut",
+        region: "Beirut",
+        country: "Lebanon",
       },
-    ])
+    ]),
   ),
   Accuracy: {
     Balanced: 4,
   },
 }));
 
-jest.mock('@supabase/supabase-js', () => ({
+jest.mock("@supabase/supabase-js", () => ({
   createClient: jest.fn(() => ({
     auth: {
-      getSession: jest.fn(() => Promise.resolve({ data: { session: null }, error: null })),
-      signUp: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
-      signInWithPassword: jest.fn(() => Promise.resolve({ data: { user: null }, error: null })),
+      getSession: jest.fn(() =>
+        Promise.resolve({ data: { session: null }, error: null }),
+      ),
+      signUp: jest.fn(() =>
+        Promise.resolve({ data: { user: null }, error: null }),
+      ),
+      signInWithPassword: jest.fn(() =>
+        Promise.resolve({ data: { user: null }, error: null }),
+      ),
       signOut: jest.fn(() => Promise.resolve({ error: null })),
       onAuthStateChange: jest.fn(() => ({
         data: { subscription: { unsubscribe: jest.fn() } },
@@ -100,17 +106,17 @@ jest.mock('@supabase/supabase-js', () => ({
 }));
 
 // Mock React Native components
-jest.mock('react-native', () => {
-  const RN = jest.requireActual('react-native');
-  
+jest.mock("react-native", () => {
+  const RN = jest.requireActual("react-native");
+
   RN.Alert = {
     alert: jest.fn(),
   };
-  
+
   RN.Share = {
     share: jest.fn(() => Promise.resolve()),
   };
-  
+
   RN.Linking = {
     openURL: jest.fn(() => Promise.resolve()),
     canOpenURL: jest.fn(() => Promise.resolve(true)),
@@ -120,15 +126,15 @@ jest.mock('react-native', () => {
 });
 
 // Mock Reanimated
-jest.mock('react-native-reanimated', () => {
-  const Reanimated = require('react-native-reanimated/mock');
+jest.mock("react-native-reanimated", () => {
+  const Reanimated = require("react-native-reanimated/mock");
   Reanimated.default.call = () => {};
   return Reanimated;
 });
 
 // Mock Gesture Handler
-jest.mock('react-native-gesture-handler', () => {
-  const View = require('react-native/Libraries/Components/View/View');
+jest.mock("react-native-gesture-handler", () => {
+  const View = require("react-native/Libraries/Components/View/View");
   return {
     Swipeable: View,
     DrawerLayout: View,
@@ -160,14 +166,14 @@ jest.mock('react-native-gesture-handler', () => {
 });
 
 // Silence the warning: Animated: `useNativeDriver` is not supported
-jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
+jest.mock("react-native/Libraries/Animated/NativeAnimatedHelper");
 
 // Mock Safe Area Context
-jest.mock('react-native-safe-area-context', () => ({
+jest.mock("react-native-safe-area-context", () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 }),
 }));
 
 // Global test timeout
-jest.setTimeout(30000); 
+jest.setTimeout(30000);

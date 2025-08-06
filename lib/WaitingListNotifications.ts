@@ -48,7 +48,7 @@ export class WaitingListNotifications {
         async (payload) => {
           // Handle notifications specifically for waiting list
           const notification = payload.new;
-          if (notification.type === 'waiting_list_available') {
+          if (notification.type === "waiting_list_available") {
             console.log("Waiting list notification received:", payload);
             await this.handleWaitingListNotification(payload);
           }
@@ -74,10 +74,12 @@ export class WaitingListNotifications {
     // Get waiting list entry details for notification
     const { data: entry } = await supabase
       .from("waiting_list")
-      .select(`
+      .select(
+        `
         *,
         restaurant:restaurants(name, main_image_url)
-      `)
+      `,
+      )
       .eq("id", entryId)
       .single();
 
@@ -126,18 +128,19 @@ export class WaitingListNotifications {
    * Show table available notification
    */
   private async showTableAvailableNotification(entry: any) {
-    const requestedDate = new Date(entry.requested_date + 'T00:00:00');
-    const dateStr = requestedDate.toLocaleDateString('en-US', { 
-      weekday: 'short',
-      month: 'short', 
-      day: 'numeric'
+    const requestedDate = new Date(entry.requested_date + "T00:00:00");
+    const dateStr = requestedDate.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
     });
-    
+
     // Determine party size range for notification
-    const partySizeText = entry.max_party_size && entry.max_party_size !== entry.min_party_size 
-      ? `${entry.min_party_size}-${entry.max_party_size} people`
-      : `${entry.min_party_size} ${entry.min_party_size === 1 ? 'person' : 'people'}`;
-    
+    const partySizeText =
+      entry.max_party_size && entry.max_party_size !== entry.min_party_size
+        ? `${entry.min_party_size}-${entry.max_party_size} people`
+        : `${entry.min_party_size} ${entry.min_party_size === 1 ? "person" : "people"}`;
+
     // Haptic feedback
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
@@ -156,7 +159,7 @@ export class WaitingListNotifications {
         minPartySize: entry.min_party_size,
         maxPartySize: entry.max_party_size,
         partySize: entry.party_size,
-      }
+      },
     );
   }
 
@@ -174,7 +177,7 @@ export class WaitingListNotifications {
         entryId: entry.id,
         restaurantId: entry.restaurant_id,
         restaurantName: entry.restaurant.name,
-      }
+      },
     );
   }
 
@@ -192,7 +195,7 @@ export class WaitingListNotifications {
         entryId: entry.id,
         restaurantId: entry.restaurant_id,
         bookingId: entry.converted_booking_id,
-      }
+      },
     );
   }
 
@@ -202,7 +205,7 @@ export class WaitingListNotifications {
   private async showPushNotification(
     title: string,
     body: string,
-    data?: Record<string, any>
+    data?: Record<string, any>,
   ) {
     try {
       await Notifications.scheduleNotificationAsync({
@@ -232,7 +235,7 @@ export class WaitingListNotifications {
         // Use the preferred time if available, otherwise use the start of the range
         const timeToUse = data.requestedTime || data.timeSlotStart;
         const partySizeToUse = data.partySize || data.minPartySize;
-        
+
         router.push({
           pathname: "/booking/availability",
           params: {
@@ -250,13 +253,13 @@ export class WaitingListNotifications {
           },
         });
         break;
-      
+
       case "waiting_list_expired":
       case "waiting_list_converted":
         // Navigate to waiting list screen
         router.push("/waiting-list");
         break;
-      
+
       default:
         // Default to waiting list screen
         router.push("/waiting-list");

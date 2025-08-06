@@ -73,8 +73,8 @@ export const TimePickerModal = React.memo(
                     key={index}
                     onPress={() => handleTimeSelect(time)}
                     className={`mx-4 my-1 p-4 rounded-xl border ${
-                      isSelected 
-                        ? "bg-primary/10 border-primary/20" 
+                      isSelected
+                        ? "bg-primary/10 border-primary/20"
                         : "bg-transparent border-transparent hover:bg-muted"
                     }`}
                   >

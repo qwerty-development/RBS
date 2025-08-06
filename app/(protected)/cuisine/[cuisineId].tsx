@@ -197,17 +197,23 @@ export default function CuisineScreen() {
                 restaurant.id,
                 now,
                 "19:00", // Default time check
-                2 // Default party size
+                2, // Default party size
               );
               return { ...restaurant, isCurrentlyOpen: isOpen };
             } catch (error) {
-              console.error('Error checking availability for restaurant:', restaurant.id, error);
+              console.error(
+                "Error checking availability for restaurant:",
+                restaurant.id,
+                error,
+              );
               return { ...restaurant, isCurrentlyOpen: true }; // Conservative fallback
             }
-          })
+          }),
         );
-        
-        processedRestaurants = availabilityChecks.filter(restaurant => restaurant.isCurrentlyOpen);
+
+        processedRestaurants = availabilityChecks.filter(
+          (restaurant) => restaurant.isCurrentlyOpen,
+        );
       }
 
       // Sort restaurants

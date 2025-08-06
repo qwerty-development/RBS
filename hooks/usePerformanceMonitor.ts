@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { InteractionManager, DeviceEventEmitter } from 'react-native';
-import * as Sentry from '@sentry/react-native';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { InteractionManager, DeviceEventEmitter } from "react-native";
+import * as Sentry from "@sentry/react-native";
 
 export interface PerformanceMetrics {
   renderTime: number;
@@ -25,7 +25,7 @@ export interface PerformanceOptions {
  */
 export function usePerformanceMonitor(
   componentName: string,
-  options: PerformanceOptions = {}
+  options: PerformanceOptions = {},
 ) {
   const {
     trackRenders = true,
@@ -56,10 +56,10 @@ export function usePerformanceMonitor(
     if (!shouldSample.current || !trackRenders) return;
 
     mountTimeRef.current = performance.now();
-    
+
     return () => {
       const unmountTime = performance.now() - mountTimeRef.current;
-      reportMetric('component_lifetime', unmountTime);
+      reportMetric("component_lifetime", unmountTime);
     };
   }, []);
 
@@ -70,7 +70,7 @@ export function usePerformanceMonitor(
     const renderTime = performance.now() - renderStartRef.current;
     updateCountRef.current++;
 
-    setMetrics(prev => ({
+    setMetrics((prev) => ({
       ...prev,
       renderTime,
       updateCount: updateCountRef.current,
@@ -78,9 +78,9 @@ export function usePerformanceMonitor(
 
     if (updateCountRef.current === 1) {
       // First render
-      reportMetric('first_render', renderTime);
+      reportMetric("first_render", renderTime);
     } else {
-      reportMetric('render_time', renderTime);
+      reportMetric("render_time", renderTime);
     }
   });
 
@@ -100,16 +100,16 @@ export function usePerformanceMonitor(
     if ((global as any).gc) {
       (global as any).gc();
     }
-    
+
     // Estimate memory usage based on component updates and interactions
     const estimatedMemory = updateCountRef.current * 0.1; // Rough estimate
-    
-    setMetrics(prev => ({
+
+    setMetrics((prev) => ({
       ...prev,
       memoryUsage: estimatedMemory,
     }));
 
-    reportMetric('memory_usage', estimatedMemory);
+    reportMetric("memory_usage", estimatedMemory);
   }, [trackMemory]);
 
   // Track user interactions
@@ -119,49 +119,64 @@ export function usePerformanceMonitor(
     }
   }, [trackInteractions]);
 
-  const trackInteractionEnd = useCallback((interactionType: string = 'default') => {
-    if (!shouldSample.current || !trackInteractions || !interactionStartRef.current) return;
+  const trackInteractionEnd = useCallback(
+    (interactionType: string = "default") => {
+      if (
+        !shouldSample.current ||
+        !trackInteractions ||
+        !interactionStartRef.current
+      )
+        return;
 
-    const interactionTime = performance.now() - interactionStartRef.current;
-    
-    setMetrics(prev => ({
-      ...prev,
-      interactionTime,
-    }));
+      const interactionTime = performance.now() - interactionStartRef.current;
 
-    reportMetric(`interaction_${interactionType}`, interactionTime);
-    interactionStartRef.current = 0;
-  }, [trackInteractions]);
+      setMetrics((prev) => ({
+        ...prev,
+        interactionTime,
+      }));
+
+      reportMetric(`interaction_${interactionType}`, interactionTime);
+      interactionStartRef.current = 0;
+    },
+    [trackInteractions],
+  );
 
   // Report metric to monitoring services
-  const reportMetric = useCallback((metricName: string, value: number) => {
-    if (!shouldSample.current) return;
+  const reportMetric = useCallback(
+    (metricName: string, value: number) => {
+      if (!shouldSample.current) return;
 
-    // Call custom metric handler
-    onMetric?.(metricName, value);
+      // Call custom metric handler
+      onMetric?.(metricName, value);
 
-    // Report to Sentry
-    Sentry.addBreadcrumb({
-      message: `Performance: ${metricName}`,
-      category: 'performance',
-      level: 'info',
-      data: {
-        component: componentName,
-        metric: metricName,
-        value,
-        timestamp: new Date().toISOString(),
-      },
-    });
+      // Report to Sentry
+      Sentry.addBreadcrumb({
+        message: `Performance: ${metricName}`,
+        category: "performance",
+        level: "info",
+        data: {
+          component: componentName,
+          metric: metricName,
+          value,
+          timestamp: new Date().toISOString(),
+        },
+      });
 
-    // Log performance warnings
-    if (metricName === 'render_time' && value > 16) {
-      console.warn(`Slow render detected in ${componentName}: ${value.toFixed(2)}ms`);
-    }
+      // Log performance warnings
+      if (metricName === "render_time" && value > 16) {
+        console.warn(
+          `Slow render detected in ${componentName}: ${value.toFixed(2)}ms`,
+        );
+      }
 
-    if (metricName.includes('interaction') && value > 100) {
-      console.warn(`Slow interaction in ${componentName}: ${value.toFixed(2)}ms`);
-    }
-  }, [componentName, onMetric]);
+      if (metricName.includes("interaction") && value > 100) {
+        console.warn(
+          `Slow interaction in ${componentName}: ${value.toFixed(2)}ms`,
+        );
+      }
+    },
+    [componentName, onMetric],
+  );
 
   // Start render tracking when component renders
   trackRenderStart();
@@ -183,10 +198,10 @@ export function useOptimizedComputation<T>(
   dependencies: any[],
   options: {
     deferMs?: number;
-    priority?: 'high' | 'normal' | 'low';
-  } = {}
+    priority?: "high" | "normal" | "low";
+  } = {},
 ) {
-  const { deferMs = 0, priority = 'normal' } = options;
+  const { deferMs = 0, priority = "normal" } = options;
   const [result, setResult] = useState<T | null>(null);
   const [isComputing, setIsComputing] = useState(false);
   const computationRef = useRef<any>(null);
@@ -200,20 +215,20 @@ export function useOptimizedComputation<T>(
 
     const runComputation = () => {
       const startTime = performance.now();
-      
+
       try {
         const computedResult = computation();
         setResult(computedResult);
-        
+
         const endTime = performance.now();
         const duration = endTime - startTime;
-        
+
         // Log slow computations
         if (duration > 50) {
           console.warn(`Slow computation detected: ${duration.toFixed(2)}ms`);
         }
       } catch (error) {
-        console.error('Computation error:', error);
+        console.error("Computation error:", error);
       } finally {
         setIsComputing(false);
       }
@@ -221,7 +236,7 @@ export function useOptimizedComputation<T>(
 
     if (deferMs > 0) {
       computationRef.current = setTimeout(runComputation, deferMs);
-    } else if (priority === 'low') {
+    } else if (priority === "low") {
       // Use InteractionManager for low priority computations
       InteractionManager.runAfterInteractions(runComputation);
     } else {
@@ -248,29 +263,31 @@ export function usePerformanceProfiler(componentName: string) {
 
   useEffect(() => {
     const renderStart = performance.now();
-    
+
     return () => {
       const renderTime = performance.now() - renderStart;
       renderCountRef.current++;
       lastRenderTimeRef.current = renderTime;
 
-      if (renderTime > 16) { // Slower than 60fps
+      if (renderTime > 16) {
+        // Slower than 60fps
         slowRendersRef.current++;
       }
 
       // Report performance issues
       if (renderCountRef.current % 100 === 0) {
-        const slowRenderPercentage = (slowRendersRef.current / renderCountRef.current) * 100;
-        
+        const slowRenderPercentage =
+          (slowRendersRef.current / renderCountRef.current) * 100;
+
         if (slowRenderPercentage > 20) {
           console.warn(
-            `Performance issue in ${componentName}: ${slowRenderPercentage.toFixed(1)}% slow renders`
+            `Performance issue in ${componentName}: ${slowRenderPercentage.toFixed(1)}% slow renders`,
           );
-          
+
           Sentry.addBreadcrumb({
-            message: 'Performance bottleneck detected',
-            category: 'performance',
-            level: 'warning',
+            message: "Performance bottleneck detected",
+            category: "performance",
+            level: "warning",
             data: {
               component: componentName,
               slowRenderPercentage,
@@ -300,7 +317,7 @@ export function useLazyLoad<T>(
     retries?: number;
     onLoad?: () => void;
     onError?: (error: Error) => void;
-  } = {}
+  } = {},
 ) {
   const { delay = 0, retries = 3, onLoad, onError } = options;
   const [data, setData] = useState<T | null>(null);
@@ -317,20 +334,20 @@ export function useLazyLoad<T>(
 
     try {
       if (delay > 0) {
-        await new Promise(resolve => setTimeout(resolve, delay));
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
 
       const result = await loader();
       setData(result);
-      
+
       const loadTime = performance.now() - startTime;
       console.log(`Lazy load completed in ${loadTime.toFixed(2)}ms`);
-      
+
       onLoad?.();
     } catch (err) {
       const error = err as Error;
       attemptRef.current++;
-      
+
       if (attemptRef.current < retries) {
         // Exponential backoff
         const backoffDelay = Math.pow(2, attemptRef.current) * 1000;
@@ -355,7 +372,7 @@ export function useBatchProcessor<T, R>(
   options: {
     batchSize?: number;
     delay?: number;
-  } = {}
+  } = {},
 ) {
   const { batchSize = 10, delay = 100 } = options;
   const [queue, setQueue] = useState<T[]>([]);
@@ -364,7 +381,7 @@ export function useBatchProcessor<T, R>(
   const timeoutRef = useRef<number | null>(null);
 
   const addToQueue = useCallback((items: T[]) => {
-    setQueue(prev => [...prev, ...items]);
+    setQueue((prev) => [...prev, ...items]);
   }, []);
 
   useEffect(() => {
@@ -376,16 +393,16 @@ export function useBatchProcessor<T, R>(
 
     timeoutRef.current = setTimeout(() => {
       setProcessing(true);
-      
+
       const batch = queue.slice(0, batchSize);
       const remaining = queue.slice(batchSize);
-      
+
       try {
         const batchResults = processor(batch);
-        setResults(prev => [...prev, ...batchResults]);
+        setResults((prev) => [...prev, ...batchResults]);
         setQueue(remaining);
       } catch (error) {
-        console.error('Batch processing error:', error);
+        console.error("Batch processing error:", error);
       } finally {
         setProcessing(false);
       }
@@ -399,4 +416,4 @@ export function useBatchProcessor<T, R>(
   }, [queue, processing, processor, batchSize, delay]);
 
   return { addToQueue, results, processing, queueLength: queue.length };
-} 
+}

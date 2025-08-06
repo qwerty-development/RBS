@@ -51,25 +51,29 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
 
   // Get upcoming special events
   const upcomingEvents = [
-    ...specialHours.map(s => ({
-      type: 'special' as const,
+    ...specialHours.map((s) => ({
+      type: "special" as const,
       date: new Date(s.date),
       reason: s.reason,
       isClosed: s.is_closed,
-      hours: s.is_closed ? null : {
-        open: s.open_time!,
-        close: s.close_time!
-      }
+      hours: s.is_closed
+        ? null
+        : {
+            open: s.open_time!,
+            close: s.close_time!,
+          },
     })),
-    ...closures.map(c => ({
-      type: 'closure' as const,
+    ...closures.map((c) => ({
+      type: "closure" as const,
       date: new Date(c.start_date),
       endDate: new Date(c.end_date),
       reason: c.reason,
       isClosed: true,
-      hours: null
-    }))
-  ].sort((a, b) => a.date.getTime() - b.date.getTime()).slice(0, 3);
+      hours: null,
+    })),
+  ]
+    .sort((a, b) => a.date.getTime() - b.date.getTime())
+    .slice(0, 3);
 
   return (
     <View className={cn("bg-card rounded-lg p-4", className)}>
@@ -83,16 +87,18 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
           <View
             className={cn(
               "w-2 h-2 rounded-full",
-              todayStatus.isOpen ? "bg-green-500" : "bg-red-500"
+              todayStatus.isOpen ? "bg-green-500" : "bg-red-500",
             )}
           />
           <Text
             className={cn(
               "text-sm font-medium",
-              todayStatus.isOpen ? "text-green-600" : "text-red-600"
+              todayStatus.isOpen ? "text-green-600" : "text-red-600",
             )}
           >
-            {todayStatus.isOpen ? `Open • ${currentHours}` : `Closed • ${todayStatus.reason}`}
+            {todayStatus.isOpen
+              ? `Open • ${currentHours}`
+              : `Closed • ${todayStatus.reason}`}
           </Text>
         </View>
       </View>
@@ -106,10 +112,10 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
               {isToday(todayStatus.nextOpenTime.date)
                 ? `Today at ${formatTime(todayStatus.nextOpenTime.time)}`
                 : isTomorrow(todayStatus.nextOpenTime.date)
-                ? `Tomorrow at ${formatTime(todayStatus.nextOpenTime.time)}`
-                : `${format(todayStatus.nextOpenTime.date, "EEEE")} at ${formatTime(
-                    todayStatus.nextOpenTime.time
-                  )}`}
+                  ? `Tomorrow at ${formatTime(todayStatus.nextOpenTime.time)}`
+                  : `${format(todayStatus.nextOpenTime.date, "EEEE")} at ${formatTime(
+                      todayStatus.nextOpenTime.time,
+                    )}`}
             </Text>
           </Text>
         </View>
@@ -128,30 +134,32 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
                 "flex-row items-center gap-2 p-2 rounded-lg mb-1",
                 event.isClosed
                   ? "bg-red-50 dark:bg-red-900/20"
-                  : "bg-amber-50 dark:bg-amber-900/20"
+                  : "bg-amber-50 dark:bg-amber-900/20",
               )}
             >
-              {event.type === 'closure' ? (
+              {event.type === "closure" ? (
                 <AlertTriangle size={14} color="#ef4444" />
               ) : (
                 <Calendar size={14} color="#f59e0b" />
               )}
               <View className="flex-1">
-                <Text className={cn(
-                  "text-xs font-medium",
-                  event.isClosed
-                    ? "text-red-700 dark:text-red-300"
-                    : "text-amber-700 dark:text-amber-300"
-                )}>
-                  {event.type === 'closure' && event.endDate
+                <Text
+                  className={cn(
+                    "text-xs font-medium",
+                    event.isClosed
+                      ? "text-red-700 dark:text-red-300"
+                      : "text-amber-700 dark:text-amber-300",
+                  )}
+                >
+                  {event.type === "closure" && event.endDate
                     ? `${format(event.date, "MMM d")} - ${format(event.endDate, "MMM d")}`
-                    : format(event.date, "EEE, MMM d")
-                  }
+                    : format(event.date, "EEE, MMM d")}
                   {event.reason && ` • ${event.reason}`}
                 </Text>
                 {event.hours && (
                   <Text className="text-xs text-amber-600 dark:text-amber-400">
-                    {formatTime(event.hours.open)} - {formatTime(event.hours.close)}
+                    {formatTime(event.hours.open)} -{" "}
+                    {formatTime(event.hours.close)}
                   </Text>
                 )}
               </View>
@@ -179,15 +187,12 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
       {showFullSchedule && (
         <View className="mt-3 pt-3 border-t border-border">
           {weeklySchedule.map(({ day, isOpen, hours }) => (
-            <View
-              key={day}
-              className="py-2"
-            >
+            <View key={day} className="py-2">
               <View className="flex-row items-start justify-between">
                 <Text
                   className={cn(
                     "text-sm capitalize",
-                    !isOpen && "text-muted-foreground"
+                    !isOpen && "text-muted-foreground",
                   )}
                 >
                   {formatDayName(day)}
@@ -199,7 +204,7 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
                         key={index}
                         className={cn(
                           "text-sm text-foreground",
-                          index > 0 && "mt-1"
+                          index > 0 && "mt-1",
                         )}
                       >
                         {formatTime(shift.open)} - {formatTime(shift.close)}

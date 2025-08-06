@@ -69,11 +69,11 @@ export function RestaurantCard({
   const restaurantData = restaurant || item;
 
   // Use the availability hook
-  const { 
-    formatOperatingHours, 
+  const {
+    formatOperatingHours,
     checkAvailability,
-    loading: availabilityLoading 
-  } = useRestaurantAvailability(restaurantData?.id || '');
+    loading: availabilityLoading,
+  } = useRestaurantAvailability(restaurantData?.id || "");
 
   if (!restaurantData || !restaurantData.id) {
     console.warn("Invalid restaurant data:", restaurantData);
@@ -105,17 +105,17 @@ export function RestaurantCard({
   // Render availability status
   const renderAvailabilityStatus = () => {
     if (!showAvailability || availabilityLoading) return null;
-    
+
     const today = new Date();
     const availability = checkAvailability(today);
-    
+
     return (
       <View className="flex-row items-center gap-1 mt-1">
         <Clock size={12} color={availability.isOpen ? "#10b981" : "#ef4444"} />
-        <Text 
+        <Text
           className={cn(
             "text-xs font-medium",
-            availability.isOpen ? "text-green-600" : "text-red-600"
+            availability.isOpen ? "text-green-600" : "text-red-600",
           )}
         >
           {availability.isOpen ? "Open" : "Closed"}
@@ -128,8 +128,6 @@ export function RestaurantCard({
       </View>
     );
   };
-
-
 
   const renderStars = (rating: number) => (
     <View className="flex-row items-center gap-1">

@@ -9,7 +9,10 @@ import { colors } from "@/constants/colors";
 import { LogBox, Alert, View, Text } from "react-native";
 import React, { useEffect, useState } from "react";
 import * as Updates from "expo-updates";
-import { ErrorBoundary, NavigationErrorBoundary } from "@/components/ErrorBoundary";
+import {
+  ErrorBoundary,
+  NavigationErrorBoundary,
+} from "@/components/ErrorBoundary";
 import { useNetworkMonitor } from "@/hooks/useNetworkMonitor";
 import * as Sentry from "@sentry/react-native";
 import { getThemedColors } from "@/lib/utils";
@@ -79,13 +82,13 @@ function RootLayoutContent() {
   // Hide warnings in development
   useEffect(() => {
     LogBox.ignoreLogs([
-      'Clerk:',
-      'Clerk has been loaded with development keys',
-      'Unsupported Server Component type',
-      'Warning: TNodeChildrenRenderer',
+      "Clerk:",
+      "Clerk has been loaded with development keys",
+      "Unsupported Server Component type",
+      "Warning: TNodeChildrenRenderer",
       'You seem to update props of the "TRenderEngineProvider" component',
-      'Text strings must be rendered within a <Text> component',
-      'VirtualizedLists should never be nested inside plain ScrollViews'
+      "Text strings must be rendered within a <Text> component",
+      "VirtualizedLists should never be nested inside plain ScrollViews",
     ]);
   }, []);
 
@@ -138,18 +141,18 @@ function RootLayoutContent() {
 
 export default function RootLayout() {
   return (
-    <ErrorBoundary 
+    <ErrorBoundary
       showDetails={__DEV__}
       onError={(error, errorInfo) => {
         // Custom error logging
-        console.error('Root Error:', error);
-        console.error('Error Info:', errorInfo);
-        
+        console.error("Root Error:", error);
+        console.error("Error Info:", errorInfo);
+
         // Additional error tracking
         if (!__DEV__) {
           Sentry.withScope((scope) => {
-            scope.setTag('location', 'root_layout');
-            scope.setLevel('fatal');
+            scope.setTag("location", "root_layout");
+            scope.setLevel("fatal");
             Sentry.captureException(error);
           });
         }

@@ -44,15 +44,16 @@ export function useRestaurantSearch({
       setLoading(true);
 
       try {
-        let supabaseQuery = supabase
-          .from("restaurants")
-          .select(`
+        let supabaseQuery = supabase.from("restaurants").select(
+          `
             *,
             restaurant_hours!left(*),
             restaurant_special_hours!left(*),
             restaurant_closures!left(*),
             reviews!left(rating)
-          `, { count: "exact" });
+          `,
+          { count: "exact" },
+        );
 
         // Apply search query
         if (query.trim()) {
@@ -112,31 +113,38 @@ export function useRestaurantSearch({
         // Post-process for availability filtering and ratings
         if (filters.openNow || (filters.date && filters.time)) {
           const checkDate = filters.date || new Date();
-          const checkTime = filters.time || format(new Date(), 'HH:mm');
-          
+          const checkTime = filters.time || format(new Date(), "HH:mm");
+
           processedRestaurants = await Promise.all(
             processedRestaurants.map(async (restaurant: any) => {
               const isOpen = await checkRestaurantAvailability(
                 restaurant,
                 checkDate,
-                checkTime
+                checkTime,
               );
               return { ...restaurant, isCurrentlyOpen: isOpen };
-            })
+            }),
           );
 
           if (filters.openNow) {
-            processedRestaurants = processedRestaurants.filter((r: { isCurrentlyOpen: any; }) => r.isCurrentlyOpen);
+            processedRestaurants = processedRestaurants.filter(
+              (r: { isCurrentlyOpen: any }) => r.isCurrentlyOpen,
+            );
           }
         }
 
         // Calculate average ratings if reviews data is available
-        processedRestaurants = processedRestaurants.map((restaurant: { reviews?: any[]; average_rating?: number; }) => ({
-          ...restaurant,
-          average_rating: restaurant.reviews?.length
-            ? restaurant.reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / restaurant.reviews.length
-            : restaurant.average_rating || 0
-        }));
+        processedRestaurants = processedRestaurants.map(
+          (restaurant: { reviews?: any[]; average_rating?: number }) => ({
+            ...restaurant,
+            average_rating: restaurant.reviews?.length
+              ? restaurant.reviews.reduce(
+                  (sum: number, r: any) => sum + r.rating,
+                  0,
+                ) / restaurant.reviews.length
+              : restaurant.average_rating || 0,
+          }),
+        );
 
         if (reset) {
           setRestaurants(processedRestaurants);
@@ -147,7 +155,8 @@ export function useRestaurantSearch({
         }
 
         setHasMore(
-          (processedRestaurants?.length || 0) === pageSize && (count || 0) > from + pageSize,
+          (processedRestaurants?.length || 0) === pageSize &&
+            (count || 0) > from + pageSize,
         );
       } catch (error) {
         console.error("Search error:", error);
@@ -192,20 +201,20 @@ export function useRestaurantSearch({
 async function checkRestaurantAvailability(
   restaurant: any,
   date: Date,
-  time: string
+  time: string,
 ): Promise<boolean> {
-  const dateStr = format(date, 'yyyy-MM-dd');
-  const dayOfWeek = format(date, 'EEEE').toLowerCase();
+  const dateStr = format(date, "yyyy-MM-dd");
+  const dayOfWeek = format(date, "EEEE").toLowerCase();
 
   // Check closures
-  const closure = restaurant.restaurant_closures?.find((c: any) =>
-    dateStr >= c.start_date && dateStr <= c.end_date
+  const closure = restaurant.restaurant_closures?.find(
+    (c: any) => dateStr >= c.start_date && dateStr <= c.end_date,
   );
   if (closure) return false;
 
   // Check special hours
   const special = restaurant.restaurant_special_hours?.find(
-    (s: any) => s.date === dateStr
+    (s: any) => s.date === dateStr,
   );
   if (special) {
     if (special.is_closed) return false;
@@ -216,11 +225,11 @@ async function checkRestaurantAvailability(
 
   // UPDATED: Check ALL regular hour shifts for the day
   const regularShifts = restaurant.restaurant_hours?.filter(
-    (h: any) => h.day_of_week === dayOfWeek && h.is_open
+    (h: any) => h.day_of_week === dayOfWeek && h.is_open,
   );
-  
+
   if (!regularShifts || regularShifts.length === 0) return false;
-  
+
   // Check if time falls within ANY of the shifts
   for (const shift of regularShifts) {
     if (shift.open_time && shift.close_time) {
@@ -229,18 +238,18 @@ async function checkRestaurantAvailability(
       }
     }
   }
-  
+
   return false; // Time doesn't fall within any shift
 }
 
 function isTimeWithinRange(
   time: string,
   openTime: string,
-  closeTime: string
+  closeTime: string,
 ): boolean {
-  const [hour, minute] = time.split(':').map(Number);
-  const [openHour, openMinute] = openTime.split(':').map(Number);
-  const [closeHour, closeMinute] = closeTime.split(':').map(Number);
+  const [hour, minute] = time.split(":").map(Number);
+  const [openHour, openMinute] = openTime.split(":").map(Number);
+  const [closeHour, closeMinute] = closeTime.split(":").map(Number);
 
   const currentMinutes = hour * 60 + minute;
   const openMinutes = openHour * 60 + openMinute;

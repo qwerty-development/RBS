@@ -67,18 +67,19 @@ export function useBookings() {
         return true;
       }
 
-      if (checkError && checkError.code === 'PGRST116') {
+      if (checkError && checkError.code === "PGRST116") {
         // Profile doesn't exist, create it
         console.log("Creating profile for new user:", user.id);
-        
-        const { error: createError } = await supabase
-          .from("profiles")
-          .insert({
-            id: user.id,
-            full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || "New User",
-            email: user.email,
-            created_at: new Date().toISOString(),
-          });
+
+        const { error: createError } = await supabase.from("profiles").insert({
+          id: user.id,
+          full_name:
+            user.user_metadata?.full_name ||
+            user.email?.split("@")[0] ||
+            "New User",
+          email: user.email,
+          created_at: new Date().toISOString(),
+        });
 
         if (createError) {
           console.error("Error creating profile:", createError);
@@ -86,10 +87,10 @@ export function useBookings() {
         }
 
         console.log("Profile created successfully");
-        
+
         // Give the database a moment to process
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         return true;
       }
 
@@ -97,14 +98,16 @@ export function useBookings() {
     } catch (err) {
       console.error("Error in ensureProfileExists:", err);
       profileCheckAttempts.current += 1;
-      
+
       // Retry if we haven't exceeded max attempts
       if (profileCheckAttempts.current < MAX_PROFILE_CHECK_ATTEMPTS) {
-        console.log(`Retrying profile check (attempt ${profileCheckAttempts.current})...`);
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        console.log(
+          `Retrying profile check (attempt ${profileCheckAttempts.current})...`,
+        );
+        await new Promise((resolve) => setTimeout(resolve, 1500));
         return ensureProfileExists();
       }
-      
+
       return false;
     }
   }, [user, isGuest]);
@@ -176,12 +179,14 @@ export function useBookings() {
       // Update store with fetched data
       setUpcomingBookings(upcomingData || []);
       setPastBookings(pastData || []);
-      
-      console.log(`Fetched ${upcomingData?.length || 0} upcoming and ${pastData?.length || 0} past bookings`);
+
+      console.log(
+        `Fetched ${upcomingData?.length || 0} upcoming and ${pastData?.length || 0} past bookings`,
+      );
     } catch (error) {
       console.error("Error fetching bookings:", error);
       setError(error as Error);
-      
+
       // Only show alert if not during initial load
       if (hasInitialLoad.current) {
         Alert.alert("Error", "Failed to load bookings. Please try again.");
@@ -191,7 +196,14 @@ export function useBookings() {
       setRefreshing(false);
       setIsInitialized(true);
     }
-  }, [user?.id, isGuest, setUpcomingBookings, setPastBookings, setBookingsLoading, ensureProfileExists]);
+  }, [
+    user?.id,
+    isGuest,
+    setUpcomingBookings,
+    setPastBookings,
+    setBookingsLoading,
+    ensureProfileExists,
+  ]);
 
   // Navigation Functions with error handling
   const navigateToBookingDetails = useCallback(
@@ -354,7 +366,14 @@ export function useBookings() {
       setIsInitialized(true);
       hasInitialLoad.current = false;
     }
-  }, [user, isGuest, fetchBookings, setBookingsLoading, setUpcomingBookings, setPastBookings]);
+  }, [
+    user,
+    isGuest,
+    fetchBookings,
+    setBookingsLoading,
+    setUpcomingBookings,
+    setPastBookings,
+  ]);
 
   return {
     // State

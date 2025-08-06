@@ -32,10 +32,12 @@ export const SearchResultsHeader = React.memo(
       if (bookingFilters.availableOnly) {
         return ` • Showing only available restaurants`;
       }
-      
-      if (bookingFilters.date === null && 
-          bookingFilters.partySize === null && 
-          bookingFilters.time === null) {
+
+      if (
+        bookingFilters.date === null &&
+        bookingFilters.partySize === null &&
+        bookingFilters.time === null
+      ) {
         return ` • Showing all restaurants`;
       }
 
@@ -49,27 +51,29 @@ export const SearchResultsHeader = React.memo(
       // Add date/time info
       if (bookingFilters.date !== null || bookingFilters.time !== null) {
         let dateTimePart = "";
-        
+
         if (bookingFilters.date !== null && bookingFilters.time !== null) {
-          const datePart = bookingFilters.date.toDateString() === new Date().toDateString()
-            ? "today"
-            : bookingFilters.date.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              });
+          const datePart =
+            bookingFilters.date.toDateString() === new Date().toDateString()
+              ? "today"
+              : bookingFilters.date.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                });
           dateTimePart = `${datePart} at ${bookingFilters.time}`;
         } else if (bookingFilters.date !== null) {
-          const datePart = bookingFilters.date.toDateString() === new Date().toDateString()
-            ? "today"
-            : bookingFilters.date.toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-              });
+          const datePart =
+            bookingFilters.date.toDateString() === new Date().toDateString()
+              ? "today"
+              : bookingFilters.date.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                });
           dateTimePart = `${datePart} at any time`;
         } else if (bookingFilters.time !== null) {
           dateTimePart = `any date at ${bookingFilters.time}`;
         }
-        
+
         if (dateTimePart) {
           parts.push(dateTimePart);
         }

@@ -1,6 +1,6 @@
-import { Alert } from 'react-native';
-import * as Sentry from '@sentry/react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from "react-native";
+import * as Sentry from "@sentry/react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Security configuration
 const SECURITY_CONFIG = {
@@ -22,12 +22,12 @@ export class InputSanitizer {
    * Sanitize text input to prevent XSS and injection attacks
    */
   static sanitizeText(input: string): string {
-    if (typeof input !== 'string') {
-      return '';
+    if (typeof input !== "string") {
+      return "";
     }
 
     // Remove null bytes
-    let sanitized = input.replace(/\0/g, '');
+    let sanitized = input.replace(/\0/g, "");
 
     // Limit length
     if (sanitized.length > SECURITY_CONFIG.maxInputLength) {
@@ -35,10 +35,10 @@ export class InputSanitizer {
     }
 
     // Remove potentially dangerous characters for SQL injection
-    sanitized = sanitized.replace(/[<>'";&\\]/g, '');
+    sanitized = sanitized.replace(/[<>'";&\\]/g, "");
 
     // Normalize whitespace
-    sanitized = sanitized.replace(/\s+/g, ' ').trim();
+    sanitized = sanitized.replace(/\s+/g, " ").trim();
 
     return sanitized;
   }
@@ -47,48 +47,48 @@ export class InputSanitizer {
    * Sanitize email input
    */
   static sanitizeEmail(email: string): string {
-    if (typeof email !== 'string') {
-      return '';
+    if (typeof email !== "string") {
+      return "";
     }
 
     // Basic email format validation and sanitization
     const sanitized = email.toLowerCase().trim();
-    
+
     // Remove dangerous characters
-    return sanitized.replace(/[<>'";&\\]/g, '');
+    return sanitized.replace(/[<>'";&\\]/g, "");
   }
 
   /**
    * Sanitize phone number
    */
   static sanitizePhoneNumber(phone: string): string {
-    if (typeof phone !== 'string') {
-      return '';
+    if (typeof phone !== "string") {
+      return "";
     }
 
     // Keep only digits, spaces, hyphens, plus, and parentheses
-    return phone.replace(/[^0-9\s\-+()]/g, '').trim();
+    return phone.replace(/[^0-9\s\-+()]/g, "").trim();
   }
 
   /**
    * Sanitize URL input
    */
   static sanitizeUrl(url: string): string {
-    if (typeof url !== 'string') {
-      return '';
+    if (typeof url !== "string") {
+      return "";
     }
 
     try {
       const urlObj = new URL(url);
-      
+
       // Only allow https and http protocols
-      if (!['https:', 'http:'].includes(urlObj.protocol)) {
-        return '';
+      if (!["https:", "http:"].includes(urlObj.protocol)) {
+        return "";
       }
 
       return urlObj.toString();
     } catch {
-      return '';
+      return "";
     }
   }
 
@@ -96,26 +96,28 @@ export class InputSanitizer {
    * Remove sensitive data from logs
    */
   static sanitizeForLogging(data: any): any {
-    if (typeof data === 'string') {
+    if (typeof data === "string") {
       let sanitized = data;
-      
+
       // Replace sensitive patterns
-      SECURITY_CONFIG.sensitiveDataPatterns.forEach(pattern => {
-        sanitized = sanitized.replace(pattern, '[REDACTED]');
+      SECURITY_CONFIG.sensitiveDataPatterns.forEach((pattern) => {
+        sanitized = sanitized.replace(pattern, "[REDACTED]");
       });
 
       return sanitized;
     }
 
-    if (typeof data === 'object' && data !== null) {
+    if (typeof data === "object" && data !== null) {
       const sanitized: any = Array.isArray(data) ? [] : {};
-      
+
       for (const [key, value] of Object.entries(data)) {
         // Redact common sensitive field names
-        if (['password', 'token', 'secret', 'key', 'auth'].some(sensitive => 
-          key.toLowerCase().includes(sensitive)
-        )) {
-          sanitized[key] = '[REDACTED]';
+        if (
+          ["password", "token", "secret", "key", "auth"].some((sensitive) =>
+            key.toLowerCase().includes(sensitive),
+          )
+        ) {
+          sanitized[key] = "[REDACTED]";
         } else {
           sanitized[key] = this.sanitizeForLogging(value);
         }
@@ -154,51 +156,51 @@ export class InputValidator {
   static validatePassword(password: string): {
     isValid: boolean;
     errors: string[];
-    strength: 'weak' | 'medium' | 'strong';
+    strength: "weak" | "medium" | "strong";
   } {
     const errors: string[] = [];
     let score = 0;
 
     if (password.length < 8) {
-      errors.push('Password must be at least 8 characters long');
+      errors.push("Password must be at least 8 characters long");
     } else {
       score += 1;
     }
 
     if (!/[a-z]/.test(password)) {
-      errors.push('Password must contain at least one lowercase letter');
+      errors.push("Password must contain at least one lowercase letter");
     } else {
       score += 1;
     }
 
     if (!/[A-Z]/.test(password)) {
-      errors.push('Password must contain at least one uppercase letter');
+      errors.push("Password must contain at least one uppercase letter");
     } else {
       score += 1;
     }
 
     if (!/\d/.test(password)) {
-      errors.push('Password must contain at least one number');
+      errors.push("Password must contain at least one number");
     } else {
       score += 1;
     }
 
     if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      errors.push('Password must contain at least one special character');
+      errors.push("Password must contain at least one special character");
     } else {
       score += 1;
     }
 
     // Check for common weak passwords
-    const commonPasswords = ['password', '123456', 'qwerty', 'abc123'];
+    const commonPasswords = ["password", "123456", "qwerty", "abc123"];
     if (commonPasswords.includes(password.toLowerCase())) {
-      errors.push('Password is too common');
+      errors.push("Password is too common");
       score = 0;
     }
 
-    let strength: 'weak' | 'medium' | 'strong' = 'weak';
-    if (score >= 4) strength = 'strong';
-    else if (score >= 2) strength = 'medium';
+    let strength: "weak" | "medium" | "strong" = "weak";
+    if (score >= 4) strength = "strong";
+    else if (score >= 2) strength = "medium";
 
     return {
       isValid: errors.length === 0,
@@ -213,7 +215,7 @@ export class InputValidator {
   static isValidUrl(url: string): boolean {
     try {
       const urlObj = new URL(url);
-      return ['https:', 'http:'].includes(urlObj.protocol);
+      return ["https:", "http:"].includes(urlObj.protocol);
     } catch {
       return false;
     }
@@ -222,7 +224,11 @@ export class InputValidator {
   /**
    * Validate input length
    */
-  static isValidLength(input: string, min: number = 0, max: number = SECURITY_CONFIG.maxInputLength): boolean {
+  static isValidLength(
+    input: string,
+    min: number = 0,
+    max: number = SECURITY_CONFIG.maxInputLength,
+  ): boolean {
     return input.length >= min && input.length <= max;
   }
 }
@@ -231,12 +237,18 @@ export class InputValidator {
  * Rate limiting utilities
  */
 export class RateLimiter {
-  private static requestCounts: Map<string, { count: number; resetTime: number }> = new Map();
+  private static requestCounts: Map<
+    string,
+    { count: number; resetTime: number }
+  > = new Map();
 
   /**
    * Check if request is within rate limit
    */
-  static async checkRateLimit(identifier: string, limit: number = SECURITY_CONFIG.maxRequestsPerWindow): Promise<boolean> {
+  static async checkRateLimit(
+    identifier: string,
+    limit: number = SECURITY_CONFIG.maxRequestsPerWindow,
+  ): Promise<boolean> {
     const now = Date.now();
     const windowStart = now - SECURITY_CONFIG.rateLimitWindow;
 
@@ -250,7 +262,10 @@ export class RateLimiter {
 
     if (current.count >= limit) {
       // Rate limit exceeded
-      this.logSecurityEvent('rate_limit_exceeded', { identifier, count: current.count });
+      this.logSecurityEvent("rate_limit_exceeded", {
+        identifier,
+        count: current.count,
+      });
       return false;
     }
 
@@ -263,12 +278,15 @@ export class RateLimiter {
    * Log security event
    */
   private static logSecurityEvent(event: string, data: any) {
-    console.warn(`Security event: ${event}`, InputSanitizer.sanitizeForLogging(data));
-    
+    console.warn(
+      `Security event: ${event}`,
+      InputSanitizer.sanitizeForLogging(data),
+    );
+
     Sentry.addBreadcrumb({
       message: `Security: ${event}`,
-      category: 'security',
-      level: 'warning',
+      category: "security",
+      level: "warning",
       data: InputSanitizer.sanitizeForLogging(data),
     });
   }
@@ -278,7 +296,7 @@ export class RateLimiter {
  * Secure storage utilities
  */
 export class SecureStorage {
-  private static readonly ENCRYPTION_KEY = 'app_encryption_key';
+  private static readonly ENCRYPTION_KEY = "app_encryption_key";
 
   /**
    * Store sensitive data securely
@@ -290,8 +308,8 @@ export class SecureStorage {
       const encrypted = this.simpleEncrypt(value);
       await AsyncStorage.setItem(key, encrypted);
     } catch (error) {
-      console.error('Secure storage error:', error);
-      throw new Error('Failed to store sensitive data');
+      console.error("Secure storage error:", error);
+      throw new Error("Failed to store sensitive data");
     }
   }
 
@@ -302,10 +320,10 @@ export class SecureStorage {
     try {
       const encrypted = await AsyncStorage.getItem(key);
       if (!encrypted) return null;
-      
+
       return this.simpleDecrypt(encrypted);
     } catch (error) {
-      console.error('Secure retrieval error:', error);
+      console.error("Secure retrieval error:", error);
       return null;
     }
   }
@@ -317,7 +335,7 @@ export class SecureStorage {
     try {
       await AsyncStorage.removeItem(key);
     } catch (error) {
-      console.error('Secure removal error:', error);
+      console.error("Secure removal error:", error);
     }
   }
 
@@ -326,7 +344,7 @@ export class SecureStorage {
    */
   private static simpleEncrypt(text: string): string {
     // This is NOT secure encryption - use react-native-keychain or similar in production
-    return Buffer.from(text).toString('base64');
+    return Buffer.from(text).toString("base64");
   }
 
   /**
@@ -334,7 +352,7 @@ export class SecureStorage {
    */
   private static simpleDecrypt(encrypted: string): string {
     // This is NOT secure decryption - use react-native-keychain or similar in production
-    return Buffer.from(encrypted, 'base64').toString();
+    return Buffer.from(encrypted, "base64").toString();
   }
 }
 
@@ -346,7 +364,11 @@ export class SecurityMonitor {
    * Monitor for suspicious activity
    */
   static monitorSuspiciousActivity(activity: {
-    type: 'multiple_failed_logins' | 'rapid_requests' | 'invalid_input' | 'unauthorized_access';
+    type:
+      | "multiple_failed_logins"
+      | "rapid_requests"
+      | "invalid_input"
+      | "unauthorized_access";
     metadata?: any;
   }) {
     const { type, metadata } = activity;
@@ -355,29 +377,29 @@ export class SecurityMonitor {
 
     // Report to monitoring service
     Sentry.withScope((scope) => {
-      scope.setTag('security_alert', true);
-      scope.setLevel('warning');
-      scope.setContext('suspicious_activity', {
+      scope.setTag("security_alert", true);
+      scope.setLevel("warning");
+      scope.setContext("suspicious_activity", {
         type,
         metadata: InputSanitizer.sanitizeForLogging(metadata),
         timestamp: new Date().toISOString(),
       });
-      
+
       Sentry.captureMessage(`Suspicious activity: ${type}`);
     });
 
     // Take appropriate action based on activity type
     switch (type) {
-      case 'multiple_failed_logins':
+      case "multiple_failed_logins":
         this.handleMultipleFailedLogins(metadata);
         break;
-      case 'rapid_requests':
+      case "rapid_requests":
         this.handleRapidRequests(metadata);
         break;
-      case 'invalid_input':
+      case "invalid_input":
         this.handleInvalidInput(metadata);
         break;
-      case 'unauthorized_access':
+      case "unauthorized_access":
         this.handleUnauthorizedAccess(metadata);
         break;
     }
@@ -386,28 +408,28 @@ export class SecurityMonitor {
   private static handleMultipleFailedLogins(metadata: any) {
     // Could implement account lockout, captcha, etc.
     Alert.alert(
-      'Security Alert',
-      'Multiple failed login attempts detected. Please verify your credentials.',
-      [{ text: 'OK' }]
+      "Security Alert",
+      "Multiple failed login attempts detected. Please verify your credentials.",
+      [{ text: "OK" }],
     );
   }
 
   private static handleRapidRequests(metadata: any) {
     // Could implement temporary blocks, warnings, etc.
-    console.warn('Rapid requests detected - possible bot activity');
+    console.warn("Rapid requests detected - possible bot activity");
   }
 
   private static handleInvalidInput(metadata: any) {
     // Log and monitor for patterns
-    console.warn('Invalid input detected - possible injection attempt');
+    console.warn("Invalid input detected - possible injection attempt");
   }
 
   private static handleUnauthorizedAccess(metadata: any) {
     // Could trigger logout, session invalidation, etc.
     Alert.alert(
-      'Security Alert',
-      'Unauthorized access detected. Please log in again.',
-      [{ text: 'OK' }]
+      "Security Alert",
+      "Unauthorized access detected. Please log in again.",
+      [{ text: "OK" }],
     );
   }
 }
@@ -418,18 +440,18 @@ export class SecurityMonitor {
 export function useSecureInput() {
   const validateAndSanitize = (
     input: string,
-    type: 'text' | 'email' | 'phone' | 'url' | 'password' = 'text'
+    type: "text" | "email" | "phone" | "url" | "password" = "text",
   ) => {
     // Sanitize first
     let sanitized: string;
     switch (type) {
-      case 'email':
+      case "email":
         sanitized = InputSanitizer.sanitizeEmail(input);
         break;
-      case 'phone':
+      case "phone":
         sanitized = InputSanitizer.sanitizePhoneNumber(input);
         break;
-      case 'url':
+      case "url":
         sanitized = InputSanitizer.sanitizeUrl(input);
         break;
       default:
@@ -441,19 +463,19 @@ export function useSecureInput() {
     let errors: string[] = [];
 
     switch (type) {
-      case 'email':
+      case "email":
         isValid = InputValidator.isValidEmail(sanitized);
-        if (!isValid) errors.push('Invalid email format');
+        if (!isValid) errors.push("Invalid email format");
         break;
-      case 'phone':
+      case "phone":
         isValid = InputValidator.isValidPhoneNumber(sanitized);
-        if (!isValid) errors.push('Invalid phone number format');
+        if (!isValid) errors.push("Invalid phone number format");
         break;
-      case 'url':
+      case "url":
         isValid = InputValidator.isValidUrl(sanitized);
-        if (!isValid) errors.push('Invalid URL format');
+        if (!isValid) errors.push("Invalid URL format");
         break;
-      case 'password':
+      case "password":
         const passwordValidation = InputValidator.validatePassword(sanitized);
         isValid = passwordValidation.isValid;
         errors = passwordValidation.errors;
@@ -479,7 +501,7 @@ export function withSecurityMiddleware<T extends (...args: any[]) => any>(
     rateLimitKey?: string;
     sanitizeArgs?: boolean;
     monitorFailures?: boolean;
-  } = {}
+  } = {},
 ): T {
   const { rateLimitKey, sanitizeArgs = true, monitorFailures = true } = options;
 
@@ -489,14 +511,14 @@ export function withSecurityMiddleware<T extends (...args: any[]) => any>(
       if (rateLimitKey) {
         const allowed = await RateLimiter.checkRateLimit(rateLimitKey);
         if (!allowed) {
-          throw new Error('Rate limit exceeded');
+          throw new Error("Rate limit exceeded");
         }
       }
 
       // Sanitize arguments
       if (sanitizeArgs) {
-        args = args.map(arg => 
-          typeof arg === 'string' ? InputSanitizer.sanitizeText(arg) : arg
+        args = args.map((arg) =>
+          typeof arg === "string" ? InputSanitizer.sanitizeText(arg) : arg,
         ) as Parameters<T>;
       }
 
@@ -506,7 +528,7 @@ export function withSecurityMiddleware<T extends (...args: any[]) => any>(
     } catch (error) {
       if (monitorFailures) {
         SecurityMonitor.monitorSuspiciousActivity({
-          type: 'invalid_input',
+          type: "invalid_input",
           metadata: {
             function: apiCall.name,
             error: (error as Error).message,
@@ -517,4 +539,4 @@ export function withSecurityMiddleware<T extends (...args: any[]) => any>(
       throw error;
     }
   }) as T;
-} 
+}

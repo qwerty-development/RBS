@@ -43,26 +43,27 @@ export class RealtimeAvailability {
           },
           (payload) => {
             console.log("Booking change detected:", payload);
-            
+
             // Check if this is a status change that affects availability
             const newData = payload.new as any;
             const oldData = payload.old as any;
             const newStatus = newData?.status;
             const oldStatus = oldData?.status;
-            
+
             // Trigger immediate update for status changes that free up tables
             if (
-              newStatus !== oldStatus && 
-              (newStatus === 'cancelled_by_user' || 
-               newStatus === 'cancelled_by_restaurant' || 
-               newStatus === 'declined_by_restaurant' ||
-               newStatus === 'no_show' ||
-               oldStatus === 'pending' // When pending becomes confirmed, it may block other slots
-              )
+              newStatus !== oldStatus &&
+              (newStatus === "cancelled_by_user" ||
+                newStatus === "cancelled_by_restaurant" ||
+                newStatus === "declined_by_restaurant" ||
+                newStatus === "no_show" ||
+                oldStatus === "pending") // When pending becomes confirmed, it may block other slots
             ) {
-              console.log(`Booking status changed from ${oldStatus} to ${newStatus}, triggering immediate availability update`);
+              console.log(
+                `Booking status changed from ${oldStatus} to ${newStatus}, triggering immediate availability update`,
+              );
             }
-            
+
             this.notifyListeners(channelKey);
           },
         )

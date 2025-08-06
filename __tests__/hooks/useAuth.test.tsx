@@ -1,18 +1,18 @@
-import React, { ReactNode } from 'react';
-import { renderHook, act, waitFor } from '@testing-library/react-native';
-import { useAuth } from '@/context/supabase-provider';
+import React, { ReactNode } from "react";
+import { renderHook, act, waitFor } from "@testing-library/react-native";
+import { useAuth } from "@/context/supabase-provider";
 
 // Mock the AuthProvider
 const MockAuthProvider = ({ children }: { children: ReactNode }) => {
   return <>{children}</>;
 };
 
-describe('useAuth Hook', () => {
+describe("useAuth Hook", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
-  it('should initialize with default values', async () => {
+  it("should initialize with default values", async () => {
     const { result } = renderHook(() => useAuth(), {
       wrapper: ({ children }) => (
         <MockAuthProvider>{children}</MockAuthProvider>
@@ -29,7 +29,7 @@ describe('useAuth Hook', () => {
     expect(result.current.isGuest).toBe(false);
   });
 
-  it('should handle sign up successfully', async () => {
+  it("should handle sign up successfully", async () => {
     const { result } = renderHook(() => useAuth(), {
       wrapper: ({ children }) => (
         <MockAuthProvider>{children}</MockAuthProvider>
@@ -38,10 +38,10 @@ describe('useAuth Hook', () => {
 
     await act(async () => {
       await result.current.signUp(
-        'test@example.com',
-        'Password123!',
-        'John Doe',
-        '+96171234567'
+        "test@example.com",
+        "Password123!",
+        "John Doe",
+        "+96171234567",
       );
     });
 
@@ -49,7 +49,7 @@ describe('useAuth Hook', () => {
     expect(result.current.signUp).toBeDefined();
   });
 
-  it('should handle sign in successfully', async () => {
+  it("should handle sign in successfully", async () => {
     const { result } = renderHook(() => useAuth(), {
       wrapper: ({ children }) => (
         <MockAuthProvider>{children}</MockAuthProvider>
@@ -57,14 +57,14 @@ describe('useAuth Hook', () => {
     });
 
     await act(async () => {
-      await result.current.signIn('test@example.com', 'Password123!');
+      await result.current.signIn("test@example.com", "Password123!");
     });
 
     // Verify sign in was called
     expect(result.current.signIn).toBeDefined();
   });
 
-  it('should handle sign out successfully', async () => {
+  it("should handle sign out successfully", async () => {
     const { result } = renderHook(() => useAuth(), {
       wrapper: ({ children }) => (
         <MockAuthProvider>{children}</MockAuthProvider>
@@ -79,7 +79,7 @@ describe('useAuth Hook', () => {
     expect(result.current.signOut).toBeDefined();
   });
 
-  it('should handle guest mode correctly', async () => {
+  it("should handle guest mode correctly", async () => {
     const { result } = renderHook(() => useAuth(), {
       wrapper: ({ children }) => (
         <MockAuthProvider>{children}</MockAuthProvider>
@@ -95,7 +95,7 @@ describe('useAuth Hook', () => {
     });
   });
 
-  it('should update profile successfully', async () => {
+  it("should update profile successfully", async () => {
     const { result } = renderHook(() => useAuth(), {
       wrapper: ({ children }) => (
         <MockAuthProvider>{children}</MockAuthProvider>
@@ -103,8 +103,8 @@ describe('useAuth Hook', () => {
     });
 
     const profileUpdates = {
-      full_name: 'Updated Name',
-      phone_number: '+96171234567',
+      full_name: "Updated Name",
+      phone_number: "+96171234567",
     };
 
     await act(async () => {
@@ -115,7 +115,7 @@ describe('useAuth Hook', () => {
     expect(result.current.updateProfile).toBeDefined();
   });
 
-  it('should handle authentication errors gracefully', async () => {
+  it("should handle authentication errors gracefully", async () => {
     const { result } = renderHook(() => useAuth(), {
       wrapper: ({ children }) => (
         <MockAuthProvider>{children}</MockAuthProvider>
@@ -125,14 +125,14 @@ describe('useAuth Hook', () => {
     // Test invalid credentials
     await act(async () => {
       try {
-        await result.current.signIn('invalid@email.com', 'wrongpassword');
+        await result.current.signIn("invalid@email.com", "wrongpassword");
       } catch (error) {
         expect(error).toBeDefined();
       }
     });
   });
 
-  it('should refresh profile data', async () => {
+  it("should refresh profile data", async () => {
     const { result } = renderHook(() => useAuth(), {
       wrapper: ({ children }) => (
         <MockAuthProvider>{children}</MockAuthProvider>
@@ -146,4 +146,4 @@ describe('useAuth Hook', () => {
     // Verify refresh profile was called
     expect(result.current.refreshProfile).toBeDefined();
   });
-}); 
+});

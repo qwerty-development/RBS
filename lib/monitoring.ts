@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { AppState, DeviceEventEmitter } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Sentry from '@sentry/react-native';
-import { InputSanitizer } from './security';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { AppState, DeviceEventEmitter } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Sentry from "@sentry/react-native";
+import { InputSanitizer } from "./security";
 
 // Monitoring configuration
 const MONITORING_CONFIG = {
@@ -17,7 +17,7 @@ const MONITORING_CONFIG = {
 export interface LogEntry {
   id: string;
   timestamp: number;
-  level: 'debug' | 'info' | 'warn' | 'error';
+  level: "debug" | "info" | "warn" | "error";
   message: string;
   data?: any;
   component?: string;
@@ -30,7 +30,7 @@ export interface MetricEntry {
   timestamp: number;
   name: string;
   value: number;
-  unit: 'ms' | 'bytes' | 'count' | 'percentage';
+  unit: "ms" | "bytes" | "count" | "percentage";
   tags?: Record<string, string>;
   sessionId: string;
 }
@@ -89,20 +89,22 @@ export class AppMonitor {
     try {
       // Start new session
       await this.startSession();
-      
+
       // Setup app state monitoring
-      AppState.addEventListener('change', this.handleAppStateChange);
-      
+      AppState.addEventListener("change", this.handleAppStateChange);
+
       // Setup error monitoring
       this.setupErrorHandling();
-      
+
       // Load persisted data
       await this.loadPersistedData();
-      
+
       this.isInitialized = true;
-      this.log('info', 'App monitor initialized', { sessionId: this.sessionId });
+      this.log("info", "App monitor initialized", {
+        sessionId: this.sessionId,
+      });
     } catch (error) {
-      console.error('Failed to initialize app monitor:', error);
+      console.error("Failed to initialize app monitor:", error);
     }
   }
 
@@ -113,8 +115,8 @@ export class AppMonitor {
     this.currentSession = {
       id: this.sessionId,
       startTime: Date.now(),
-      userAgent: navigator.userAgent || 'Unknown',
-      appVersion: '1.0.0', // Get from app config
+      userAgent: navigator.userAgent || "Unknown",
+      appVersion: "1.0.0", // Get from app config
       crashCount: 0,
       errorCount: 0,
       screenViews: [],
@@ -139,7 +141,7 @@ export class AppMonitor {
       ...userData,
     });
 
-    this.log('info', 'User context updated', { userId });
+    this.log("info", "User context updated", { userId });
   }
 
   /**
@@ -151,14 +153,19 @@ export class AppMonitor {
       delete this.currentSession.userId;
     }
 
-    Sentry.configureScope(scope => scope.clear());
-    this.log('info', 'User context cleared');
+    Sentry.configureScope((scope) => scope.clear());
+    this.log("info", "User context cleared");
   }
 
   /**
    * Log message with context
    */
-  log(level: LogEntry['level'], message: string, data?: any, component?: string) {
+  log(
+    level: LogEntry["level"],
+    message: string,
+    data?: any,
+    component?: string,
+  ) {
     const entry: LogEntry = {
       id: this.generateId(),
       timestamp: Date.now(),
@@ -181,15 +188,15 @@ export class AppMonitor {
     // Console output in development
     if (MONITORING_CONFIG.enableDebugLogs) {
       const consoleMethod = console[level] || console.log;
-      consoleMethod(`[${component || 'App'}] ${message}`, data);
+      consoleMethod(`[${component || "App"}] ${message}`, data);
     }
 
     // Report errors to Sentry
-    if (level === 'error') {
+    if (level === "error") {
       Sentry.addBreadcrumb({
         message,
-        category: component || 'general',
-        level: 'error',
+        category: component || "general",
+        level: "error",
         data: entry.data,
       });
 
@@ -206,10 +213,10 @@ export class AppMonitor {
    * Record performance metric
    */
   recordMetric(
-    name: string, 
-    value: number, 
-    unit: MetricEntry['unit'] = 'ms',
-    tags?: Record<string, string>
+    name: string,
+    value: number,
+    unit: MetricEntry["unit"] = "ms",
+    tags?: Record<string, string>,
   ) {
     if (!MONITORING_CONFIG.enableMetrics) return;
 
@@ -244,7 +251,9 @@ export class AppMonitor {
       id: this.generateId(),
       timestamp: Date.now(),
       event,
-      properties: properties ? InputSanitizer.sanitizeForLogging(properties) : undefined,
+      properties: properties
+        ? InputSanitizer.sanitizeForLogging(properties)
+        : undefined,
       userId: this.userId,
       sessionId: this.sessionId,
     };
@@ -258,12 +267,12 @@ export class AppMonitor {
     // Report to analytics
     Sentry.addBreadcrumb({
       message: `Event: ${event}`,
-      category: 'user_action',
-      level: 'info',
+      category: "user_action",
+      level: "info",
       data: entry.properties,
     });
 
-    this.log('info', `Event tracked: ${event}`, properties, 'Analytics');
+    this.log("info", `Event tracked: ${event}`, properties, "Analytics");
     this.debouncedPersist();
   }
 
@@ -275,7 +284,7 @@ export class AppMonitor {
       this.currentSession.screenViews.push(screenName);
     }
 
-    this.trackEvent('screen_view', {
+    this.trackEvent("screen_view", {
       screen_name: screenName,
       ...properties,
     });
@@ -289,16 +298,21 @@ export class AppMonitor {
       this.currentSession.crashCount++;
     }
 
-    this.log('error', 'App crash detected', {
-      error: error.message,
-      stack: error.stack,
-      ...context,
-    }, 'CrashHandler');
+    this.log(
+      "error",
+      "App crash detected",
+      {
+        error: error.message,
+        stack: error.stack,
+        ...context,
+      },
+      "CrashHandler",
+    );
 
-    Sentry.withScope(scope => {
-      scope.setTag('crash', true);
-      scope.setLevel('fatal');
-      scope.setContext('crash_context', context || {});
+    Sentry.withScope((scope) => {
+      scope.setTag("crash", true);
+      scope.setLevel("fatal");
+      scope.setContext("crash_context", context || {});
       Sentry.captureException(error);
     });
   }
@@ -347,12 +361,12 @@ export class AppMonitor {
     this.metrics = [];
     this.events = [];
     await AsyncStorage.multiRemove([
-      'app_monitor_logs',
-      'app_monitor_metrics',
-      'app_monitor_events',
-      'app_monitor_session',
+      "app_monitor_logs",
+      "app_monitor_metrics",
+      "app_monitor_events",
+      "app_monitor_session",
     ]);
-    this.log('info', 'Monitor data cleared');
+    this.log("info", "Monitor data cleared");
   }
 
   // Private methods
@@ -365,12 +379,15 @@ export class AppMonitor {
   }
 
   private handleAppStateChange = (nextAppState: string) => {
-    if (nextAppState === 'background') {
+    if (nextAppState === "background") {
       this.endSession();
-    } else if (nextAppState === 'active') {
+    } else if (nextAppState === "active") {
       // Start new session if needed
-      if (!this.currentSession || 
-          Date.now() - this.currentSession.startTime > MONITORING_CONFIG.sessionTimeout) {
+      if (
+        !this.currentSession ||
+        Date.now() - this.currentSession.startTime >
+          MONITORING_CONFIG.sessionTimeout
+      ) {
         this.sessionId = this.generateSessionId();
         this.startSession();
       }
@@ -380,7 +397,7 @@ export class AppMonitor {
   private endSession() {
     if (this.currentSession && !this.currentSession.endTime) {
       this.currentSession.endTime = Date.now();
-      this.log('info', 'Session ended', { 
+      this.log("info", "Session ended", {
         duration: this.currentSession.endTime - this.currentSession.startTime,
         sessionId: this.sessionId,
       });
@@ -390,7 +407,7 @@ export class AppMonitor {
 
   private setupErrorHandling() {
     // Global error handler - only available in React Native
-    if (typeof ErrorUtils !== 'undefined') {
+    if (typeof ErrorUtils !== "undefined") {
       const originalHandler = ErrorUtils.getGlobalHandler();
       ErrorUtils.setGlobalHandler((error, isFatal) => {
         this.trackCrash(error, { isFatal });
@@ -401,17 +418,25 @@ export class AppMonitor {
     }
 
     // Unhandled promise rejections
-    if (typeof window === 'undefined') { // React Native only
+    if (typeof window === "undefined") {
+      // React Native only
       try {
-        const ExceptionsManager = require('react-native/Libraries/Core/ExceptionsManager');
+        const ExceptionsManager = require("react-native/Libraries/Core/ExceptionsManager");
         if (ExceptionsManager && ExceptionsManager.unstable_setGlobalHandler) {
-          ExceptionsManager.unstable_setGlobalHandler((error: any, isFatal: boolean) => {
-            this.trackCrash(new Error(error), { isFatal, type: 'unhandled_promise' });
-          });
+          ExceptionsManager.unstable_setGlobalHandler(
+            (error: any, isFatal: boolean) => {
+              this.trackCrash(new Error(error), {
+                isFatal,
+                type: "unhandled_promise",
+              });
+            },
+          );
         }
       } catch (e) {
         // ExceptionsManager not available, skip
-        console.warn('ExceptionsManager not available for error handling setup');
+        console.warn(
+          "ExceptionsManager not available for error handling setup",
+        );
       }
     }
   }
@@ -419,8 +444,8 @@ export class AppMonitor {
   private reportMetricToSentry(metric: MetricEntry) {
     Sentry.addBreadcrumb({
       message: `Metric: ${metric.name} = ${metric.value}${metric.unit}`,
-      category: 'performance',
-      level: 'info',
+      category: "performance",
+      level: "info",
       data: {
         name: metric.name,
         value: metric.value,
@@ -445,27 +470,27 @@ export class AppMonitor {
   private async persistData() {
     try {
       await AsyncStorage.multiSet([
-        ['app_monitor_logs', JSON.stringify(this.logs.slice(-100))],
-        ['app_monitor_metrics', JSON.stringify(this.metrics.slice(-50))],
-        ['app_monitor_events', JSON.stringify(this.events.slice(-100))],
-        ['app_monitor_session', JSON.stringify(this.currentSession)],
+        ["app_monitor_logs", JSON.stringify(this.logs.slice(-100))],
+        ["app_monitor_metrics", JSON.stringify(this.metrics.slice(-50))],
+        ["app_monitor_events", JSON.stringify(this.events.slice(-100))],
+        ["app_monitor_session", JSON.stringify(this.currentSession)],
       ]);
     } catch (error) {
-      console.error('Failed to persist monitor data:', error);
+      console.error("Failed to persist monitor data:", error);
     }
   }
 
   private async loadPersistedData() {
     try {
       const data = await AsyncStorage.multiGet([
-        'app_monitor_logs',
-        'app_monitor_metrics',
-        'app_monitor_events',
-        'app_monitor_session',
+        "app_monitor_logs",
+        "app_monitor_metrics",
+        "app_monitor_events",
+        "app_monitor_session",
       ]);
 
-      const [logs, metrics, events, session] = data.map(([_, value]) => 
-        value ? JSON.parse(value) : null
+      const [logs, metrics, events, session] = data.map(([_, value]) =>
+        value ? JSON.parse(value) : null,
       );
 
       if (logs) this.logs = logs;
@@ -473,7 +498,7 @@ export class AppMonitor {
       if (events) this.events = events;
       if (session) this.currentSession = session;
     } catch (error) {
-      console.error('Failed to load persisted monitor data:', error);
+      console.error("Failed to load persisted monitor data:", error);
     }
   }
 }
@@ -486,36 +511,45 @@ export function useMonitoring(componentName: string) {
   const mountTimeRef = useRef(Date.now());
 
   useEffect(() => {
-    monitor.log('debug', `Component ${componentName} mounted`);
-    
+    monitor.log("debug", `Component ${componentName} mounted`);
+
     return () => {
       const mountDuration = Date.now() - mountTimeRef.current;
-      monitor.recordMetric(
-        'component_mount_duration',
-        mountDuration,
-        'ms',
-        { component: componentName }
-      );
-      monitor.log('debug', `Component ${componentName} unmounted`);
+      monitor.recordMetric("component_mount_duration", mountDuration, "ms", {
+        component: componentName,
+      });
+      monitor.log("debug", `Component ${componentName} unmounted`);
     };
   }, [componentName]);
 
-  const log = useCallback((level: LogEntry['level'], message: string, data?: any) => {
-    monitor.log(level, message, data, componentName);
-  }, [componentName]);
+  const log = useCallback(
+    (level: LogEntry["level"], message: string, data?: any) => {
+      monitor.log(level, message, data, componentName);
+    },
+    [componentName],
+  );
 
-  const trackEvent = useCallback((event: string, properties?: Record<string, any>) => {
-    monitor.trackEvent(event, { component: componentName, ...properties });
-  }, [componentName]);
+  const trackEvent = useCallback(
+    (event: string, properties?: Record<string, any>) => {
+      monitor.trackEvent(event, { component: componentName, ...properties });
+    },
+    [componentName],
+  );
 
-  const recordMetric = useCallback((
-    name: string,
-    value: number,
-    unit: MetricEntry['unit'] = 'ms',
-    tags?: Record<string, string>
-  ) => {
-    monitor.recordMetric(name, value, unit, { component: componentName, ...tags });
-  }, [componentName]);
+  const recordMetric = useCallback(
+    (
+      name: string,
+      value: number,
+      unit: MetricEntry["unit"] = "ms",
+      tags?: Record<string, string>,
+    ) => {
+      monitor.recordMetric(name, value, unit, {
+        component: componentName,
+        ...tags,
+      });
+    },
+    [componentName],
+  );
 
   return {
     log,
@@ -533,7 +567,7 @@ export function useDebugInfo() {
   const monitor = AppMonitor.getInstance();
 
   const toggleDebug = useCallback(() => {
-    setDebugVisible(prev => !prev);
+    setDebugVisible((prev) => !prev);
   }, []);
 
   const getDebugInfo = useCallback(() => {
@@ -568,4 +602,4 @@ export function useDebugInfo() {
 /**
  * Global monitor instance
  */
-export const appMonitor = AppMonitor.getInstance(); 
+export const appMonitor = AppMonitor.getInstance();

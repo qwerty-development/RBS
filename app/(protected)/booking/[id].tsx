@@ -68,43 +68,74 @@ const RestaurantLoyaltyStatus: React.FC<{
 }> = ({ booking, rule, wasRefunded }) => {
   if (!rule) return null;
 
-  const isPending = booking.status === 'pending';
-  const isConfirmed = booking.status === 'confirmed';
-  const isCancelled = booking.status === 'cancelled_by_user' || booking.status === 'declined_by_restaurant';
-  const isCompleted = booking.status === 'completed';
+  const isPending = booking.status === "pending";
+  const isConfirmed = booking.status === "confirmed";
+  const isCancelled =
+    booking.status === "cancelled_by_user" ||
+    booking.status === "declined_by_restaurant";
+  const isCompleted = booking.status === "completed";
 
   return (
     <View className="mx-4 mb-6">
-      <View className={`border rounded-xl p-4 ${
-        isCancelled ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' :
-        isPending ? 'bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800' :
-        'bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800'
-      }`}>
+      <View
+        className={`border rounded-xl p-4 ${
+          isCancelled
+            ? "bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
+            : isPending
+              ? "bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800"
+              : "bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800"
+        }`}
+      >
         <View className="flex-row items-center mb-2">
-          <Trophy size={20} color={isCancelled ? '#dc2626' : isPending ? '#f97316' : '#9333ea'} />
+          <Trophy
+            size={20}
+            color={isCancelled ? "#dc2626" : isPending ? "#f97316" : "#9333ea"}
+          />
           <Text className="font-semibold text-lg ml-2">
-            {isPending ? 'Potential Loyalty Points' : 
-             isCancelled ? 'Loyalty Points Status' :
-             'Loyalty Points Earned'}
+            {isPending
+              ? "Potential Loyalty Points"
+              : isCancelled
+                ? "Loyalty Points Status"
+                : "Loyalty Points Earned"}
           </Text>
         </View>
 
         <View className="space-y-2">
-          <Text className={`text-sm ${
-            isCancelled ? 'text-red-700 dark:text-red-300' :
-            isPending ? 'text-orange-700 dark:text-orange-300' :
-            'text-purple-700 dark:text-purple-300'
-          }`}>
+          <Text
+            className={`text-sm ${
+              isCancelled
+                ? "text-red-700 dark:text-red-300"
+                : isPending
+                  ? "text-orange-700 dark:text-orange-300"
+                  : "text-purple-700 dark:text-purple-300"
+            }`}
+          >
             {isPending ? (
-              <>You'll earn <Text className="font-bold">{booking.expected_loyalty_points || rule.points_to_award} points</Text> from "{rule.rule_name}" if confirmed</>
+              <>
+                You'll earn{" "}
+                <Text className="font-bold">
+                  {booking.expected_loyalty_points || rule.points_to_award}{" "}
+                  points
+                </Text>{" "}
+                from "{rule.rule_name}" if confirmed
+              </>
             ) : isCancelled ? (
               wasRefunded ? (
-                <>The {booking.loyalty_points_earned || 0} points from "{rule.rule_name}" have been refunded to the restaurant</>
+                <>
+                  The {booking.loyalty_points_earned || 0} points from "
+                  {rule.rule_name}" have been refunded to the restaurant
+                </>
               ) : (
                 <>No points were awarded for this cancelled booking</>
               )
             ) : (
-              <>You earned <Text className="font-bold">{booking.loyalty_points_earned} points</Text> from "{rule.rule_name}"</>
+              <>
+                You earned{" "}
+                <Text className="font-bold">
+                  {booking.loyalty_points_earned} points
+                </Text>{" "}
+                from "{rule.rule_name}"
+              </>
             )}
           </Text>
 
@@ -121,7 +152,8 @@ const RestaurantLoyaltyStatus: React.FC<{
             <View className="flex-row items-start mt-2">
               <Timer size={14} color="#f97316" className="mt-0.5" />
               <Text className="text-xs text-orange-600 dark:text-orange-400 ml-2 flex-1">
-                Points will be automatically added when your booking is confirmed
+                Points will be automatically added when your booking is
+                confirmed
               </Text>
             </View>
           )}
@@ -143,7 +175,8 @@ export default function BookingDetailsScreen() {
   const { colorScheme } = useColorScheme();
 
   // Restaurant loyalty state
-  const [restaurantLoyaltyRule, setRestaurantLoyaltyRule] = useState<LoyaltyRuleDetails | null>(null);
+  const [restaurantLoyaltyRule, setRestaurantLoyaltyRule] =
+    useState<LoyaltyRuleDetails | null>(null);
   const [wasLoyaltyRefunded, setWasLoyaltyRefunded] = useState<boolean>(false);
 
   // Use custom hook for all booking logic
@@ -170,9 +203,9 @@ export default function BookingDetailsScreen() {
 
       try {
         const { data: ruleData, error } = await supabase
-          .from('restaurant_loyalty_rules')
-          .select('id, rule_name, points_to_award, restaurant_id')
-          .eq('id', booking.applied_loyalty_rule_id)
+          .from("restaurant_loyalty_rules")
+          .select("id, rule_name, points_to_award, restaurant_id")
+          .eq("id", booking.applied_loyalty_rule_id)
           .single();
 
         if (!error && ruleData) {
@@ -180,12 +213,15 @@ export default function BookingDetailsScreen() {
         }
 
         // Check if loyalty was refunded (for cancelled bookings)
-        if (booking.status === 'cancelled_by_user' || booking.status === 'declined_by_restaurant') {
+        if (
+          booking.status === "cancelled_by_user" ||
+          booking.status === "declined_by_restaurant"
+        ) {
           const { data: refundData } = await supabase
-            .from('restaurant_loyalty_transactions')
-            .select('*')
-            .eq('booking_id', booking.id)
-            .eq('transaction_type', 'refund')
+            .from("restaurant_loyalty_transactions")
+            .select("*")
+            .eq("booking_id", booking.id)
+            .eq("transaction_type", "refund")
             .single();
 
           if (refundData) {
@@ -193,7 +229,7 @@ export default function BookingDetailsScreen() {
           }
         }
       } catch (err) {
-        console.error('Error fetching restaurant loyalty details:', err);
+        console.error("Error fetching restaurant loyalty details:", err);
       }
     };
 
@@ -203,12 +239,15 @@ export default function BookingDetailsScreen() {
   // Additional state for pending bookings
   const isPending = booking?.status === "pending";
   const isDeclined = booking?.status === "declined_by_restaurant";
-  const isCancelled = booking?.status === 'cancelled_by_user' || booking?.status === 'declined_by_restaurant';
-  const timeSinceRequest = isPending && booking
-    ? Math.floor(
-        (Date.now() - new Date(booking.created_at).getTime()) / (1000 * 60)
-      )
-    : 0;
+  const isCancelled =
+    booking?.status === "cancelled_by_user" ||
+    booking?.status === "declined_by_restaurant";
+  const timeSinceRequest =
+    isPending && booking
+      ? Math.floor(
+          (Date.now() - new Date(booking.created_at).getTime()) / (1000 * 60),
+        )
+      : 0;
   const timeRemaining = isPending ? Math.max(0, 120 - timeSinceRequest) : 0;
 
   // Navigation handlers
@@ -267,11 +306,19 @@ export default function BookingDetailsScreen() {
     const offerText = appliedOfferDetails
       ? ` Plus I saved ${appliedOfferDetails.discount_percentage}% with a special offer!`
       : "";
-    
+
     const pointsText = (() => {
-      if (isPending && booking.expected_loyalty_points > 0 && restaurantLoyaltyRule) {
+      if (
+        isPending &&
+        booking.expected_loyalty_points > 0 &&
+        restaurantLoyaltyRule
+      ) {
         return ` If confirmed, I'll earn ${booking.expected_loyalty_points} bonus points from "${restaurantLoyaltyRule.rule_name}"!`;
-      } else if (booking.loyalty_points_earned > 0 && restaurantLoyaltyRule && !isCancelled) {
+      } else if (
+        booking.loyalty_points_earned > 0 &&
+        restaurantLoyaltyRule &&
+        !isCancelled
+      ) {
         return ` I also earned ${booking.loyalty_points_earned} bonus points from "${restaurantLoyaltyRule.rule_name}"!`;
       }
       return "";
@@ -437,7 +484,7 @@ export default function BookingDetailsScreen() {
         </View>
 
         {/* Restaurant Loyalty Status */}
-        <RestaurantLoyaltyStatus 
+        <RestaurantLoyaltyStatus
           booking={booking}
           rule={restaurantLoyaltyRule}
           wasRefunded={wasLoyaltyRefunded}
@@ -455,8 +502,6 @@ export default function BookingDetailsScreen() {
                 onShareOffer={shareAppliedOffer}
               />
             )}
-
-       
           </View>
         )}
 

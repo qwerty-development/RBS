@@ -1,28 +1,36 @@
-import { useCallback, useEffect, useState } from 'react';
-import { AccessibilityInfo, useColorScheme, PixelRatio, AppState } from 'react-native';
-import { useAsyncStorage } from '@react-native-async-storage/async-storage';
+import { useCallback, useEffect, useState } from "react";
+import {
+  AccessibilityInfo,
+  useColorScheme,
+  PixelRatio,
+  AppState,
+} from "react-native";
+import { useAsyncStorage } from "@react-native-async-storage/async-storage";
 
 export interface AccessibilityOptions {
   /**
    * Generate accessibility label with context
    */
   label: (text: string, context?: string) => string;
-  
+
   /**
    * Generate accessibility hint for complex interactions
    */
   hint: (action: string, result?: string) => string;
-  
+
   /**
    * Generate role-based accessibility props
    */
-  role: (role: AccessibilityRole, options?: AccessibilityRoleOptions) => AccessibilityProps;
-  
+  role: (
+    role: AccessibilityRole,
+    options?: AccessibilityRoleOptions,
+  ) => AccessibilityProps;
+
   /**
    * Generate state-based accessibility props
    */
   state: (state: AccessibilityState) => AccessibilityProps;
-  
+
   /**
    * Generate navigation accessibility props
    */
@@ -54,35 +62,42 @@ export interface AccessibilityProps {
   accessibilityRole?: AccessibilityRole;
   accessibilityState?: any;
   accessibilityActions?: any[];
-  accessibilityLiveRegion?: 'none' | 'polite' | 'assertive';
-  importantForAccessibility?: 'auto' | 'yes' | 'no' | 'no-hide-descendants';
+  accessibilityLiveRegion?: "none" | "polite" | "assertive";
+  importantForAccessibility?: "auto" | "yes" | "no" | "no-hide-descendants";
 }
 
-type AccessibilityRole = 
-  | 'button' 
-  | 'link' 
-  | 'text' 
-  | 'image' 
-  | 'imagebutton' 
-  | 'header' 
-  | 'search' 
-  | 'tab' 
-  | 'tablist' 
-  | 'menu' 
-  | 'menuitem' 
-  | 'menubar' 
-  | 'switch' 
-  | 'checkbox'
-  | 'radio';
+type AccessibilityRole =
+  | "button"
+  | "link"
+  | "text"
+  | "image"
+  | "imagebutton"
+  | "header"
+  | "search"
+  | "tab"
+  | "tablist"
+  | "menu"
+  | "menuitem"
+  | "menubar"
+  | "switch"
+  | "checkbox"
+  | "radio";
 
-type NavigationType = 'header' | 'footer' | 'main' | 'navigation' | 'search' | 'list' | 'listitem';
+type NavigationType =
+  | "header"
+  | "footer"
+  | "main"
+  | "navigation"
+  | "search"
+  | "list"
+  | "listitem";
 
 export function useAccessibility(): AccessibilityOptions & {
   isScreenReaderEnabled: boolean;
   isReduceMotionEnabled: boolean;
   isHighContrastEnabled: boolean;
   fontScale: number;
-  announceMessage: (message: string, priority?: 'low' | 'high') => void;
+  announceMessage: (message: string, priority?: "low" | "high") => void;
   toggleHighContrast: () => void;
 } {
   const [isScreenReaderEnabled, setIsScreenReaderEnabled] = useState(false);
@@ -90,18 +105,21 @@ export function useAccessibility(): AccessibilityOptions & {
   const [isHighContrastEnabled, setIsHighContrastEnabled] = useState(false);
   const [fontScale, setFontScale] = useState(1);
   const colorScheme = useColorScheme();
-  const { getItem: getHighContrast, setItem: setHighContrast } = useAsyncStorage('highContrast');
+  const { getItem: getHighContrast, setItem: setHighContrast } =
+    useAsyncStorage("highContrast");
 
   // Initialize accessibility settings
   useEffect(() => {
     const initializeAccessibility = async () => {
       try {
         // Check screen reader
-        const screenReaderEnabled = await AccessibilityInfo.isScreenReaderEnabled();
+        const screenReaderEnabled =
+          await AccessibilityInfo.isScreenReaderEnabled();
         setIsScreenReaderEnabled(screenReaderEnabled);
 
         // Check reduce motion
-        const reduceMotionEnabled = await AccessibilityInfo.isReduceMotionEnabled();
+        const reduceMotionEnabled =
+          await AccessibilityInfo.isReduceMotionEnabled();
         setIsReduceMotionEnabled(reduceMotionEnabled);
 
         // Get font scale using PixelRatio API
@@ -110,11 +128,9 @@ export function useAccessibility(): AccessibilityOptions & {
 
         // Check high contrast setting
         const highContrastSetting = await getHighContrast();
-        setIsHighContrastEnabled(highContrastSetting === 'true');
-
-        
+        setIsHighContrastEnabled(highContrastSetting === "true");
       } catch (error) {
-        console.error('Failed to initialize accessibility settings:', error);
+        console.error("Failed to initialize accessibility settings:", error);
       }
     };
 
@@ -122,23 +138,23 @@ export function useAccessibility(): AccessibilityOptions & {
 
     // Listen for accessibility changes
     const screenReaderSubscription = AccessibilityInfo.addEventListener(
-      'screenReaderChanged',
-      setIsScreenReaderEnabled
+      "screenReaderChanged",
+      setIsScreenReaderEnabled,
     );
 
     const reduceMotionSubscription = AccessibilityInfo.addEventListener(
-      'reduceMotionChanged',
-      setIsReduceMotionEnabled
+      "reduceMotionChanged",
+      setIsReduceMotionEnabled,
     );
 
     // Listen for app state changes to update font scale
     // Font scale changes are detected when the app becomes active
     const handleAppStateChange = (nextAppState: string) => {
-      if (nextAppState === 'active') {
+      if (nextAppState === "active") {
         const newScale = PixelRatio.getFontScale();
-        setFontScale(prevScale => {
+        setFontScale((prevScale) => {
           if (newScale !== prevScale) {
-            console.log('Font scale updated:', newScale);
+            console.log("Font scale updated:", newScale);
             return newScale;
           }
           return prevScale;
@@ -146,7 +162,10 @@ export function useAccessibility(): AccessibilityOptions & {
       }
     };
 
-    const appStateSubscription = AppState.addEventListener('change', handleAppStateChange);
+    const appStateSubscription = AppState.addEventListener(
+      "change",
+      handleAppStateChange,
+    );
 
     return () => {
       screenReaderSubscription?.remove();
@@ -178,59 +197,73 @@ export function useAccessibility(): AccessibilityOptions & {
   /**
    * Generate role-based accessibility props
    */
-  const role = useCallback((
-    roleType: AccessibilityRole, 
-    options: AccessibilityRoleOptions = {}
-  ): AccessibilityProps => {
-    const props: AccessibilityProps = {
-      accessible: true,
-      accessibilityRole: roleType,
-    };
-
-    if (options.label) {
-      props.accessibilityLabel = options.label;
-    }
-
-    if (options.hint) {
-      props.accessibilityHint = options.hint;
-    }
-
-    if (options.disabled !== undefined || options.selected !== undefined || options.expanded !== undefined) {
-      props.accessibilityState = {
-        disabled: options.disabled,
-        selected: options.selected,
-        expanded: options.expanded,
+  const role = useCallback(
+    (
+      roleType: AccessibilityRole,
+      options: AccessibilityRoleOptions = {},
+    ): AccessibilityProps => {
+      const props: AccessibilityProps = {
+        accessible: true,
+        accessibilityRole: roleType,
       };
-    }
 
-    return props;
-  }, []);
+      if (options.label) {
+        props.accessibilityLabel = options.label;
+      }
+
+      if (options.hint) {
+        props.accessibilityHint = options.hint;
+      }
+
+      if (
+        options.disabled !== undefined ||
+        options.selected !== undefined ||
+        options.expanded !== undefined
+      ) {
+        props.accessibilityState = {
+          disabled: options.disabled,
+          selected: options.selected,
+          expanded: options.expanded,
+        };
+      }
+
+      return props;
+    },
+    [],
+  );
 
   /**
    * Generate state-based accessibility props
    */
-  const state = useCallback((accessibilityState: AccessibilityState): AccessibilityProps => {
-    const props: AccessibilityProps = {
-      accessible: true,
-      accessibilityState,
-    };
+  const state = useCallback(
+    (accessibilityState: AccessibilityState): AccessibilityProps => {
+      const props: AccessibilityProps = {
+        accessible: true,
+        accessibilityState,
+      };
 
-    // Add live region for dynamic content
-    if (accessibilityState.loading || accessibilityState.error || accessibilityState.success) {
-      props.accessibilityLiveRegion = 'polite';
-    }
+      // Add live region for dynamic content
+      if (
+        accessibilityState.loading ||
+        accessibilityState.error ||
+        accessibilityState.success
+      ) {
+        props.accessibilityLiveRegion = "polite";
+      }
 
-    // Add announcements for state changes
-    if (accessibilityState.error) {
-      props.accessibilityLabel = 'Error occurred';
-    } else if (accessibilityState.success) {
-      props.accessibilityLabel = 'Action completed successfully';
-    } else if (accessibilityState.loading || accessibilityState.busy) {
-      props.accessibilityLabel = 'Loading';
-    }
+      // Add announcements for state changes
+      if (accessibilityState.error) {
+        props.accessibilityLabel = "Error occurred";
+      } else if (accessibilityState.success) {
+        props.accessibilityLabel = "Action completed successfully";
+      } else if (accessibilityState.loading || accessibilityState.busy) {
+        props.accessibilityLabel = "Loading";
+      }
 
-    return props;
-  }, []);
+      return props;
+    },
+    [],
+  );
 
   /**
    * Generate navigation accessibility props
@@ -241,29 +274,29 @@ export function useAccessibility(): AccessibilityOptions & {
     };
 
     switch (type) {
-      case 'header':
-        props.accessibilityRole = 'header';
-        props.accessibilityLabel = 'Page header';
+      case "header":
+        props.accessibilityRole = "header";
+        props.accessibilityLabel = "Page header";
         break;
-      case 'footer':
-        props.accessibilityLabel = 'Page footer';
+      case "footer":
+        props.accessibilityLabel = "Page footer";
         break;
-      case 'main':
-        props.accessibilityLabel = 'Main content';
-        props.importantForAccessibility = 'yes';
+      case "main":
+        props.accessibilityLabel = "Main content";
+        props.importantForAccessibility = "yes";
         break;
-      case 'navigation':
-        props.accessibilityLabel = 'Navigation menu';
+      case "navigation":
+        props.accessibilityLabel = "Navigation menu";
         break;
-      case 'search':
-        props.accessibilityRole = 'search';
-        props.accessibilityLabel = 'Search';
+      case "search":
+        props.accessibilityRole = "search";
+        props.accessibilityLabel = "Search";
         break;
-      case 'list':
-        props.accessibilityLabel = 'List';
+      case "list":
+        props.accessibilityLabel = "List";
         break;
-      case 'listitem':
-        props.accessibilityLabel = 'List item';
+      case "listitem":
+        props.accessibilityLabel = "List item";
         break;
     }
 
@@ -273,11 +306,14 @@ export function useAccessibility(): AccessibilityOptions & {
   /**
    * Announce message to screen reader
    */
-  const announceMessage = useCallback((message: string, priority: 'low' | 'high' = 'low') => {
-    if (isScreenReaderEnabled) {
-      AccessibilityInfo.announceForAccessibility(message);
-    }
-  }, [isScreenReaderEnabled]);
+  const announceMessage = useCallback(
+    (message: string, priority: "low" | "high" = "low") => {
+      if (isScreenReaderEnabled) {
+        AccessibilityInfo.announceForAccessibility(message);
+      }
+    },
+    [isScreenReaderEnabled],
+  );
 
   /**
    * Toggle high contrast mode
@@ -287,7 +323,7 @@ export function useAccessibility(): AccessibilityOptions & {
     setIsHighContrastEnabled(newValue);
     await setHighContrast(newValue.toString());
     announceMessage(
-      newValue ? 'High contrast mode enabled' : 'High contrast mode disabled'
+      newValue ? "High contrast mode enabled" : "High contrast mode disabled",
     );
   }, [isHighContrastEnabled, setHighContrast, announceMessage]);
 
@@ -298,13 +334,13 @@ export function useAccessibility(): AccessibilityOptions & {
     role,
     state,
     navigation,
-    
+
     // Settings
     isScreenReaderEnabled,
     isReduceMotionEnabled,
     isHighContrastEnabled,
     fontScale,
-    
+
     // Actions
     announceMessage,
     toggleHighContrast,
@@ -317,51 +353,54 @@ export function useAccessibility(): AccessibilityOptions & {
 export function useFormAccessibility() {
   const accessibility = useAccessibility();
 
-  const getFieldProps = useCallback((
-    label: string,
-    options: {
-      required?: boolean;
-      error?: string;
-      description?: string;
-      value?: string;
-    } = {}
-  ): AccessibilityProps => {
-    let accessibilityLabel = label;
-    let accessibilityHint = '';
+  const getFieldProps = useCallback(
+    (
+      label: string,
+      options: {
+        required?: boolean;
+        error?: string;
+        description?: string;
+        value?: string;
+      } = {},
+    ): AccessibilityProps => {
+      let accessibilityLabel = label;
+      let accessibilityHint = "";
 
-    if (options.required) {
-      accessibilityLabel += ', required';
-    }
+      if (options.required) {
+        accessibilityLabel += ", required";
+      }
 
-    if (options.description) {
-      accessibilityHint = options.description;
-    }
+      if (options.description) {
+        accessibilityHint = options.description;
+      }
 
-    if (options.error) {
-      accessibilityLabel += ', error';
-      accessibilityHint = options.error;
-    }
+      if (options.error) {
+        accessibilityLabel += ", error";
+        accessibilityHint = options.error;
+      }
 
-    if (options.value) {
-      accessibilityLabel += `, current value: ${options.value}`;
-    }
+      if (options.value) {
+        accessibilityLabel += `, current value: ${options.value}`;
+      }
 
-    return {
-      accessible: true,
-      accessibilityLabel,
-      accessibilityHint: accessibilityHint || undefined,
-      accessibilityState: {
-        disabled: false,
-      },
-    };
-  }, []);
+      return {
+        accessible: true,
+        accessibilityLabel,
+        accessibilityHint: accessibilityHint || undefined,
+        accessibilityState: {
+          disabled: false,
+        },
+      };
+    },
+    [],
+  );
 
   const getErrorProps = useCallback((error: string): AccessibilityProps => {
     return {
       accessible: true,
       accessibilityLabel: `Error: ${error}`,
-      accessibilityLiveRegion: 'assertive',
-      importantForAccessibility: 'yes',
+      accessibilityLiveRegion: "assertive",
+      importantForAccessibility: "yes",
     };
   }, []);
 
@@ -378,40 +417,44 @@ export function useFormAccessibility() {
 export function useButtonAccessibility() {
   const accessibility = useAccessibility();
 
-  const getButtonProps = useCallback((
-    label: string,
-    options: {
-      loading?: boolean;
-      disabled?: boolean;
-      destructive?: boolean;
-      hint?: string;
-    } = {}
-  ): AccessibilityProps => {
-    let accessibilityLabel = label;
-    let accessibilityHint = options.hint;
+  const getButtonProps = useCallback(
+    (
+      label: string,
+      options: {
+        loading?: boolean;
+        disabled?: boolean;
+        destructive?: boolean;
+        hint?: string;
+      } = {},
+    ): AccessibilityProps => {
+      let accessibilityLabel = label;
+      let accessibilityHint = options.hint;
 
-    if (options.loading) {
-      accessibilityLabel = `${label}, loading`;
-    }
+      if (options.loading) {
+        accessibilityLabel = `${label}, loading`;
+      }
 
-    if (options.destructive) {
-      accessibilityHint = `Warning: This action cannot be undone. ${accessibilityHint || ''}`.trim();
-    }
+      if (options.destructive) {
+        accessibilityHint =
+          `Warning: This action cannot be undone. ${accessibilityHint || ""}`.trim();
+      }
 
-    return {
-      accessible: true,
-      accessibilityRole: 'button',
-      accessibilityLabel,
-      accessibilityHint: accessibilityHint || undefined,
-      accessibilityState: {
-        disabled: options.disabled || options.loading,
-        busy: options.loading,
-      },
-    };
-  }, []);
+      return {
+        accessible: true,
+        accessibilityRole: "button",
+        accessibilityLabel,
+        accessibilityHint: accessibilityHint || undefined,
+        accessibilityState: {
+          disabled: options.disabled || options.loading,
+          busy: options.loading,
+        },
+      };
+    },
+    [],
+  );
 
   return {
     ...accessibility,
     getButtonProps,
   };
-} 
+}

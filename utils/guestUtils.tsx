@@ -9,65 +9,65 @@ import { useAuth } from "@/context/supabase-provider";
  * Shows a native alert instead of modal for quick interactions
  */
 export function checkGuestAccess(
-    isGuest: boolean,
-    featureName: string,
-    onSignUp: () => void | Promise<void> // Allow async
+  isGuest: boolean,
+  featureName: string,
+  onSignUp: () => void | Promise<void>, // Allow async
 ): boolean {
-    if (isGuest) {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+  if (isGuest) {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
 
-        Alert.alert(
-            "Sign Up Required",
-            `Create a free account to ${featureName}.`,
-            [
-                {
-                    text: "Not Now",
-                    style: "cancel",
-                },
-                {
-                    text: "Sign Up",
-                    onPress: () => {
-                        void onSignUp(); // Handle promise
-                    },
-                    style: "default",
-                },
-            ]
-        );
+    Alert.alert(
+      "Sign Up Required",
+      `Create a free account to ${featureName}.`,
+      [
+        {
+          text: "Not Now",
+          style: "cancel",
+        },
+        {
+          text: "Sign Up",
+          onPress: () => {
+            void onSignUp(); // Handle promise
+          },
+          style: "default",
+        },
+      ],
+    );
 
-        return false; // Action blocked
-    }
+    return false; // Action blocked
+  }
 
-    return true; // Action allowed
+  return true; // Action allowed
 }
 
 /**
  * HOC to wrap components that should be completely hidden from guests
  */
 export function withAuthOnly<P extends object>(
-    Component: React.ComponentType<P>
+  Component: React.ComponentType<P>,
 ): typeof Component {
-    return (props: P) => {
-        const { isGuest } = useAuth();
+  return (props: P) => {
+    const { isGuest } = useAuth();
 
-        if (isGuest) {
-            return null;
-        }
+    if (isGuest) {
+      return null;
+    }
 
-        return <Component {...props} />;
-    };
+    return <Component {...props} />;
+  };
 }
 
 /**
  * Conditional rendering helper for guest-specific content
  */
 export function GuestOnly({ children }: { children: React.ReactNode }) {
-    const { isGuest } = useAuth();
-    return isGuest ? <>{children}</> : null;
+  const { isGuest } = useAuth();
+  return isGuest ? <>{children}</> : null;
 }
 
 export function AuthOnly({ children }: { children: React.ReactNode }) {
-    const { isGuest } = useAuth();
-    return !isGuest ? <>{children}</> : null;
+  const { isGuest } = useAuth();
+  return !isGuest ? <>{children}</> : null;
 }
 
 // Don't forget to import useAuth at the top of the file:

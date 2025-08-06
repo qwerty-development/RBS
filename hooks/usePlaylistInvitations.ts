@@ -33,7 +33,7 @@ export const usePlaylistInvitations = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Use ref to track if component is mounted to prevent state updates after unmount
   const isMountedRef = useRef(true);
 

@@ -1,6 +1,6 @@
-import { useCallback, useState } from 'react';
-import { Alert } from 'react-native';
-import * as Sentry from '@sentry/react-native';
+import { useCallback, useState } from "react";
+import { Alert } from "react-native";
+import * as Sentry from "@sentry/react-native";
 
 export interface ErrorHandlerOptions {
   showAlert?: boolean;
@@ -32,7 +32,7 @@ export function useErrorHandler(defaultOptions: ErrorHandlerOptions = {}) {
 
   const defaultConfig: Required<ErrorHandlerOptions> = {
     showAlert: true,
-    customMessage: '',
+    customMessage: "",
     logToConsole: true,
     sendToSentry: !__DEV__,
     retryable: false,
@@ -43,134 +43,137 @@ export function useErrorHandler(defaultOptions: ErrorHandlerOptions = {}) {
   /**
    * Handle errors with various options
    */
-  const handleError = useCallback((
-    error: Error | string,
-    options: ErrorHandlerOptions = {}
-  ) => {
-    const config = { ...defaultConfig, ...options };
-    const errorObj = typeof error === 'string' ? new Error(error) : error;
-    const userMessage = config.customMessage || getUserFriendlyMessage(errorObj);
+  const handleError = useCallback(
+    (error: Error | string, options: ErrorHandlerOptions = {}) => {
+      const config = { ...defaultConfig, ...options };
+      const errorObj = typeof error === "string" ? new Error(error) : error;
+      const userMessage =
+        config.customMessage || getUserFriendlyMessage(errorObj);
 
-    // Update error state
-    setErrorState({
-      error: errorObj,
-      isError: true,
-      errorMessage: userMessage,
-      canRetry: config.retryable,
-    });
-
-    // Log to console
-    if (config.logToConsole) {
-      console.error('Error handled:', errorObj.message);
-      console.error('Stack:', errorObj.stack);
-    }
-
-    // Send to Sentry
-    if (config.sendToSentry) {
-      Sentry.withScope((scope) => {
-        scope.setTag('source', 'useErrorHandler');
-        scope.setLevel('error');
-        scope.setContext('errorDetails', {
-          message: errorObj.message,
-          userMessage,
-          retryable: config.retryable,
-        });
-        Sentry.captureException(errorObj);
+      // Update error state
+      setErrorState({
+        error: errorObj,
+        isError: true,
+        errorMessage: userMessage,
+        canRetry: config.retryable,
       });
-    }
 
-    // Show user alert
-    if (config.showAlert) {
-      const alertButtons = [
-        { text: 'OK', style: 'default' as const },
-      ];
+      // Log to console
+      if (config.logToConsole) {
+        console.error("Error handled:", errorObj.message);
+        console.error("Stack:", errorObj.stack);
+      }
 
-      if (config.retryable && config.onRetry) {
-        alertButtons.unshift({
-          text: 'Retry',
-          style: 'default' as const,
-          onPress: () => {
-            clearError();
-            config.onRetry!();
-          },
+      // Send to Sentry
+      if (config.sendToSentry) {
+        Sentry.withScope((scope) => {
+          scope.setTag("source", "useErrorHandler");
+          scope.setLevel("error");
+          scope.setContext("errorDetails", {
+            message: errorObj.message,
+            userMessage,
+            retryable: config.retryable,
+          });
+          Sentry.captureException(errorObj);
         });
       }
 
-      Alert.alert('Error', userMessage, alertButtons);
-    }
-  }, [defaultConfig]);
+      // Show user alert
+      if (config.showAlert) {
+        const alertButtons = [{ text: "OK", style: "default" as const }];
+
+        if (config.retryable && config.onRetry) {
+          alertButtons.unshift({
+            text: "Retry",
+            style: "default" as const,
+            onPress: () => {
+              clearError();
+              config.onRetry!();
+            },
+          });
+        }
+
+        Alert.alert("Error", userMessage, alertButtons);
+      }
+    },
+    [defaultConfig],
+  );
 
   /**
    * Handle async operations with automatic error handling
    */
-  const handleAsync = useCallback(async <T>(
-    operation: () => Promise<T>,
-    options: ErrorHandlerOptions = {}
-  ): Promise<T | null> => {
-    try {
-      clearError();
-      return await operation();
-    } catch (error) {
-      handleError(error as Error, options);
-      return null;
-    }
-  }, [handleError]);
+  const handleAsync = useCallback(
+    async <T>(
+      operation: () => Promise<T>,
+      options: ErrorHandlerOptions = {},
+    ): Promise<T | null> => {
+      try {
+        clearError();
+        return await operation();
+      } catch (error) {
+        handleError(error as Error, options);
+        return null;
+      }
+    },
+    [handleError],
+  );
 
   /**
    * Handle network errors specifically
    */
-  const handleNetworkError = useCallback((
-    error: Error,
-    options: ErrorHandlerOptions = {}
-  ) => {
-    const networkOptions: ErrorHandlerOptions = {
-      customMessage: 'Network error. Please check your connection and try again.',
-      retryable: true,
-      ...options,
-    };
+  const handleNetworkError = useCallback(
+    (error: Error, options: ErrorHandlerOptions = {}) => {
+      const networkOptions: ErrorHandlerOptions = {
+        customMessage:
+          "Network error. Please check your connection and try again.",
+        retryable: true,
+        ...options,
+      };
 
-    handleError(error, networkOptions);
-  }, [handleError]);
+      handleError(error, networkOptions);
+    },
+    [handleError],
+  );
 
   /**
    * Handle validation errors
    */
-  const handleValidationError = useCallback((
-    error: Error | string,
-    options: ErrorHandlerOptions = {}
-  ) => {
-    const validationOptions: ErrorHandlerOptions = {
-      showAlert: true,
-      sendToSentry: false, // Don't send validation errors to Sentry
-      ...options,
-    };
+  const handleValidationError = useCallback(
+    (error: Error | string, options: ErrorHandlerOptions = {}) => {
+      const validationOptions: ErrorHandlerOptions = {
+        showAlert: true,
+        sendToSentry: false, // Don't send validation errors to Sentry
+        ...options,
+      };
 
-    handleError(error, validationOptions);
-  }, [handleError]);
+      handleError(error, validationOptions);
+    },
+    [handleError],
+  );
 
   /**
    * Handle critical errors that should crash the app
    */
-  const handleCriticalError = useCallback((
-    error: Error,
-    options: ErrorHandlerOptions = {}
-  ) => {
-    const criticalOptions: ErrorHandlerOptions = {
-      customMessage: 'A critical error occurred. The app needs to restart.',
-      sendToSentry: true,
-      retryable: false,
-      ...options,
-    };
+  const handleCriticalError = useCallback(
+    (error: Error, options: ErrorHandlerOptions = {}) => {
+      const criticalOptions: ErrorHandlerOptions = {
+        customMessage: "A critical error occurred. The app needs to restart.",
+        sendToSentry: true,
+        retryable: false,
+        ...options,
+      };
 
-    // Add critical tag to Sentry
-    Sentry.withScope((scope) => {
-      scope.setTag('critical', true);
-      scope.setLevel('fatal');
-      Sentry.captureException(error);
-    });
+      // Add critical tag to Sentry
+      Sentry.withScope((scope) => {
+        scope.setTag("critical", true);
+        scope.setLevel("fatal");
+        Sentry.captureException(error);
+      });
 
-    handleError(error, criticalOptions);
-  }, [handleError]);
+      handleError(error, criticalOptions);
+    },
+    [handleError],
+  );
 
   /**
    * Clear error state
@@ -197,18 +200,18 @@ export function useErrorHandler(defaultOptions: ErrorHandlerOptions = {}) {
   return {
     // Error state
     ...errorState,
-    
+
     // Error handlers
     handleError,
     handleAsync,
     handleNetworkError,
     handleValidationError,
     handleCriticalError,
-    
+
     // Actions
     clearError,
     retry,
-    
+
     // Utilities
     isNetworkError: (error: Error) => isNetworkError(error),
     isValidationError: (error: Error) => isValidationError(error),
@@ -223,16 +226,16 @@ function getUserFriendlyMessage(error: Error): string {
 
   // Network errors
   if (isNetworkError(error)) {
-    return 'Network error. Please check your connection and try again.';
+    return "Network error. Please check your connection and try again.";
   }
 
   // Authentication errors
-  if (message.includes('unauthorized') || message.includes('401')) {
-    return 'Please sign in again to continue.';
+  if (message.includes("unauthorized") || message.includes("401")) {
+    return "Please sign in again to continue.";
   }
 
-  if (message.includes('forbidden') || message.includes('403')) {
-    return 'You don\'t have permission to perform this action.';
+  if (message.includes("forbidden") || message.includes("403")) {
+    return "You don't have permission to perform this action.";
   }
 
   // Validation errors
@@ -241,22 +244,22 @@ function getUserFriendlyMessage(error: Error): string {
   }
 
   // Database errors
-  if (message.includes('database') || message.includes('sql')) {
-    return 'A database error occurred. Please try again later.';
+  if (message.includes("database") || message.includes("sql")) {
+    return "A database error occurred. Please try again later.";
   }
 
   // Timeout errors
-  if (message.includes('timeout') || message.includes('timed out')) {
-    return 'The request timed out. Please try again.';
+  if (message.includes("timeout") || message.includes("timed out")) {
+    return "The request timed out. Please try again.";
   }
 
   // Generic server errors
-  if (message.includes('500') || message.includes('server error')) {
-    return 'A server error occurred. Please try again later.';
+  if (message.includes("500") || message.includes("server error")) {
+    return "A server error occurred. Please try again later.";
   }
 
   // Default fallback
-  return 'An unexpected error occurred. Please try again.';
+  return "An unexpected error occurred. Please try again.";
 }
 
 /**
@@ -265,12 +268,12 @@ function getUserFriendlyMessage(error: Error): string {
 function isNetworkError(error: Error): boolean {
   const message = error.message.toLowerCase();
   return (
-    message.includes('network') ||
-    message.includes('fetch') ||
-    message.includes('connection') ||
-    message.includes('internet') ||
-    message.includes('offline') ||
-    error.name === 'NetworkError'
+    message.includes("network") ||
+    message.includes("fetch") ||
+    message.includes("connection") ||
+    message.includes("internet") ||
+    message.includes("offline") ||
+    error.name === "NetworkError"
   );
 }
 
@@ -280,12 +283,12 @@ function isNetworkError(error: Error): boolean {
 function isValidationError(error: Error): boolean {
   const message = error.message.toLowerCase();
   return (
-    message.includes('validation') ||
-    message.includes('invalid') ||
-    message.includes('required') ||
-    message.includes('must be') ||
-    error.name === 'ValidationError' ||
-    error.name === 'ZodError'
+    message.includes("validation") ||
+    message.includes("invalid") ||
+    message.includes("required") ||
+    message.includes("must be") ||
+    error.name === "ValidationError" ||
+    error.name === "ZodError"
   );
 }
 
@@ -299,22 +302,25 @@ export function useApiErrorHandler() {
     logToConsole: true,
   });
 
-  const handleApiError = useCallback((error: any, endpoint?: string) => {
-    // Add API context to error
-    if (endpoint) {
-      Sentry.withScope((scope) => {
-        scope.setTag('api_endpoint', endpoint);
-        scope.setContext('api_error', {
-          endpoint,
-          status: error.status,
-          statusText: error.statusText,
+  const handleApiError = useCallback(
+    (error: any, endpoint?: string) => {
+      // Add API context to error
+      if (endpoint) {
+        Sentry.withScope((scope) => {
+          scope.setTag("api_endpoint", endpoint);
+          scope.setContext("api_error", {
+            endpoint,
+            status: error.status,
+            statusText: error.statusText,
+          });
+          handleError(error);
         });
+      } else {
         handleError(error);
-      });
-    } else {
-      handleError(error);
-    }
-  }, [handleError]);
+      }
+    },
+    [handleError],
+  );
 
   return { handleApiError };
 }
@@ -329,15 +335,21 @@ export function useFormErrorHandler() {
     logToConsole: __DEV__,
   });
 
-  const handleFormError = useCallback((error: Error | string, field?: string) => {
-    const errorObj = typeof error === 'string' ? new Error(error) : error;
-    
-    if (field) {
-      console.log(`Form validation error in field '${field}':`, errorObj.message);
-    }
-    
-    handleError(errorObj);
-  }, [handleError]);
+  const handleFormError = useCallback(
+    (error: Error | string, field?: string) => {
+      const errorObj = typeof error === "string" ? new Error(error) : error;
+
+      if (field) {
+        console.log(
+          `Form validation error in field '${field}':`,
+          errorObj.message,
+        );
+      }
+
+      handleError(errorObj);
+    },
+    [handleError],
+  );
 
   return { handleFormError };
-} 
+}

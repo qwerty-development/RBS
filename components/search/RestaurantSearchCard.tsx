@@ -38,12 +38,12 @@ type Restaurant = {
   distance?: number | null;
   isAvailable?: boolean;
   tags?: string[] | null;
-  restaurant_hours?: Array<{
+  restaurant_hours?: {
     day_of_week: string;
     is_open: boolean;
     open_time: string | null;
     close_time: string | null;
-  }>;
+  }[];
 };
 
 // Original interface for search screen
@@ -96,7 +96,9 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
   const showActions = isSearchScreen ? true : props.showActions !== false;
   const disabled = isSearchScreen ? false : props.disabled || false;
   const className = isSearchScreen ? "" : props.className || "";
-  const showDeleteButton = isSearchScreen ? false : props.showDeleteButton || false;
+  const showDeleteButton = isSearchScreen
+    ? false
+    : props.showDeleteButton || false;
   const isDeleting = isSearchScreen ? false : props.isDeleting || false;
 
   // Safety check

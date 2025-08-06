@@ -107,11 +107,26 @@ export function useBookingCreate() {
   const userTier = (profile?.membership_tier as TierType) || "bronze";
 
   const bookingDate = useMemo(() => parseDate(rawDate), [rawDate]);
-  const bookingTime = useMemo(() => (isValidTime(rawTime) ? rawTime! : "19:00"), [rawTime]);
-  const basePartySize = useMemo(() => (rawPartySize ? Math.max(1, parseInt(rawPartySize, 10)) || 2 : 2), [rawPartySize]);
-  const totalPartySize = useMemo(() => basePartySize + invitedFriends.length, [basePartySize, invitedFriends]);
-  
-  const selectedOffer = useMemo(() => selectedOfferUserId ? availableOffers.find((offer) => offer.id === selectedOfferUserId) : null, [selectedOfferUserId, availableOffers]);
+  const bookingTime = useMemo(
+    () => (isValidTime(rawTime) ? rawTime! : "19:00"),
+    [rawTime],
+  );
+  const basePartySize = useMemo(
+    () => (rawPartySize ? Math.max(1, parseInt(rawPartySize, 10)) || 2 : 2),
+    [rawPartySize],
+  );
+  const totalPartySize = useMemo(
+    () => basePartySize + invitedFriends.length,
+    [basePartySize, invitedFriends],
+  );
+
+  const selectedOffer = useMemo(
+    () =>
+      selectedOfferUserId
+        ? availableOffers.find((offer) => offer.id === selectedOfferUserId)
+        : null,
+    [selectedOfferUserId, availableOffers],
+  );
 
   // --- Initial Parameter Validation ---
   useEffect(() => {
@@ -153,12 +168,15 @@ export function useBookingCreate() {
     try {
       // This is a hypothetical RPC function to calculate points based on various rules.
       // It encapsulates the business logic on the server.
-      const { data, error } = await supabase.rpc('get_applicable_loyalty_rule', {
-        p_restaurant_id: restaurantId,
-        p_booking_time: `${bookingDate.toISOString().split('T')[0]}T${bookingTime}:00`,
-        p_party_size: totalPartySize,
-        p_user_tier: userTier
-      });
+      const { data, error } = await supabase.rpc(
+        "get_applicable_loyalty_rule",
+        {
+          p_restaurant_id: restaurantId,
+          p_booking_time: `${bookingDate.toISOString().split("T")[0]}T${bookingTime}:00`,
+          p_party_size: totalPartySize,
+          p_user_tier: userTier,
+        },
+      );
 
       if (error) {
         console.warn("Could not fetch or apply loyalty rule:", error.message);
@@ -247,14 +265,14 @@ export function useBookingCreate() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
-  
+
   // Re-fetch loyalty points if party size changes (due to inviting friends)
   useEffect(() => {
-    if (!loading) { // Avoid running on initial load before restaurant is set
+    if (!loading) {
+      // Avoid running on initial load before restaurant is set
       fetchLoyaltyRule();
     }
   }, [totalPartySize, loading, fetchLoyaltyRule]);
-
 
   // --- Submission Logic ---
 
@@ -333,9 +351,8 @@ export function useBookingCreate() {
         // --- INSTANT BOOKING LOGIC ---
         if (!isRequestBooking) {
           // This single RPC function handles booking creation, table assignment, and loyalty point awarding in one transaction.
-          const { data: bookingResult, error: bookingError } = await supabase.rpc(
-            'create_booking_with_tables',
-            {
+          const { data: bookingResult, error: bookingError } =
+            await supabase.rpc("create_booking_with_tables", {
               p_user_id: profile.id,
               p_restaurant_id: restaurant.id,
               p_booking_time: bookingDateTime.toISOString(),
@@ -358,8 +375,7 @@ export function useBookingCreate() {
               // New Loyalty System Parameters
               p_applied_loyalty_rule_id: loyaltyRuleId,
               p_expected_loyalty_points: expectedLoyaltyPoints,
-            }
-          );
+            });
           if (bookingError) throw bookingError;
           if (!bookingResult?.booking)
             throw new Error("No booking data returned from RPC.");
@@ -370,17 +386,14 @@ export function useBookingCreate() {
           const postBookingPromises = [];
           if (invitedFriends.length > 0) {
             postBookingPromises.push(
-              supabase
-                .from("booking_invites")
-                .insert(
-                  invitedFriends.map((friendId) => ({
-                    booking_id: booking.id,
-                    from_user_id: profile.id,
-                    to_user_id: friendId,
-                    message: `Join me at ${restaurant.name}!`,
-                  })),
-                )
-                ,
+              supabase.from("booking_invites").insert(
+                invitedFriends.map((friendId) => ({
+                  booking_id: booking.id,
+                  from_user_id: profile.id,
+                  to_user_id: friendId,
+                  message: `Join me at ${restaurant.name}!`,
+                })),
+              ),
             );
           }
           if (selectedOffer) {
@@ -391,8 +404,7 @@ export function useBookingCreate() {
                   used_at: new Date().toISOString(),
                   booking_id: booking.id,
                 })
-                .eq("id", selectedOffer.id)
-               
+                .eq("id", selectedOffer.id),
             );
           }
           // The old point awarding RPC is removed as it's now handled transactionally within 'create_booking_with_tables'.
@@ -462,11 +474,21 @@ export function useBookingCreate() {
       }
     },
     [
-      profile, restaurant, bookingDate, bookingTime, totalPartySize,
-      isRequestBooking, selectedTableIds, turnTime, invitedFriends,
-      selectedOffer, expectedLoyaltyPoints, loyaltyRuleId, // Added new loyalty state
-      handleBookingError, router
-    ]
+      profile,
+      restaurant,
+      bookingDate,
+      bookingTime,
+      totalPartySize,
+      isRequestBooking,
+      selectedTableIds,
+      turnTime,
+      invitedFriends,
+      selectedOffer,
+      expectedLoyaltyPoints,
+      loyaltyRuleId, // Added new loyalty state
+      handleBookingError,
+      router,
+    ],
   );
 
   /**
@@ -538,7 +560,7 @@ export function useBookingCreate() {
     // Booking Details
     bookingDate,
     bookingTime,
-    partySize: basePartySize, 
+    partySize: basePartySize,
     totalPartySize,
     expectedLoyaltyPoints, // Replaced earnablePoints
     turnTime,

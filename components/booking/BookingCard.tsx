@@ -213,14 +213,17 @@ export function BookingCard({
   };
   const handleQuickCall = async (e: any) => {
     e.stopPropagation();
-    
+
     if (!booking.restaurant.phone_number) {
-      Alert.alert("No Phone Number", "Phone number is not available for this restaurant");
+      Alert.alert(
+        "No Phone Number",
+        "Phone number is not available for this restaurant",
+      );
       return;
     }
-    
+
     const phoneUrl = `tel:${booking.restaurant.phone_number}`;
-    
+
     try {
       const canOpen = await Linking.canOpenURL(phoneUrl);
       if (canOpen) {
@@ -235,12 +238,12 @@ export function BookingCard({
   };
   const handleDirections = async (e: any) => {
     e.stopPropagation();
-    
+
     if (!booking.restaurant) return;
 
     // Extract coordinates from restaurant location
     const coords = extractLocationCoordinates(booking.restaurant.location);
-    
+
     if (!coords) {
       Alert.alert("Error", "Location information not available");
       return;
@@ -268,9 +271,9 @@ export function BookingCard({
   };
   const handleCopyConfirmation = async (e: any) => {
     e.stopPropagation();
-    
+
     if (!booking.confirmation_code) return;
-    
+
     try {
       await Clipboard.setStringAsync(booking.confirmation_code);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -283,33 +286,32 @@ export function BookingCard({
 
   const handleAddToCalendar = async (e: any) => {
     e.stopPropagation();
-    
+
     if (isAddingToCalendar) return;
-    
+
     try {
       // Request calendar permissions using Expo Calendar
       const { status } = await Calendar.requestCalendarPermissionsAsync();
-      
-      if (status !== 'granted') {
+
+      if (status !== "granted") {
         Alert.alert(
-          "Calendar Access Required", 
+          "Calendar Access Required",
           "We need access to your calendar to add this reservation. You can enable this in your device settings.",
           [
             { text: "Cancel", style: "cancel" },
-            { text: "Open Settings", onPress: () => Linking.openSettings() }
-          ]
+            { text: "Open Settings", onPress: () => Linking.openSettings() },
+          ],
         );
         return;
       }
 
       // Directly open the system calendar UI with pre-filled event data
       await openCalendarUIWithEvent();
-
     } catch (error) {
       console.error("Error opening calendar:", error);
       Alert.alert(
-        "Calendar Error", 
-        "Unable to open your calendar. Please try again or add the event manually."
+        "Calendar Error",
+        "Unable to open your calendar. Please try again or add the event manually.",
       );
     }
   };
@@ -322,12 +324,12 @@ export function BookingCard({
    */
   const openCalendarUIWithEvent = async () => {
     setIsAddingToCalendar(true);
-    
+
     try {
       // Prepare event details with smart duration calculation
       const bookingDate = new Date(booking.booking_time);
       const hour = bookingDate.getHours();
-      
+
       // Smart duration based on meal time
       let durationHours = 2; // Default
       if (hour >= 6 && hour < 11) {
@@ -339,9 +341,11 @@ export function BookingCard({
       } else {
         durationHours = 2; // Late night
       }
-      
-      const endDate = new Date(bookingDate.getTime() + (durationHours * 60 * 60 * 1000));
-      
+
+      const endDate = new Date(
+        bookingDate.getTime() + durationHours * 60 * 60 * 1000,
+      );
+
       // Determine meal type for title
       const getMealType = (hour: number) => {
         if (hour >= 6 && hour < 11) return "Breakfast";
@@ -349,9 +353,9 @@ export function BookingCard({
         if (hour >= 16 && hour < 22) return "Dinner";
         return "Late Night";
       };
-      
+
       const mealType = getMealType(hour);
-      
+
       // Create comprehensive event details for the calendar UI
       const eventDetails = {
         title: `${mealType} at ${booking.restaurant.name}`,
@@ -359,39 +363,49 @@ export function BookingCard({
         endDate: endDate,
         location: booking.restaurant.address || booking.restaurant.name,
         notes: [
-          `🍽️ Table reservation for ${booking.party_size} ${booking.party_size === 1 ? 'guest' : 'guests'}`,
-          booking.confirmation_code ? `📋 Confirmation Code: ${booking.confirmation_code}` : '',
+          `🍽️ Table reservation for ${booking.party_size} ${booking.party_size === 1 ? "guest" : "guests"}`,
+          booking.confirmation_code
+            ? `📋 Confirmation Code: ${booking.confirmation_code}`
+            : "",
           `🏪 Restaurant: ${booking.restaurant.name}`,
-          booking.restaurant.cuisine_type ? `🍜 Cuisine: ${booking.restaurant.cuisine_type}` : '',
-          booking.restaurant.phone_number ? `📞 Phone: ${booking.restaurant.phone_number}` : '',
-          booking.special_requests ? `💬 Special Requests: ${booking.special_requests}` : '',
-          booking.occasion ? `🎉 Occasion: ${booking.occasion}` : '',
-          '',
-          '⏰ Please arrive 10-15 minutes early',
-          '📱 Booked via TableReserve'
-        ].filter(Boolean).join('\n'),
+          booking.restaurant.cuisine_type
+            ? `🍜 Cuisine: ${booking.restaurant.cuisine_type}`
+            : "",
+          booking.restaurant.phone_number
+            ? `📞 Phone: ${booking.restaurant.phone_number}`
+            : "",
+          booking.special_requests
+            ? `💬 Special Requests: ${booking.special_requests}`
+            : "",
+          booking.occasion ? `🎉 Occasion: ${booking.occasion}` : "",
+          "",
+          "⏰ Please arrive 10-15 minutes early",
+          "📱 Booked via TableReserve",
+        ]
+          .filter(Boolean)
+          .join("\n"),
         alarms: [
           { relativeOffset: -120 }, // 2 hours before
-          { relativeOffset: -60 },  // 1 hour before
-          { relativeOffset: -15 }   // 15 minutes before
-        ]
+          { relativeOffset: -60 }, // 1 hour before
+          { relativeOffset: -15 }, // 15 minutes before
+        ],
       };
 
       // Open the system calendar UI with pre-filled event data
       const result = await Calendar.createEventInCalendarAsync(eventDetails);
-      
+
       // Handle the result based on user action
-      if (result.action === 'saved') {
+      if (result.action === "saved") {
         // User saved the event
         setAddedToCalendar(true);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-        
+
         Alert.alert(
-          "📅 Added to Calendar!", 
+          "📅 Added to Calendar!",
           `Your reservation at ${booking.restaurant.name} has been successfully added to your calendar!\n\nReminders have been set for:\n• 2 hours before\n• 1 hour before\n• 15 minutes before`,
           [
-            { 
-              text: "View in Calendar", 
+            {
+              text: "View in Calendar",
               onPress: () => {
                 // Try to open the calendar app
                 const calendarUrl = Platform.select({
@@ -399,44 +413,49 @@ export function BookingCard({
                   android: "content://com.android.calendar/time",
                 });
                 if (calendarUrl) {
-                  Linking.canOpenURL(calendarUrl).then(supported => {
+                  Linking.canOpenURL(calendarUrl).then((supported) => {
                     if (supported) {
                       Linking.openURL(calendarUrl);
                     }
                   });
                 }
-              }
+              },
             },
-            { text: "Done", style: "default" }
-          ]
+            { text: "Done", style: "default" },
+          ],
         );
-      } else if (result.action === 'canceled') {
+      } else if (result.action === "canceled") {
         // User canceled without saving
         // No need to show an alert, just give subtle feedback
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
-      
     } catch (error) {
       console.error("Error opening calendar UI:", error);
-      
+
       // More specific error handling
       let errorMessage = "Unable to open calendar. Please try again.";
-      
+
       if (error instanceof Error) {
         if (error.message?.includes("permission")) {
-          errorMessage = "Calendar permission was revoked. Please check your settings.";
+          errorMessage =
+            "Calendar permission was revoked. Please check your settings.";
         } else if (error.message?.includes("calendar")) {
           errorMessage = "Calendar is not available. Please try again later.";
         }
       }
-      
+
       Alert.alert("Calendar Error", errorMessage, [
-        { text: "Try Again", onPress: () => {
+        {
+          text: "Try Again",
+          onPress: () => {
             setIsAddingToCalendar(false);
-            setTimeout(() => handleAddToCalendar({ stopPropagation: () => {} }), 100);
-          }
+            setTimeout(
+              () => handleAddToCalendar({ stopPropagation: () => {} }),
+              100,
+            );
+          },
         },
-        { text: "Cancel", style: "cancel" }
+        { text: "Cancel", style: "cancel" },
       ]);
     } finally {
       setIsAddingToCalendar(false);
@@ -511,8 +530,8 @@ export function BookingCard({
           {isPending && (
             <View className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 mb-3 border border-orange-200">
               <Text className="text-sm text-center text-orange-800 dark:text-orange-200">
-                The restaurant will confirm your request shortly. We'll notify you
-                as soon as they respond.
+                The restaurant will confirm your request shortly. We'll notify
+                you as soon as they respond.
               </Text>
             </View>
           )}
@@ -704,7 +723,6 @@ export function BookingCard({
           </View>
         </View>
       </Pressable>
-
     </>
   );
 }

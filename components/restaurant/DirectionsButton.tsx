@@ -6,14 +6,16 @@ import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { Database } from "@/types/supabase";
 
-type Restaurant = {
-  id: string;
-  name: string;
-  staticCoordinates?: { lat: number; lng: number };
-  coordinates?: { latitude: number; longitude: number };
-  location?: any;
-  [key: string]: any;
-} | any;
+type Restaurant =
+  | {
+      id: string;
+      name: string;
+      staticCoordinates?: { lat: number; lng: number };
+      coordinates?: { latitude: number; longitude: number };
+      location?: any;
+      [key: string]: any;
+    }
+  | any;
 
 interface DirectionsButtonProps {
   restaurant: Restaurant;
@@ -60,11 +62,14 @@ export function DirectionsButton({
 
     // Default directions implementation using processed coordinates
     const r: any = restaurant;
-    let coords = r.staticCoordinates || 
-      (r.coordinates ? {
-        lat: r.coordinates.latitude,
-        lng: r.coordinates.longitude,
-      } : null);
+    let coords =
+      r.staticCoordinates ||
+      (r.coordinates
+        ? {
+            lat: r.coordinates.latitude,
+            lng: r.coordinates.longitude,
+          }
+        : null);
 
     // If no processed coordinates, try to extract from location
     if (!coords && r.location) {
@@ -136,39 +141,41 @@ export function DirectionsButton({
 
   const getIconSize = () => {
     switch (size) {
-      case "sm": return 16;
-      case "lg": return 24;
-      default: return 20;
+      case "sm":
+        return 16;
+      case "lg":
+        return 24;
+      default:
+        return 20;
     }
   };
 
   const getTextSize = () => {
     switch (size) {
-      case "sm": return "text-xs";
-      case "lg": return "text-base";
-      default: return "text-sm";
+      case "sm":
+        return "text-xs";
+      case "lg":
+        return "text-base";
+      default:
+        return "text-sm";
     }
   };
 
   if (variant === "icon") {
     const defaultIconColor = iconColor || "white";
     const defaultBgColor = backgroundColor || "bg-black/50";
-    
+
     return (
       <Pressable
         onPress={(e) => {
           e.stopPropagation(); // Prevent card press
           handleDirections();
         }}
-        className={cn(
-          "rounded-full p-2",
-          defaultBgColor,
-          className,
-        )}
+        className={cn("rounded-full p-2", defaultBgColor, className)}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
       >
-        <Navigation 
-          size={getIconSize()} 
+        <Navigation
+          size={getIconSize()}
           color={defaultIconColor}
           className={iconClassName}
         />
@@ -180,7 +187,7 @@ export function DirectionsButton({
     const defaultIconColor = iconColor || "#3b82f6";
     const defaultTextColor = textColor || "text-primary";
     const defaultBgColor = backgroundColor || "bg-primary/10";
-    
+
     return (
       <Pressable
         onPress={handleDirections}
@@ -191,17 +198,19 @@ export function DirectionsButton({
           className,
         )}
       >
-        <Navigation 
-          size={getIconSize()} 
+        <Navigation
+          size={getIconSize()}
           color={defaultIconColor}
           className={iconClassName}
         />
-        <Text className={cn(
-          "font-medium", 
-          getTextSize(),
-          defaultTextColor,
-          textClassName
-        )}>
+        <Text
+          className={cn(
+            "font-medium",
+            getTextSize(),
+            defaultTextColor,
+            textClassName,
+          )}
+        >
           Directions
         </Text>
       </Pressable>
@@ -211,26 +220,19 @@ export function DirectionsButton({
   if (variant === "text") {
     const defaultIconColor = iconColor || "#666";
     const defaultTextColor = textColor || "text-muted-foreground";
-    
+
     return (
       <Pressable
         onPress={handleDirections}
-        className={cn(
-          "flex-row items-center gap-1",
-          className,
-        )}
+        className={cn("flex-row items-center gap-1", className)}
       >
-        <Navigation 
-          size={getIconSize()} 
+        <Navigation
+          size={getIconSize()}
           color={defaultIconColor}
           className={iconClassName}
         />
         {showText && (
-          <Text className={cn(
-            getTextSize(),
-            defaultTextColor,
-            textClassName
-          )}>
+          <Text className={cn(getTextSize(), defaultTextColor, textClassName)}>
             Directions
           </Text>
         )}
@@ -239,4 +241,4 @@ export function DirectionsButton({
   }
 
   return null;
-} 
+}

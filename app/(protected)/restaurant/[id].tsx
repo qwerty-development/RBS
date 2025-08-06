@@ -51,7 +51,7 @@ import { Text } from "@/components/ui/text";
 import { H1, H2, H3, P, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 import { LocationService } from "@/lib/locationService";
-import { RestaurantLoyaltyRules } from '@/components/booking/LoyaltyPointsDisplay';
+import { RestaurantLoyaltyRules } from "@/components/booking/LoyaltyPointsDisplay";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { useRestaurant } from "@/hooks/useRestaurant";
@@ -106,7 +106,7 @@ const useRestaurantLocation = (location: any) => {
 
     // Use LocationService to extract coordinates from any format
     const coords = LocationService.extractCoordinates(location);
-    
+
     if (coords) {
       setCoordinates(coords);
     } else {
@@ -252,13 +252,10 @@ const QuickActionsBar: React.FC<{
 };
 
 // Restaurant Header Info - Updated to use new hours system
-const RestaurantHeaderInfo: React.FC<{ 
+const RestaurantHeaderInfo: React.FC<{
   restaurant: Restaurant;
   restaurantId: string;
-}> = ({
-  restaurant,
-  restaurantId,
-}) => {
+}> = ({ restaurant, restaurantId }) => {
   const { address, isLoading } = useRestaurantLocation(restaurant.location);
   const { checkAvailability } = useRestaurantAvailability(restaurantId);
 
@@ -266,7 +263,7 @@ const RestaurantHeaderInfo: React.FC<{
   const availabilityStatus = useMemo(() => {
     return checkAvailability(new Date());
   }, [checkAvailability]);
-  
+
   const isOpen = availabilityStatus.isOpen;
 
   return (
@@ -522,11 +519,7 @@ const LocationMap: React.FC<{
         <Text className="text-base font-semibold text-foreground">
           Location
         </Text>
-        <DirectionsButton
-          restaurant={restaurant}
-          variant="button"
-          size="sm"
-        />
+        <DirectionsButton restaurant={restaurant} variant="button" size="sm" />
       </View>
 
       <View className="rounded-xl overflow-hidden h-40 mb-2 bg-gray-100 border border-border/50">
@@ -662,7 +655,9 @@ const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
                     key={star}
                     size={12}
                     color="#f59e0b"
-                    fill={star <= (review.overall_rating || 0) ? "#f59e0b" : "none"}
+                    fill={
+                      star <= (review.overall_rating || 0) ? "#f59e0b" : "none"
+                    }
                   />
                 ))}
               </View>
@@ -719,7 +714,8 @@ export default function RestaurantDetailsScreen() {
   } = useRestaurant(id);
 
   // Restaurant reviews hook for write review functionality
-  const { handleWriteReview: handleWriteReviewFromReviews } = useRestaurantReviews(id!);
+  const { handleWriteReview: handleWriteReviewFromReviews } =
+    useRestaurantReviews(id!);
 
   // Action Handlers with Guest Guard
   const handleToggleFavorite = useCallback(() => {
@@ -735,10 +731,7 @@ export default function RestaurantDetailsScreen() {
 
   const handleWriteReview = useCallback(() => {
     if (!restaurant) return;
-    runProtectedAction(
-      () => handleWriteReviewFromReviews(),
-      "write a review",
-    );
+    runProtectedAction(() => handleWriteReviewFromReviews(), "write a review");
   }, [runProtectedAction, handleWriteReviewFromReviews, restaurant]);
 
   // FIXED: Navigate to availability screen instead of using BookingWidget
@@ -872,24 +865,19 @@ export default function RestaurantDetailsScreen() {
           onCall={() => handleCall(restaurant)}
           onWebsite={handleWebsite}
         />
-        
+
         {/* Operating Hours Section */}
-        <RestaurantHoursDisplay 
-          restaurantId={restaurant.id} 
-          className="mb-6"
-        />
-        
+        <RestaurantHoursDisplay restaurantId={restaurant.id} className="mb-6" />
+
         <MenuSection onViewMenu={handleViewMenu} />
-        <LocationMap
-          restaurant={restaurant}
-        />
+        <LocationMap restaurant={restaurant} />
         <ReviewsSummary
           restaurant={restaurant}
           reviews={reviews}
           onViewAllReviews={handleViewAllReviews}
           onWriteReview={handleWriteReview}
         />
-        
+
         <RestaurantPosts
           restaurantId={restaurant.id}
           restaurantName={restaurant.name}

@@ -1,4 +1,10 @@
-import React, { useState, useCallback, useEffect, useMemo, useRef } from "react";
+import React, {
+  useState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import {
   ScrollView,
   View,
@@ -40,19 +46,28 @@ import { getMaxBookingWindow } from "@/lib/tableManagementUtils";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
 import { useRestaurant } from "@/hooks/useRestaurant";
-import { useAvailability, useAvailabilityPreloader } from "@/hooks/useAvailability";
+import {
+  useAvailability,
+  useAvailabilityPreloader,
+} from "@/hooks/useAvailability";
 import { TimeSlots, TableOptions } from "@/components/booking/TimeSlots";
 import { TableOption } from "@/lib/AvailabilityService";
 import { useOffers } from "@/hooks/useOffers";
 
 // New loyalty system imports
-import { LoyaltyPointsDisplay } from '@/components/booking/LoyaltyPointsDisplay';
+import { LoyaltyPointsDisplay } from "@/components/booking/LoyaltyPointsDisplay";
 import { useBookingConfirmation } from "@/hooks/useBookingConfirmation";
-import { PotentialLoyaltyPoints, useRestaurantLoyalty } from '@/hooks/useRestaurantLoyalty';
+import {
+  PotentialLoyaltyPoints,
+  useRestaurantLoyalty,
+} from "@/hooks/useRestaurantLoyalty";
 
 // Time Range Search imports
-import { TimeRangeSelector, TimeRangeResult } from '@/components/booking/TimeRangeSelector';
-import { useTimeRangeSearch } from '@/hooks/useTimeRangeSearch';
+import {
+  TimeRangeSelector,
+  TimeRangeResult,
+} from "@/components/booking/TimeRangeSelector";
+import { useTimeRangeSearch } from "@/hooks/useTimeRangeSearch";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -456,58 +471,66 @@ const QuickStats = React.memo<{
   selectedLoyaltyPoints: PotentialLoyaltyPoints | null;
   isRequestBooking: boolean;
   hasLoyaltyProgram: boolean;
-}>(({ restaurant, timeSlots, isLoading, selectedLoyaltyPoints, isRequestBooking, hasLoyaltyProgram }) => (
-  <View className="mx-4 my-2 p-3 bg-card/50 rounded-lg border border-border/50">
-    <View className="flex-row justify-around">
-      <View className="items-center">
-        {isLoading ? (
-          <ActivityIndicator size="small" />
-        ) : (
-          <Text className="text-lg font-bold text-primary">
-            {timeSlots.length}
-          </Text>
-        )}
-        <Text className="text-xs text-muted-foreground">Available</Text>
-      </View>
-
-      <View className="items-center">
-        <View className="flex-row items-center gap-1">
-          {isRequestBooking ? (
-            <Timer size={12} color="#f97316" />
+}>(
+  ({
+    restaurant,
+    timeSlots,
+    isLoading,
+    selectedLoyaltyPoints,
+    isRequestBooking,
+    hasLoyaltyProgram,
+  }) => (
+    <View className="mx-4 my-2 p-3 bg-card/50 rounded-lg border border-border/50">
+      <View className="flex-row justify-around">
+        <View className="items-center">
+          {isLoading ? (
+            <ActivityIndicator size="small" />
           ) : (
-            <Zap size={12} color="#f59e0b" />
+            <Text className="text-lg font-bold text-primary">
+              {timeSlots.length}
+            </Text>
           )}
-          <Text
-            className={`text-lg font-bold ${
-              isRequestBooking ? "text-orange-600" : "text-amber-600"
-            }`}
-          >
-            {isRequestBooking ? "2hr" : "Instant"}
-          </Text>
+          <Text className="text-xs text-muted-foreground">Available</Text>
         </View>
-        <Text className="text-xs text-muted-foreground">
-          {isRequestBooking ? "Response" : "Booking"}
-        </Text>
-      </View>
 
-      {/* Only show points if restaurant has loyalty program */}
-      {hasLoyaltyProgram && !isRequestBooking && (
         <View className="items-center">
           <View className="flex-row items-center gap-1">
-            <Trophy size={12} color="#10b981" />
-            <Text className="text-lg font-bold text-green-600">
-              {selectedLoyaltyPoints?.available 
-                ? `+${selectedLoyaltyPoints.pointsToAward}` 
-                : 'N/A'
-              }
+            {isRequestBooking ? (
+              <Timer size={12} color="#f97316" />
+            ) : (
+              <Zap size={12} color="#f59e0b" />
+            )}
+            <Text
+              className={`text-lg font-bold ${
+                isRequestBooking ? "text-orange-600" : "text-amber-600"
+              }`}
+            >
+              {isRequestBooking ? "2hr" : "Instant"}
             </Text>
           </View>
-          <Text className="text-xs text-muted-foreground">Points</Text>
+          <Text className="text-xs text-muted-foreground">
+            {isRequestBooking ? "Response" : "Booking"}
+          </Text>
         </View>
-      )}
+
+        {/* Only show points if restaurant has loyalty program */}
+        {hasLoyaltyProgram && !isRequestBooking && (
+          <View className="items-center">
+            <View className="flex-row items-center gap-1">
+              <Trophy size={12} color="#10b981" />
+              <Text className="text-lg font-bold text-green-600">
+                {selectedLoyaltyPoints?.available
+                  ? `+${selectedLoyaltyPoints.pointsToAward}`
+                  : "N/A"}
+              </Text>
+            </View>
+            <Text className="text-xs text-muted-foreground">Points</Text>
+          </View>
+        )}
+      </View>
     </View>
-  </View>
-));
+  ),
+);
 
 // Main Component
 export default function AvailabilitySelectionScreen() {
@@ -554,7 +577,8 @@ export default function AvailabilitySelectionScreen() {
   } | null>(null);
 
   // Loyalty points state
-  const [selectedLoyaltyPoints, setSelectedLoyaltyPoints] = useState<PotentialLoyaltyPoints | null>(null);
+  const [selectedLoyaltyPoints, setSelectedLoyaltyPoints] =
+    useState<PotentialLoyaltyPoints | null>(null);
 
   // Time Range Search state
   const [showTimeRangeSelector, setShowTimeRangeSelector] = useState(false);
@@ -568,8 +592,9 @@ export default function AvailabilitySelectionScreen() {
     params.restaurantId || "",
   );
   const { preloadRestaurant } = useAvailabilityPreloader();
-  const { hasLoyaltyProgram } = useRestaurantLoyalty(params.restaurantId || '');
-  const { confirmBooking, loading: confirmingBooking } = useBookingConfirmation();
+  const { hasLoyaltyProgram } = useRestaurantLoyalty(params.restaurantId || "");
+  const { confirmBooking, loading: confirmingBooking } =
+    useBookingConfirmation();
 
   // Enhanced availability hook with proper configuration
   const {
@@ -605,11 +630,11 @@ export default function AvailabilitySelectionScreen() {
     if (!selectedTime) return null;
     try {
       const dt = new Date(selectedDate);
-      const [h, m] = selectedTime.split(':');
+      const [h, m] = selectedTime.split(":");
       dt.setHours(parseInt(h), parseInt(m), 0, 0);
       return dt;
     } catch (error) {
-      console.error('Error constructing booking date time:', error);
+      console.error("Error constructing booking date time:", error);
       return null;
     }
   }, [selectedDate, selectedTime]);
@@ -701,10 +726,10 @@ export default function AvailabilitySelectionScreen() {
     (date: Date) => {
       if (date.toDateString() === selectedDate.toDateString()) return;
 
-    setSelectedDate(date);
-    setCurrentStep('time');
-    clearSelectedSlot();
-    setSelectedLoyaltyPoints(null); // Reset loyalty points
+      setSelectedDate(date);
+      setCurrentStep("time");
+      clearSelectedSlot();
+      setSelectedLoyaltyPoints(null); // Reset loyalty points
 
       // Clear any pending transitions
       if (stepTransitionRef.current) {
@@ -718,10 +743,10 @@ export default function AvailabilitySelectionScreen() {
     (size: number) => {
       if (size === partySize) return;
 
-    setPartySize(size);
-    setCurrentStep('time');
-    clearSelectedSlot();
-    setSelectedLoyaltyPoints(null); // Reset loyalty points
+      setPartySize(size);
+      setCurrentStep("time");
+      clearSelectedSlot();
+      setSelectedLoyaltyPoints(null); // Reset loyalty points
 
       if (stepTransitionRef.current) {
         clearTimeout(stepTransitionRef.current);
@@ -737,20 +762,25 @@ export default function AvailabilitySelectionScreen() {
         clearTimeout(stepTransitionRef.current);
       }
 
-    try {
-      // Fetch options and transition to experience step
-      await fetchSlotOptions(time);
+      try {
+        // Fetch options and transition to experience step
+        await fetchSlotOptions(time);
 
-      // Smooth transition with haptic feedback
-      stepTransitionRef.current = setTimeout(() => {
-        setCurrentStep('experience');
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      }, 200);
-    } catch (error) {
-      console.error('Error fetching slot options:', error);
-      Alert.alert('Error', 'Failed to load seating options. Please try again.');
-    }
-  }, [fetchSlotOptions]);
+        // Smooth transition with haptic feedback
+        stepTransitionRef.current = setTimeout(() => {
+          setCurrentStep("experience");
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }, 200);
+      } catch (error) {
+        console.error("Error fetching slot options:", error);
+        Alert.alert(
+          "Error",
+          "Failed to load seating options. Please try again.",
+        );
+      }
+    },
+    [fetchSlotOptions],
+  );
 
   const handleBackToTimeSelection = useCallback(() => {
     setCurrentStep("time");
@@ -759,58 +789,67 @@ export default function AvailabilitySelectionScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [clearSelectedSlot]);
 
-  const handleExperienceConfirm = useCallback(async (tableIds: string[], selectedOption: TableOption) => {
-    if (!selectedSlotOptions || !restaurant || !bookingDateTime) {
-      Alert.alert("Error", "Missing booking information");
-      return;
-    }
-    try {
-      const success = await confirmBooking({
-        restaurantId: params.restaurantId,
-        bookingTime: bookingDateTime,
-        partySize: partySize,
-        specialRequests: undefined,
-        occasion: undefined,
-        dietaryNotes: undefined,
-        tablePreferences: undefined,
-        bookingPolicy: restaurant.booking_policy,
-        expectedLoyaltyPoints: selectedLoyaltyPoints?.available ? selectedLoyaltyPoints.pointsToAward : 0,
-        appliedOfferId: preselectedOffer?.id,
-        loyaltyRuleId: selectedLoyaltyPoints?.available ? selectedLoyaltyPoints.ruleId : undefined,
-        tableIds: JSON.stringify(tableIds),
-        requiresCombination: selectedOption.requiresCombination
-      });
-      
-      if (success) {
-        // Success feedback
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        
-        // FIXED: Force refresh availability data after successful booking
-        // This ensures time slots and table options are updated immediately
-        console.log('Booking confirmed successfully, refreshing availability...');
-        await refresh(true); // Force refresh with cache clearing
-        
-        // Clear selected slot to reset the UI state
-        clearSelectedSlot();
-        setCurrentStep('time');
-        setSelectedLoyaltyPoints(null);
+  const handleExperienceConfirm = useCallback(
+    async (tableIds: string[], selectedOption: TableOption) => {
+      if (!selectedSlotOptions || !restaurant || !bookingDateTime) {
+        Alert.alert("Error", "Missing booking information");
+        return;
       }
-    } catch (error) {
-      console.error('Error confirming booking:', error);
-      Alert.alert('Error', 'Failed to confirm booking. Please try again.');
-    }
-  }, [
-    selectedSlotOptions,
-    restaurant,
-    bookingDateTime,
-    params.restaurantId,
-    partySize,
-    selectedLoyaltyPoints,
-    preselectedOffer,
-    confirmBooking,
-    refresh,
-    clearSelectedSlot,
-  ]);
+      try {
+        const success = await confirmBooking({
+          restaurantId: params.restaurantId,
+          bookingTime: bookingDateTime,
+          partySize: partySize,
+          specialRequests: undefined,
+          occasion: undefined,
+          dietaryNotes: undefined,
+          tablePreferences: undefined,
+          bookingPolicy: restaurant.booking_policy,
+          expectedLoyaltyPoints: selectedLoyaltyPoints?.available
+            ? selectedLoyaltyPoints.pointsToAward
+            : 0,
+          appliedOfferId: preselectedOffer?.id,
+          loyaltyRuleId: selectedLoyaltyPoints?.available
+            ? selectedLoyaltyPoints.ruleId
+            : undefined,
+          tableIds: JSON.stringify(tableIds),
+          requiresCombination: selectedOption.requiresCombination,
+        });
+
+        if (success) {
+          // Success feedback
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+          // FIXED: Force refresh availability data after successful booking
+          // This ensures time slots and table options are updated immediately
+          console.log(
+            "Booking confirmed successfully, refreshing availability...",
+          );
+          await refresh(true); // Force refresh with cache clearing
+
+          // Clear selected slot to reset the UI state
+          clearSelectedSlot();
+          setCurrentStep("time");
+          setSelectedLoyaltyPoints(null);
+        }
+      } catch (error) {
+        console.error("Error confirming booking:", error);
+        Alert.alert("Error", "Failed to confirm booking. Please try again.");
+      }
+    },
+    [
+      selectedSlotOptions,
+      restaurant,
+      bookingDateTime,
+      params.restaurantId,
+      partySize,
+      selectedLoyaltyPoints,
+      preselectedOffer,
+      confirmBooking,
+      refresh,
+      clearSelectedSlot,
+    ],
+  );
 
   const handleViewOffers = useCallback(() => {
     router.push({
@@ -850,22 +889,27 @@ export default function AvailabilitySelectionScreen() {
     setShowTimeRangeSelector(false);
   }, []);
 
-  const handleTimeRangeSearchResult = useCallback(async (result: TimeRangeResult) => {
-    try {
-      // Set the selected time to match the search result
-      await fetchSlotOptions(result.timeSlot);
-      
-      // Smooth transition to experience step
-      stepTransitionRef.current = setTimeout(() => {
-        setCurrentStep('experience');
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      }, 200);
-      
-    } catch (error) {
-      console.error('Error handling time range result:', error);
-      Alert.alert('Error', 'Failed to load the selected time slot. Please try again.');
-    }
-  }, [fetchSlotOptions]);
+  const handleTimeRangeSearchResult = useCallback(
+    async (result: TimeRangeResult) => {
+      try {
+        // Set the selected time to match the search result
+        await fetchSlotOptions(result.timeSlot);
+
+        // Smooth transition to experience step
+        stepTransitionRef.current = setTimeout(() => {
+          setCurrentStep("experience");
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        }, 200);
+      } catch (error) {
+        console.error("Error handling time range result:", error);
+        Alert.alert(
+          "Error",
+          "Failed to load the selected time slot. Please try again.",
+        );
+      }
+    },
+    [fetchSlotOptions],
+  );
 
   // Cleanup on unmount
   useEffect(() => {
@@ -1000,7 +1044,7 @@ export default function AvailabilitySelectionScreen() {
                     </View>
                   </View>
                 </View>
-                
+
                 <Button
                   onPress={handleOpenTimeRangeSearch}
                   disabled={timeSlotsLoading}
@@ -1157,7 +1201,8 @@ export default function AvailabilitySelectionScreen() {
                   )}
                   {selectedLoyaltyPoints?.available && (
                     <Text className="text-sm text-amber-600 dark:text-amber-400">
-                      • Earn {selectedLoyaltyPoints.pointsToAward} loyalty points
+                      • Earn {selectedLoyaltyPoints.pointsToAward} loyalty
+                      points
                     </Text>
                   )}
                   <Text className="text-sm text-blue-600 dark:text-blue-400 font-medium">
@@ -1192,7 +1237,9 @@ export default function AvailabilitySelectionScreen() {
             <View className="flex-row items-center gap-2 flex-wrap">
               <Text className="text-sm text-muted-foreground">
                 Party of {partySize}
-                {!isRequestBooking && selectedLoyaltyPoints?.available && ` • Earn ${selectedLoyaltyPoints.pointsToAward} points`}
+                {!isRequestBooking &&
+                  selectedLoyaltyPoints?.available &&
+                  ` • Earn ${selectedLoyaltyPoints.pointsToAward} points`}
               </Text>
               {preselectedOffer && (
                 <>
@@ -1232,7 +1279,9 @@ export default function AvailabilitySelectionScreen() {
           ) : (
             <View className="items-end ml-4">
               <Text className="text-xs text-muted-foreground mb-1 text-right">
-                {confirmingBooking ? 'Confirming...' : 'Select experience above'}
+                {confirmingBooking
+                  ? "Confirming..."
+                  : "Select experience above"}
               </Text>
               {confirmingBooking && (
                 <View className="w-20 h-10 bg-muted/50 rounded-lg items-center justify-center">
@@ -1248,11 +1297,12 @@ export default function AvailabilitySelectionScreen() {
       <TimeRangeSelector
         visible={showTimeRangeSelector}
         onClose={handleCloseTimeRangeSearch}
-        onSearch={createSearchFunction(params.restaurantId || '')}
+        onSearch={createSearchFunction(params.restaurantId || "")}
         onSelectResult={handleTimeRangeSearchResult}
         initialPartySize={partySize}
         selectedDate={selectedDate}
-        restaurantName={restaurant?.name || 'Restaurant'}
+        restaurantName={restaurant?.name || "Restaurant"}
+        restaurantId={params.restaurantId || ""}
       />
     </SafeAreaView>
   );

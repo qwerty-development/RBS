@@ -92,7 +92,7 @@ export const usePlaylistItems = (playlistId: string | null) => {
           playlistIds: [playlistId],
           successCount: 1,
         });
-        
+
         // Also refresh local items
         await fetchItems();
         return true;
@@ -119,8 +119,8 @@ export const usePlaylistItems = (playlistId: string | null) => {
         if (error) throw error;
 
         // Get the restaurant ID before filtering for event emission
-        const removedItem = items.find(item => item.id === itemId);
-        
+        const removedItem = items.find((item) => item.id === itemId);
+
         // Emit event to notify all components about restaurant removal
         if (removedItem && playlistId) {
           playlistEventEmitter.emit(PLAYLIST_EVENTS.RESTAURANT_REMOVED, {
@@ -229,7 +229,7 @@ export const usePlaylistItems = (playlistId: string | null) => {
     const handlePlaylistItemUpdate = (eventData: any) => {
       // Check if this event affects the current playlist
       if (!playlistId) return;
-      
+
       const { playlistIds } = eventData;
       if (playlistIds && playlistIds.includes(playlistId)) {
         // This playlist was affected, refresh the items
@@ -245,14 +245,26 @@ export const usePlaylistItems = (playlistId: string | null) => {
     };
 
     // Listen for events that affect playlist items
-    playlistEventEmitter.on(PLAYLIST_EVENTS.RESTAURANT_ADDED, handlePlaylistItemUpdate);
-    playlistEventEmitter.on(PLAYLIST_EVENTS.RESTAURANT_REMOVED, handlePlaylistItemUpdate);
+    playlistEventEmitter.on(
+      PLAYLIST_EVENTS.RESTAURANT_ADDED,
+      handlePlaylistItemUpdate,
+    );
+    playlistEventEmitter.on(
+      PLAYLIST_EVENTS.RESTAURANT_REMOVED,
+      handlePlaylistItemUpdate,
+    );
     playlistEventEmitter.on(PLAYLIST_EVENTS.UPDATED, handlePlaylistUpdate);
 
     // Cleanup event listeners
     return () => {
-      playlistEventEmitter.off(PLAYLIST_EVENTS.RESTAURANT_ADDED, handlePlaylistItemUpdate);
-      playlistEventEmitter.off(PLAYLIST_EVENTS.RESTAURANT_REMOVED, handlePlaylistItemUpdate);
+      playlistEventEmitter.off(
+        PLAYLIST_EVENTS.RESTAURANT_ADDED,
+        handlePlaylistItemUpdate,
+      );
+      playlistEventEmitter.off(
+        PLAYLIST_EVENTS.RESTAURANT_REMOVED,
+        handlePlaylistItemUpdate,
+      );
       playlistEventEmitter.off(PLAYLIST_EVENTS.UPDATED, handlePlaylistUpdate);
     };
   }, [fetchItems, playlistId]);

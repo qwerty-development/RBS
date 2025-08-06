@@ -269,7 +269,9 @@ export function useAvailability({
       // Throttle updates to avoid excessive calls
       realtimeUpdateRef.current = setTimeout(() => {
         if (isMounted) {
-          console.log("Availability update received, refreshing experiences...");
+          console.log(
+            "Availability update received, refreshing experiences...",
+          );
           refresh();
         }
       }, 1000); // Reduced to 1 second for faster updates
@@ -290,19 +292,19 @@ export function useAvailability({
 
     return () => {
       isMounted = false;
-      
+
       // Clean up realtime subscription
       if (unsubscribeRealtime) {
         unsubscribeRealtime();
         unsubscribeRealtime = null;
       }
-      
+
       // Clean up timeout
       if (realtimeUpdateRef.current) {
         clearTimeout(realtimeUpdateRef.current);
         realtimeUpdateRef.current = null;
       }
-      
+
       console.log("🧹 Availability realtime subscription cleaned up");
     };
   }, [restaurantId, enableRealtime, refresh]);

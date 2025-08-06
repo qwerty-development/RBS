@@ -1,7 +1,7 @@
 // hooks/useWaitingListNotifications.ts
-import { useEffect } from 'react';
-import { useAuth } from '@/context/supabase-provider';
-import { WaitingListNotifications } from '@/lib/WaitingListNotifications';
+import { useEffect } from "react";
+import { useAuth } from "@/context/supabase-provider";
+import { WaitingListNotifications } from "@/lib/WaitingListNotifications";
 
 /**
  * Hook to manage waiting list notifications for the current user
@@ -13,7 +13,7 @@ export function useWaitingListNotifications() {
     if (!profile?.id) return;
 
     const notificationService = WaitingListNotifications.getInstance();
-    
+
     // Initialize notifications for the user
     notificationService.initialize(profile.id);
 

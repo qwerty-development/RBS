@@ -34,9 +34,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   constructor(props: Props) {
     super(props);
-    this.state = { 
-      hasError: false, 
-      error: null, 
+    this.state = {
+      hasError: false,
+      error: null,
       errorInfo: null,
       errorId: null,
     };
@@ -47,23 +47,23 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('ErrorBoundary caught an error:', error);
-    console.error('Error info:', errorInfo);
+    console.error("ErrorBoundary caught an error:", error);
+    console.error("Error info:", errorInfo);
 
     // Generate unique error ID for tracking
     const errorId = `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
+
     this.setState({ errorInfo, errorId });
 
     // Report to Sentry with enhanced context
     Sentry.withScope((scope) => {
-      scope.setTag('errorBoundary', true);
-      scope.setTag('retryCount', this.retryCount);
-      scope.setContext('errorInfo', {
+      scope.setTag("errorBoundary", true);
+      scope.setTag("retryCount", this.retryCount);
+      scope.setContext("errorInfo", {
         componentStack: errorInfo.componentStack,
         errorBoundary: this.constructor.name,
       });
-      scope.setLevel('error');
+      scope.setLevel("error");
       Sentry.captureException(error);
     });
 
@@ -73,28 +73,41 @@ export class ErrorBoundary extends Component<Props, State> {
 
   handleReset = () => {
     this.retryCount++;
-    
+
     if (this.retryCount > this.maxRetries) {
       Alert.alert(
         "Multiple Errors Detected",
         "This component has crashed multiple times. Please restart the app or contact support.",
         [
           { text: "Contact Support", onPress: this.handleReportError },
-          { text: "Restart App", onPress: () => {
-            this.setState({ hasError: false, error: null, errorInfo: null, errorId: null });
-            this.retryCount = 0;
-          }},
-        ]
+          {
+            text: "Restart App",
+            onPress: () => {
+              this.setState({
+                hasError: false,
+                error: null,
+                errorInfo: null,
+                errorId: null,
+              });
+              this.retryCount = 0;
+            },
+          },
+        ],
       );
       return;
     }
 
-    this.setState({ hasError: false, error: null, errorInfo: null, errorId: null });
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      errorId: null,
+    });
   };
 
   handleReportError = async () => {
     const { error, errorInfo, errorId } = this.state;
-    
+
     if (!error) return;
 
     const errorReport = `
@@ -103,20 +116,20 @@ Error: ${error.message}
 Stack: ${error.stack}
 Component Stack: ${errorInfo?.componentStack}
 Time: ${new Date().toISOString()}
-User Agent: ${navigator.userAgent || 'Unknown'}
+User Agent: ${navigator.userAgent || "Unknown"}
     `.trim();
 
     try {
       await Share.share({
         message: `Bug Report\n\n${errorReport}`,
-        title: 'Bug Report',
+        title: "Bug Report",
       });
     } catch (shareError) {
-      console.error('Failed to share error report:', shareError);
+      console.error("Failed to share error report:", shareError);
       Alert.alert(
         "Report Error",
         "Please contact support with the following error ID: " + errorId,
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
     }
   };
@@ -151,7 +164,8 @@ User Agent: ${navigator.userAgent || 'Unknown'}
 
               {/* Error Description */}
               <P className="text-center text-muted-foreground mb-6 max-w-sm">
-                We're sorry for the inconvenience. The app encountered an unexpected error.
+                We're sorry for the inconvenience. The app encountered an
+                unexpected error.
               </P>
 
               {/* Error ID for support */}
@@ -174,19 +188,21 @@ User Agent: ${navigator.userAgent || 'Unknown'}
 
               {/* Action Buttons */}
               <View className="w-full max-w-sm space-y-3">
-                <Button 
+                <Button
                   onPress={this.handleReset}
                   className="w-full"
                   disabled={this.retryCount >= this.maxRetries}
                 >
                   <RefreshCw size={16} color="white" />
                   <Text className="text-white ml-2">
-                    {this.retryCount >= this.maxRetries ? 'Too Many Retries' : 'Try Again'}
+                    {this.retryCount >= this.maxRetries
+                      ? "Too Many Retries"
+                      : "Try Again"}
                   </Text>
                 </Button>
 
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onPress={this.handleReportError}
                   className="w-full"
                 >
@@ -212,10 +228,18 @@ User Agent: ${navigator.userAgent || 'Unknown'}
 }
 
 // Specialized error boundaries for different app sections
-export class NavigationErrorBoundary extends Component<PropsWithChildren, State> {
+export class NavigationErrorBoundary extends Component<
+  PropsWithChildren,
+  State
+> {
   constructor(props: PropsWithChildren) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null, errorId: null };
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      errorId: null,
+    };
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
@@ -223,9 +247,9 @@ export class NavigationErrorBoundary extends Component<PropsWithChildren, State>
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Navigation Error:', error);
+    console.error("Navigation Error:", error);
     Sentry.withScope((scope) => {
-      scope.setTag('errorType', 'navigation');
+      scope.setTag("errorType", "navigation");
       Sentry.captureException(error);
     });
   }
@@ -239,7 +263,9 @@ export class NavigationErrorBoundary extends Component<PropsWithChildren, State>
           <P className="text-center text-muted-foreground mb-4">
             There was a problem with navigation. Please restart the app.
           </P>
-          <Button onPress={() => this.setState({ hasError: false, error: null })}>
+          <Button
+            onPress={() => this.setState({ hasError: false, error: null })}
+          >
             <Text className="text-white">Try Again</Text>
           </Button>
         </View>
@@ -253,7 +279,12 @@ export class NavigationErrorBoundary extends Component<PropsWithChildren, State>
 export class DataErrorBoundary extends Component<PropsWithChildren, State> {
   constructor(props: PropsWithChildren) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null, errorId: null };
+    this.state = {
+      hasError: false,
+      error: null,
+      errorInfo: null,
+      errorId: null,
+    };
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
@@ -261,9 +292,9 @@ export class DataErrorBoundary extends Component<PropsWithChildren, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Data Error:', error);
+    console.error("Data Error:", error);
     Sentry.withScope((scope) => {
-      scope.setTag('errorType', 'data');
+      scope.setTag("errorType", "data");
       Sentry.captureException(error);
     });
   }
@@ -275,8 +306,8 @@ export class DataErrorBoundary extends Component<PropsWithChildren, State> {
           <P className="text-yellow-800 dark:text-yellow-200 text-center">
             Failed to load data. Please try refreshing.
           </P>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onPress={() => this.setState({ hasError: false, error: null })}
             className="mt-2"
           >

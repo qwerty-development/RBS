@@ -69,7 +69,7 @@ export const usePlaylists = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Use ref to track if component is mounted to prevent state updates after unmount
   const isMountedRef = useRef(true);
 
@@ -119,7 +119,10 @@ export const usePlaylists = () => {
             .order("created_at", { ascending: false });
 
         if (collabPlaylistsError) {
-          console.error("Error fetching collaborative playlists:", collabPlaylistsError);
+          console.error(
+            "Error fetching collaborative playlists:",
+            collabPlaylistsError,
+          );
           throw collabPlaylistsError;
         }
 
@@ -176,18 +179,25 @@ export const usePlaylists = () => {
               .eq("playlist_id", playlist.id);
 
             if (itemError) {
-              console.error(`Error fetching item count for playlist ${playlist.id}:`, itemError);
+              console.error(
+                `Error fetching item count for playlist ${playlist.id}:`,
+                itemError,
+              );
             }
 
             // Get collaborator count
-            const { count: collaboratorCount, error: collabError } = await supabase
-              .from("playlist_collaborators")
-              .select("*", { count: "exact", head: true })
-              .eq("playlist_id", playlist.id)
-              .not("accepted_at", "is", null);
+            const { count: collaboratorCount, error: collabError } =
+              await supabase
+                .from("playlist_collaborators")
+                .select("*", { count: "exact", head: true })
+                .eq("playlist_id", playlist.id)
+                .not("accepted_at", "is", null);
 
             if (collabError) {
-              console.error(`Error fetching collaborator count for playlist ${playlist.id}:`, collabError);
+              console.error(
+                `Error fetching collaborator count for playlist ${playlist.id}:`,
+                collabError,
+              );
             }
 
             const playlistWithStats = {
@@ -198,7 +208,10 @@ export const usePlaylists = () => {
 
             return playlistWithStats;
           } catch (statsError) {
-            console.error(`Error fetching stats for playlist ${playlist.id}:`, statsError);
+            console.error(
+              `Error fetching stats for playlist ${playlist.id}:`,
+              statsError,
+            );
             // Return playlist with default stats if there's an error
             const fallbackPlaylist = {
               ...playlist,
@@ -207,7 +220,7 @@ export const usePlaylists = () => {
             };
             return fallbackPlaylist;
           }
-        })
+        }),
       );
 
       // Only update state if component is still mounted
@@ -345,16 +358,28 @@ export const usePlaylists = () => {
     playlistEventEmitter.on(PLAYLIST_EVENTS.UPDATED, handlePlaylistUpdate);
     playlistEventEmitter.on(PLAYLIST_EVENTS.CREATED, handlePlaylistUpdate);
     playlistEventEmitter.on(PLAYLIST_EVENTS.DELETED, handlePlaylistUpdate);
-    playlistEventEmitter.on(PLAYLIST_EVENTS.RESTAURANT_ADDED, handlePlaylistUpdate);
-    playlistEventEmitter.on(PLAYLIST_EVENTS.RESTAURANT_REMOVED, handlePlaylistUpdate);
+    playlistEventEmitter.on(
+      PLAYLIST_EVENTS.RESTAURANT_ADDED,
+      handlePlaylistUpdate,
+    );
+    playlistEventEmitter.on(
+      PLAYLIST_EVENTS.RESTAURANT_REMOVED,
+      handlePlaylistUpdate,
+    );
 
     // Cleanup event listeners
     return () => {
       playlistEventEmitter.off(PLAYLIST_EVENTS.UPDATED, handlePlaylistUpdate);
       playlistEventEmitter.off(PLAYLIST_EVENTS.CREATED, handlePlaylistUpdate);
       playlistEventEmitter.off(PLAYLIST_EVENTS.DELETED, handlePlaylistUpdate);
-      playlistEventEmitter.off(PLAYLIST_EVENTS.RESTAURANT_ADDED, handlePlaylistUpdate);
-      playlistEventEmitter.off(PLAYLIST_EVENTS.RESTAURANT_REMOVED, handlePlaylistUpdate);
+      playlistEventEmitter.off(
+        PLAYLIST_EVENTS.RESTAURANT_ADDED,
+        handlePlaylistUpdate,
+      );
+      playlistEventEmitter.off(
+        PLAYLIST_EVENTS.RESTAURANT_REMOVED,
+        handlePlaylistUpdate,
+      );
     };
   }, [fetchPlaylists, profile?.id]);
 

@@ -39,12 +39,12 @@ export interface Database {
           updated_at?: string;
         };
       };
-      
+
       restaurant_loyalty_transactions: {
         Row: {
           id: string;
           restaurant_id: string;
-          transaction_type: 'purchase' | 'deduction' | 'refund' | 'adjustment';
+          transaction_type: "purchase" | "deduction" | "refund" | "adjustment";
           points: number;
           balance_before: number;
           balance_after: number;
@@ -57,7 +57,7 @@ export interface Database {
         Insert: {
           id?: string;
           restaurant_id: string;
-          transaction_type: 'purchase' | 'deduction' | 'refund' | 'adjustment';
+          transaction_type: "purchase" | "deduction" | "refund" | "adjustment";
           points: number;
           balance_before: number;
           balance_after: number;
@@ -70,7 +70,7 @@ export interface Database {
         Update: {
           id?: string;
           restaurant_id?: string;
-          transaction_type?: 'purchase' | 'deduction' | 'refund' | 'adjustment';
+          transaction_type?: "purchase" | "deduction" | "refund" | "adjustment";
           points?: number;
           balance_before?: number;
           balance_after?: number;
@@ -81,7 +81,7 @@ export interface Database {
           metadata?: any;
         };
       };
-      
+
       restaurant_loyalty_rules: {
         Row: {
           id: string;
@@ -144,7 +144,7 @@ export interface Database {
           updated_at?: string;
         };
       };
-      
+
       user_loyalty_rule_usage: {
         Row: {
           id: string;
@@ -651,7 +651,6 @@ export interface Database {
       [_ in never]: never;
     };
     Functions: {
-
       check_loyalty_rules_for_booking: {
         Args: {
           p_booking_id: string;
@@ -662,20 +661,20 @@ export interface Database {
           rule_name: string;
         }[];
       };
-      
+
       award_restaurant_loyalty_points: {
         Args: {
           p_booking_id: string;
         };
         Returns: boolean;
       };
-      
+
       refund_restaurant_loyalty_points: {
         Args: {
           p_booking_id: string;
         };
         Returns: boolean;
-      },
+      };
       update_restaurant_availability: {
         Args: {
           p_restaurant_id: string;

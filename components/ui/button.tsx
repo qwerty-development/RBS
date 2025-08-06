@@ -83,54 +83,60 @@ type ButtonProps = React.ComponentPropsWithoutRef<typeof Pressable> &
 const Button = React.forwardRef<
   React.ComponentRef<typeof Pressable>,
   ButtonProps
->(({ 
-  className, 
-  variant, 
-  size, 
-  accessibilityLabel,
-  accessibilityHint,
-  loading,
-  destructive,
-  children,
-  ...props 
-}, ref) => {
-  const { getButtonProps } = useButtonAccessibility();
+>(
+  (
+    {
+      className,
+      variant,
+      size,
+      accessibilityLabel,
+      accessibilityHint,
+      loading,
+      destructive,
+      children,
+      ...props
+    },
+    ref,
+  ) => {
+    const { getButtonProps } = useButtonAccessibility();
 
-  // Determine button label from children if not provided
-  const buttonLabel = accessibilityLabel || 
-    (typeof children === 'string' ? children : 'Button');
+    // Determine button label from children if not provided
+    const buttonLabel =
+      accessibilityLabel ||
+      (typeof children === "string" ? children : "Button");
 
-  // Get accessibility props
-  const accessibilityProps = getButtonProps(buttonLabel, {
-    loading,
-    disabled: props.disabled,
-    destructive: destructive || variant === 'destructive',
-    hint: accessibilityHint,
-  });
+    // Get accessibility props
+    const accessibilityProps = getButtonProps(buttonLabel, {
+      loading,
+      disabled: props.disabled,
+      destructive: destructive || variant === "destructive",
+      hint: accessibilityHint,
+    });
 
-  return (
-    <TextClassContext.Provider
-      value={buttonTextVariants({
-        variant,
-        size,
-        className: "web:pointer-events-none",
-      })}
-    >
-      <Pressable
-        className={cn(
-          props.disabled && "opacity-50 web:pointer-events-none",
-          buttonVariants({ variant, size, className }),
-        )}
-        ref={ref}
-        role="button"
-        {...accessibilityProps}
-        {...props}
+    return (
+      <TextClassContext.Provider
+        value={buttonTextVariants({
+          variant,
+          size,
+          className: "web:pointer-events-none",
+        })}
       >
-        {children}
-      </Pressable>
-    </TextClassContext.Provider>
-  );
-});
+        <Pressable
+          className={cn(
+            props.disabled && "opacity-50 web:pointer-events-none",
+            buttonVariants({ variant, size, className }),
+          )}
+          ref={ref}
+          role="button"
+          {...accessibilityProps}
+          {...props}
+        >
+          {children}
+        </Pressable>
+      </TextClassContext.Provider>
+    );
+  },
+);
 Button.displayName = "Button";
 
 export { Button, buttonTextVariants, buttonVariants };

@@ -256,7 +256,10 @@ export default function PlaylistDetailScreen() {
                 try {
                   await removeRestaurant(item.id);
                 } catch (error) {
-                  console.error("Error removing restaurant from playlist:", error);
+                  console.error(
+                    "Error removing restaurant from playlist:",
+                    error,
+                  );
                 }
               },
             },

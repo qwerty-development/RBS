@@ -47,7 +47,9 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
 
   // Sanitize all text values to prevent rendering errors
   const safeName = String(playlist.name || "Untitled Playlist");
-  const safeDescription = playlist.description ? String(playlist.description) : null;
+  const safeDescription = playlist.description
+    ? String(playlist.description)
+    : null;
   const safeEmoji = String(playlist.emoji || "📍");
   const safeItemCount = Number(playlist.item_count) || 0;
   const safeCollaboratorCount = Number(playlist.collaborator_count) || 0;
@@ -99,7 +101,10 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
             </View>
 
             {safeDescription && (
-              <Text className="text-sm text-muted-foreground mb-1" numberOfLines={1}>
+              <Text
+                className="text-sm text-muted-foreground mb-1"
+                numberOfLines={1}
+              >
                 {safeDescription}
               </Text>
             )}
@@ -119,7 +124,9 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
               {playlist.is_collaborative && (
                 <View className="bg-blue-100 dark:bg-blue-900 px-2 py-0.5 rounded-full">
                   <Text className="text-xs text-blue-700 dark:text-blue-300">
-                    {playlist.user_permission === "edit" ? "Can Edit" : "Viewer"}
+                    {playlist.user_permission === "edit"
+                      ? "Can Edit"
+                      : "Viewer"}
                   </Text>
                 </View>
               )}
@@ -231,7 +238,10 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
           </H4>
 
           {safeDescription && (
-            <Text className="text-sm text-muted-foreground mb-2" numberOfLines={2}>
+            <Text
+              className="text-sm text-muted-foreground mb-2"
+              numberOfLines={2}
+            >
               {safeDescription}
             </Text>
           )}
@@ -244,7 +254,9 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
             {safeCollaboratorCount > 0 && (
               <View className="flex-row items-center gap-1">
                 <Users size={12} color="#6b7280" />
-                <Text className="text-xs text-muted-foreground">+{safeCollaboratorCount}</Text>
+                <Text className="text-xs text-muted-foreground">
+                  +{safeCollaboratorCount}
+                </Text>
               </View>
             )}
           </View>

@@ -59,18 +59,20 @@ const PotentialLoyaltyPointsCard: React.FC<{
         <Trophy size={20} color="#9333ea" />
         <Text className="font-semibold text-lg ml-2">Potential Rewards</Text>
       </View>
-      
+
       <View className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
         <Text className="text-sm text-purple-900 dark:text-purple-100">
-          If your booking is confirmed, you'll earn <Text className="font-bold">{expectedPoints} bonus points</Text>
+          If your booking is confirmed, you'll earn{" "}
+          <Text className="font-bold">{expectedPoints} bonus points</Text>
           {ruleName && <Text> from "{ruleName}"</Text>}!
         </Text>
       </View>
-      
+
       <View className="flex-row items-start mt-3">
         <Info size={14} color="#666" className="mt-0.5" />
         <Text className="text-xs text-muted-foreground ml-2 flex-1">
-          Points will be added to your account automatically once the restaurant confirms your booking.
+          Points will be added to your account automatically once the restaurant
+          confirms your booking.
         </Text>
       </View>
     </View>
@@ -90,7 +92,8 @@ export default function RequestSentScreen() {
 
   // State for booking data and loyalty details
   const [booking, setBooking] = useState<Booking | null>(null);
-  const [expectedLoyaltyRule, setExpectedLoyaltyRule] = useState<LoyaltyRuleDetails | null>(null);
+  const [expectedLoyaltyRule, setExpectedLoyaltyRule] =
+    useState<LoyaltyRuleDetails | null>(null);
   const [loading, setLoading] = useState(true);
 
   const bookingDate = new Date(params.bookingDate);
@@ -112,10 +115,12 @@ export default function RequestSentScreen() {
         // Fetch booking with restaurant data
         const { data: bookingData, error: bookingError } = await supabase
           .from("bookings")
-          .select(`
+          .select(
+            `
             *,
             restaurant:restaurants (*)
-          `)
+          `,
+          )
           .eq("id", params.bookingId)
           .single();
 
@@ -123,11 +128,14 @@ export default function RequestSentScreen() {
         setBooking(bookingData);
 
         // Fetch loyalty rule details if applicable
-        if (bookingData?.applied_loyalty_rule_id && bookingData?.expected_loyalty_points) {
+        if (
+          bookingData?.applied_loyalty_rule_id &&
+          bookingData?.expected_loyalty_points
+        ) {
           const { data: ruleData, error: ruleError } = await supabase
-            .from('restaurant_loyalty_rules')
-            .select('id, rule_name, points_to_award, restaurant_id')
-            .eq('id', bookingData.applied_loyalty_rule_id)
+            .from("restaurant_loyalty_rules")
+            .select("id, rule_name, points_to_award, restaurant_id")
+            .eq("id", bookingData.applied_loyalty_rule_id)
             .single();
 
           if (!ruleError && ruleData) {
@@ -135,7 +143,7 @@ export default function RequestSentScreen() {
           }
         }
       } catch (error) {
-        console.error('Error fetching booking data:', error);
+        console.error("Error fetching booking data:", error);
       } finally {
         setLoading(false);
       }
@@ -158,7 +166,11 @@ export default function RequestSentScreen() {
       }. Awaiting confirmation! 🤞`;
 
       // Add loyalty points info if available
-      if (booking?.expected_loyalty_points && booking.expected_loyalty_points > 0 && expectedLoyaltyRule) {
+      if (
+        booking?.expected_loyalty_points &&
+        booking.expected_loyalty_points > 0 &&
+        expectedLoyaltyRule
+      ) {
         message += ` If confirmed, I'll earn ${booking.expected_loyalty_points} bonus points from "${expectedLoyaltyRule.rule_name}"!`;
       }
 
@@ -318,12 +330,14 @@ export default function RequestSentScreen() {
           </View>
 
           {/* Potential Loyalty Points Card */}
-          {!loading && booking?.expected_loyalty_points && booking.expected_loyalty_points > 0 && (
-            <PotentialLoyaltyPointsCard
-              expectedPoints={booking.expected_loyalty_points}
-              ruleName={expectedLoyaltyRule?.rule_name}
-            />
-          )}
+          {!loading &&
+            booking?.expected_loyalty_points &&
+            booking.expected_loyalty_points > 0 && (
+              <PotentialLoyaltyPointsCard
+                expectedPoints={booking.expected_loyalty_points}
+                ruleName={expectedLoyaltyRule?.rule_name}
+              />
+            )}
 
           {/* Tips */}
           <View className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 mb-6">
@@ -334,10 +348,11 @@ export default function RequestSentScreen() {
                   Pro Tip
                 </Text>
                 <Text className="text-sm text-amber-700 dark:text-amber-300">
-                  Enable push notifications to get instant updates about your booking request
-                  {booking?.expected_loyalty_points && booking.expected_loyalty_points > 0 && 
-                    " and earn your bonus loyalty points when confirmed"
-                  }
+                  Enable push notifications to get instant updates about your
+                  booking request
+                  {booking?.expected_loyalty_points &&
+                    booking.expected_loyalty_points > 0 &&
+                    " and earn your bonus loyalty points when confirmed"}
                 </Text>
               </View>
             </View>
@@ -371,9 +386,9 @@ export default function RequestSentScreen() {
           <Bell size={16} color="#666" />
           <Text className="text-sm text-muted-foreground text-center">
             We'll notify you as soon as the restaurant responds
-            {booking?.expected_loyalty_points && booking.expected_loyalty_points > 0 && 
-              " and award your bonus points"
-            }
+            {booking?.expected_loyalty_points &&
+              booking.expected_loyalty_points > 0 &&
+              " and award your bonus points"}
           </Text>
         </View>
       </View>

@@ -57,7 +57,9 @@ const DateSelector = React.memo<{
   selectedDate: Date;
   onDateChange: (date: Date) => void;
   maxDays?: number;
-  getDateStatus: (date: Date) => { type: 'closed' | 'special'; reason: string } | null;
+  getDateStatus: (
+    date: Date,
+  ) => { type: "closed" | "special"; reason: string } | null;
 }>(({ selectedDate, onDateChange, maxDays = 14, getDateStatus }) => {
   const dates = useMemo(() => {
     const today = new Date();
@@ -101,8 +103,8 @@ const DateSelector = React.memo<{
             date.toDateString() === selectedDate.toDateString();
           const isToday = date.toDateString() === new Date().toDateString();
           const dateStatus = getDateStatus(date);
-          const isClosed = dateStatus?.type === 'closed';
-          const isSpecial = dateStatus?.type === 'special';
+          const isClosed = dateStatus?.type === "closed";
+          const isSpecial = dateStatus?.type === "special";
 
           return (
             <Pressable
@@ -110,20 +112,20 @@ const DateSelector = React.memo<{
               onPress={() => !isClosed && onDateChange(date)}
               disabled={isClosed}
               className={`px-4 py-3 rounded-lg mr-2 min-w-[70px] relative ${
-                isSelected 
-                  ? "bg-primary" 
-                  : isClosed 
-                    ? "bg-muted/50 opacity-50" 
-                    : isSpecial 
+                isSelected
+                  ? "bg-primary"
+                  : isClosed
+                    ? "bg-muted/50 opacity-50"
+                    : isSpecial
                       ? "bg-amber-50 dark:bg-amber-900/20 border border-amber-500"
                       : "bg-muted"
               }`}
             >
               <Text
                 className={`text-center font-medium text-xs ${
-                  isSelected 
-                    ? "text-primary-foreground" 
-                    : isClosed 
+                  isSelected
+                    ? "text-primary-foreground"
+                    : isClosed
                       ? "text-muted-foreground"
                       : ""
                 }`}
@@ -134,9 +136,9 @@ const DateSelector = React.memo<{
               </Text>
               <Text
                 className={`text-center text-lg font-bold ${
-                  isSelected 
-                    ? "text-primary-foreground" 
-                    : isClosed 
+                  isSelected
+                    ? "text-primary-foreground"
+                    : isClosed
                       ? "text-muted-foreground"
                       : ""
                 }`}
@@ -154,7 +156,7 @@ const DateSelector = React.memo<{
               >
                 {formatDate(date)}
               </Text>
-              
+
               {/* Status indicators */}
               {isClosed && (
                 <View className="absolute top-1 right-1">
@@ -176,27 +178,31 @@ const DateSelector = React.memo<{
 
 // Date status message component
 const DateStatusMessage = React.memo<{
-  dateStatus: { type: 'closed' | 'special'; reason: string } | null;
+  dateStatus: { type: "closed" | "special"; reason: string } | null;
 }>(({ dateStatus }) => {
   if (!dateStatus) return null;
 
   return (
-    <View className={`p-3 rounded-lg mb-4 ${
-      dateStatus.type === 'closed' 
-        ? "bg-red-50 dark:bg-red-900/20" 
-        : "bg-amber-50 dark:bg-amber-900/20"
-    }`}>
+    <View
+      className={`p-3 rounded-lg mb-4 ${
+        dateStatus.type === "closed"
+          ? "bg-red-50 dark:bg-red-900/20"
+          : "bg-amber-50 dark:bg-amber-900/20"
+      }`}
+    >
       <View className="flex-row items-center gap-2">
-        {dateStatus.type === 'closed' ? (
+        {dateStatus.type === "closed" ? (
           <AlertTriangle size={16} color="#ef4444" />
         ) : (
           <Sparkles size={16} color="#f59e0b" />
         )}
-        <Text className={`text-sm font-medium ${
-          dateStatus.type === 'closed'
-            ? "text-red-800 dark:text-red-200"
-            : "text-amber-800 dark:text-amber-200"
-        }`}>
+        <Text
+          className={`text-sm font-medium ${
+            dateStatus.type === "closed"
+              ? "text-red-800 dark:text-red-200"
+              : "text-amber-800 dark:text-amber-200"
+          }`}
+        >
           {dateStatus.reason}
         </Text>
       </View>
@@ -408,46 +414,49 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
   }, [restaurant.id, preloadRestaurant, partySize]);
 
   // Helper function to check date status based on restaurant hours
-  const getDateStatus = useCallback((date: Date) => {
-    const dateStr = format(date, 'yyyy-MM-dd');
-    
-    // Check if it's a closure
-    const closure = closures.find(c => 
-      dateStr >= c.start_date && dateStr <= c.end_date
-    );
-    if (closure) {
-      return {
-        type: 'closed' as const,
-        reason: closure.reason || 'Temporarily closed'
-      };
-    }
+  const getDateStatus = useCallback(
+    (date: Date) => {
+      const dateStr = format(date, "yyyy-MM-dd");
 
-    // Check for special hours
-    const special = specialHours.find(s => s.date === dateStr);
-    if (special) {
-      if (special.is_closed) {
+      // Check if it's a closure
+      const closure = closures.find(
+        (c) => dateStr >= c.start_date && dateStr <= c.end_date,
+      );
+      if (closure) {
         return {
-          type: 'closed' as const,
-          reason: special.reason || 'Closed for special occasion'
+          type: "closed" as const,
+          reason: closure.reason || "Temporarily closed",
         };
       }
-      return {
-        type: 'special' as const,
-        reason: special.reason || 'Special hours'
-      };
-    }
 
-    // Check regular availability
-    const availability = checkAvailability(date);
-    if (!availability.isOpen) {
-      return {
-        type: 'closed' as const,
-        reason: availability.reason || 'Closed today'
-      };
-    }
+      // Check for special hours
+      const special = specialHours.find((s) => s.date === dateStr);
+      if (special) {
+        if (special.is_closed) {
+          return {
+            type: "closed" as const,
+            reason: special.reason || "Closed for special occasion",
+          };
+        }
+        return {
+          type: "special" as const,
+          reason: special.reason || "Special hours",
+        };
+      }
 
-    return null;
-  }, [closures, specialHours, checkAvailability]);
+      // Check regular availability
+      const availability = checkAvailability(date);
+      if (!availability.isOpen) {
+        return {
+          type: "closed" as const,
+          reason: availability.reason || "Closed today",
+        };
+      }
+
+      return null;
+    },
+    [closures, specialHours, checkAvailability],
+  );
 
   // Handle configuration changes with optimized state updates
   const handleDateChange = useCallback(
@@ -489,10 +498,10 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
   const handleContinueToTimeSelection = useCallback(() => {
     // Check if the selected date is available according to restaurant hours
     const dateStatus = getDateStatus(selectedDate);
-    if (dateStatus?.type === 'closed') {
+    if (dateStatus?.type === "closed") {
       Alert.alert(
-        "Restaurant Closed", 
-        `${dateStatus.reason}. Please select a different date.`
+        "Restaurant Closed",
+        `${dateStatus.reason}. Please select a different date.`,
       );
       return;
     }

@@ -444,8 +444,8 @@ export default function SocialFeedScreen() {
         className="flex-1"
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl 
-            refreshing={refreshing} 
+          <RefreshControl
+            refreshing={refreshing}
             onRefresh={handleRefresh}
             tintColor={getRefreshControlColor(colorScheme)}
           />

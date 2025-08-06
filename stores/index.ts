@@ -1,11 +1,16 @@
-import { create } from 'zustand';
-import { devtools } from 'zustand/middleware';
-import { immer } from 'zustand/middleware/immer';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { subscribeWithSelector } from 'zustand/middleware';
-import type { Restaurant } from '@/types/restaurant';
-import type { Session, User, Profile } from '@/types/supabase';
+import { create } from "zustand";
+import {
+  devtools,
+  persist,
+  createJSONStorage,
+  subscribeWithSelector,
+} from "zustand/middleware";
+import { immer } from "zustand/middleware/immer";
+
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
+import type { Restaurant } from "@/types/restaurant";
+import type { Session, User, Profile } from "@/types/supabase";
 
 /**
  * Auth Store - Handles authentication state
@@ -46,63 +51,71 @@ export const useAuthStore = create<AuthState>()(
           error: null,
 
           // Actions
-          setSession: (session) => set((state) => {
-            state.session = session;
-            if (session) {
-              state.user = session.user;
-              state.isGuest = false;
-            }
-          }),
+          setSession: (session) =>
+            set((state) => {
+              state.session = session;
+              if (session) {
+                state.user = session.user;
+                state.isGuest = false;
+              }
+            }),
 
-          setUser: (user) => set((state) => {
-            state.user = user;
-          }),
+          setUser: (user) =>
+            set((state) => {
+              state.user = user;
+            }),
 
-          setProfile: (profile) => set((state) => {
-            state.profile = profile;
-          }),
+          setProfile: (profile) =>
+            set((state) => {
+              state.profile = profile;
+            }),
 
-          setIsGuest: (isGuest) => set((state) => {
-            state.isGuest = isGuest;
-            if (isGuest) {
+          setIsGuest: (isGuest) =>
+            set((state) => {
+              state.isGuest = isGuest;
+              if (isGuest) {
+                state.session = null;
+                state.user = null;
+                state.profile = null;
+              }
+            }),
+
+          setInitialized: (initialized) =>
+            set((state) => {
+              state.initialized = initialized;
+            }),
+
+          setLoading: (loading) =>
+            set((state) => {
+              state.loading = loading;
+            }),
+
+          setError: (error) =>
+            set((state) => {
+              state.error = error;
+            }),
+
+          reset: () =>
+            set((state) => {
               state.session = null;
               state.user = null;
               state.profile = null;
-            }
-          }),
-
-          setInitialized: (initialized) => set((state) => {
-            state.initialized = initialized;
-          }),
-
-          setLoading: (loading) => set((state) => {
-            state.loading = loading;
-          }),
-
-          setError: (error) => set((state) => {
-            state.error = error;
-          }),
-
-          reset: () => set((state) => {
-            state.session = null;
-            state.user = null;
-            state.profile = null;
-            state.isGuest = false;
-            state.error = null;
-          }),
+              state.isGuest = false;
+              state.error = null;
+            }),
         })),
         {
-          name: 'auth-store',
+          name: "auth-store",
           storage: createJSONStorage(() => AsyncStorage),
           partialize: (state) => ({
             isGuest: state.isGuest,
             initialized: state.initialized,
           }),
-        }
-      )
+        },
+      ),
     ),
-    { name: 'AuthStore' }
-  )
+    { name: "AuthStore" },
+  ),
 );
 
 /**
@@ -111,46 +124,54 @@ export const useAuthStore = create<AuthState>()(
 interface AppState {
   // Network state
   isOnline: boolean;
-  networkStrength: 'weak' | 'strong' | 'unknown';
-  
+  networkStrength: "weak" | "strong" | "unknown";
+
   // UI state
-  theme: 'light' | 'dark' | 'system';
+  theme: "light" | "dark" | "system";
   isLoading: boolean;
   globalError: string | null;
-  
+
   // Location state
   currentLocation: {
     latitude: number;
     longitude: number;
     accuracy?: number;
   } | null;
-  locationPermission: 'granted' | 'denied' | 'pending';
-  
+  locationPermission: "granted" | "denied" | "pending";
+
   // Search state
   recentSearches: string[];
   searchFilters: Record<string, any>;
-  
+
   // Notifications
-  notifications: Array<{
+  notifications: {
     id: string;
-    type: 'info' | 'success' | 'warning' | 'error';
+    type: "info" | "success" | "warning" | "error";
     title: string;
     message: string;
     timestamp: number;
     read: boolean;
-  }>;
+  }[];
 
   // Actions
-  setNetworkStatus: (isOnline: boolean, strength?: 'weak' | 'strong' | 'unknown') => void;
-  setTheme: (theme: 'light' | 'dark' | 'system') => void;
+  setNetworkStatus: (
+    isOnline: boolean,
+    strength?: "weak" | "strong" | "unknown",
+  ) => void;
+  setTheme: (theme: "light" | "dark" | "system") => void;
   setLoading: (loading: boolean) => void;
   setGlobalError: (error: string | null) => void;
-  setLocation: (location: AppState['currentLocation']) => void;
-  setLocationPermission: (permission: AppState['locationPermission']) => void;
+  setLocation: (location: AppState["currentLocation"]) => void;
+  setLocationPermission: (permission: AppState["locationPermission"]) => void;
   addRecentSearch: (search: string) => void;
   clearRecentSearches: () => void;
   setSearchFilters: (filters: Record<string, any>) => void;
-  addNotification: (notification: Omit<AppState['notifications'][0], 'id' | 'timestamp' | 'read'>) => void;
+  addNotification: (
+    notification: Omit<
+      AppState["notifications"][0],
+      "id" | "timestamp" | "read"
+    >,
+  ) => void;
   markNotificationRead: (id: string) => void;
   clearNotifications: () => void;
 }
@@ -162,80 +183,92 @@ export const useAppStore = create<AppState>()(
         immer((set, get) => ({
           // Initial state
           isOnline: true,
-          networkStrength: 'unknown',
-          theme: 'system',
+          networkStrength: "unknown",
+          theme: "system",
           isLoading: false,
           globalError: null,
           currentLocation: null,
-          locationPermission: 'pending',
+          locationPermission: "pending",
           recentSearches: [],
           searchFilters: {},
           notifications: [],
 
           // Actions
-          setNetworkStatus: (isOnline, strength = 'unknown') => set((state) => {
-            state.isOnline = isOnline;
-            state.networkStrength = strength;
-          }),
+          setNetworkStatus: (isOnline, strength = "unknown") =>
+            set((state) => {
+              state.isOnline = isOnline;
+              state.networkStrength = strength;
+            }),
 
-          setTheme: (theme) => set((state) => {
-            state.theme = theme;
-          }),
+          setTheme: (theme) =>
+            set((state) => {
+              state.theme = theme;
+            }),
 
-          setLoading: (loading) => set((state) => {
-            state.isLoading = loading;
-          }),
+          setLoading: (loading) =>
+            set((state) => {
+              state.isLoading = loading;
+            }),
 
-          setGlobalError: (error) => set((state) => {
-            state.globalError = error;
-          }),
+          setGlobalError: (error) =>
+            set((state) => {
+              state.globalError = error;
+            }),
 
-          setLocation: (location) => set((state) => {
-            state.currentLocation = location;
-          }),
+          setLocation: (location) =>
+            set((state) => {
+              state.currentLocation = location;
+            }),
 
-          setLocationPermission: (permission) => set((state) => {
-            state.locationPermission = permission;
-          }),
+          setLocationPermission: (permission) =>
+            set((state) => {
+              state.locationPermission = permission;
+            }),
 
-          addRecentSearch: (search) => set((state) => {
-            // Remove if exists and add to front
-            state.recentSearches = [
-              search,
-              ...state.recentSearches.filter(s => s !== search)
-            ].slice(0, 10); // Keep only 10 recent searches
-          }),
+          addRecentSearch: (search) =>
+            set((state) => {
+              // Remove if exists and add to front
+              state.recentSearches = [
+                search,
+                ...state.recentSearches.filter((s) => s !== search),
+              ].slice(0, 10); // Keep only 10 recent searches
+            }),
 
-          clearRecentSearches: () => set((state) => {
-            state.recentSearches = [];
-          }),
+          clearRecentSearches: () =>
+            set((state) => {
+              state.recentSearches = [];
+            }),
 
-          setSearchFilters: (filters) => set((state) => {
-            state.searchFilters = filters;
-          }),
+          setSearchFilters: (filters) =>
+            set((state) => {
+              state.searchFilters = filters;
+            }),
 
-          addNotification: (notification) => set((state) => {
-            state.notifications.unshift({
-              ...notification,
-              id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-              timestamp: Date.now(),
-              read: false,
-            });
-          }),
+          addNotification: (notification) =>
+            set((state) => {
+              state.notifications.unshift({
+                ...notification,
+                id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                timestamp: Date.now(),
+                read: false,
+              });
+            }),
 
-          markNotificationRead: (id) => set((state) => {
-            const notification = state.notifications.find(n => n.id === id);
-            if (notification) {
-              notification.read = true;
-            }
-          }),
+          markNotificationRead: (id) =>
+            set((state) => {
+              const notification = state.notifications.find((n) => n.id === id);
+              if (notification) {
+                notification.read = true;
+              }
+            }),
 
-          clearNotifications: () => set((state) => {
-            state.notifications = [];
-          }),
+          clearNotifications: () =>
+            set((state) => {
+              state.notifications = [];
+            }),
         })),
         {
-          name: 'app-store',
+          name: "app-store",
           storage: createJSONStorage(() => AsyncStorage),
           partialize: (state) => ({
             theme: state.theme,
@@ -243,11 +276,11 @@ export const useAppStore = create<AppState>()(
             searchFilters: state.searchFilters,
             locationPermission: state.locationPermission,
           }),
-        }
-      )
+        },
+      ),
     ),
-    { name: 'AppStore' }
-  )
+    { name: "AppStore" },
+  ),
 );
 
 /**
@@ -257,14 +290,14 @@ interface RestaurantState {
   // Favorites
   favorites: Set<string>;
   favoritesList: Restaurant[];
-  
+
   // Recently viewed
   recentlyViewed: Restaurant[];
-  
+
   // Cache
   restaurantsCache: Map<string, Restaurant>;
   searchResultsCache: Map<string, Restaurant[]>;
-  
+
   // Loading states
   favoritesLoading: boolean;
   restaurantLoading: Map<string, boolean>;
@@ -300,75 +333,89 @@ export const useRestaurantStore = create<RestaurantState>()(
           restaurantLoading: new Map<string, boolean>(),
 
           // Actions
-          addToFavorites: (restaurantId) => set((state) => {
-            state.favorites.add(restaurantId);
-          }),
-
-          removeFromFavorites: (restaurantId) => set((state) => {
-            state.favorites.delete(restaurantId);
-            state.favoritesList = state.favoritesList.filter(r => r.id !== restaurantId);
-          }),
-
-          toggleFavorite: (restaurantId) => set((state) => {
-            if (state.favorites.has(restaurantId)) {
-              state.favorites.delete(restaurantId);
-              state.favoritesList = state.favoritesList.filter(r => r.id !== restaurantId);
-            } else {
+          addToFavorites: (restaurantId) =>
+            set((state) => {
               state.favorites.add(restaurantId);
-            }
-          }),
+            }),
+
+          removeFromFavorites: (restaurantId) =>
+            set((state) => {
+              state.favorites.delete(restaurantId);
+              state.favoritesList = state.favoritesList.filter(
+                (r) => r.id !== restaurantId,
+              );
+            }),
+
+          toggleFavorite: (restaurantId) =>
+            set((state) => {
+              if (state.favorites.has(restaurantId)) {
+                state.favorites.delete(restaurantId);
+                state.favoritesList = state.favoritesList.filter(
+                  (r) => r.id !== restaurantId,
+                );
+              } else {
+                state.favorites.add(restaurantId);
+              }
+            }),
 
           isFavorite: (restaurantId) => {
             return get().favorites.has(restaurantId);
           },
 
-          setFavoritesList: (restaurants) => set((state) => {
-            state.favoritesList = restaurants;
-          }),
+          setFavoritesList: (restaurants) =>
+            set((state) => {
+              state.favoritesList = restaurants;
+            }),
 
-          addToRecentlyViewed: (restaurant) => set((state) => {
-            // Remove if exists and add to front
-            state.recentlyViewed = [
-              restaurant,
-              ...state.recentlyViewed.filter(r => r.id !== restaurant.id)
-            ].slice(0, 20); // Keep only 20 recent items
-          }),
+          addToRecentlyViewed: (restaurant) =>
+            set((state) => {
+              // Remove if exists and add to front
+              state.recentlyViewed = [
+                restaurant,
+                ...state.recentlyViewed.filter((r) => r.id !== restaurant.id),
+              ].slice(0, 20); // Keep only 20 recent items
+            }),
 
-          cacheRestaurant: (restaurant) => set((state) => {
-            state.restaurantsCache.set(restaurant.id, restaurant);
-          }),
+          cacheRestaurant: (restaurant) =>
+            set((state) => {
+              state.restaurantsCache.set(restaurant.id, restaurant);
+            }),
 
           getCachedRestaurant: (id) => {
             return get().restaurantsCache.get(id);
           },
 
-          cacheSearchResults: (query, results) => set((state) => {
-            state.searchResultsCache.set(query, results);
-          }),
+          cacheSearchResults: (query, results) =>
+            set((state) => {
+              state.searchResultsCache.set(query, results);
+            }),
 
           getCachedSearchResults: (query) => {
             return get().searchResultsCache.get(query);
           },
 
-          setFavoritesLoading: (loading) => set((state) => {
-            state.favoritesLoading = loading;
-          }),
+          setFavoritesLoading: (loading) =>
+            set((state) => {
+              state.favoritesLoading = loading;
+            }),
 
-          setRestaurantLoading: (id, loading) => set((state) => {
-            if (loading) {
-              state.restaurantLoading.set(id, true);
-            } else {
-              state.restaurantLoading.delete(id);
-            }
-          }),
+          setRestaurantLoading: (id, loading) =>
+            set((state) => {
+              if (loading) {
+                state.restaurantLoading.set(id, true);
+              } else {
+                state.restaurantLoading.delete(id);
+              }
+            }),
 
-          clearCache: () => set((state) => {
-            state.restaurantsCache.clear();
-            state.searchResultsCache.clear();
-          }),
+          clearCache: () =>
+            set((state) => {
+              state.restaurantsCache.clear();
+              state.searchResultsCache.clear();
+            }),
         })),
         {
-          name: 'restaurant-store',
+          name: "restaurant-store",
           storage: createJSONStorage(() => AsyncStorage),
           partialize: (state) => ({
             favorites: Array.from(state.favorites),
@@ -380,11 +427,11 @@ export const useRestaurantStore = create<RestaurantState>()(
               (state as any).favorites = new Set(state.favorites);
             }
           },
-        }
-      )
+        },
+      ),
     ),
-    { name: 'RestaurantStore' }
-  )
+    { name: "RestaurantStore" },
+  ),
 );
 
 /**
@@ -404,21 +451,21 @@ interface BookingState {
       phone: string;
     };
   };
-  
+
   // Bookings lists
   upcomingBookings: any[];
   pastBookings: any[];
-  
+
   // Booking history
   recentBookings: any[];
-  
+
   // Loading states
   isCreating: boolean;
   availabilityLoading: boolean;
   bookingsLoading: boolean;
 
   // Actions
-  setBookingData: (data: Partial<BookingState['currentBooking']>) => void;
+  setBookingData: (data: Partial<BookingState["currentBooking"]>) => void;
   clearCurrentBooking: () => void;
   addRecentBooking: (booking: any) => void;
   setCreating: (creating: boolean) => void;
@@ -446,177 +493,229 @@ export const useBookingStore = create<BookingState>()(
           bookingsLoading: false,
 
           // Actions
-          setBookingData: (data) => set((state) => {
-            state.currentBooking = { ...state.currentBooking, ...data };
-          }),
+          setBookingData: (data) =>
+            set((state) => {
+              state.currentBooking = { ...state.currentBooking, ...data };
+            }),
 
-          clearCurrentBooking: () => set((state) => {
-            state.currentBooking = {};
-          }),
+          clearCurrentBooking: () =>
+            set((state) => {
+              state.currentBooking = {};
+            }),
 
-          addRecentBooking: (booking) => set((state) => {
-            state.recentBookings.unshift(booking);
-            state.recentBookings = state.recentBookings.slice(0, 50); // Keep only 50 recent
-          }),
+          addRecentBooking: (booking) =>
+            set((state) => {
+              state.recentBookings.unshift(booking);
+              state.recentBookings = state.recentBookings.slice(0, 50); // Keep only 50 recent
+            }),
 
-          setCreating: (creating) => set((state) => {
-            state.isCreating = creating;
-          }),
+          setCreating: (creating) =>
+            set((state) => {
+              state.isCreating = creating;
+            }),
 
-          setAvailabilityLoading: (loading) => set((state) => {
-            state.availabilityLoading = loading;
-          }),
+          setAvailabilityLoading: (loading) =>
+            set((state) => {
+              state.availabilityLoading = loading;
+            }),
 
-          setBookingsLoading: (loading) => set((state) => {
-            state.bookingsLoading = loading;
-          }),
+          setBookingsLoading: (loading) =>
+            set((state) => {
+              state.bookingsLoading = loading;
+            }),
 
-          setUpcomingBookings: (bookings) => set((state) => {
-            state.upcomingBookings = bookings;
-          }),
+          setUpcomingBookings: (bookings) =>
+            set((state) => {
+              state.upcomingBookings = bookings;
+            }),
 
-          setPastBookings: (bookings) => set((state) => {
-            state.pastBookings = bookings;
-          }),
+          setPastBookings: (bookings) =>
+            set((state) => {
+              state.pastBookings = bookings;
+            }),
 
-          addNewBooking: (booking) => set((state) => {
-            // Add to recent bookings
-            state.recentBookings.unshift(booking);
-            state.recentBookings = state.recentBookings.slice(0, 50);
-            
-            // Add to appropriate list based on status and date
-            const bookingDate = new Date(booking.booking_time);
-            const now = new Date();
-            
-            if ((booking.status === 'pending' || booking.status === 'confirmed') && bookingDate >= now) {
-              // Add to upcoming bookings in chronological order
-              state.upcomingBookings.push(booking);
-              state.upcomingBookings.sort((a, b) => new Date(a.booking_time).getTime() - new Date(b.booking_time).getTime());
-            } else {
-              // Add to past bookings in reverse chronological order
-              state.pastBookings.unshift(booking);
-              state.pastBookings = state.pastBookings.slice(0, 50); // Keep only 50 recent
-            }
-          }),
+          addNewBooking: (booking) =>
+            set((state) => {
+              // Add to recent bookings
+              state.recentBookings.unshift(booking);
+              state.recentBookings = state.recentBookings.slice(0, 50);
 
-          updateBooking: (bookingId, updates) => set((state) => {
-            // Update in upcoming bookings
-            const upcomingIndex = state.upcomingBookings.findIndex(b => b.id === bookingId);
-            if (upcomingIndex !== -1) {
-              const updatedBooking = { ...state.upcomingBookings[upcomingIndex], ...updates };
-              
-              // Check if booking should be moved to past bookings
-              const bookingDate = new Date(updatedBooking.booking_time);
+              // Add to appropriate list based on status and date
+              const bookingDate = new Date(booking.booking_time);
               const now = new Date();
-              const shouldMoveToPast = updatedBooking.status === 'completed' || 
-                                      updatedBooking.status === 'cancelled_by_user' ||
-                                      updatedBooking.status === 'declined_by_restaurant' ||
-                                      updatedBooking.status === 'no_show' ||
-                                      bookingDate < now;
-              
-              if (shouldMoveToPast) {
-                state.upcomingBookings.splice(upcomingIndex, 1);
-                state.pastBookings.unshift(updatedBooking);
-                state.pastBookings = state.pastBookings.slice(0, 50);
-              } else {
-                state.upcomingBookings[upcomingIndex] = updatedBooking;
-                // Re-sort upcoming bookings
-                state.upcomingBookings.sort((a, b) => new Date(a.booking_time).getTime() - new Date(b.booking_time).getTime());
-              }
-            } else {
-              // Update in past bookings
-              const pastIndex = state.pastBookings.findIndex(b => b.id === bookingId);
-              if (pastIndex !== -1) {
-                state.pastBookings[pastIndex] = { ...state.pastBookings[pastIndex], ...updates };
-              }
-            }
-            
-            // Update in recent bookings
-            const recentIndex = state.recentBookings.findIndex(b => b.id === bookingId);
-            if (recentIndex !== -1) {
-              state.recentBookings[recentIndex] = { ...state.recentBookings[recentIndex], ...updates };
-            }
-          }),
 
-          removeBooking: (bookingId) => set((state) => {
-            state.upcomingBookings = state.upcomingBookings.filter(b => b.id !== bookingId);
-            state.pastBookings = state.pastBookings.filter(b => b.id !== bookingId);
-            state.recentBookings = state.recentBookings.filter(b => b.id !== bookingId);
-          }),
+              if (
+                (booking.status === "pending" ||
+                  booking.status === "confirmed") &&
+                bookingDate >= now
+              ) {
+                // Add to upcoming bookings in chronological order
+                state.upcomingBookings.push(booking);
+                state.upcomingBookings.sort(
+                  (a, b) =>
+                    new Date(a.booking_time).getTime() -
+                    new Date(b.booking_time).getTime(),
+                );
+              } else {
+                // Add to past bookings in reverse chronological order
+                state.pastBookings.unshift(booking);
+                state.pastBookings = state.pastBookings.slice(0, 50); // Keep only 50 recent
+              }
+            }),
+
+          updateBooking: (bookingId, updates) =>
+            set((state) => {
+              // Update in upcoming bookings
+              const upcomingIndex = state.upcomingBookings.findIndex(
+                (b) => b.id === bookingId,
+              );
+              if (upcomingIndex !== -1) {
+                const updatedBooking = {
+                  ...state.upcomingBookings[upcomingIndex],
+                  ...updates,
+                };
+
+                // Check if booking should be moved to past bookings
+                const bookingDate = new Date(updatedBooking.booking_time);
+                const now = new Date();
+                const shouldMoveToPast =
+                  updatedBooking.status === "completed" ||
+                  updatedBooking.status === "cancelled_by_user" ||
+                  updatedBooking.status === "declined_by_restaurant" ||
+                  updatedBooking.status === "no_show" ||
+                  bookingDate < now;
+
+                if (shouldMoveToPast) {
+                  state.upcomingBookings.splice(upcomingIndex, 1);
+                  state.pastBookings.unshift(updatedBooking);
+                  state.pastBookings = state.pastBookings.slice(0, 50);
+                } else {
+                  state.upcomingBookings[upcomingIndex] = updatedBooking;
+                  // Re-sort upcoming bookings
+                  state.upcomingBookings.sort(
+                    (a, b) =>
+                      new Date(a.booking_time).getTime() -
+                      new Date(b.booking_time).getTime(),
+                  );
+                }
+              } else {
+                // Update in past bookings
+                const pastIndex = state.pastBookings.findIndex(
+                  (b) => b.id === bookingId,
+                );
+                if (pastIndex !== -1) {
+                  state.pastBookings[pastIndex] = {
+                    ...state.pastBookings[pastIndex],
+                    ...updates,
+                  };
+                }
+              }
+
+              // Update in recent bookings
+              const recentIndex = state.recentBookings.findIndex(
+                (b) => b.id === bookingId,
+              );
+              if (recentIndex !== -1) {
+                state.recentBookings[recentIndex] = {
+                  ...state.recentBookings[recentIndex],
+                  ...updates,
+                };
+              }
+            }),
+
+          removeBooking: (bookingId) =>
+            set((state) => {
+              state.upcomingBookings = state.upcomingBookings.filter(
+                (b) => b.id !== bookingId,
+              );
+              state.pastBookings = state.pastBookings.filter(
+                (b) => b.id !== bookingId,
+              );
+              state.recentBookings = state.recentBookings.filter(
+                (b) => b.id !== bookingId,
+              );
+            }),
         })),
         {
-          name: 'booking-store',
+          name: "booking-store",
           storage: createJSONStorage(() => AsyncStorage),
           partialize: (state) => ({
             recentBookings: state.recentBookings,
           }),
-        }
-      )
+        },
+      ),
     ),
-    { name: 'BookingStore' }
-  )
+    { name: "BookingStore" },
+  ),
 );
 
 /**
  * Store selectors for performance optimization
  */
-export const useAuth = () => useAuthStore((state) => ({
-  session: state.session,
-  user: state.user,
-  profile: state.profile,
-  isGuest: state.isGuest,
-  initialized: state.initialized,
-  loading: state.loading,
-  error: state.error,
-}));
+export const useAuth = () =>
+  useAuthStore((state) => ({
+    session: state.session,
+    user: state.user,
+    profile: state.profile,
+    isGuest: state.isGuest,
+    initialized: state.initialized,
+    loading: state.loading,
+    error: state.error,
+  }));
 
-export const useAuthActions = () => useAuthStore((state) => ({
-  setSession: state.setSession,
-  setUser: state.setUser,
-  setProfile: state.setProfile,
-  setIsGuest: state.setIsGuest,
-  setInitialized: state.setInitialized,
-  setLoading: state.setLoading,
-  setError: state.setError,
-  reset: state.reset,
-}));
+export const useAuthActions = () =>
+  useAuthStore((state) => ({
+    setSession: state.setSession,
+    setUser: state.setUser,
+    setProfile: state.setProfile,
+    setIsGuest: state.setIsGuest,
+    setInitialized: state.setInitialized,
+    setLoading: state.setLoading,
+    setError: state.setError,
+    reset: state.reset,
+  }));
 
-export const useNetworkStatus = () => useAppStore((state) => ({
-  isOnline: state.isOnline,
-  networkStrength: state.networkStrength,
-}));
+export const useNetworkStatus = () =>
+  useAppStore((state) => ({
+    isOnline: state.isOnline,
+    networkStrength: state.networkStrength,
+  }));
 
-export const useLocation = () => useAppStore((state) => ({
-  currentLocation: state.currentLocation,
-  locationPermission: state.locationPermission,
-}));
+export const useLocation = () =>
+  useAppStore((state) => ({
+    currentLocation: state.currentLocation,
+    locationPermission: state.locationPermission,
+  }));
 
-export const useFavorites = () => useRestaurantStore((state) => ({
-  favorites: state.favorites,
-  favoritesList: state.favoritesList,
-  favoritesLoading: state.favoritesLoading,
-  isFavorite: state.isFavorite,
-  toggleFavorite: state.toggleFavorite,
-}));
+export const useFavorites = () =>
+  useRestaurantStore((state) => ({
+    favorites: state.favorites,
+    favoritesList: state.favoritesList,
+    favoritesLoading: state.favoritesLoading,
+    isFavorite: state.isFavorite,
+    toggleFavorite: state.toggleFavorite,
+  }));
 
-export const useCurrentBooking = () => useBookingStore((state) => ({
-  currentBooking: state.currentBooking,
-  isCreating: state.isCreating,
-  setBookingData: state.setBookingData,
-  clearCurrentBooking: state.clearCurrentBooking,
-}));
+export const useCurrentBooking = () =>
+  useBookingStore((state) => ({
+    currentBooking: state.currentBooking,
+    isCreating: state.isCreating,
+    setBookingData: state.setBookingData,
+    clearCurrentBooking: state.clearCurrentBooking,
+  }));
 
-export const useBookingsStore = () => useBookingStore((state) => ({
-  upcomingBookings: state.upcomingBookings,
-  pastBookings: state.pastBookings,
-  bookingsLoading: state.bookingsLoading,
-  setUpcomingBookings: state.setUpcomingBookings,
-  setPastBookings: state.setPastBookings,
-  setBookingsLoading: state.setBookingsLoading,
-  addNewBooking: state.addNewBooking,
-  updateBooking: state.updateBooking,
-  removeBooking: state.removeBooking,
-}));
+export const useBookingsStore = () =>
+  useBookingStore((state) => ({
+    upcomingBookings: state.upcomingBookings,
+    pastBookings: state.pastBookings,
+    bookingsLoading: state.bookingsLoading,
+    setUpcomingBookings: state.setUpcomingBookings,
+    setPastBookings: state.setPastBookings,
+    setBookingsLoading: state.setBookingsLoading,
+    addNewBooking: state.addNewBooking,
+    updateBooking: state.updateBooking,
+    removeBooking: state.removeBooking,
+  }));
 
 /**
  * Store subscription hooks for reactive updates
@@ -626,10 +725,7 @@ export const useAuthSubscription = (callback: (state: AuthState) => void) => {
 };
 
 export const useThemeSubscription = (callback: (theme: string) => void) => {
-  useAppStore.subscribe(
-    (state) => state.theme,
-    callback
-  );
+  useAppStore.subscribe((state) => state.theme, callback);
 };
 
 /**
@@ -651,4 +747,4 @@ if (__DEV__) {
   (window as any).__ZUSTAND_APP_STORE__ = useAppStore;
   (window as any).__ZUSTAND_RESTAURANT_STORE__ = useRestaurantStore;
   (window as any).__ZUSTAND_BOOKING_STORE__ = useBookingStore;
-} 
+}

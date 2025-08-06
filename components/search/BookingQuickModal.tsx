@@ -9,12 +9,11 @@ import {
   FlatList,
   Switch,
 } from "react-native";
-import { X, Users, Check, Clock } from "lucide-react-native";
+import { X, Users, Check, Clock, RotateCcw } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { H3 } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { PARTY_SIZES } from "@/constants/searchConstants";
-import { RotateCcw } from "lucide-react-native";
 
 interface BookingFilters {
   date: Date | null;
@@ -140,20 +139,20 @@ export const BookingQuickModal = ({
       setLocalFilters(bookingFilters);
 
       // Find the closest matching date
-      const matchingDate = bookingFilters.date 
+      const matchingDate = bookingFilters.date
         ? DATE_OPTIONS.find(
             (option) =>
-              option.date && option.date.toDateString() === bookingFilters.date!.toDateString(),
+              option.date &&
+              option.date.toDateString() ===
+                bookingFilters.date!.toDateString(),
           )
-        : DATE_OPTIONS.find(option => option.date === null); // Find "Any date" option
+        : DATE_OPTIONS.find((option) => option.date === null); // Find "Any date" option
       setSelectedDateId(matchingDate?.id || "date-any");
 
       // Find the matching time
-      const matchingTime = bookingFilters.time 
-        ? TIME_OPTIONS.find(
-            (option) => option.time === bookingFilters.time,
-          )
-        : TIME_OPTIONS.find(option => option.time === null); // Find "Any time" option
+      const matchingTime = bookingFilters.time
+        ? TIME_OPTIONS.find((option) => option.time === bookingFilters.time)
+        : TIME_OPTIONS.find((option) => option.time === null); // Find "Any time" option
       setSelectedTimeId(matchingTime?.id || "time-any");
     }
   }, [visible, bookingFilters]);
@@ -262,14 +261,14 @@ export const BookingQuickModal = ({
                     onPress={() =>
                       setLocalFilters({ ...localFilters, partySize: size })
                     }
-                    className={`${size === null ? 'w-16' : 'w-12'} h-12 rounded-full mr-3 items-center justify-center border-2 ${
+                    className={`${size === null ? "w-16" : "w-12"} h-12 rounded-full mr-3 items-center justify-center border-2 ${
                       localFilters.partySize === size
                         ? "bg-black border-black"
                         : "bg-transparent border-gray-300"
                     }`}
                   >
                     <Text
-                      className={`font-semibold ${size === null ? 'text-xs' : ''} ${
+                      className={`font-semibold ${size === null ? "text-xs" : ""} ${
                         localFilters.partySize === size
                           ? "text-white"
                           : "text-foreground"
@@ -280,7 +279,7 @@ export const BookingQuickModal = ({
                   </Pressable>
                 ))}
               </ScrollView>
-              
+
               {/* Open Now Toggle */}
               <View className="flex-row items-center justify-between mt-4 p-3 bg-muted rounded-lg">
                 <View className="flex-row items-center gap-2">
@@ -293,7 +292,9 @@ export const BookingQuickModal = ({
                     setLocalFilters({ ...localFilters, availableOnly: value })
                   }
                   trackColor={{ false: "#e5e5e5", true: "#2563eb" }}
-                  thumbColor={localFilters.availableOnly ? "#ffffff" : "#f4f3f4"}
+                  thumbColor={
+                    localFilters.availableOnly ? "#ffffff" : "#f4f3f4"
+                  }
                 />
               </View>
             </View>
@@ -356,38 +357,40 @@ export const BookingQuickModal = ({
           {/* Footer */}
           <View className="p-4 border-t border-border space-y-3">
             {/* Show All Button - only show if any filters are applied */}
-            {(localFilters.partySize !== null || 
-              selectedDateId !== "date-any" || 
+            {(localFilters.partySize !== null ||
+              selectedDateId !== "date-any" ||
               selectedTimeId !== "time-any" ||
               localFilters.availableOnly) && (
-                              <Button 
+              <Button
                 onPress={() => {
                   // Reset all filters to "Any"
-                  setLocalFilters({ 
-                    ...localFilters, 
+                  setLocalFilters({
+                    ...localFilters,
                     partySize: null,
-                    availableOnly: false
+                    availableOnly: false,
                   });
                   setSelectedDateId("date-any");
                   setSelectedTimeId("time-any");
-                  
+
                   // Apply the reset filters immediately
                   onApply({
                     ...localFilters,
                     partySize: null,
-                    date: null, // "Any date" 
-                    time: null, // "Any time" 
+                    date: null, // "Any date"
+                    time: null, // "Any time"
                     availableOnly: false,
                   });
-                }} 
-                variant="outline" 
+                }}
+                variant="outline"
                 className="w-full border-primary flex-row items-center gap-2"
               >
                 <RotateCcw size={16} color="#2563eb" />
-                <Text className="text-primary font-medium">Show All Restaurants</Text>
+                <Text className="text-primary font-medium">
+                  Show All Restaurants
+                </Text>
               </Button>
             )}
-            
+
             {/* Done Button */}
             <Button onPress={handleApply} className="w-full bg-black">
               <Text className="text-white font-semibold text-lg">Done</Text>

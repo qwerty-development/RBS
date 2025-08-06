@@ -215,10 +215,10 @@ export const useSearchLogic = (): UseSearchReturn => {
           );
 
           // Check availability for all restaurants only if specific criteria are set
-          const needsAvailabilityCheck = 
-            bFilters.availableOnly || 
-            bFilters.partySize !== null || 
-            bFilters.date !== null || 
+          const needsAvailabilityCheck =
+            bFilters.availableOnly ||
+            bFilters.partySize !== null ||
+            bFilters.date !== null ||
             bFilters.time !== null;
 
           if (needsAvailabilityCheck) {
@@ -238,9 +238,9 @@ export const useSearchLogic = (): UseSearchReturn => {
 
             // Filter by availability if enabled OR if specific booking criteria are set
             const shouldFilterByAvailability =
-              bFilters.availableOnly || 
-              bFilters.partySize !== null || 
-              bFilters.date !== null || 
+              bFilters.availableOnly ||
+              bFilters.partySize !== null ||
+              bFilters.date !== null ||
               bFilters.time !== null;
 
             if (shouldFilterByAvailability) {
@@ -250,9 +250,9 @@ export const useSearchLogic = (): UseSearchReturn => {
             }
           } else {
             // If no specific criteria, mark all as available (no filtering)
-            processedRestaurants = processedRestaurants.map(restaurant => ({
+            processedRestaurants = processedRestaurants.map((restaurant) => ({
               ...restaurant,
-              isAvailable: true
+              isAvailable: true,
             }));
           }
 
@@ -340,10 +340,10 @@ export const useSearchLogic = (): UseSearchReturn => {
           );
 
           // Check availability only if specific criteria are set
-          const needsAvailabilityCheck = 
-            bFilters.availableOnly || 
-            bFilters.partySize !== null || 
-            bFilters.date !== null || 
+          const needsAvailabilityCheck =
+            bFilters.availableOnly ||
+            bFilters.partySize !== null ||
+            bFilters.date !== null ||
             bFilters.time !== null;
 
           if (needsAvailabilityCheck) {
@@ -363,9 +363,9 @@ export const useSearchLogic = (): UseSearchReturn => {
 
             // Filter by availability if enabled OR if specific booking criteria are set
             const shouldFilterByAvailability =
-              bFilters.availableOnly || 
-              bFilters.partySize !== null || 
-              bFilters.date !== null || 
+              bFilters.availableOnly ||
+              bFilters.partySize !== null ||
+              bFilters.date !== null ||
               bFilters.time !== null;
 
             if (shouldFilterByAvailability) {
@@ -375,9 +375,9 @@ export const useSearchLogic = (): UseSearchReturn => {
             }
           } else {
             // If no specific criteria, mark all as available (no filtering)
-            processedRestaurants = processedRestaurants.map(restaurant => ({
+            processedRestaurants = processedRestaurants.map((restaurant) => ({
               ...restaurant,
-              isAvailable: true
+              isAvailable: true,
             }));
           }
 
@@ -412,7 +412,9 @@ export const useSearchLogic = (): UseSearchReturn => {
         pathname: "/restaurant/[id]",
         params: {
           id: restaurantId,
-          date: bookingFilters.date ? bookingFilters.date.toISOString() : new Date().toISOString(),
+          date: bookingFilters.date
+            ? bookingFilters.date.toISOString()
+            : new Date().toISOString(),
           time: bookingFilters.time || "19:00",
           partySize: (bookingFilters.partySize || 2).toString(),
         },

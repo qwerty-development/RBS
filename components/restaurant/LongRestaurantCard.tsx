@@ -42,12 +42,12 @@ export function EnhancedRestaurantCard({
   showQuickActions = false,
 }: EnhancedRestaurantCardProps) {
   const router = useRouter();
-  
+
   // Use the availability hook
-  const { 
-    formatOperatingHours, 
+  const {
+    formatOperatingHours,
     checkAvailability,
-    loading: availabilityLoading 
+    loading: availabilityLoading,
   } = useRestaurantAvailability(restaurant.id);
 
   const handlePress = () => {
@@ -271,14 +271,18 @@ export function EnhancedRestaurantCard({
 
             {!availabilityLoading && (
               <View className="flex-row items-center gap-2">
-                <Clock 
-                  size={16} 
-                  color={checkAvailability(new Date()).isOpen ? "#10b981" : "#ef4444"} 
+                <Clock
+                  size={16}
+                  color={
+                    checkAvailability(new Date()).isOpen ? "#10b981" : "#ef4444"
+                  }
                 />
-                <Text 
+                <Text
                   className={cn(
                     "text-sm font-medium",
-                    checkAvailability(new Date()).isOpen ? "text-green-600" : "text-red-600"
+                    checkAvailability(new Date()).isOpen
+                      ? "text-green-600"
+                      : "text-red-600",
                   )}
                 >
                   {checkAvailability(new Date()).isOpen ? "Open" : "Closed"}
@@ -424,14 +428,18 @@ export function EnhancedRestaurantCard({
         <View className="flex-row items-center justify-between">
           {!availabilityLoading && (
             <View className="flex-row items-center gap-1">
-              <Clock 
-                size={14} 
-                color={checkAvailability(new Date()).isOpen ? "#10b981" : "#ef4444"} 
+              <Clock
+                size={14}
+                color={
+                  checkAvailability(new Date()).isOpen ? "#10b981" : "#ef4444"
+                }
               />
-              <Text 
+              <Text
                 className={cn(
                   "text-xs font-medium",
-                  checkAvailability(new Date()).isOpen ? "text-green-600" : "text-red-600"
+                  checkAvailability(new Date()).isOpen
+                    ? "text-green-600"
+                    : "text-red-600",
                 )}
               >
                 {checkAvailability(new Date()).isOpen ? "Open" : "Closed"}

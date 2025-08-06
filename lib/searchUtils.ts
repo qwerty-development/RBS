@@ -146,18 +146,20 @@ export const checkRestaurantAvailability = async (
 async function checkRestaurantHours(
   restaurantId: string,
   date: Date,
-  time: string
+  time: string,
 ): Promise<boolean> {
   try {
     // Get restaurant with all hours data
     const { data: restaurant, error } = await supabase
       .from("restaurants")
-      .select(`
+      .select(
+        `
         *,
         restaurant_hours!left(*),
         restaurant_special_hours!left(*),
         restaurant_closures!left(*)
-      `)
+      `,
+      )
       .eq("id", restaurantId)
       .single();
 
@@ -166,18 +168,18 @@ async function checkRestaurantHours(
       return true; // Conservative fallback - assume open
     }
 
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const dayOfWeek = format(date, 'EEEE').toLowerCase();
+    const dateStr = format(date, "yyyy-MM-dd");
+    const dayOfWeek = format(date, "EEEE").toLowerCase();
 
     // Check closures
-    const closure = restaurant.restaurant_closures?.find((c: any) =>
-      dateStr >= c.start_date && dateStr <= c.end_date
+    const closure = restaurant.restaurant_closures?.find(
+      (c: any) => dateStr >= c.start_date && dateStr <= c.end_date,
     );
     if (closure) return false;
 
     // Check special hours
     const special = restaurant.restaurant_special_hours?.find(
-      (s: any) => s.date === dateStr
+      (s: any) => s.date === dateStr,
     );
     if (special) {
       if (special.is_closed) return false;
@@ -188,11 +190,11 @@ async function checkRestaurantHours(
 
     // UPDATED: Check ALL regular hour shifts for the day
     const regularShifts = restaurant.restaurant_hours?.filter(
-      (h: any) => h.day_of_week === dayOfWeek && h.is_open
+      (h: any) => h.day_of_week === dayOfWeek && h.is_open,
     );
-    
+
     if (!regularShifts || regularShifts.length === 0) return false;
-    
+
     // Check if time falls within ANY of the shifts
     for (const shift of regularShifts) {
       if (shift.open_time && shift.close_time) {
@@ -201,7 +203,7 @@ async function checkRestaurantHours(
         }
       }
     }
-    
+
     return false; // Time doesn't fall within any shift
   } catch (error) {
     console.error("Error checking restaurant hours:", error);
@@ -213,11 +215,11 @@ async function checkRestaurantHours(
 function isTimeWithinRange(
   time: string,
   openTime: string,
-  closeTime: string
+  closeTime: string,
 ): boolean {
-  const [hour, minute] = time.split(':').map(Number);
-  const [openHour, openMinute] = openTime.split(':').map(Number);
-  const [closeHour, closeMinute] = closeTime.split(':').map(Number);
+  const [hour, minute] = time.split(":").map(Number);
+  const [openHour, openMinute] = openTime.split(":").map(Number);
+  const [closeHour, closeMinute] = closeTime.split(":").map(Number);
 
   const currentMinutes = hour * 60 + minute;
   const openMinutes = openHour * 60 + openMinute;

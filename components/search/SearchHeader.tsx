@@ -93,19 +93,21 @@ export const SearchHeader = ({
     const timeText = getTimeText();
 
     // If all are "Any", show a simplified message
-    if (bookingFilters.partySize === null && 
-        bookingFilters.date === null && 
-        bookingFilters.time === null) {
+    if (
+      bookingFilters.partySize === null &&
+      bookingFilters.date === null &&
+      bookingFilters.time === null
+    ) {
       return "All restaurants";
     }
 
     // Build the display text based on what's set
     const parts = [];
-    
+
     if (bookingFilters.partySize !== null) {
       parts.push(partyText);
     }
-    
+
     if (bookingFilters.date !== null || bookingFilters.time !== null) {
       if (bookingFilters.date !== null && bookingFilters.time !== null) {
         parts.push(`${dateText}, ${timeText}`);
@@ -131,8 +133,8 @@ export const SearchHeader = ({
           <Pressable
             onPress={onShowBookingModal}
             className={`border rounded-full px-3 py-2 flex-row items-center gap-2 ${
-              bookingFilters.partySize === null && 
-              bookingFilters.date === null && 
+              bookingFilters.partySize === null &&
+              bookingFilters.date === null &&
               bookingFilters.time === null
                 ? "bg-muted border-border" // Muted when all are "Any"
                 : "bg-primary/10 border-primary/20" // Active when filters are set
@@ -141,20 +143,24 @@ export const SearchHeader = ({
             <Users
               size={14}
               color={
-                bookingFilters.partySize === null && 
-                bookingFilters.date === null && 
+                bookingFilters.partySize === null &&
+                bookingFilters.date === null &&
                 bookingFilters.time === null
                   ? "#666" // Muted icon
-                  : colorScheme === "dark" ? "#3b82f6" : "#2563eb" // Active icon
+                  : colorScheme === "dark"
+                    ? "#3b82f6"
+                    : "#2563eb" // Active icon
               }
             />
-            <Text className={`text-sm font-medium ${
-              bookingFilters.partySize === null && 
-              bookingFilters.date === null && 
-              bookingFilters.time === null
-                ? "text-muted-foreground" // Muted text
-                : "text-primary" // Active text
-            }`}>
+            <Text
+              className={`text-sm font-medium ${
+                bookingFilters.partySize === null &&
+                bookingFilters.date === null &&
+                bookingFilters.time === null
+                  ? "text-muted-foreground" // Muted text
+                  : "text-primary" // Active text
+              }`}
+            >
               {getFilterDisplayText()}
             </Text>
           </Pressable>

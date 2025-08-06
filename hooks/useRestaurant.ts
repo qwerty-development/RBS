@@ -92,13 +92,11 @@ export function useRestaurant(
   const [loading, setLoading] = useState(true);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
-  
+
   // Use the enhanced availability hook for restaurant hours
-  const { 
-    checkAvailability,
-    loading: availabilityLoading
-  } = useRestaurantAvailability(restaurantId || '');
-  
+  const { checkAvailability, loading: availabilityLoading } =
+    useRestaurantAvailability(restaurantId || "");
+
   useEffect(() => {
     return () => {
       // Clean up on unmount
@@ -154,13 +152,16 @@ export function useRestaurant(
   );
 
   // FIXED: Use new restaurant hours system
-  const isRestaurantOpen = useCallback((restaurant: Restaurant): boolean => {
-    if (!restaurant?.id) return false;
-    
-    const today = new Date();
-    const availability = checkAvailability(today);
-    return availability.isOpen;
-  }, [checkAvailability]);
+  const isRestaurantOpen = useCallback(
+    (restaurant: Restaurant): boolean => {
+      if (!restaurant?.id) return false;
+
+      const today = new Date();
+      const availability = checkAvailability(today);
+      return availability.isOpen;
+    },
+    [checkAvailability],
+  );
 
   const getDistanceText = useCallback((distance: number): string => {
     if (distance < 1) return `${(distance * 1000).toFixed(0)}m`;

@@ -347,7 +347,7 @@ export default function FavoritesScreen() {
     return ({ item }: { item: any }) => {
       try {
         // Add more thorough validation
-        if (!item || typeof item !== 'object' || !item.id) {
+        if (!item || typeof item !== "object" || !item.id) {
           return null;
         }
 
@@ -363,7 +363,7 @@ export default function FavoritesScreen() {
             fallback={
               <View className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg m-2">
                 <Text className="text-center text-gray-500">
-                  Unable to load playlist: {item.name || 'Unknown'}
+                  Unable to load playlist: {item.name || "Unknown"}
                 </Text>
               </View>
             }
@@ -381,7 +381,7 @@ export default function FavoritesScreen() {
         return (
           <View className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg m-2">
             <Text className="text-center text-gray-500">
-              Unable to load playlist: {item?.name || 'Unknown'}
+              Unable to load playlist: {item?.name || "Unknown"}
             </Text>
           </View>
         );
@@ -583,26 +583,30 @@ export default function FavoritesScreen() {
               <FavoritesEmptyState onDiscoverPress={navigateToSearch} />
             ) : groupBy === "none" ? (
               <View className="p-2 pb-24">
-                {processedFavorites?.[0]?.data?.map((item: any, index: number) => (
-                  <View key={`${item?.[0]?.id || index}-${index}`}>
-                    {renderGridRow({ item })}
-                  </View>
-                ))}
+                {processedFavorites?.[0]?.data?.map(
+                  (item: any, index: number) => (
+                    <View key={`${item?.[0]?.id || index}-${index}`}>
+                      {renderGridRow({ item })}
+                    </View>
+                  ),
+                )}
               </View>
             ) : (
               <View className="pb-24">
-                {processedFavorites?.map((section: any, sectionIndex: number) => (
-                  <View key={section.title}>
-                    {renderSectionHeader({ section })}
-                    <View className="p-2">
-                      {section.data?.map((item: any, index: number) => (
-                        <View key={`${item?.[0]?.id || index}-${index}`}>
-                          {renderGridRow({ item })}
-                        </View>
-                      ))}
+                {processedFavorites?.map(
+                  (section: any, sectionIndex: number) => (
+                    <View key={section.title}>
+                      {renderSectionHeader({ section })}
+                      <View className="p-2">
+                        {section.data?.map((item: any, index: number) => (
+                          <View key={`${item?.[0]?.id || index}-${index}`}>
+                            {renderGridRow({ item })}
+                          </View>
+                        ))}
+                      </View>
                     </View>
-                  </View>
-                ))}
+                  ),
+                )}
               </View>
             )
           ) : // Playlists content
@@ -644,26 +648,33 @@ export default function FavoritesScreen() {
               {playlists?.map((item: any, index: number) => {
                 if (!item || !item.id) {
                   return (
-                    <View key={`invalid-playlist-${index}`} className="p-4 bg-yellow-50 dark:bg-yellow-900 rounded-lg m-2">
+                    <View
+                      key={`invalid-playlist-${index}`}
+                      className="p-4 bg-yellow-50 dark:bg-yellow-900 rounded-lg m-2"
+                    >
                       <Text className="text-center text-yellow-800 dark:text-yellow-200">
                         Invalid playlist data at position {index + 1}
                       </Text>
                     </View>
                   );
                 }
-                
+
                 try {
                   return (
-                    <View key={item.id}>
-                      {renderPlaylistItem({ item })}
-                    </View>
+                    <View key={item.id}>{renderPlaylistItem({ item })}</View>
                   );
                 } catch (renderError) {
-                  console.error(`Error rendering playlist ${item.name}:`, renderError);
+                  console.error(
+                    `Error rendering playlist ${item.name}:`,
+                    renderError,
+                  );
                   return (
-                    <View key={`error-playlist-${item.id}`} className="p-4 bg-red-50 dark:bg-red-900 rounded-lg m-2">
+                    <View
+                      key={`error-playlist-${item.id}`}
+                      className="p-4 bg-red-50 dark:bg-red-900 rounded-lg m-2"
+                    >
                       <Text className="text-center text-red-600 dark:text-red-300">
-                        Error rendering playlist: {item.name || 'Unknown'}
+                        Error rendering playlist: {item.name || "Unknown"}
                       </Text>
                     </View>
                   );

@@ -20,12 +20,12 @@ import { useWaitingListStore } from "@/stores";
 
 // Filter options
 const FILTER_OPTIONS = [
-  { value: 'all', label: 'All' },
-  { value: 'active', label: 'Active' },
-  { value: 'notified', label: 'Available' },
+  { value: "all", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "notified", label: "Available" },
 ] as const;
 
-type FilterValue = typeof FILTER_OPTIONS[number]['value'];
+type FilterValue = (typeof FILTER_OPTIONS)[number]["value"];
 
 export default function WaitingListScreen() {
   const { profile } = useAuth();
@@ -38,7 +38,7 @@ export default function WaitingListScreen() {
   } = useWaitingListStore();
 
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<FilterValue>('all');
+  const [filter, setFilter] = useState<FilterValue>("all");
   const [showFilters, setShowFilters] = useState(false);
 
   // Fetch waiting list on screen focus
@@ -47,16 +47,16 @@ export default function WaitingListScreen() {
       if (profile?.id) {
         fetchWaitingList(profile.id);
       }
-    }, [profile?.id, fetchWaitingList])
+    }, [profile?.id, fetchWaitingList]),
   );
 
   // Pull to refresh
   const onRefresh = useCallback(async () => {
     if (!profile?.id) return;
-    
+
     setRefreshing(true);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    
+
     try {
       await fetchWaitingList(profile.id);
     } finally {
@@ -65,10 +65,10 @@ export default function WaitingListScreen() {
   }, [profile?.id, fetchWaitingList]);
 
   // Filter waiting list entries
-  const filteredEntries = waitingList.filter(entry => {
-    if (filter === 'all') return true;
-    if (filter === 'active') return entry.status === 'active';
-    if (filter === 'notified') return entry.status === 'notified';
+  const filteredEntries = waitingList.filter((entry) => {
+    if (filter === "all") return true;
+    if (filter === "active") return entry.status === "active";
+    if (filter === "notified") return entry.status === "notified";
     return true;
   });
 
@@ -96,8 +96,12 @@ export default function WaitingListScreen() {
   };
 
   // Get stats for different statuses
-  const activeCount = waitingList.filter(entry => entry.status === 'active').length;
-  const notifiedCount = waitingList.filter(entry => entry.status === 'notified').length;
+  const activeCount = waitingList.filter(
+    (entry) => entry.status === "active",
+  ).length;
+  const notifiedCount = waitingList.filter(
+    (entry) => entry.status === "notified",
+  ).length;
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -107,15 +111,14 @@ export default function WaitingListScreen() {
           <View className="flex-1">
             <H1 className="text-2xl font-bold">Waiting List</H1>
             <Text className="text-muted-foreground">
-              {waitingList.length === 0 
-                ? "No waiting list entries" 
-                : `${waitingList.length} ${waitingList.length === 1 ? 'entry' : 'entries'}`
-              }
+              {waitingList.length === 0
+                ? "No waiting list entries"
+                : `${waitingList.length} ${waitingList.length === 1 ? "entry" : "entries"}`}
               {activeCount > 0 && ` • ${activeCount} active`}
               {notifiedCount > 0 && ` • ${notifiedCount} available`}
             </Text>
           </View>
-          
+
           {/* Filter Button */}
           {waitingList.length > 0 && (
             <Button
@@ -125,7 +128,9 @@ export default function WaitingListScreen() {
               className="flex-row items-center gap-2"
             >
               <Filter size={16} />
-              <Text className="text-sm">{FILTER_OPTIONS.find(f => f.value === filter)?.label}</Text>
+              <Text className="text-sm">
+                {FILTER_OPTIONS.find((f) => f.value === filter)?.label}
+              </Text>
               <ChevronDown size={16} />
             </Button>
           )}
@@ -142,7 +147,9 @@ export default function WaitingListScreen() {
                 onPress={() => handleFilterSelect(option.value)}
                 className="px-3"
               >
-                <Text className={`text-sm ${filter === option.value ? 'text-white' : 'text-foreground'}`}>
+                <Text
+                  className={`text-sm ${filter === option.value ? "text-white" : "text-foreground"}`}
+                >
                   {option.label}
                 </Text>
               </Button>
@@ -169,7 +176,9 @@ export default function WaitingListScreen() {
         {isLoading && !refreshing && waitingList.length === 0 && (
           <View className="flex-1 items-center justify-center py-20">
             <ActivityIndicator size="large" color="#3b82f6" />
-            <Text className="text-muted-foreground mt-4">Loading waiting list...</Text>
+            <Text className="text-muted-foreground mt-4">
+              Loading waiting list...
+            </Text>
           </View>
         )}
 
@@ -194,42 +203,51 @@ export default function WaitingListScreen() {
         )}
 
         {/* Empty State */}
-        {!isLoading && !error && filteredEntries.length === 0 && waitingList.length === 0 && (
-          <View className="flex-1 items-center justify-center py-20">
-            <View className="w-20 h-20 bg-muted rounded-full items-center justify-center mb-4">
-              <Clock size={32} color="#6b7280" />
+        {!isLoading &&
+          !error &&
+          filteredEntries.length === 0 &&
+          waitingList.length === 0 && (
+            <View className="flex-1 items-center justify-center py-20">
+              <View className="w-20 h-20 bg-muted rounded-full items-center justify-center mb-4">
+                <Clock size={32} color="#6b7280" />
+              </View>
+              <Text className="text-xl font-semibold mb-2">
+                No Waiting List Entries
+              </Text>
+              <Text className="text-muted-foreground text-center mb-6 max-w-xs">
+                When restaurants are fully booked, you can join their waiting
+                list to get notified when tables become available.
+              </Text>
+              <Button onPress={() => router.push("/search")} className="px-6">
+                <Text className="text-white font-medium">Find Restaurants</Text>
+              </Button>
             </View>
-            <Text className="text-xl font-semibold mb-2">No Waiting List Entries</Text>
-            <Text className="text-muted-foreground text-center mb-6 max-w-xs">
-              When restaurants are fully booked, you can join their waiting list to get notified when tables become available.
-            </Text>
-            <Button
-              onPress={() => router.push("/search")}
-              className="px-6"
-            >
-              <Text className="text-white font-medium">Find Restaurants</Text>
-            </Button>
-          </View>
-        )}
+          )}
 
         {/* Filtered Empty State */}
-        {!isLoading && !error && filteredEntries.length === 0 && waitingList.length > 0 && (
-          <View className="flex-1 items-center justify-center py-20">
-            <View className="w-20 h-20 bg-muted rounded-full items-center justify-center mb-4">
-              <Filter size={32} color="#6b7280" />
+        {!isLoading &&
+          !error &&
+          filteredEntries.length === 0 &&
+          waitingList.length > 0 && (
+            <View className="flex-1 items-center justify-center py-20">
+              <View className="w-20 h-20 bg-muted rounded-full items-center justify-center mb-4">
+                <Filter size={32} color="#6b7280" />
+              </View>
+              <Text className="text-xl font-semibold mb-2">
+                No {FILTER_OPTIONS.find((f) => f.value === filter)?.label}{" "}
+                Entries
+              </Text>
+              <Text className="text-muted-foreground text-center mb-6 max-w-xs">
+                Try changing the filter to see more entries.
+              </Text>
+              <Button
+                variant="outline"
+                onPress={() => handleFilterSelect("all")}
+              >
+                <Text>Show All Entries</Text>
+              </Button>
             </View>
-            <Text className="text-xl font-semibold mb-2">No {FILTER_OPTIONS.find(f => f.value === filter)?.label} Entries</Text>
-            <Text className="text-muted-foreground text-center mb-6 max-w-xs">
-              Try changing the filter to see more entries.
-            </Text>
-            <Button
-              variant="outline"
-              onPress={() => handleFilterSelect('all')}
-            >
-              <Text>Show All Entries</Text>
-            </Button>
-          </View>
-        )}
+          )}
 
         {/* Waiting List Entries */}
         {/* Removed WaitingListCard due to missing module. You may want to add a fallback UI or restore this component when available. */}
@@ -242,7 +260,8 @@ export default function WaitingListScreen() {
       {notifiedCount > 0 && (
         <View className="bg-green-50 dark:bg-green-900/20 border-t border-green-200 dark:border-green-800 px-4 py-3">
           <Text className="text-green-800 dark:text-green-200 font-medium text-center">
-            🎉 {notifiedCount} table{notifiedCount === 1 ? ' is' : 's are'} now available!
+            🎉 {notifiedCount} table{notifiedCount === 1 ? " is" : "s are"} now
+            available!
           </Text>
         </View>
       )}

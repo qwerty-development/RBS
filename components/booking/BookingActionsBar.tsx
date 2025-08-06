@@ -69,8 +69,6 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
   onNavigateToOffers,
   onEdit,
 }) => {
-
-
   const callRestaurant = async () => {
     if (!booking.restaurant.phone_number) return;
 
@@ -113,8 +111,6 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
       Alert.alert("Error", "WhatsApp is not installed");
     }
   };
-
-
 
   const shareBooking = async () => {
     const offerText = appliedOfferDetails

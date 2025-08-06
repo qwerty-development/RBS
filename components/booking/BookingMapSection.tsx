@@ -49,8 +49,6 @@ export const BookingMapSection: React.FC<BookingMapSectionProps> = ({
     return null;
   };
 
-
-
   const mapCoordinates = extractLocationCoordinates(restaurant.location) || {
     latitude: 33.8938,
     longitude: 35.5018,
