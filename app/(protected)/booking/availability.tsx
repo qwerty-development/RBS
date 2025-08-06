@@ -771,8 +771,20 @@ export default function AvailabilitySelectionScreen() {
         tableIds: JSON.stringify(tableIds),
         requiresCombination: selectedOption.requiresCombination
       });
+      
       if (success) {
+        // Success feedback
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        
+        // FIXED: Force refresh availability data after successful booking
+        // This ensures time slots and table options are updated immediately
+        console.log('Booking confirmed successfully, refreshing availability...');
+        await refresh(true); // Force refresh with cache clearing
+        
+        // Clear selected slot to reset the UI state
+        clearSelectedSlot();
+        setCurrentStep('time');
+        setSelectedLoyaltyPoints(null);
       }
     } catch (error) {
       console.error('Error confirming booking:', error);
@@ -787,6 +799,8 @@ export default function AvailabilitySelectionScreen() {
     selectedLoyaltyPoints,
     preselectedOffer,
     confirmBooking,
+    refresh,
+    clearSelectedSlot,
   ]);
 
   const handleViewOffers = useCallback(() => {
@@ -912,7 +926,7 @@ export default function AvailabilitySelectionScreen() {
           <PartySizeSelector
             partySize={partySize}
             onPartySizeChange={handlePartySizeChange}
-            maxPartySize={restaurant.max_party_size || 12}
+            maxPartySize={12} // Default max party size
             disabled={currentStep === "experience"}
           />
 

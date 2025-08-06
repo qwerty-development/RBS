@@ -1273,6 +1273,37 @@ export class AvailabilityService {
     }
   }
 
+  /**
+   * Clear all availability caches for a specific restaurant
+   * This should be called after bookings are made or cancelled
+   */
+  clearRestaurantCache(restaurantId: string) {
+    console.log(`Clearing availability cache for restaurant: ${restaurantId}`);
+    
+    // Clear all cache types for this restaurant
+    this.clearCombinationCache(restaurantId);
+    
+    // Also clear restaurant config cache to ensure fresh data
+    this.restaurantConfigCache.invalidate(restaurantId);
+    
+    console.log(`Availability cache cleared for restaurant: ${restaurantId}`);
+  }
+
+  /**
+   * Clear caches for a specific date and restaurant
+   * More targeted cache clearing for better performance
+   */
+  clearRestaurantCacheForDate(restaurantId: string, date: Date) {
+    const dateStr = date.toISOString().split("T")[0];
+    console.log(`Clearing availability cache for restaurant ${restaurantId} on ${dateStr}`);
+    
+    // For now, clear all caches for the restaurant since we don't have selective clear
+    // This is still better than clearing all restaurants
+    this.clearRestaurantCache(restaurantId);
+    
+    console.log(`Targeted cache cleared for restaurant ${restaurantId} on ${dateStr}`);
+  }
+
   async preloadPopularSlots(restaurantId: string, partySizes: number[] = [2, 4]): Promise<void> {
     const today = new Date();
     const tomorrow = new Date(today);

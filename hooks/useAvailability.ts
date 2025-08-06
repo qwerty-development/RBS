@@ -210,7 +210,7 @@ export function useAvailability({
     async (force = false) => {
       if (force) {
         // Clear cache for this restaurant
-        availabilityService.clearCombinationCache(restaurantId);
+        availabilityService.clearRestaurantCache(restaurantId);
         lastParamsRef.current = "";
       }
 
@@ -272,7 +272,7 @@ export function useAvailability({
           console.log("Availability update received, refreshing experiences...");
           refresh();
         }
-      }, 2000); // 2 second throttle
+      }, 1000); // Reduced to 1 second for faster updates
     };
 
     const subscribeToRealtime = async () => {
@@ -489,7 +489,7 @@ export function useAvailabilityLegacy({
       updateRef.current = setTimeout(() => {
         console.log("Availability update received, refreshing...");
         fetchAvailability();
-      }, 2000);
+      }, 1000); // Reduced to 1 second for faster updates
     };
 
     const unsubscribe = realtimeAvailability.subscribeToRestaurant(
