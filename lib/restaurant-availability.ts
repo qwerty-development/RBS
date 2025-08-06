@@ -35,7 +35,7 @@ export class RestaurantAvailability {
   private cacheTimeout = 5 * 60 * 1000 // 5 minutes
 
   /**
-   * Check if a restaurant is open at a specific date and time
+   * Check if a restaurant is open at a specific date and time (MULTIPLE SHIFTS SUPPORT)
    */
   async isRestaurantOpen(
     restaurantId: string,
@@ -44,7 +44,7 @@ export class RestaurantAvailability {
   ): Promise<{
     isOpen: boolean
     reason?: string
-    hours?: { open: string; close: string }
+    hours?: { open: string; close: string }[]  // UPDATED: Array for multiple shifts
   }> {
     try {
       const dateStr = format(date, 'yyyy-MM-dd')
@@ -64,7 +64,7 @@ export class RestaurantAvailability {
         .eq('restaurant_id', restaurantId)
         .lte('start_date', dateStr)
         .gte('end_date', dateStr)
-        .single()
+        .maybeSingle()  // Still use maybeSingle for closures
 
       if (closureError && closureError.code !== 'PGRST116') {
         console.error('Error checking closures:', closureError)
@@ -86,7 +86,7 @@ export class RestaurantAvailability {
         .select('*')
         .eq('restaurant_id', restaurantId)
         .eq('date', dateStr)
-        .single()
+        .maybeSingle()  // Still use maybeSingle for special hours (one per date)
 
       if (specialError && specialError.code !== 'PGRST116') {
         console.error('Error checking special hours:', specialError)
@@ -112,10 +112,10 @@ export class RestaurantAvailability {
           )
           const result = {
             isOpen: isWithinHours,
-            hours: {
+            hours: [{
               open: specialHours.open_time,
               close: specialHours.close_time
-            }
+            }]
           }
           this.cache.set(cacheKey, { data: result, timestamp: Date.now() })
           return result
@@ -123,29 +123,30 @@ export class RestaurantAvailability {
 
         const result = {
           isOpen: true,
-          hours: specialHours.open_time && specialHours.close_time ? {
+          hours: specialHours.open_time && specialHours.close_time ? [{
             open: specialHours.open_time,
             close: specialHours.close_time
-          } : undefined
+          }] : undefined
         }
         this.cache.set(cacheKey, { data: result, timestamp: Date.now() })
         return result
       }
 
-      // Check regular hours
+      // UPDATED: Check ALL regular hour shifts for the day
       const { data: regularHours, error: regularError } = await supabase
         .from('restaurant_hours')
         .select('*')
         .eq('restaurant_id', restaurantId)
         .eq('day_of_week', dayOfWeek)
-        .single()
+        .eq('is_open', true)
+        .order('open_time', { ascending: true })  // Order by opening time
 
-      if (regularError && regularError.code !== 'PGRST116') {
+      if (regularError) {
         console.error('Error checking regular hours:', regularError)
         throw new Error('Failed to check restaurant availability')
       }
 
-      if (!regularHours || !regularHours.is_open) {
+      if (!regularHours || regularHours.length === 0) {
         const result = {
           isOpen: false,
           reason: 'Closed today'
@@ -154,30 +155,40 @@ export class RestaurantAvailability {
         return result
       }
 
-      // If time is provided, check if it's within regular hours
-      if (time && regularHours.open_time && regularHours.close_time) {
-        const isWithinHours = this.isTimeWithinRange(
-          time,
-          regularHours.open_time,
-          regularHours.close_time
-        )
-        const result = {
-          isOpen: isWithinHours,
-          hours: {
-            open: regularHours.open_time,
-            close: regularHours.close_time
+      // UPDATED: Collect all shifts
+      const shifts = regularHours
+        .filter(shift => shift.open_time && shift.close_time)
+        .map(shift => ({
+          open: shift.open_time!,
+          close: shift.close_time!
+        }))
+
+      // If time is provided, check if it's within ANY shift
+      if (time) {
+        let isWithinAnyShift = false
+        let currentShift = null
+
+        for (const shift of shifts) {
+          if (this.isTimeWithinRange(time, shift.open, shift.close)) {
+            isWithinAnyShift = true
+            currentShift = shift
+            break
           }
+        }
+
+        const result = {
+          isOpen: isWithinAnyShift,
+          hours: currentShift ? [currentShift] : shifts,
+          reason: !isWithinAnyShift ? 'Restaurant is closed at this time' : undefined
         }
         this.cache.set(cacheKey, { data: result, timestamp: Date.now() })
         return result
       }
 
+      // If no specific time, return all shifts
       const result = {
         isOpen: true,
-        hours: regularHours.open_time && regularHours.close_time ? {
-          open: regularHours.open_time,
-          close: regularHours.close_time
-        } : undefined
+        hours: shifts
       }
       this.cache.set(cacheKey, { data: result, timestamp: Date.now() })
       return result
@@ -207,7 +218,7 @@ export class RestaurantAvailability {
   }
 
   /**
-   * Get available time slots for a specific date
+   * Get available time slots for a specific date (MULTIPLE SHIFTS SUPPORT)
    */
   async getAvailableTimeSlots(
     restaurantId: string,
@@ -222,30 +233,35 @@ export class RestaurantAvailability {
     }
 
     const slots: string[] = []
-    const [openHour, openMin] = availability.hours.open.split(':').map(Number)
-    const [closeHour, closeMin] = availability.hours.close.split(':').map(Number)
+    const mealDuration = 90 // Assume 90 minutes for a meal
 
-    const startMinutes = openHour * 60 + openMin
-    const endMinutes = closeHour * 60 + closeMin
+    // UPDATED: Generate slots for ALL shifts
+    for (const shift of availability.hours) {
+      const [openHour, openMin] = shift.open.split(':').map(Number)
+      const [closeHour, closeMin] = shift.close.split(':').map(Number)
 
-    // Generate slots
-    for (let minutes = startMinutes; minutes < endMinutes; minutes += slotDuration) {
-      const hour = Math.floor(minutes / 60)
-      const min = minutes % 60
-      const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`
-      
-      // Check if there's enough time before closing for a typical meal
-      const mealDuration = 90 // Assume 90 minutes for a meal
-      if (minutes + mealDuration <= endMinutes) {
-        slots.push(timeStr)
+      const startMinutes = openHour * 60 + openMin
+      const endMinutes = closeHour * 60 + closeMin
+
+      // Generate slots for this shift
+      for (let minutes = startMinutes; minutes < endMinutes; minutes += slotDuration) {
+        const hour = Math.floor(minutes / 60)
+        const min = minutes % 60
+        const timeStr = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`
+        
+        // Check if there's enough time before closing for a typical meal
+        if (minutes + mealDuration <= endMinutes) {
+          slots.push(timeStr)
+        }
       }
     }
 
-    return slots
+    // Remove duplicates and sort
+    return [...new Set(slots)].sort()
   }
 
   /**
-   * Get restaurant hours for a week
+   * Get restaurant hours for a week (MULTIPLE SHIFTS SUPPORT)
    */
   async getWeeklyHours(restaurantId: string): Promise<RestaurantHours[]> {
     const { data, error } = await supabase
@@ -253,6 +269,7 @@ export class RestaurantAvailability {
       .select('*')
       .eq('restaurant_id', restaurantId)
       .order('day_of_week')
+      .order('open_time')  // UPDATED: Also order by open time for multiple shifts
 
     if (error) {
       console.error('Error fetching weekly hours:', error)
@@ -260,6 +277,23 @@ export class RestaurantAvailability {
     }
 
     return data || []
+  }
+
+  /**
+   * Get restaurant shifts grouped by day
+   */
+  async getWeeklyShifts(restaurantId: string): Promise<Record<string, RestaurantHours[]>> {
+    const hours = await this.getWeeklyHours(restaurantId)
+    const shiftsByDay: Record<string, RestaurantHours[]> = {}
+
+    for (const hour of hours) {
+      if (!shiftsByDay[hour.day_of_week]) {
+        shiftsByDay[hour.day_of_week] = []
+      }
+      shiftsByDay[hour.day_of_week].push(hour)
+    }
+
+    return shiftsByDay
   }
 
   /**
@@ -275,7 +309,7 @@ export class RestaurantAvailability {
         .eq('restaurant_id', restaurantId)
         .gte('date', today)
         .order('date', { ascending: true }),
-    supabase
+      supabase
         .from('restaurant_closures')
         .select('*')
         .eq('restaurant_id', restaurantId)
@@ -315,9 +349,9 @@ export class RestaurantAvailability {
   }
 
   /**
-   * Format hours for display
+   * Format hours for display (MULTIPLE SHIFTS SUPPORT)
    */
-  formatHoursDisplay(hours: { open: string; close: string }): string {
+  formatHoursDisplay(hours: { open: string; close: string } | { open: string; close: string }[]): string {
     const formatTime = (time: string) => {
       const [hour, minute] = time.split(':').map(Number)
       const period = hour >= 12 ? 'PM' : 'AM'
@@ -325,6 +359,20 @@ export class RestaurantAvailability {
       return `${displayHour}:${minute.toString().padStart(2, '0')} ${period}`
     }
 
-    return `${formatTime(hours.open)} - ${formatTime(hours.close)}`
+    // Handle single shift (backward compatibility)
+    if (!Array.isArray(hours)) {
+      return `${formatTime(hours.open)} - ${formatTime(hours.close)}`
+    }
+
+    // Handle multiple shifts
+    if (hours.length === 0) return 'Closed'
+    if (hours.length === 1) {
+      return `${formatTime(hours[0].open)} - ${formatTime(hours[0].close)}`
+    }
+
+    // Multiple shifts format
+    return hours.map(shift => 
+      `${formatTime(shift.open)} - ${formatTime(shift.close)}`
+    ).join(', ')
   }
 }

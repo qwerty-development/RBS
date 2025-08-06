@@ -188,7 +188,7 @@ export function useRestaurantSearch({
   };
 }
 
-// Helper functions for restaurant availability checking
+// UPDATED: Helper function to check restaurant availability with MULTIPLE SHIFTS support
 async function checkRestaurantAvailability(
   restaurant: any,
   date: Date,
@@ -214,17 +214,23 @@ async function checkRestaurantAvailability(
     }
   }
 
-  // Check regular hours
-  const regular = restaurant.restaurant_hours?.find(
-    (h: any) => h.day_of_week === dayOfWeek
+  // UPDATED: Check ALL regular hour shifts for the day
+  const regularShifts = restaurant.restaurant_hours?.filter(
+    (h: any) => h.day_of_week === dayOfWeek && h.is_open
   );
-  if (!regular || !regular.is_open) return false;
   
-  if (regular.open_time && regular.close_time) {
-    return isTimeWithinRange(time, regular.open_time, regular.close_time);
+  if (!regularShifts || regularShifts.length === 0) return false;
+  
+  // Check if time falls within ANY of the shifts
+  for (const shift of regularShifts) {
+    if (shift.open_time && shift.close_time) {
+      if (isTimeWithinRange(time, shift.open_time, shift.close_time)) {
+        return true; // Time is within at least one shift
+      }
+    }
   }
-
-  return true;
+  
+  return false; // Time doesn't fall within any shift
 }
 
 function isTimeWithinRange(
