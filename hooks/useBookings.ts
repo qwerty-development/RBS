@@ -114,8 +114,11 @@ export function useBookings() {
 
   // Data Fetching Functions
   const fetchBookings = useCallback(async () => {
+    // Store user ID to prevent reference changes causing re-renders
+    const userId = user?.id;
+    
     // Don't fetch if guest or no user
-    if (!user?.id || isGuest) {
+    if (!userId || isGuest) {
       console.log("Skipping bookings fetch - no user or guest");
       setBookingsLoading(false);
       setRefreshing(false);
@@ -123,10 +126,18 @@ export function useBookings() {
     }
 
     // Ensure profile exists before fetching bookings
-    const profileExists = await ensureProfileExists();
-    if (!profileExists) {
-      console.error("Cannot fetch bookings - profile does not exist");
-      setError(new Error("Profile not found. Please try logging in again."));
+    try {
+      const profileExists = await ensureProfileExists();
+      if (!profileExists) {
+        console.error("Cannot fetch bookings - profile does not exist");
+        setError(new Error("Profile not found. Please try logging in again."));
+        setBookingsLoading(false);
+        setRefreshing(false);
+        return;
+      }
+    } catch (profileError) {
+      console.error("Error checking profile:", profileError);
+      setError(new Error("Unable to verify profile. Please try again."));
       setBookingsLoading(false);
       setRefreshing(false);
       return;
@@ -136,59 +147,80 @@ export function useBookings() {
       setError(null);
       const now = new Date().toISOString();
 
-      // Fetch upcoming bookings (pending, confirmed)
-      const { data: upcomingData, error: upcomingError } = await supabase
-        .from("bookings")
-        .select(
-          `
-          *,
-          restaurant:restaurants (*)
-        `,
-        )
-        .eq("user_id", user.id)
-        .in("status", ["pending", "confirmed"])
-        .gte("booking_time", now)
-        .order("booking_time", { ascending: true });
+      // Use Promise.allSettled to handle errors gracefully and prevent crashes
+      const [upcomingResult, pastResult] = await Promise.allSettled([
+        supabase
+          .from("bookings")
+          .select(
+            `
+            *,
+            restaurant:restaurants (*)
+          `,
+          )
+          .eq("user_id", userId)
+          .in("status", ["pending", "confirmed"])
+          .gte("booking_time", now)
+          .order("booking_time", { ascending: true }),
+        
+        supabase
+          .from("bookings")
+          .select(
+            `
+            *,
+            restaurant:restaurants (*)
+          `,
+          )
+          .eq("user_id", userId)
+          .or(
+            `booking_time.lt.${now},status.in.(completed,cancelled_by_user,declined_by_restaurant,no_show)`,
+          )
+          .order("booking_time", { ascending: false })
+          .limit(50)
+      ]);
 
-      if (upcomingError) {
-        console.error("Error fetching upcoming bookings:", upcomingError);
-        throw upcomingError;
+      // Handle upcoming bookings result
+      let upcomingData = [];
+      if (upcomingResult.status === "fulfilled") {
+        if (upcomingResult.value.error) {
+          console.error("Error fetching upcoming bookings:", upcomingResult.value.error);
+        } else {
+          upcomingData = upcomingResult.value.data || [];
+        }
+      } else {
+        console.error("Upcoming bookings request failed:", upcomingResult.reason);
       }
 
-      // Fetch past bookings (all statuses, past dates or completed/cancelled)
-      const { data: pastData, error: pastError } = await supabase
-        .from("bookings")
-        .select(
-          `
-          *,
-          restaurant:restaurants (*)
-        `,
-        )
-        .eq("user_id", user.id)
-        .or(
-          `booking_time.lt.${now},status.in.(completed,cancelled_by_user,declined_by_restaurant,no_show)`,
-        )
-        .order("booking_time", { ascending: false })
-        .limit(50);
-
-      if (pastError) {
-        console.error("Error fetching past bookings:", pastError);
-        throw pastError;
+      // Handle past bookings result
+      let pastData = [];
+      if (pastResult.status === "fulfilled") {
+        if (pastResult.value.error) {
+          console.error("Error fetching past bookings:", pastResult.value.error);
+        } else {
+          pastData = pastResult.value.data || [];
+        }
+      } else {
+        console.error("Past bookings request failed:", pastResult.reason);
       }
 
-      // Update store with fetched data
-      setUpcomingBookings(upcomingData || []);
-      setPastBookings(pastData || []);
+      // Update store with fetched data (even if partially failed)
+      setUpcomingBookings(upcomingData);
+      setPastBookings(pastData);
 
       console.log(
-        `Fetched ${upcomingData?.length || 0} upcoming and ${pastData?.length || 0} past bookings`,
+        `Fetched ${upcomingData.length} upcoming and ${pastData.length} past bookings`,
       );
+      
+      // Only throw error if both requests failed
+      if (upcomingResult.status === "rejected" && pastResult.status === "rejected") {
+        throw new Error("Failed to fetch both upcoming and past bookings");
+      }
+      
     } catch (error) {
       console.error("Error fetching bookings:", error);
       setError(error as Error);
 
-      // Only show alert if not during initial load
-      if (hasInitialLoad.current) {
+      // Only show alert if not during initial load and not refreshing
+      if (hasInitialLoad.current && !refreshing) {
         Alert.alert("Error", "Failed to load bookings. Please try again.");
       }
     } finally {
@@ -199,10 +231,11 @@ export function useBookings() {
   }, [
     user?.id,
     isGuest,
+    ensureProfileExists,
     setUpcomingBookings,
     setPastBookings,
     setBookingsLoading,
-    ensureProfileExists,
+    refreshing
   ]);
 
   // Navigation Functions with error handling

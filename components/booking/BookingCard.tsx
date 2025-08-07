@@ -161,14 +161,49 @@ export function BookingCard({
   showQuickActions = true,
   processingBookingId,
 }: BookingCardProps) {
-  const statusConfig = BOOKING_STATUS_CONFIG[booking.status];
-  const StatusIcon = statusConfig.icon;
-  const bookingDate = new Date(booking.booking_time);
+  // Early return if booking is invalid
+  if (!booking || !booking.id || !booking.booking_time) {
+    console.warn("Invalid booking data provided to BookingCard");
+    return null;
+  }
 
-  const isToday = bookingDate.toDateString() === new Date().toDateString();
-  const isTomorrow =
-    new Date(bookingDate.setHours(0, 0, 0, 0)).getTime() ===
-    new Date(new Date().setDate(new Date().getDate() + 1)).setHours(0, 0, 0, 0);
+  const statusConfig = BOOKING_STATUS_CONFIG[booking.status] || BOOKING_STATUS_CONFIG.pending;
+  const StatusIcon = statusConfig.icon;
+  
+  // Safe date parsing with error handling
+  let bookingDate: Date;
+  try {
+    bookingDate = new Date(booking.booking_time);
+    // Check if date is valid
+    if (isNaN(bookingDate.getTime())) {
+      throw new Error("Invalid date");
+    }
+  } catch (error) {
+    console.warn("Invalid booking date:", booking.booking_time);
+    bookingDate = new Date(); // Fallback to current date
+  }
+
+  // Safe date comparisons
+  let isToday = false;
+  let isTomorrow = false;
+  
+  try {
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+    
+    isToday = bookingDate.toDateString() === today.toDateString();
+    
+    // Create new date objects to avoid mutating original dates
+    const bookingDateOnly = new Date(bookingDate);
+    bookingDateOnly.setHours(0, 0, 0, 0);
+    const tomorrowOnly = new Date(tomorrow);
+    tomorrowOnly.setHours(0, 0, 0, 0);
+    
+    isTomorrow = bookingDateOnly.getTime() === tomorrowOnly.getTime();
+  } catch (error) {
+    console.warn("Error calculating date comparisons:", error);
+  }
 
   const isPast = variant === "past";
   const isProcessing = processingBookingId === booking.id;
@@ -177,27 +212,54 @@ export function BookingCard({
   const isCompleted = booking.status === "completed";
   const isConfirmed = booking.status === "confirmed";
 
-  // Calculate time since request for pending bookings
-  const timeSinceRequest = isPending
-    ? formatTimeAgo(new Date(booking.created_at))
-    : null;
+  // Calculate time since request for pending bookings with safe date handling
+  let timeSinceRequest = null;
+  if (isPending && booking.created_at) {
+    try {
+      const createdDate = new Date(booking.created_at);
+      if (!isNaN(createdDate.getTime())) {
+        timeSinceRequest = formatTimeAgo(createdDate);
+      }
+    } catch (error) {
+      console.warn("Error calculating time since request:", error);
+    }
+  }
 
   const [hasReview, setHasReview] = useState(false);
   const [isAddingToCalendar, setIsAddingToCalendar] = useState(false);
   const [addedToCalendar, setAddedToCalendar] = useState(false);
 
   useEffect(() => {
+    let isCancelled = false;
+    
     const checkReview = async () => {
-      if (isCompleted) {
-        const { data } = await supabase
-          .from("reviews")
-          .select("id")
-          .eq("booking_id", booking.id)
-          .single();
-        setHasReview(!!data);
+      if (isCompleted && booking?.id) {
+        try {
+          const { data, error } = await supabase
+            .from("reviews")
+            .select("id")
+            .eq("booking_id", booking.id)
+            .single();
+          
+          // Only update state if component hasn't been unmounted
+          if (!isCancelled) {
+            setHasReview(!!data && !error);
+          }
+        } catch (error) {
+          console.warn("Error checking review status:", error);
+          if (!isCancelled) {
+            setHasReview(false);
+          }
+        }
       }
     };
+    
     checkReview();
+    
+    // Cleanup function to prevent memory leaks
+    return () => {
+      isCancelled = true;
+    };
   }, [booking.id, isCompleted]);
 
   // --- Handlers (Unchanged from original) ---
@@ -488,9 +550,16 @@ export function BookingCard({
         {/* Restaurant Header */}
         <View className="flex-row p-4">
           <Image
-            source={{ uri: booking.restaurant.main_image_url }}
-            className="w-20 h-20 rounded-lg"
+            source={{ 
+              uri: booking.restaurant?.main_image_url || "https://via.placeholder.com/80x80?text=No+Image" 
+            }}
+            className="w-20 h-20 rounded-lg bg-muted"
             contentFit="cover"
+            onError={(error) => {
+              console.warn("Error loading restaurant image:", error);
+            }}
+            placeholder="https://via.placeholder.com/80x80?text=Loading"
+            transition={200}
           />
           <View className="flex-1 ml-4">
             <Pressable

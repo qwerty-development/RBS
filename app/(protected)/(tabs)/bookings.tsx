@@ -4,6 +4,7 @@ import { View, RefreshControl, ScrollView, Alert } from "react-native";
 import { Calendar, Clock, UserPlus } from "lucide-react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
@@ -19,7 +20,7 @@ import { useAuth } from "@/context/supabase-provider";
 import BookingsScreenSkeleton from "@/components/skeletons/BookingsScreenSkeleton";
 import { getRefreshControlColor } from "@/lib/utils";
 
-export default function BookingsScreen() {
+function BookingsScreenContent() {
   const router = useRouter();
   const { isGuest, convertGuestToUser, user } = useAuth();
   const { colorScheme } = useColorScheme();
@@ -43,8 +44,16 @@ export default function BookingsScreen() {
     reviewBooking,
   } = useBookings();
 
-  const currentBookings =
-    activeTab === "upcoming" ? bookings.upcoming : bookings.past;
+  // Safe access to bookings with fallback
+  const currentBookings = React.useMemo(() => {
+    try {
+      const bookingsList = activeTab === "upcoming" ? bookings.upcoming : bookings.past;
+      return Array.isArray(bookingsList) ? bookingsList : [];
+    } catch (error) {
+      console.warn("Error accessing bookings:", error);
+      return [];
+    }
+  }, [activeTab, bookings.upcoming, bookings.past]);
 
   // Refresh bookings when the tab becomes focused (handles Android back navigation)
   useFocusEffect(
@@ -181,22 +190,41 @@ export default function BookingsScreen() {
           )
         ) : (
           <View className="p-4 pb-24">
-            {currentBookings.map((item) => (
-              <BookingCard
-                key={item.id}
-                booking={item}
-                variant={activeTab}
-                onPress={() => navigateToBookingDetails(item.id)}
-                onCancel={cancelBooking}
-                onRebook={rebookRestaurant}
-                onReview={reviewBooking}
-                onNavigateToRestaurant={navigateToRestaurant}
-                processingBookingId={processingBookingId}
-              />
-            ))}
+            {currentBookings
+              .filter((item) => item && item.id) // Filter out invalid bookings
+              .map((item) => {
+                try {
+                  return (
+                    <BookingCard
+                      key={item.id}
+                      booking={item}
+                      variant={activeTab}
+                      onPress={() => navigateToBookingDetails(item.id)}
+                      onCancel={cancelBooking}
+                      onRebook={rebookRestaurant}
+                      onReview={reviewBooking}
+                      onNavigateToRestaurant={navigateToRestaurant}
+                      processingBookingId={processingBookingId}
+                    />
+                  );
+                } catch (error) {
+                  console.warn("Error rendering booking card:", error, item);
+                  return null; // Skip this booking if it causes issues
+                }
+              })
+              .filter(Boolean)} {/* Remove null items */}
           </View>
         )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+// Wrap with ErrorBoundary to prevent crashes
+export default function BookingsScreen() {
+  return (
+    <ErrorBoundary>
+      <BookingsScreenContent />
+    </ErrorBoundary>
   );
 }
