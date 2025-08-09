@@ -1,5 +1,5 @@
 // hooks/useBookingConfirmation.ts
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { Alert } from "react-native";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
@@ -47,12 +47,22 @@ interface BookingResult {
     table_number: string;
     table_type: string;
   }[];
+  is_duplicate_attempt?: boolean;
 }
 
 export const useBookingConfirmation = () => {
   const { profile } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  
+  // Add refs to prevent double submission
+  const isSubmittingRef = useRef(false);
+  const lastSubmissionRef = useRef<{
+    restaurantId: string;
+    bookingTime: string;
+    partySize: number;
+    timestamp: number;
+  } | null>(null);
 
   /**
    * Parse table IDs from JSON string safely
@@ -72,69 +82,40 @@ export const useBookingConfirmation = () => {
   }, []);
 
   /**
-   * Validate table assignment before booking
+   * Check if this is a duplicate submission attempt
    */
-  const validateTableAssignment = useCallback(
-    async (
-      tableIds: string[],
-      partySize: number,
-      startTime: Date,
-      endTime: Date,
-    ): Promise<{ valid: boolean; error?: string }> => {
-      try {
-        if (tableIds.length === 0) {
-          return { valid: false, error: "No tables selected" };
+  const isDuplicateSubmission = useCallback(
+    (restaurantId: string, bookingTime: Date, partySize: number): boolean => {
+      const now = Date.now();
+      const bookingTimeStr = bookingTime.toISOString();
+      
+      if (lastSubmissionRef.current) {
+        const last = lastSubmissionRef.current;
+        const timeSinceLastSubmission = now - last.timestamp;
+        
+        // If same booking details submitted within 5 seconds, it's likely a duplicate
+        if (
+          last.restaurantId === restaurantId &&
+          last.bookingTime === bookingTimeStr &&
+          last.partySize === partySize &&
+          timeSinceLastSubmission < 5000
+        ) {
+          console.log("Duplicate submission detected, ignoring...");
+          return true;
         }
-
-        // Check for table conflicts
-        const { data: conflict } = await supabase.rpc("check_booking_overlap", {
-          p_table_ids: tableIds,
-          p_start_time: startTime.toISOString(),
-          p_end_time: endTime.toISOString(),
-        });
-
-        if (conflict) {
-          return {
-            valid: false,
-            error: "Tables are no longer available for this time slot",
-          };
-        }
-
-        // Verify total capacity
-        const { data: tables } = await supabase
-          .from("restaurant_tables")
-          .select("capacity")
-          .in("id", tableIds);
-
-        const totalCapacity =
-          tables?.reduce((sum, t) => sum + t.capacity, 0) || 0;
-
-        if (totalCapacity < partySize) {
-          return {
-            valid: false,
-            error: "Selected tables do not have enough capacity",
-          };
-        }
-
-        return { valid: true };
-      } catch (error) {
-        console.error("Error validating table assignment:", error);
-        return { valid: false, error: "Failed to validate table assignment" };
       }
+      
+      // Update last submission
+      lastSubmissionRef.current = {
+        restaurantId,
+        bookingTime: bookingTimeStr,
+        partySize,
+        timestamp: now
+      };
+      
+      return false;
     },
-    [],
-  );
-
-  /**
-   * Calculate booking end time based on turn time
-   */
-  const calculateEndTime = useCallback(
-    (startTime: Date, turnTimeMinutes: number = 120): Date => {
-      const endTime = new Date(startTime);
-      endTime.setMinutes(endTime.getMinutes() + turnTimeMinutes);
-      return endTime;
-    },
-    [],
+    []
   );
 
   /**
@@ -165,11 +146,12 @@ export const useBookingConfirmation = () => {
         if (appliedOfferId && userId) {
           const { error: offerError } = await supabase
             .from("user_offers")
-            .insert({
-              user_id: userId,
-              offer_id: appliedOfferId,
+            .update({
+              used_at: new Date().toISOString(),
               booking_id: bookingId,
-            });
+            })
+            .eq("id", appliedOfferId)
+            .is("booking_id", null); // Only update if not already used
 
           if (offerError) {
             console.error("Failed to apply offer:", offerError);
@@ -183,159 +165,139 @@ export const useBookingConfirmation = () => {
   );
 
   /**
-   * Main booking confirmation function
+   * Main booking confirmation function with duplicate prevention
    */
   const confirmBooking = useCallback(
     async (props: BookingConfirmationProps) => {
+      // Check if already submitting
+      if (isSubmittingRef.current) {
+        console.log("Already submitting booking, ignoring duplicate request");
+        return false;
+      }
+
       if (!profile?.id) {
         Alert.alert("Error", "Please sign in to make a booking");
         return false;
       }
 
+      const {
+        restaurantId,
+        bookingTime,
+        partySize,
+        specialRequests,
+        occasion,
+        dietaryNotes,
+        tablePreferences,
+        bookingPolicy,
+        expectedLoyaltyPoints,
+        appliedOfferId,
+        loyaltyRuleId,
+        tableIds,
+        requiresCombination,
+        turnTime = 120,
+        isGroupBooking = false,
+        guestName,
+        guestEmail,
+        guestPhone,
+      } = props;
+
+      // Check for duplicate submission
+      if (isDuplicateSubmission(restaurantId, bookingTime, partySize)) {
+        console.log("Duplicate submission detected, ignoring");
+        return false;
+      }
+
+      // Set submission flag
+      isSubmittingRef.current = true;
       setLoading(true);
 
       try {
-        const {
-          restaurantId,
-          bookingTime,
-          partySize,
-          specialRequests,
-          occasion,
-          dietaryNotes,
-          tablePreferences,
-          bookingPolicy,
-          expectedLoyaltyPoints,
-          appliedOfferId,
-          loyaltyRuleId,
-          tableIds,
-          requiresCombination,
-          turnTime = 120,
-          isGroupBooking = false,
-          guestName,
-          guestEmail,
-          guestPhone,
-        } = props;
-
         // Parse table IDs
         const parsedTableIds = parseTableIds(tableIds);
         console.log("Booking confirmation - Parsed Table IDs:", parsedTableIds);
 
-        // Calculate booking window
-        const startTime = new Date(bookingTime);
-        const endTime = calculateEndTime(startTime, turnTime);
-
-        // Validate table assignment for instant bookings
-        if (bookingPolicy === "instant" && parsedTableIds.length > 0) {
-          const validation = await validateTableAssignment(
-            parsedTableIds,
-            partySize,
-            startTime,
-            endTime,
-          );
-          if (!validation.valid) {
-            Alert.alert(
-              "Booking Error",
-              validation.error || "Table validation failed",
-            );
-            return false;
-          }
-        }
-
-        // Generate confirmation code
-        const confirmationCode = `BK${Date.now().toString(36).toUpperCase()}`;
-
-        // Set initial status based on booking policy
-        const initialStatus =
-          bookingPolicy === "instant" ? "confirmed" : "pending";
-
         let bookingResult: BookingResult;
 
-        // Use RPC function for instant bookings with table assignment
-        if (bookingPolicy === "instant" && parsedTableIds.length > 0) {
-          const { data: rpcResult, error: rpcError } = await supabase.rpc(
-            "create_booking_with_tables",
-            {
-              p_user_id: profile.id,
-              p_restaurant_id: restaurantId,
-              p_booking_time: bookingTime.toISOString(),
-              p_party_size: partySize,
-              p_table_ids: parsedTableIds,
-              p_turn_time: turnTime,
-              p_special_requests: specialRequests || null,
-              p_occasion: occasion !== "none" ? occasion : null,
-              p_dietary_notes: dietaryNotes || null,
-              p_table_preferences: tablePreferences || null,
-              p_is_group_booking: isGroupBooking,
-              p_applied_offer_id: appliedOfferId || null,
-            },
-          );
+        // Always use RPC function for consistency
+        const { data: rpcResult, error: rpcError } = await supabase.rpc(
+          "create_booking_with_tables",
+          {
+            p_user_id: profile.id,
+            p_restaurant_id: restaurantId,
+            p_booking_time: bookingTime.toISOString(),
+            p_party_size: partySize,
+            p_table_ids: parsedTableIds.length > 0 ? parsedTableIds : null,
+            p_turn_time: turnTime,
+            p_special_requests: specialRequests || null,
+            p_occasion: occasion !== "none" ? occasion : null,
+            p_dietary_notes: dietaryNotes || null,
+            p_table_preferences: tablePreferences || null,
+            p_is_group_booking: isGroupBooking,
+            p_applied_offer_id: appliedOfferId || null,
+            p_booking_policy: bookingPolicy,
+            p_expected_loyalty_points: expectedLoyaltyPoints || 0,
+            p_applied_loyalty_rule_id: loyaltyRuleId || null,
+          },
+        );
 
-          if (rpcError) {
-            console.error("RPC Booking error:", rpcError);
+        if (rpcError) {
+          // Check if it's a benign duplicate attempt (user's booking already exists)
+          if (rpcError.message?.includes("already have a booking")) {
+            console.log("User already has this booking, treating as success");
+            // Try to fetch the existing booking
+            const { data: existingBooking } = await supabase
+              .from("bookings")
+              .select(`
+                *,
+                restaurant:restaurants(name, id)
+              `)
+              .eq("user_id", profile.id)
+              .eq("restaurant_id", restaurantId)
+              .eq("booking_time", bookingTime.toISOString())
+              .eq("party_size", partySize)
+              .in("status", ["pending", "confirmed"])
+              .single();
+
+            if (existingBooking) {
+              bookingResult = {
+                booking: {
+                  id: existingBooking.id,
+                  confirmation_code: existingBooking.confirmation_code,
+                  restaurant_name: existingBooking.restaurant?.name,
+                  status: existingBooking.status,
+                  booking_time: existingBooking.booking_time,
+                  party_size: existingBooking.party_size,
+                  loyalty_points_earned: existingBooking.loyalty_points_earned,
+                  restaurant: existingBooking.restaurant,
+                },
+                is_duplicate_attempt: true
+              };
+            } else {
+              throw rpcError;
+            }
+          } else {
             throw rpcError;
           }
-
+        } else {
           if (!rpcResult?.booking) {
             throw new Error("No booking data returned from RPC");
           }
-
           bookingResult = rpcResult;
-        } else {
-          // Create booking directly for request bookings or instant without specific tables
-          const { data: booking, error: bookingError } = await supabase
-            .from("bookings")
-            .insert({
-              user_id: profile.id,
-              restaurant_id: restaurantId,
-              booking_time: bookingTime.toISOString(),
-              party_size: partySize,
-              status: initialStatus,
-              special_requests: specialRequests,
-              occasion: occasion !== "none" ? occasion : null,
-              dietary_notes: dietaryNotes,
-              table_preferences: tablePreferences,
-              confirmation_code: confirmationCode,
-              expected_loyalty_points: expectedLoyaltyPoints || 0,
-              applied_offer_id: appliedOfferId,
-              applied_loyalty_rule_id: loyaltyRuleId,
-              turn_time_minutes: turnTime,
-              is_group_booking: isGroupBooking,
-              guest_name: guestName,
-              guest_email: guestEmail,
-              guest_phone: guestPhone,
-            })
-            .select(
-              `
-            *,
-            restaurant:restaurants(name, id)
-          `,
-            )
-            .single();
-
-          if (bookingError) throw bookingError;
-
-          bookingResult = {
-            booking: {
-              id: booking.id,
-              confirmation_code: booking.confirmation_code,
-              restaurant_name: booking.restaurant?.name,
-              status: booking.status,
-              booking_time: booking.booking_time,
-              party_size: booking.party_size,
-              loyalty_points_earned: booking.loyalty_points_earned,
-              restaurant: booking.restaurant,
-            },
-          };
         }
 
-        // Handle loyalty points and offers for instant bookings
-        if (bookingPolicy === "instant") {
-          await handleLoyaltyAndOffers(
-            bookingResult.booking.id,
-            loyaltyRuleId,
-            appliedOfferId,
-            profile.id,
-          );
+        // Check if this was a duplicate attempt that returned existing booking
+        if (bookingResult.is_duplicate_attempt) {
+          console.log("This was a duplicate attempt, existing booking returned");
+        } else {
+          // Handle loyalty points and offers for new bookings
+          if (bookingPolicy === "instant") {
+            await handleLoyaltyAndOffers(
+              bookingResult.booking.id,
+              loyaltyRuleId,
+              appliedOfferId,
+              profile.id,
+            );
+          }
         }
 
         // Success feedback
@@ -343,8 +305,7 @@ export const useBookingConfirmation = () => {
           Haptics.NotificationFeedbackType.Success,
         );
 
-        // CRITICAL: Clear availability cache after successful booking
-        // This ensures time slots and tables are immediately updated for other users
+        // Clear availability cache
         try {
           const availabilityService = AvailabilityService.getInstance();
           availabilityService.clearRestaurantCacheForDate(
@@ -354,7 +315,6 @@ export const useBookingConfirmation = () => {
           console.log("Availability cache cleared after successful booking");
         } catch (cacheError) {
           console.warn("Failed to clear availability cache:", cacheError);
-          // Don't fail the booking if cache clearing fails
         }
 
         // Navigate based on booking type
@@ -374,35 +334,17 @@ export const useBookingConfirmation = () => {
             },
           });
         } else {
-          // For request bookings, navigate to request-sent screen or booking form
-          if (parsedTableIds.length > 0) {
-            // Already have table selection, go to request-sent
-            router.replace({
-              pathname: "/booking/request-sent",
-              params: {
-                bookingId: bookingResult.booking.id,
-                restaurantName:
-                  bookingResult.booking.restaurant_name || "Restaurant",
-                bookingTime: bookingTime.toISOString(),
-                partySize: partySize.toString(),
-              },
-            });
-          } else {
-            // Navigate to booking form for request bookings
-            router.push({
-              pathname: "/booking/create",
-              params: {
-                restaurantId,
-                date: bookingTime.toISOString(),
-                time: `${bookingTime.getHours().toString().padStart(2, "0")}:${bookingTime.getMinutes().toString().padStart(2, "0")}`,
-                partySize: partySize.toString(),
-                tableIds: tableIds || "",
-                requiresCombination: requiresCombination ? "true" : "false",
-                loyaltyRuleId,
-                expectedLoyaltyPoints: expectedLoyaltyPoints?.toString(),
-              },
-            });
-          }
+          // For request bookings
+          router.replace({
+            pathname: "/booking/request-sent",
+            params: {
+              bookingId: bookingResult.booking.id,
+              restaurantName:
+                bookingResult.booking.restaurant_name || "Restaurant",
+              bookingTime: bookingTime.toISOString(),
+              partySize: partySize.toString(),
+            },
+          });
         }
 
         return true;
@@ -419,12 +361,39 @@ export const useBookingConfirmation = () => {
             "This time slot was just booked. Please select another time.",
             [{ text: "OK" }],
           );
-        } else if (error.code === "23505") {
-          Alert.alert(
-            "Duplicate Booking",
-            "You already have a booking for this time slot.",
-            [{ text: "OK" }],
-          );
+        } else if (error.code === "23505" || error.message?.includes("duplicate key")) {
+          // This shouldn't happen anymore, but if it does, handle gracefully
+          console.warn("Unexpected duplicate key error, attempting to recover...");
+          
+          // Try to fetch the existing booking
+          const { data: existingBooking } = await supabase
+            .from("bookings")
+            .select("id, confirmation_code, status")
+            .eq("user_id", profile.id)
+            .eq("restaurant_id", restaurantId)
+            .eq("booking_time", bookingTime.toISOString())
+            .eq("party_size", partySize)
+            .in("status", ["pending", "confirmed"])
+            .single();
+
+          if (existingBooking) {
+            Alert.alert(
+              "Booking Already Exists",
+              `You already have a booking for this time. Confirmation code: ${existingBooking.confirmation_code}`,
+              [
+                { 
+                  text: "View Booking", 
+                  onPress: () => router.replace(`/booking/${existingBooking.id}`)
+                }
+              ],
+            );
+          } else {
+            Alert.alert(
+              "Booking Error",
+              "Unable to create booking. Please try selecting a different time.",
+              [{ text: "OK" }],
+            );
+          }
         } else {
           Alert.alert(
             "Booking Failed",
@@ -435,6 +404,10 @@ export const useBookingConfirmation = () => {
 
         return false;
       } finally {
+        // Reset submission flag after a delay to prevent rapid retries
+        setTimeout(() => {
+          isSubmittingRef.current = false;
+        }, 2000);
         setLoading(false);
       }
     },
@@ -442,9 +415,8 @@ export const useBookingConfirmation = () => {
       profile,
       router,
       parseTableIds,
-      validateTableAssignment,
-      calculateEndTime,
       handleLoyaltyAndOffers,
+      isDuplicateSubmission,
     ],
   );
 
@@ -579,104 +551,19 @@ export const useBookingConfirmation = () => {
   }, []);
 
   /**
-   * Reschedule a booking
+   * Reset submission tracking (useful for testing or after navigation)
    */
-  const rescheduleBooking = useCallback(
-    async (bookingId: string, newBookingTime: Date, newTableIds?: string[]) => {
-      try {
-        setLoading(true);
-
-        // Get current booking details
-        const { data: currentBooking, error: fetchError } = await supabase
-          .from("bookings")
-          .select("*")
-          .eq("id", bookingId)
-          .single();
-
-        if (fetchError) throw fetchError;
-
-        // Calculate new end time
-        const newEndTime = calculateEndTime(
-          newBookingTime,
-          currentBooking.turn_time_minutes,
-        );
-
-        // Validate new time slot if table IDs provided
-        if (newTableIds && newTableIds.length > 0) {
-          const validation = await validateTableAssignment(
-            newTableIds,
-            currentBooking.party_size,
-            newBookingTime,
-            newEndTime,
-          );
-
-          if (!validation.valid) {
-            Alert.alert(
-              "Reschedule Error",
-              validation.error || "Time slot validation failed",
-            );
-            return false;
-          }
-        }
-
-        // Update booking
-        const { error: updateError } = await supabase
-          .from("bookings")
-          .update({
-            booking_time: newBookingTime.toISOString(),
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", bookingId);
-
-        if (updateError) throw updateError;
-
-        // Update table assignments if provided
-        if (newTableIds && newTableIds.length > 0) {
-          // Remove old table assignments
-          await supabase
-            .from("booking_tables")
-            .delete()
-            .eq("booking_id", bookingId);
-
-          // Add new table assignments
-          const tableAssignments = newTableIds.map((tableId) => ({
-            booking_id: bookingId,
-            table_id: tableId,
-          }));
-
-          await supabase.from("booking_tables").insert(tableAssignments);
-        }
-
-        await Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Success,
-        );
-
-        Alert.alert(
-          "Booking Rescheduled",
-          "Your booking has been successfully rescheduled.",
-          [{ text: "OK" }],
-        );
-
-        return true;
-      } catch (error: any) {
-        console.error("Error rescheduling booking:", error);
-        Alert.alert(
-          "Reschedule Failed",
-          error.message || "Unable to reschedule booking. Please try again.",
-        );
-        return false;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [validateTableAssignment, calculateEndTime],
-  );
+  const resetSubmissionTracking = useCallback(() => {
+    isSubmittingRef.current = false;
+    lastSubmissionRef.current = null;
+  }, []);
 
   return {
     confirmBooking,
     handleBookingStatusChange,
     cancelBooking,
-    rescheduleBooking,
     loading,
+    isSubmitting: isSubmittingRef.current,
+    resetSubmissionTracking,
   };
 };
