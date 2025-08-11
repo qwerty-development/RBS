@@ -241,9 +241,16 @@ export const useBookingConfirmation = () => {
         );
 
         if (rpcError) {
-          // Check if it's a benign duplicate attempt (user's booking already exists)
-          if (rpcError.message?.includes("already have a booking")) {
-            console.log("User already has this booking, treating as success");
+          // Check if it's a DUPLICATE_BOOKING error that should be shown to user
+          if (rpcError.code === 'P0002' && rpcError.message?.includes("DUPLICATE_BOOKING")) {
+            // This is an intentional duplicate booking prevention - show error to user
+            console.log("Duplicate booking detected, showing error to user");
+            throw rpcError;
+          }
+          // Check if it's a benign duplicate attempt from race conditions (exact same booking created seconds ago)
+          else if (rpcError.message?.includes("already have a booking") && 
+                   !rpcError.message?.includes("DUPLICATE_BOOKING")) {
+            console.log("Race condition duplicate detected, treating as success");
             // Try to fetch the existing booking
             const { data: existingBooking } = await supabase
               .from("bookings")
@@ -357,6 +364,19 @@ export const useBookingConfirmation = () => {
 
         // Handle specific error types
         if (
+          error.code === "P0002" &&
+          error.message?.includes("DUPLICATE_BOOKING")
+        ) {
+          // Extract the user-friendly message from the database error
+          const message = error.message.split("DUPLICATE_BOOKING: ")[1] || 
+                         "You already have a booking for this time. Please choose a different time slot.";
+          
+          Alert.alert(
+            "Duplicate Booking",
+            message,
+            [{ text: "OK" }],
+          );
+        } else if (
           error.code === "P0001" &&
           error.message?.includes("no longer available")
         ) {
