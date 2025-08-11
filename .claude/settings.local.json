@@ -3,7 +3,10 @@
     "allow": [
       "Bash(npm run type-check:*)",
       "Bash(npm start)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(npm run lint:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npx tsc:*)"
     ],
     "deny": []
   }

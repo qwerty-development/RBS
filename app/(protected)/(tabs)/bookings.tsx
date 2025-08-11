@@ -60,7 +60,7 @@ function BookingsScreenContent() {
   // Refresh bookings when the tab becomes focused (handles Android back navigation)
   // Only refresh if we haven't already initialized and loaded data
   const hasFocusedRef = React.useRef(false);
-  
+
   useFocusEffect(
     useCallback(() => {
       if (user && !isGuest && isInitialized && !hasFocusedRef.current) {
@@ -177,7 +177,7 @@ function BookingsScreenContent() {
           />
         }
       >
-        <View style={{ minHeight: '100%' }}>
+        <View style={{ minHeight: "100%" }}>
           {currentBookings.length === 0 ? (
             <View className="flex-1 justify-center">
               {activeTab === "upcoming" ? (

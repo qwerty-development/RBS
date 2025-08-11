@@ -536,7 +536,7 @@ const QuickStats = React.memo<{
 // Main Component
 export default function AvailabilitySelectionScreen() {
   const [isMounted, setIsMounted] = useState(false);
-  
+
   // Add state to track if confirmation is in progress
   const [isConfirmingBooking, setIsConfirmingBooking] = useState(false);
 
@@ -1112,17 +1112,28 @@ export default function AvailabilitySelectionScreen() {
             <>
               {/* Back navigation - disable while confirming */}
               <Pressable
-                onPress={isConfirmingBooking ? undefined : handleBackToTimeSelection}
+                onPress={
+                  isConfirmingBooking ? undefined : handleBackToTimeSelection
+                }
                 disabled={isConfirmingBooking}
                 className={`flex-row items-center gap-2 p-2 -ml-2 self-start rounded-lg ${
                   isConfirmingBooking ? "opacity-50" : ""
                 }`}
               >
-                <ArrowLeft size={20} color={isConfirmingBooking ? "#999" : "#3b82f6"} />
-                <Text className={`font-medium ${
-                  isConfirmingBooking ? "text-muted-foreground" : "text-primary"
-                }`}>
-                  {isConfirmingBooking ? "Processing..." : "Back to Time Selection"}
+                <ArrowLeft
+                  size={20}
+                  color={isConfirmingBooking ? "#999" : "#3b82f6"}
+                />
+                <Text
+                  className={`font-medium ${
+                    isConfirmingBooking
+                      ? "text-muted-foreground"
+                      : "text-primary"
+                  }`}
+                >
+                  {isConfirmingBooking
+                    ? "Processing..."
+                    : "Back to Time Selection"}
                 </Text>
               </Pressable>
 
@@ -1309,8 +1320,8 @@ export default function AvailabilitySelectionScreen() {
                 {isConfirmingBooking
                   ? "Creating booking..."
                   : confirmingBooking
-                  ? "Processing..."
-                  : "Select experience above"}
+                    ? "Processing..."
+                    : "Select experience above"}
               </Text>
               {(isConfirmingBooking || confirmingBooking) && (
                 <View className="w-20 h-10 bg-muted/50 rounded-lg items-center justify-center">

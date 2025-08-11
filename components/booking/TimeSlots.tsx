@@ -193,7 +193,6 @@ export const TimeSlots = memo<{
   },
 );
 
-
 // Skeleton for table options
 const TableOptionSkeleton = memo(() => (
   <View className="p-4 rounded-xl border border-border bg-card">
@@ -241,14 +240,17 @@ export const TableOptions = memo<{
     };
   }, []);
 
-  const handleOptionSelect = useCallback((index: number) => {
-    if (isProcessing || isConfirming) {
-      console.log("Cannot change selection while processing");
-      return;
-    }
-    setSelectedOptionIndex(index);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [isProcessing, isConfirming]);
+  const handleOptionSelect = useCallback(
+    (index: number) => {
+      if (isProcessing || isConfirming) {
+        console.log("Cannot change selection while processing");
+        return;
+      }
+      setSelectedOptionIndex(index);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    },
+    [isProcessing, isConfirming],
+  );
 
   const handleConfirm = useCallback(() => {
     // Prevent double-clicks
@@ -330,7 +332,10 @@ export const TableOptions = memo<{
       </View>
 
       {/* Options */}
-      <View className="gap-3 mb-6" style={{ opacity: isButtonDisabled ? 0.6 : 1 }}>
+      <View
+        className="gap-3 mb-6"
+        style={{ opacity: isButtonDisabled ? 0.6 : 1 }}
+      >
         {options.map((option, index) => (
           <TableOptionCard
             key={`${option.tableTypes.join("-")}-${index}`}
@@ -383,7 +388,7 @@ export const TableOptions = memo<{
       {isButtonDisabled && (
         <View className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
           <Text className="text-xs text-center text-blue-600 dark:text-blue-400">
-            {isConfirming 
+            {isConfirming
               ? "Creating your booking... Please don't close the app."
               : "Processing your selection... Please wait."}
           </Text>
@@ -402,7 +407,7 @@ const TableOptionCard = memo<{
 }>(({ option, isRecommended, isSelected, onSelect }) => {
   // Prevent selection changes with debouncing
   const lastClickRef = useRef<number>(0);
-  
+
   const handlePress = useCallback(() => {
     const now = Date.now();
     if (now - lastClickRef.current < 500) {
@@ -410,7 +415,7 @@ const TableOptionCard = memo<{
       return;
     }
     lastClickRef.current = now;
-    
+
     onSelect();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [onSelect]);
@@ -438,8 +443,8 @@ const TableOptionCard = memo<{
         isSelected
           ? "border-primary bg-primary/10"
           : isRecommended
-          ? "border-primary/50 bg-primary/5"
-          : "border-border bg-card"
+            ? "border-primary/50 bg-primary/5"
+            : "border-border bg-card"
       }`}
     >
       {/* Header */}
@@ -450,8 +455,8 @@ const TableOptionCard = memo<{
               isSelected
                 ? "bg-primary"
                 : isRecommended
-                ? "bg-primary/20"
-                : "bg-muted/50"
+                  ? "bg-primary/20"
+                  : "bg-muted/50"
             }`}
           >
             <TableIcon
@@ -464,8 +469,8 @@ const TableOptionCard = memo<{
               isSelected
                 ? "text-primary"
                 : isRecommended
-                ? "text-primary"
-                : "text-foreground"
+                  ? "text-primary"
+                  : "text-foreground"
             }`}
           >
             {option.experienceTitle}
@@ -514,13 +519,17 @@ const TableOptionCard = memo<{
             isSelected
               ? "bg-primary"
               : isRecommended
-              ? "bg-primary/20"
-              : "bg-muted"
+                ? "bg-primary/20"
+                : "bg-muted"
           }`}
         >
           <Text
             className={`text-sm font-medium ${
-              isSelected ? "text-white" : isRecommended ? "text-primary" : "text-foreground"
+              isSelected
+                ? "text-white"
+                : isRecommended
+                  ? "text-primary"
+                  : "text-foreground"
             }`}
           >
             {isSelected ? "Selected" : "Select"}
