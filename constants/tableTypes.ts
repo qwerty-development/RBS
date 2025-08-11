@@ -14,15 +14,22 @@ export const TABLE_TYPE_OPTIONS = {
 } as const;
 
 // Database enum values - exact match with database table_type enum
-export type TableType = "any" | "booth" | "window" | "patio" | "standard" | "bar" | "private";
+export type TableType =
+  | "any"
+  | "booth"
+  | "window"
+  | "patio"
+  | "standard"
+  | "bar"
+  | "private";
 
 // Array of all valid table types for iteration
 export const TABLE_TYPES_ARRAY: readonly TableType[] = [
   "any",
-  "booth", 
+  "booth",
   "window",
-  "patio", 
+  "patio",
   "standard",
   "bar",
-  "private"
+  "private",
 ] as const;

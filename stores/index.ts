@@ -650,6 +650,63 @@ export const useBookingStore = create<BookingState>()(
 );
 
 /**
+ * Waiting List Store - Handles waiting list state
+ */
+interface WaitingListState {
+  entries: any[];
+  loading: boolean;
+
+  // Actions
+  setEntries: (entries: any[]) => void;
+  addEntry: (entry: any) => void;
+  updateWaitingListEntry: (id: string, updates: any) => void;
+  removeEntry: (id: string) => void;
+  setLoading: (loading: boolean) => void;
+}
+
+export const useWaitingListStore = create<WaitingListState>()(
+  devtools(
+    subscribeWithSelector(
+      immer((set, get) => ({
+        // Initial state
+        entries: [],
+        loading: false,
+
+        // Actions
+        setEntries: (entries) =>
+          set((state) => {
+            state.entries = entries;
+          }),
+
+        addEntry: (entry) =>
+          set((state) => {
+            state.entries.unshift(entry);
+          }),
+
+        updateWaitingListEntry: (id, updates) =>
+          set((state) => {
+            const index = state.entries.findIndex((entry) => entry.id === id);
+            if (index !== -1) {
+              state.entries[index] = { ...state.entries[index], ...updates };
+            }
+          }),
+
+        removeEntry: (id) =>
+          set((state) => {
+            state.entries = state.entries.filter((entry) => entry.id !== id);
+          }),
+
+        setLoading: (loading) =>
+          set((state) => {
+            state.loading = loading;
+          }),
+      })),
+    ),
+    { name: "WaitingListStore" },
+  ),
+);
+
+/**
  * Store selectors for performance optimization
  */
 export const useAuth = () =>

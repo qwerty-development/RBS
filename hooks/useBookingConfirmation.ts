@@ -54,7 +54,7 @@ export const useBookingConfirmation = () => {
   const { profile } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  
+
   // Add refs to prevent double submission
   const isSubmittingRef = useRef(false);
   const lastSubmissionRef = useRef<{
@@ -88,11 +88,11 @@ export const useBookingConfirmation = () => {
     (restaurantId: string, bookingTime: Date, partySize: number): boolean => {
       const now = Date.now();
       const bookingTimeStr = bookingTime.toISOString();
-      
+
       if (lastSubmissionRef.current) {
         const last = lastSubmissionRef.current;
         const timeSinceLastSubmission = now - last.timestamp;
-        
+
         // If same booking details submitted within 5 seconds, it's likely a duplicate
         if (
           last.restaurantId === restaurantId &&
@@ -104,18 +104,18 @@ export const useBookingConfirmation = () => {
           return true;
         }
       }
-      
+
       // Update last submission
       lastSubmissionRef.current = {
         restaurantId,
         bookingTime: bookingTimeStr,
         partySize,
-        timestamp: now
+        timestamp: now,
       };
-      
+
       return false;
     },
-    []
+    [],
   );
 
   /**
@@ -247,10 +247,12 @@ export const useBookingConfirmation = () => {
             // Try to fetch the existing booking
             const { data: existingBooking } = await supabase
               .from("bookings")
-              .select(`
+              .select(
+                `
                 *,
                 restaurant:restaurants(name, id)
-              `)
+              `,
+              )
               .eq("user_id", profile.id)
               .eq("restaurant_id", restaurantId)
               .eq("booking_time", bookingTime.toISOString())
@@ -270,7 +272,7 @@ export const useBookingConfirmation = () => {
                   loyalty_points_earned: existingBooking.loyalty_points_earned,
                   restaurant: existingBooking.restaurant,
                 },
-                is_duplicate_attempt: true
+                is_duplicate_attempt: true,
               };
             } else {
               throw rpcError;
@@ -287,7 +289,9 @@ export const useBookingConfirmation = () => {
 
         // Check if this was a duplicate attempt that returned existing booking
         if (bookingResult.is_duplicate_attempt) {
-          console.log("This was a duplicate attempt, existing booking returned");
+          console.log(
+            "This was a duplicate attempt, existing booking returned",
+          );
         } else {
           // Handle loyalty points and offers for new bookings
           if (bookingPolicy === "instant") {
@@ -361,10 +365,15 @@ export const useBookingConfirmation = () => {
             "This time slot was just booked. Please select another time.",
             [{ text: "OK" }],
           );
-        } else if (error.code === "23505" || error.message?.includes("duplicate key")) {
+        } else if (
+          error.code === "23505" ||
+          error.message?.includes("duplicate key")
+        ) {
           // This shouldn't happen anymore, but if it does, handle gracefully
-          console.warn("Unexpected duplicate key error, attempting to recover...");
-          
+          console.warn(
+            "Unexpected duplicate key error, attempting to recover...",
+          );
+
           // Try to fetch the existing booking
           const { data: existingBooking } = await supabase
             .from("bookings")
@@ -381,10 +390,11 @@ export const useBookingConfirmation = () => {
               "Booking Already Exists",
               `You already have a booking for this time. Confirmation code: ${existingBooking.confirmation_code}`,
               [
-                { 
-                  text: "View Booking", 
-                  onPress: () => router.replace(`/booking/${existingBooking.id}`)
-                }
+                {
+                  text: "View Booking",
+                  onPress: () =>
+                    router.replace(`/booking/${existingBooking.id}`),
+                },
               ],
             );
           } else {

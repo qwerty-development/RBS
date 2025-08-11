@@ -1,9 +1,8 @@
 // app/(protected)/(tabs)/bookings.tsx
-import React, { useEffect } from "react";
-import { View, RefreshControl, ScrollView, Alert } from "react-native";
+import React, { useCallback } from "react";
+import { View, RefreshControl, ScrollView } from "react-native";
 import { Calendar, Clock, UserPlus } from "lucide-react-native";
 import { useRouter, useFocusEffect } from "expo-router";
-import { useCallback } from "react";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -44,11 +43,14 @@ function BookingsScreenContent() {
     reviewBooking,
   } = useBookings();
 
-  // Safe access to bookings with fallback
+  // Safe access to bookings with fallback - stabilize the reference
   const currentBookings = React.useMemo(() => {
     try {
-      const bookingsList = activeTab === "upcoming" ? bookings.upcoming : bookings.past;
-      return Array.isArray(bookingsList) ? bookingsList : [];
+      const bookingsList =
+        activeTab === "upcoming" ? bookings.upcoming : bookings.past;
+      const safeList = Array.isArray(bookingsList) ? bookingsList : [];
+      // Return empty array if no valid bookings to prevent render issues
+      return safeList.filter((item) => item && item.id);
     } catch (error) {
       console.warn("Error accessing bookings:", error);
       return [];
@@ -56,11 +58,15 @@ function BookingsScreenContent() {
   }, [activeTab, bookings.upcoming, bookings.past]);
 
   // Refresh bookings when the tab becomes focused (handles Android back navigation)
+  // Only refresh if we haven't already initialized and loaded data
+  const hasFocusedRef = React.useRef(false);
+  
   useFocusEffect(
     useCallback(() => {
-      if (user && !isGuest && isInitialized) {
+      if (user && !isGuest && isInitialized && !hasFocusedRef.current) {
         console.log("🔥 Bookings tab focused - refreshing data");
         handleRefresh();
+        hasFocusedRef.current = true;
       }
     }, [handleRefresh, user, isGuest, isInitialized]),
   );
@@ -84,7 +90,7 @@ function BookingsScreenContent() {
           <H2 className="text-center mb-2">Book Your Table</H2>
           <P className="text-center text-muted-foreground mb-8">
             Create an account to make reservations at the best restaurants in
-            Lebanon. It's quick, easy, and free!
+            Lebanon. It&apos;s quick, easy, and free!
           </P>
 
           <Button
@@ -170,51 +176,44 @@ function BookingsScreenContent() {
             tintColor={getRefreshControlColor(colorScheme)}
           />
         }
-        contentContainerStyle={{ flexGrow: 1 }}
       >
-        {currentBookings.length === 0 ? (
-          activeTab === "upcoming" ? (
-            <EmptyState
-              icon={Calendar}
-              title="No Upcoming Bookings"
-              subtitle="Discover amazing restaurants and make your next reservation"
-              actionLabel="Explore Restaurants"
-              onAction={navigateToSearch}
-            />
+        <View style={{ minHeight: '100%' }}>
+          {currentBookings.length === 0 ? (
+            <View className="flex-1 justify-center">
+              {activeTab === "upcoming" ? (
+                <EmptyState
+                  icon={Calendar}
+                  title="No Upcoming Bookings"
+                  subtitle="Discover amazing restaurants and make your next reservation"
+                  actionLabel="Explore Restaurants"
+                  onAction={navigateToSearch}
+                />
+              ) : (
+                <EmptyState
+                  icon={Clock}
+                  title="No Past Bookings"
+                  subtitle="Your completed bookings will appear here"
+                />
+              )}
+            </View>
           ) : (
-            <EmptyState
-              icon={Clock}
-              title="No Past Bookings"
-              subtitle="Your completed bookings will appear here"
-            />
-          )
-        ) : (
-          <View className="p-4 pb-24">
-            {currentBookings
-              .filter((item) => item && item.id) // Filter out invalid bookings
-              .map((item) => {
-                try {
-                  return (
-                    <BookingCard
-                      key={item.id}
-                      booking={item}
-                      variant={activeTab}
-                      onPress={() => navigateToBookingDetails(item.id)}
-                      onCancel={cancelBooking}
-                      onRebook={rebookRestaurant}
-                      onReview={reviewBooking}
-                      onNavigateToRestaurant={navigateToRestaurant}
-                      processingBookingId={processingBookingId}
-                    />
-                  );
-                } catch (error) {
-                  console.warn("Error rendering booking card:", error, item);
-                  return null; // Skip this booking if it causes issues
-                }
-              })
-              .filter(Boolean)} {/* Remove null items */}
-          </View>
-        )}
+            <View className="p-4 pb-24">
+              {currentBookings.map((item) => (
+                <BookingCard
+                  key={item.id}
+                  booking={item}
+                  variant={activeTab}
+                  onPress={() => navigateToBookingDetails(item.id)}
+                  onCancel={cancelBooking}
+                  onRebook={rebookRestaurant}
+                  onReview={reviewBooking}
+                  onNavigateToRestaurant={navigateToRestaurant}
+                  processingBookingId={processingBookingId}
+                />
+              ))}
+            </View>
+          )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

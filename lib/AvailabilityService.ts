@@ -374,8 +374,8 @@ export class AvailabilityService {
     partySize: number,
     cacheKey: string,
   ): Promise<SlotTableOptions | null> {
-    // Validate table data
-    const validTables = (availableTables || [])
+    // Validate table data - ensure availableTables is always an array
+    const validTables = (Array.isArray(availableTables) ? availableTables : [])
       .filter((table) => table.table_id && table.table_number && table.capacity)
       .map((table) => ({
         id: table.table_id, // Ensure we use table_id from RPC result

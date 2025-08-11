@@ -22,7 +22,11 @@ import * as Haptics from "expo-haptics";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { H3, Muted } from "@/components/ui/typography";
-import { TimeRangeSearchParams, TABLE_TYPES, TableType } from "./TimeRangeSelector";
+import {
+  TimeRangeSearchParams,
+  TABLE_TYPES,
+  TableType,
+} from "./TimeRangeSelector";
 
 export interface WaitlistEntry {
   restaurantId: string;
@@ -214,7 +218,8 @@ export const WaitlistConfirmationModal: React.FC<
                   </Text>
                   <View className="bg-primary/10 rounded-full px-2 py-1">
                     <Text className="text-xs text-primary font-medium">
-                      {TABLE_TYPES[selectedTableType].icon} {TABLE_TYPES[selectedTableType].label}
+                      {TABLE_TYPES[selectedTableType].icon}{" "}
+                      {TABLE_TYPES[selectedTableType].label}
                     </Text>
                   </View>
                 </View>

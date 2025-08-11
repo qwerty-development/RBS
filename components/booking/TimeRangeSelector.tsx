@@ -48,7 +48,14 @@ export const TABLE_TYPES = {
 } as const;
 
 // Database table_type enum values
-export type TableType = "any" | "booth" | "window" | "patio" | "standard" | "bar" | "private";
+export type TableType =
+  | "any"
+  | "booth"
+  | "window"
+  | "patio"
+  | "standard"
+  | "bar"
+  | "private";
 
 export interface TimeRange {
   startTime: string;
