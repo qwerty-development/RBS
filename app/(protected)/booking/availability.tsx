@@ -1,3 +1,4 @@
+// app/(protected)/booking/availability.tsx
 import React, {
   useState,
   useCallback,
@@ -535,6 +536,9 @@ const QuickStats = React.memo<{
 // Main Component
 export default function AvailabilitySelectionScreen() {
   const [isMounted, setIsMounted] = useState(false);
+  
+  // Add state to track if confirmation is in progress
+  const [isConfirmingBooking, setIsConfirmingBooking] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
@@ -625,7 +629,7 @@ export default function AvailabilitySelectionScreen() {
   const offersData = useOffers();
   const { offers = [] } = offersData || {};
 
-  // FIXED: Memoize booking date time to prevent infinite re-renders
+  // Memoize booking date time to prevent infinite re-renders
   const bookingDateTime = useMemo(() => {
     if (!selectedTime) return null;
     try {
@@ -716,7 +720,7 @@ export default function AvailabilitySelectionScreen() {
     });
   }, []);
 
-  // FIXED: Reset loyalty points when date/time/party size changes
+  // Reset loyalty points when date/time/party size changes
   useEffect(() => {
     setSelectedLoyaltyPoints(null);
   }, [selectedDate, selectedTime, partySize]);
@@ -786,15 +790,26 @@ export default function AvailabilitySelectionScreen() {
     setCurrentStep("time");
     clearSelectedSlot();
     setSelectedLoyaltyPoints(null); // Reset loyalty points
+    setIsConfirmingBooking(false); // Reset confirming state
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [clearSelectedSlot]);
 
   const handleExperienceConfirm = useCallback(
     async (tableIds: string[], selectedOption: TableOption) => {
+      // Prevent double submissions
+      if (isConfirmingBooking) {
+        console.log("Already confirming a booking, ignoring duplicate request");
+        return;
+      }
+
       if (!selectedSlotOptions || !restaurant || !bookingDateTime) {
         Alert.alert("Error", "Missing booking information");
         return;
       }
+
+      // Set confirming state
+      setIsConfirmingBooking(true);
+
       try {
         const success = await confirmBooking({
           restaurantId: params.restaurantId,
@@ -804,7 +819,7 @@ export default function AvailabilitySelectionScreen() {
           occasion: undefined,
           dietaryNotes: undefined,
           tablePreferences: undefined,
-          bookingPolicy: restaurant.booking_policy,
+          bookingPolicy: restaurant.booking_policy as "instant" | "request",
           expectedLoyaltyPoints: selectedLoyaltyPoints?.available
             ? selectedLoyaltyPoints.pointsToAward
             : 0,
@@ -820,8 +835,7 @@ export default function AvailabilitySelectionScreen() {
           // Success feedback
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-          // FIXED: Force refresh availability data after successful booking
-          // This ensures time slots and table options are updated immediately
+          // Force refresh availability data after successful booking
           console.log(
             "Booking confirmed successfully, refreshing availability...",
           );
@@ -835,6 +849,11 @@ export default function AvailabilitySelectionScreen() {
       } catch (error) {
         console.error("Error confirming booking:", error);
         Alert.alert("Error", "Failed to confirm booking. Please try again.");
+      } finally {
+        // Reset confirming state after a delay to prevent rapid retries
+        setTimeout(() => {
+          setIsConfirmingBooking(false);
+        }, 2000);
       }
     },
     [
@@ -848,6 +867,7 @@ export default function AvailabilitySelectionScreen() {
       confirmBooking,
       refresh,
       clearSelectedSlot,
+      isConfirmingBooking,
     ],
   );
 
@@ -1007,14 +1027,14 @@ export default function AvailabilitySelectionScreen() {
             partySize={partySize}
             onPartySizeChange={handlePartySizeChange}
             maxPartySize={12} // Default max party size
-            disabled={currentStep === "experience"}
+            disabled={currentStep === "experience" || isConfirmingBooking}
           />
 
           <DateSelector
             selectedDate={selectedDate}
             onDateChange={handleDateChange}
             maxDaysAhead={maxBookingDays}
-            disabled={currentStep === "experience"}
+            disabled={currentStep === "experience" || isConfirmingBooking}
           />
 
           {/* Step 1: Time Selection */}
@@ -1075,7 +1095,7 @@ export default function AvailabilitySelectionScreen() {
                 </View>
               )}
 
-              {/* FIXED: Loyalty Points Display for Time Step - only when time is selected */}
+              {/* Loyalty Points Display for Time Step - only when time is selected */}
               {bookingDateTime && !isRequestBooking && hasLoyaltyProgram && (
                 <LoyaltyPointsDisplay
                   restaurantId={params.restaurantId}
@@ -1090,14 +1110,19 @@ export default function AvailabilitySelectionScreen() {
           {/* Step 2: Experience Selection */}
           {currentStep === "experience" && (
             <>
-              {/* Back navigation */}
+              {/* Back navigation - disable while confirming */}
               <Pressable
-                onPress={handleBackToTimeSelection}
-                className="flex-row items-center gap-2 p-2 -ml-2 self-start rounded-lg"
+                onPress={isConfirmingBooking ? undefined : handleBackToTimeSelection}
+                disabled={isConfirmingBooking}
+                className={`flex-row items-center gap-2 p-2 -ml-2 self-start rounded-lg ${
+                  isConfirmingBooking ? "opacity-50" : ""
+                }`}
               >
-                <ArrowLeft size={20} color="#3b82f6" />
-                <Text className="text-primary font-medium">
-                  Back to Time Selection
+                <ArrowLeft size={20} color={isConfirmingBooking ? "#999" : "#3b82f6"} />
+                <Text className={`font-medium ${
+                  isConfirmingBooking ? "text-muted-foreground" : "text-primary"
+                }`}>
+                  {isConfirmingBooking ? "Processing..." : "Back to Time Selection"}
                 </Text>
               </Pressable>
 
@@ -1116,7 +1141,7 @@ export default function AvailabilitySelectionScreen() {
                 </View>
               )}
 
-              {/* FIXED: Loyalty Points Display for Experience Step */}
+              {/* Loyalty Points Display for Experience Step */}
               {bookingDateTime && !isRequestBooking && hasLoyaltyProgram && (
                 <LoyaltyPointsDisplay
                   restaurantId={params.restaurantId}
@@ -1126,11 +1151,13 @@ export default function AvailabilitySelectionScreen() {
                 />
               )}
 
+              {/* Pass isConfirming prop to TableOptions */}
               <TableOptions
                 slotOptions={selectedSlotOptions}
                 onConfirm={handleExperienceConfirm}
                 onBack={handleBackToTimeSelection}
                 loading={slotOptionsLoading}
+                isConfirming={isConfirmingBooking}
               />
             </>
           )}
@@ -1279,11 +1306,13 @@ export default function AvailabilitySelectionScreen() {
           ) : (
             <View className="items-end ml-4">
               <Text className="text-xs text-muted-foreground mb-1 text-right">
-                {confirmingBooking
-                  ? "Confirming..."
+                {isConfirmingBooking
+                  ? "Creating booking..."
+                  : confirmingBooking
+                  ? "Processing..."
                   : "Select experience above"}
               </Text>
-              {confirmingBooking && (
+              {(isConfirmingBooking || confirmingBooking) && (
                 <View className="w-20 h-10 bg-muted/50 rounded-lg items-center justify-center">
                   <ActivityIndicator size="small" />
                 </View>

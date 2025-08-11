@@ -1,5 +1,5 @@
 // components/booking/TimeSlots.tsx (Optimized Components)
-import React, { memo, useMemo, useState, useCallback } from "react";
+import React, { memo, useMemo, useState, useCallback, useRef } from "react";
 import { View, Pressable, ActivityIndicator, Dimensions } from "react-native";
 import {
   Clock,
@@ -193,12 +193,228 @@ export const TimeSlots = memo<{
   },
 );
 
-// Table option card with enhanced visuals
+
+// Skeleton for table options
+const TableOptionSkeleton = memo(() => (
+  <View className="p-4 rounded-xl border border-border bg-card">
+    <View className="flex-row items-center gap-2 mb-3">
+      <View className="w-8 h-8 bg-muted rounded-full" />
+      <View className="w-32 h-5 bg-muted rounded" />
+    </View>
+    <View className="w-full h-4 bg-muted rounded mb-3" />
+    <View className="w-3/4 h-4 bg-muted rounded mb-3" />
+    <View className="flex-row justify-between">
+      <View className="w-20 h-4 bg-muted rounded" />
+      <View className="w-16 h-6 bg-muted rounded" />
+    </View>
+  </View>
+));
+
+// components/booking/TimeSlots.tsx (Updated TableOptions component section)
+// This replaces the existing TableOptions component in your TimeSlots.tsx file
+
+// Main TableOptions component with double-click prevention
+export const TableOptions = memo<{
+  slotOptions: SlotTableOptions | null;
+  onConfirm: (tableIds: string[], selectedOption: TableOption) => void;
+  onBack?: () => void;
+  loading: boolean;
+  isConfirming?: boolean;
+}>(({ slotOptions, onConfirm, onBack, loading, isConfirming = false }) => {
+  const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const confirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastConfirmRef = useRef<number>(0);
+
+  // Reset selection when options change
+  React.useEffect(() => {
+    setSelectedOptionIndex(0);
+    setIsProcessing(false);
+  }, [slotOptions?.time]);
+
+  // Cleanup timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (confirmTimeoutRef.current) {
+        clearTimeout(confirmTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleOptionSelect = useCallback((index: number) => {
+    if (isProcessing || isConfirming) {
+      console.log("Cannot change selection while processing");
+      return;
+    }
+    setSelectedOptionIndex(index);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [isProcessing, isConfirming]);
+
+  const handleConfirm = useCallback(() => {
+    // Prevent double-clicks
+    const now = Date.now();
+    if (now - lastConfirmRef.current < 2000) {
+      console.log("Ignoring rapid confirm click");
+      return;
+    }
+    lastConfirmRef.current = now;
+
+    if (!slotOptions?.options?.[selectedOptionIndex]) {
+      console.error("No option selected");
+      return;
+    }
+
+    if (isProcessing || isConfirming) {
+      console.log("Already processing confirmation");
+      return;
+    }
+
+    const selectedOption = slotOptions.options[selectedOptionIndex];
+    const tableIds = selectedOption.tables.map((t) => t.id);
+
+    // Set local processing state
+    setIsProcessing(true);
+
+    // Haptic feedback
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // Call the confirm handler
+    onConfirm(tableIds, selectedOption);
+
+    // Reset processing state after a delay (in case the parent doesn't update isConfirming)
+    confirmTimeoutRef.current = setTimeout(() => {
+      setIsProcessing(false);
+    }, 5000);
+  }, [slotOptions, selectedOptionIndex, onConfirm, isProcessing, isConfirming]);
+
+  if (loading) {
+    return (
+      <View>
+        <View className="flex-row items-center gap-2 mb-4">
+          <Sparkles size={20} color="#8b5cf6" />
+          <Text className="font-semibold text-lg">Choose Your Experience</Text>
+        </View>
+        <View className="gap-3">
+          <TableOptionSkeleton />
+          <TableOptionSkeleton />
+        </View>
+      </View>
+    );
+  }
+
+  if (!slotOptions) {
+    return (
+      <View className="items-center py-8">
+        <Text className="text-muted-foreground text-center">
+          No seating options available for this time slot.
+        </Text>
+      </View>
+    );
+  }
+
+  const { options } = slotOptions;
+  const selectedOption = options[selectedOptionIndex];
+  const isButtonDisabled = isProcessing || isConfirming || loading;
+
+  return (
+    <View>
+      {/* Header */}
+      <View className="flex-row items-center gap-2 mb-4">
+        <Sparkles size={20} color="#8b5cf6" />
+        <Text className="font-semibold text-lg">Choose Your Experience</Text>
+        {options.length > 1 && (
+          <Text className="text-sm text-muted-foreground ml-auto">
+            {options.length} options available
+          </Text>
+        )}
+      </View>
+
+      {/* Options */}
+      <View className="gap-3 mb-6" style={{ opacity: isButtonDisabled ? 0.6 : 1 }}>
+        {options.map((option, index) => (
+          <TableOptionCard
+            key={`${option.tableTypes.join("-")}-${index}`}
+            option={option}
+            isRecommended={index === 0}
+            isSelected={index === selectedOptionIndex}
+            onSelect={() => handleOptionSelect(index)}
+          />
+        ))}
+      </View>
+
+      {/* Confirm Button with Loading State */}
+      <Button
+        onPress={handleConfirm}
+        size="lg"
+        className="w-full"
+        disabled={isButtonDisabled}
+        style={{ opacity: isButtonDisabled ? 0.7 : 1 }}
+      >
+        {isProcessing || isConfirming ? (
+          <View className="flex-row items-center justify-center gap-2">
+            <ActivityIndicator size="small" color="white" />
+            <Text className="text-white font-bold">
+              {isConfirming ? "Confirming Booking..." : "Processing..."}
+            </Text>
+          </View>
+        ) : (
+          <View className="flex-row items-center justify-center gap-2">
+            <CheckCircle size={20} color="white" />
+            <Text className="text-white font-bold">
+              Confirm {selectedOption?.experienceTitle || "Selection"}
+            </Text>
+          </View>
+        )}
+      </Button>
+
+      {/* Selected option summary */}
+      {selectedOption && !isButtonDisabled && (
+        <View className="mt-3 p-3 bg-muted/30 rounded-lg">
+          <Text className="text-sm font-medium text-center">
+            {selectedOption.requiresCombination
+              ? `${selectedOption.tables.length} tables arranged for your party`
+              : `Table for ${selectedOption.totalCapacity} guests`}{" "}
+            • {selectedOption.experienceTitle}
+          </Text>
+        </View>
+      )}
+
+      {/* Prevention Notice */}
+      {isButtonDisabled && (
+        <View className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+          <Text className="text-xs text-center text-blue-600 dark:text-blue-400">
+            {isConfirming 
+              ? "Creating your booking... Please don't close the app."
+              : "Processing your selection... Please wait."}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+});
+
+// Update TableOptionCard to handle disabled state
 const TableOptionCard = memo<{
   option: TableOption;
   isRecommended: boolean;
+  isSelected: boolean;
   onSelect: () => void;
-}>(({ option, isRecommended, onSelect }) => {
+}>(({ option, isRecommended, isSelected, onSelect }) => {
+  // Prevent selection changes with debouncing
+  const lastClickRef = useRef<number>(0);
+  
+  const handlePress = useCallback(() => {
+    const now = Date.now();
+    if (now - lastClickRef.current < 500) {
+      console.log("Ignoring rapid option selection");
+      return;
+    }
+    lastClickRef.current = now;
+    
+    onSelect();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, [onSelect]);
+
   // Get table type icons
   const getTableTypeIcon = (tableType: string) => {
     const icons = {
@@ -215,16 +431,15 @@ const TableOptionCard = memo<{
   const primaryTableType = option.tableTypes[0];
   const TableIcon = getTableTypeIcon(primaryTableType);
 
-  const handlePress = useCallback(() => {
-    onSelect();
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  }, [onSelect]);
-
   return (
     <Pressable
       onPress={handlePress}
       className={`p-4 rounded-xl border-2 ${
-        isRecommended ? "border-primary bg-primary/5" : "border-border bg-card"
+        isSelected
+          ? "border-primary bg-primary/10"
+          : isRecommended
+          ? "border-primary/50 bg-primary/5"
+          : "border-border bg-card"
       }`}
     >
       {/* Header */}
@@ -232,14 +447,25 @@ const TableOptionCard = memo<{
         <View className="flex-row items-center gap-2">
           <View
             className={`p-2 rounded-full ${
-              isRecommended ? "bg-primary/20" : "bg-muted/50"
+              isSelected
+                ? "bg-primary"
+                : isRecommended
+                ? "bg-primary/20"
+                : "bg-muted/50"
             }`}
           >
-            <TableIcon size={16} color={isRecommended ? "#3b82f6" : "#666"} />
+            <TableIcon
+              size={16}
+              color={isSelected ? "#fff" : isRecommended ? "#3b82f6" : "#666"}
+            />
           </View>
           <Text
             className={`font-bold ${
-              isRecommended ? "text-primary" : "text-foreground"
+              isSelected
+                ? "text-primary"
+                : isRecommended
+                ? "text-primary"
+                : "text-foreground"
             }`}
           >
             {option.experienceTitle}
@@ -285,15 +511,19 @@ const TableOptionCard = memo<{
 
         <View
           className={`px-3 py-1 rounded-full ${
-            isRecommended ? "bg-primary" : "bg-muted"
+            isSelected
+              ? "bg-primary"
+              : isRecommended
+              ? "bg-primary/20"
+              : "bg-muted"
           }`}
         >
           <Text
             className={`text-sm font-medium ${
-              isRecommended ? "text-white" : "text-foreground"
+              isSelected ? "text-white" : isRecommended ? "text-primary" : "text-foreground"
             }`}
           >
-            Select
+            {isSelected ? "Selected" : "Select"}
           </Text>
         </View>
       </View>
@@ -307,128 +537,6 @@ const TableOptionCard = memo<{
         </View>
       )}
     </Pressable>
-  );
-});
-
-// Skeleton for table options
-const TableOptionSkeleton = memo(() => (
-  <View className="p-4 rounded-xl border border-border bg-card">
-    <View className="flex-row items-center gap-2 mb-3">
-      <View className="w-8 h-8 bg-muted rounded-full" />
-      <View className="w-32 h-5 bg-muted rounded" />
-    </View>
-    <View className="w-full h-4 bg-muted rounded mb-3" />
-    <View className="w-3/4 h-4 bg-muted rounded mb-3" />
-    <View className="flex-row justify-between">
-      <View className="w-20 h-4 bg-muted rounded" />
-      <View className="w-16 h-6 bg-muted rounded" />
-    </View>
-  </View>
-));
-
-// Main TableOptions component
-export const TableOptions = memo<{
-  slotOptions: SlotTableOptions | null;
-  onConfirm: (tableIds: string[], selectedOption: TableOption) => void;
-  onBack?: () => void;
-  loading: boolean;
-}>(({ slotOptions, onConfirm, onBack, loading }) => {
-  const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
-
-  // Reset selection when options change
-  React.useEffect(() => {
-    setSelectedOptionIndex(0);
-  }, [slotOptions?.time]);
-
-  const handleOptionSelect = useCallback((index: number) => {
-    setSelectedOptionIndex(index);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
-
-  const handleConfirm = useCallback(() => {
-    if (!slotOptions?.options?.[selectedOptionIndex]) return;
-
-    const selectedOption = slotOptions.options[selectedOptionIndex];
-    const tableIds = selectedOption.tables.map((t) => t.id);
-
-    onConfirm(tableIds, selectedOption);
-  }, [slotOptions, selectedOptionIndex, onConfirm]);
-
-  if (loading) {
-    return (
-      <View>
-        <View className="flex-row items-center gap-2 mb-4">
-          <Sparkles size={20} color="#8b5cf6" />
-          <Text className="font-semibold text-lg">Choose Your Experience</Text>
-        </View>
-        <View className="gap-3">
-          <TableOptionSkeleton />
-          <TableOptionSkeleton />
-        </View>
-      </View>
-    );
-  }
-
-  if (!slotOptions) {
-    return (
-      <View className="items-center py-8">
-        <Text className="text-muted-foreground text-center">
-          No seating options available for this time slot.
-        </Text>
-      </View>
-    );
-  }
-
-  const { options } = slotOptions;
-  const selectedOption = options[selectedOptionIndex];
-
-  return (
-    <View>
-      {/* Header */}
-      <View className="flex-row items-center gap-2 mb-4">
-        <Sparkles size={20} color="#8b5cf6" />
-        <Text className="font-semibold text-lg">Choose Your Experience</Text>
-        {options.length > 1 && (
-          <Text className="text-sm text-muted-foreground ml-auto">
-            {options.length} options available
-          </Text>
-        )}
-      </View>
-
-      {/* Options */}
-      <View className="gap-3 mb-6">
-        {options.map((option, index) => (
-          <TableOptionCard
-            key={`${option.tableTypes.join("-")}-${index}`}
-            option={option}
-            isRecommended={index === 0}
-            onSelect={() => handleOptionSelect(index)}
-          />
-        ))}
-      </View>
-
-      {/* Confirm Button */}
-      <Button onPress={handleConfirm} size="lg" className="w-full">
-        <View className="flex-row items-center justify-center gap-2">
-          <CheckCircle size={20} color="white" />
-          <Text className="text-white font-bold">
-            Confirm {selectedOption.experienceTitle}
-          </Text>
-        </View>
-      </Button>
-
-      {/* Selected option summary */}
-      {selectedOption && (
-        <View className="mt-3 p-3 bg-muted/30 rounded-lg">
-          <Text className="text-sm font-medium text-center">
-            {selectedOption.requiresCombination
-              ? `${selectedOption.tables.length} tables arranged for your party`
-              : `Table for ${selectedOption.totalCapacity} guests`}{" "}
-            • {selectedOption.experienceTitle}
-          </Text>
-        </View>
-      )}
-    </View>
   );
 });
 
