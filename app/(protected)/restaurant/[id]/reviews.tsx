@@ -1,5 +1,5 @@
 // app/(protected)/restaurant/[id]/reviews.tsx
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   ScrollView,
   View,
