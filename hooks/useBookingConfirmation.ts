@@ -339,15 +339,7 @@ export const useBookingConfirmation = () => {
           // Schedule booking reminder (2 hours before booking time)
           if (bookingPolicy === "instant") {
             const reminderTime = new Date(bookingTime.getTime() - (2 * 60 * 60 * 1000));
-            const now = new Date();
-
-            console.log('Booking time:', bookingTime.toISOString());
-            console.log('Reminder time:', reminderTime.toISOString());
-            console.log('Current time:', now.toISOString());
-            console.log('Should schedule reminder:', reminderTime > now);
-
-            if (reminderTime > now) {
-              console.log('Scheduling booking reminder for:', reminderTime.toISOString());
+            if (reminderTime > new Date()) {
               await NotificationHelpers.scheduleBookingReminder({
                 bookingId: bookingResult.booking.id,
                 restaurantId: restaurantId,
@@ -357,14 +349,10 @@ export const useBookingConfirmation = () => {
                 partySize: partySize,
                 action: 'reminder',
               }, reminderTime);
-            } else {
-              console.log('Booking reminder not scheduled - too close to booking time');
             }
 
             // Schedule review reminder (1 day after booking time)
             const reviewReminderTime = new Date(bookingTime.getTime() + (24 * 60 * 60 * 1000));
-            console.log('Scheduling review reminder for:', reviewReminderTime.toISOString());
-
             await NotificationHelpers.scheduleReviewReminder({
               restaurantId: restaurantId,
               restaurantName: bookingResult.booking.restaurant_name || "Restaurant",

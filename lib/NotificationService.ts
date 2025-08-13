@@ -253,17 +253,6 @@ class NotificationService {
    */
   async scheduleNotification(notificationData: NotificationData): Promise<string | null> {
     try {
-      const trigger = notificationData.scheduledFor
-        ? { date: notificationData.scheduledFor }
-        : null; // null means show immediately
-
-      console.log('Scheduling notification:', {
-        title: notificationData.title,
-        scheduledFor: notificationData.scheduledFor?.toISOString(),
-        trigger: trigger ? 'scheduled' : 'immediate',
-        triggerDate: trigger?.date?.toISOString()
-      });
-
       const identifier = await Notifications.scheduleNotificationAsync({
         content: {
           title: notificationData.title,
@@ -272,10 +261,12 @@ class NotificationService {
           sound: notificationData.sound !== false,
           priority: this.getPriority(notificationData.priority),
         },
-        trigger,
+        trigger: notificationData.scheduledFor 
+          ? { date: notificationData.scheduledFor }
+          : null, // null means show immediately
       });
 
-      console.log('Notification scheduled with identifier:', identifier);
+      console.log('Notification scheduled:', identifier);
       return identifier;
     } catch (error) {
       console.error('Error scheduling notification:', error);
@@ -463,7 +454,6 @@ class NotificationService {
     restaurantId: string;
     bookingId: string;
     visitDate: string;
-    scheduledFor?: Date;
   }): Promise<void> {
     await this.scheduleNotification({
       type: 'review',
@@ -475,7 +465,6 @@ class NotificationService {
         bookingId: reviewData.bookingId,
         action: 'write_review',
       },
-      scheduledFor: reviewData.scheduledFor,
       priority: 'default',
     });
   }
