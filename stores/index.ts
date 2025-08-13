@@ -146,11 +146,14 @@ interface AppState {
   // Notifications
   notifications: {
     id: string;
-    type: "info" | "success" | "warning" | "error";
+    type: "booking" | "waitlist" | "offer" | "review" | "loyalty" | "system" | "info" | "success" | "warning" | "error";
     title: string;
     message: string;
     timestamp: number;
     read: boolean;
+    data?: Record<string, any>;
+    priority?: "default" | "high" | "max";
+    scheduledFor?: number; // timestamp
   }[];
 
   // Actions
@@ -173,7 +176,11 @@ interface AppState {
     >,
   ) => void;
   markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
+  removeNotification: (id: string) => void;
   clearNotifications: () => void;
+  getUnreadCount: () => number;
+  getNotificationsByType: (type: AppState["notifications"][0]["type"]) => AppState["notifications"];
 }
 
 export const useAppStore = create<AppState>()(
@@ -246,6 +253,11 @@ export const useAppStore = create<AppState>()(
 
           addNotification: (notification) =>
             set((state) => {
+              // Limit to 100 notifications to prevent memory issues
+              if (state.notifications.length >= 100) {
+                state.notifications = state.notifications.slice(0, 99);
+              }
+
               state.notifications.unshift({
                 ...notification,
                 id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -262,10 +274,32 @@ export const useAppStore = create<AppState>()(
               }
             }),
 
+          markAllNotificationsRead: () =>
+            set((state) => {
+              state.notifications.forEach((notification) => {
+                notification.read = true;
+              });
+            }),
+
+          removeNotification: (id) =>
+            set((state) => {
+              state.notifications = state.notifications.filter((n) => n.id !== id);
+            }),
+
           clearNotifications: () =>
             set((state) => {
               state.notifications = [];
             }),
+
+          getUnreadCount: () => {
+            const state = useAppStore.getState();
+            return state.notifications.filter((n) => !n.read).length;
+          },
+
+          getNotificationsByType: (type) => {
+            const state = useAppStore.getState();
+            return state.notifications.filter((n) => n.type === type);
+          },
         })),
         {
           name: "app-store",
@@ -275,6 +309,7 @@ export const useAppStore = create<AppState>()(
             recentSearches: state.recentSearches,
             searchFilters: state.searchFilters,
             locationPermission: state.locationPermission,
+            notifications: state.notifications, // Persist notifications
           }),
         },
       ),

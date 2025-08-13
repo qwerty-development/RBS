@@ -30,6 +30,7 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Booklet uses your location to find nearby restaurants and provide personalized recommendations.",
         "NSContactsUsageDescription": "Booklet needs optional access to your contacts only when you ask it to import guests or share a reservation.",
         "NSCalendarsUsageDescription": "Booklet needs access to your calendar to add restaurant reservations with reminder notifications.",
+        "NSUserNotificationsUsageDescription": "Booklet sends you notifications about booking confirmations, waitlist updates, special offers, and reminders to enhance your dining experience.",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false,
           "NSExceptionDomains": {
@@ -79,7 +80,10 @@
         "android.permission.INTERNET",
         "android.permission.VIBRATE",
         "android.permission.READ_CALENDAR",
-        "android.permission.WRITE_CALENDAR"
+        "android.permission.WRITE_CALENDAR",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.WAKE_LOCK",
+        "com.google.android.c2dm.permission.RECEIVE"
       ],
       "splash": {
         "image": "./assets/splash.png",

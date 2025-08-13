@@ -4,6 +4,7 @@ import "../global.css";
 import { Stack } from "expo-router";
 import { AuthProvider } from "@/context/supabase-provider";
 import { NetworkProvider } from "@/context/network-provider";
+import { NotificationProvider } from "@/context/notification-provider";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
 import { LogBox, Alert, View, Text } from "react-native";
@@ -163,9 +164,11 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <NetworkProvider>
           <AuthProvider>
-            <NavigationErrorBoundary>
-              <RootLayoutContent />
-            </NavigationErrorBoundary>
+            <NotificationProvider>
+              <NavigationErrorBoundary>
+                <RootLayoutContent />
+              </NavigationErrorBoundary>
+            </NotificationProvider>
           </AuthProvider>
         </NetworkProvider>
       </GestureHandlerRootView>
