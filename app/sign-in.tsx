@@ -68,11 +68,10 @@ export default function SignIn() {
   async function onSubmit(data: z.infer<typeof formSchema>) {
     try {
       setIsEmailLoading(true);
-      console.log("🔄 Starting sign-in process...");
       await signIn(data.email, data.password);
       // Redirect to the protected home/tabs stack after successful sign-in
       router.replace("/(protected)/(tabs)");
-      console.log("✅ Sign-in successful");
+     
       form.reset();
     } catch (error: any) {
       console.error("❌ Sign-in error:", error);
@@ -119,7 +118,7 @@ export default function SignIn() {
         }
       } else if (needsProfileUpdate) {
         // Navigate to profile completion if needed
-        console.log("Profile needs updating after Apple sign in");
+     
       } else {
         // Successful Apple sign-in, navigate to protected home
         router.replace("/(protected)/(tabs)");
@@ -150,7 +149,7 @@ export default function SignIn() {
         }
       } else if (needsProfileUpdate) {
         // Navigate to profile completion if needed
-        console.log("Profile needs updating after Google sign in");
+  
       } else {
         // Successful Google sign-in, navigate to protected home
         router.replace("/(protected)/(tabs)");

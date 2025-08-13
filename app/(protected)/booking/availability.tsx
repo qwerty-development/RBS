@@ -798,7 +798,7 @@ export default function AvailabilitySelectionScreen() {
     async (tableIds: string[], selectedOption: TableOption) => {
       // Prevent double submissions
       if (isConfirmingBooking) {
-        console.log("Already confirming a booking, ignoring duplicate request");
+       
         return;
       }
 

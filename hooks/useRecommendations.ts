@@ -301,40 +301,22 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
             }));
 
           return {
-            shifts:
-              shifts.length > 0
-                ? shifts
-                : [
-                    {
-                      open: "11:00",
-                      close: "22:00",
-                    },
-                  ],
+            shifts: shifts,
             isOpen: shifts.length > 0,
           };
         }
 
-        // Fallback to legacy fields
+        // No shifts defined - restaurant is closed
         return {
-          shifts: [
-            {
-              open: restaurant.opening_time || "11:00",
-              close: restaurant.closing_time || "22:00",
-            },
-          ],
-          isOpen: true,
+          shifts: [],
+          isOpen: false,
         };
       } catch (error) {
         console.warn("Error getting restaurant hours:", error);
-        // Fallback to legacy fields
+        // Return closed status on error
         return {
-          shifts: [
-            {
-              open: restaurant.opening_time || "11:00",
-              close: restaurant.closing_time || "22:00",
-            },
-          ],
-          isOpen: true,
+          shifts: [],
+          isOpen: false,
         };
       }
     },

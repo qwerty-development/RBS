@@ -88,9 +88,7 @@ export default function HomeScreen() {
   // --- Protected Action Handlers ---
   const handleToggleFavorite = (restaurantId: string) => {
     runProtectedAction(() => {
-      // Your actual logic to toggle the favorite status would go here.
-      // For now, we'll just log it.
-      console.log(`Toggling favorite for restaurant: ${restaurantId}`);
+
       // e.g., call a function from a `useFavorites` hook
     }, "save your favorite restaurants");
   };

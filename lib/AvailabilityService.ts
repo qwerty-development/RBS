@@ -526,7 +526,7 @@ export class AvailabilityService {
       await Promise.all([
         supabase
           .from("restaurants")
-          .select("booking_window_days, opening_time, closing_time") // Keep legacy fields as fallback
+          .select("booking_window_days") // Removed legacy opening_time, closing_time fields
           .eq("id", restaurantId)
           .single(),
 
@@ -622,28 +622,15 @@ export class AvailabilityService {
         .sort((a: any, b: any) => a.openTime.localeCompare(b.openTime));
 
       return {
-        shifts:
-          shifts.length > 0
-            ? shifts
-            : [
-                {
-                  openTime: "11:00",
-                  closeTime: "22:00",
-                },
-              ],
+        shifts: shifts,
         isClosed: shifts.length === 0,
       };
     }
 
-    // Fallback to legacy fields
+    // No shifts defined for this day - restaurant is closed
     return {
-      shifts: [
-        {
-          openTime: restaurantConfig.opening_time || "11:00",
-          closeTime: restaurantConfig.closing_time || "22:00",
-        },
-      ],
-      isClosed: false,
+      shifts: [],
+      isClosed: true,
     };
   }
 

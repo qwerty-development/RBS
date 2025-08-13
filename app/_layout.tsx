@@ -116,8 +116,7 @@ function RootLayoutContent() {
           );
         }
       } catch (error) {
-        // Silently fail - updates aren't critical
-        console.log("Update check failed:", error);
+
       }
     }
 

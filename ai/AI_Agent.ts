@@ -48,7 +48,7 @@ async function getRestaurants() {
     console.error("Error fetching restaurants:", error);
     return [];
   }
-  console.log("RESTAURANTS: " + JSON.stringify(data));
+
   return data || [];
 }
 
@@ -88,10 +88,10 @@ export async function ourAgent(messages: ChatMessage[]): Promise<ChatMessage> {
           return arr.join(", ");
         };
 
-        // Helper function to safely format time
-        const safeTime = (time: string | null | undefined) => {
-          if (!time) return "Not available";
-          return time;
+        // Helper function to format shift-based hours
+        const formatShiftHours = (shifts?: { open: string; close: string }[]) => {
+          if (!shifts || shifts.length === 0) return "Not available";
+          return shifts.map((s) => `${s.open}-${s.close}`).join(", ");
         };
 
         return `
@@ -101,7 +101,7 @@ Description: ${safeValue(restaurant.description)}
 Address: ${safeValue(restaurant.address)}
 Cuisine Type: ${safeValue(restaurant.cuisine_type)}
 Price Range: ${safeValue(restaurant.price_range)} (1-4 scale)
-Opening Hours: ${safeTime(restaurant.opening_time)} - ${safeTime(restaurant.closing_time)}
+Opening Hours: ${formatShiftHours(restaurant?.restaurant_hours?.filter((h: any) => h.is_open && h.open_time && h.close_time).map((h: any) => ({ open: h.open_time, close: h.close_time })))}
 Booking Policy: ${safeValue(restaurant.booking_policy)}
 Contact: ${safeValue(restaurant.phone_number)}
 Rating: ${safeValue(restaurant.average_rating, "0")} (${safeValue(restaurant.total_reviews, "0")} reviews)

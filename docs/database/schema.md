@@ -101,8 +101,8 @@ CREATE TABLE public.restaurants (
   image_urls ARRAY,
   cuisine_type text NOT NULL,
   tags ARRAY,
-  opening_time time without time zone NOT NULL,
-  closing_time time without time zone NOT NULL,
+  opening_time time without time zone NOT NULL, -- LEGACY: Use restaurant_hours table instead
+  closing_time time without time zone NOT NULL, -- LEGACY: Use restaurant_hours table instead
   booking_policy text CHECK (booking_policy = ANY (ARRAY['instant'::text, 'request'::text])),
   price_range integer CHECK (price_range >= 1 AND price_range <= 4),
   average_rating numeric DEFAULT 0,

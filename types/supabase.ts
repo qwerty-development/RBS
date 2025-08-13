@@ -244,8 +244,8 @@ export interface Database {
           image_urls: string[] | null;
           cuisine_type: string;
           tags: string[] | null;
-          opening_time: string;
-          closing_time: string;
+          opening_time?: string; // Legacy field - use restaurant_hours table instead
+          closing_time?: string; // Legacy field - use restaurant_hours table instead
           booking_policy: "instant" | "request";
           price_range: number; // 1-4
           average_rating: number;
@@ -283,8 +283,8 @@ export interface Database {
           image_urls?: string[] | null;
           cuisine_type: string;
           tags?: string[] | null;
-          opening_time: string;
-          closing_time: string;
+          opening_time?: string; // Legacy field - use restaurant_hours table instead
+          closing_time?: string; // Legacy field - use restaurant_hours table instead
           booking_policy: "instant" | "request";
           price_range: number;
           average_rating?: number;

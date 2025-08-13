@@ -64,7 +64,7 @@ function BookingsScreenContent() {
   useFocusEffect(
     useCallback(() => {
       if (user && !isGuest && isInitialized && !hasFocusedRef.current) {
-        console.log("🔥 Bookings tab focused - refreshing data");
+     
         handleRefresh();
         hasFocusedRef.current = true;
       }

@@ -19,8 +19,7 @@ const mockRestaurant: Restaurant = {
   ],
   cuisine_type: "Italian",
   tags: ["romantic", "outdoor"],
-  opening_time: "11:00",
-  closing_time: "23:00",
+  // Legacy fields removed - using restaurant_hours instead
   booking_policy: "instant",
   price_range: 3,
   average_rating: 4.5,

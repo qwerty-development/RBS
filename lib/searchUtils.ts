@@ -149,12 +149,14 @@ async function checkRestaurantHours(
   time: string,
 ): Promise<boolean> {
   try {
-    // Get restaurant with all hours data
+    // Get restaurant with all hours data (excluding legacy opening_time/closing_time)
     const { data: restaurant, error } = await supabase
       .from("restaurants")
       .select(
         `
-        *,
+        id,
+        name,
+        booking_policy,
         restaurant_hours!left(*),
         restaurant_special_hours!left(*),
         restaurant_closures!left(*)

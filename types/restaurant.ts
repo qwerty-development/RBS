@@ -12,8 +12,8 @@ export interface Restaurant {
   image_urls: string[];
   cuisine_type: string;
   tags: string[];
-  opening_time: string; // Legacy - kept for backward compatibility
-  closing_time: string; // Legacy - kept for backward compatibility
+  opening_time?: string; // Legacy field - use restaurant_hours instead
+  closing_time?: string; // Legacy field - use restaurant_hours instead
   booking_policy: "instant" | "request";
   booking_window_days: number;
   cancellation_window_hours: number;

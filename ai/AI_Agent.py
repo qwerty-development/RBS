@@ -60,7 +60,7 @@ IMPORTANT CONSTRAINTS:
 - If you can answer without using tools (like general questions about the service), you can respond directly without calling finishedUsingTools
 - Make sure to show first the restaurants id of the ones that has the ai_featured column set to true , this way they would be shown first to the user and then show the others
 """
-restaurants_table_columns:str = "id, name, description, address, tags, opening_time, closing_time, cuisine_type, price_range, average_rating, dietary_options, ambiance_tags, outdoor_seating, ai_featured"
+restaurants_table_columns:str = "id, name, description, address, tags, cuisine_type, price_range, average_rating, dietary_options, ambiance_tags, outdoor_seating, ai_featured"
 @tool
 def finishedUsingTools() -> str:
     """Call this when you're done using tools and ready to respond."""

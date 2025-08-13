@@ -257,7 +257,8 @@ const RestaurantHeaderInfo: React.FC<{
   restaurantId: string;
 }> = ({ restaurant, restaurantId }) => {
   const { address, isLoading } = useRestaurantLocation(restaurant.location);
-  const { checkAvailability } = useRestaurantAvailability(restaurantId);
+  const { checkAvailability, formatOperatingHours } =
+    useRestaurantAvailability(restaurantId);
 
   // Use the new availability check
   const availabilityStatus = useMemo(() => {
@@ -265,6 +266,7 @@ const RestaurantHeaderInfo: React.FC<{
   }, [checkAvailability]);
 
   const isOpen = availabilityStatus.isOpen;
+  const todayHours = formatOperatingHours();
 
   return (
     <View className="p-4 bg-background">

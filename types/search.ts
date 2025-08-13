@@ -40,8 +40,8 @@ export interface Restaurant {
   main_image_url: string;
   address: string;
   location: any; // PostGIS geography type
-  opening_time: string; // Legacy - kept for backward compatibility
-  closing_time: string; // Legacy - kept for backward compatibility
+  opening_time?: string; // Legacy field - use restaurant_hours instead
+  closing_time?: string; // Legacy field - use restaurant_hours instead
   booking_policy: "instant" | "request";
   price_range: number;
   average_rating?: number | null;

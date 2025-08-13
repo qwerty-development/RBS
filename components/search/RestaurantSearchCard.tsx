@@ -29,8 +29,6 @@ type Restaurant = {
   cuisine_type: string;
   main_image_url: string;
   address: string;
-  opening_time: string; // Legacy - kept for backward compatibility
-  closing_time: string; // Legacy - kept for backward compatibility
   booking_policy: "instant" | "request";
   price_range: number;
   average_rating?: number;
