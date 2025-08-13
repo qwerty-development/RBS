@@ -253,17 +253,35 @@ class NotificationService {
    */
   async scheduleNotification(notificationData: NotificationData): Promise<string | null> {
     try {
-      const trigger = notificationData.scheduledFor
-        ? { date: notificationData.scheduledFor }
-        : null; // null means show immediately
+      // If no scheduled time, send immediately
+      if (!notificationData.scheduledFor) {
+        console.log('Sending immediate notification:', notificationData.title);
+        return await this.sendImmediateNotification(notificationData);
+      }
+
+      // Validate future date
+      const now = new Date();
+      const scheduledTime = new Date(notificationData.scheduledFor);
+
+      if (scheduledTime <= now) {
+        console.log('Scheduled time is in the past, sending immediately:', {
+          scheduled: scheduledTime.toISOString(),
+          now: now.toISOString()
+        });
+        return await this.sendImmediateNotification(notificationData);
+      }
+
+      // Calculate seconds until notification
+      const secondsUntilNotification = Math.floor((scheduledTime.getTime() - now.getTime()) / 1000);
 
       console.log('Scheduling notification:', {
         title: notificationData.title,
-        scheduledFor: notificationData.scheduledFor?.toISOString(),
-        trigger: trigger ? 'scheduled' : 'immediate',
-        triggerDate: trigger?.date?.toISOString()
+        scheduledFor: scheduledTime.toISOString(),
+        secondsFromNow: secondsUntilNotification,
+        minutesFromNow: Math.floor(secondsUntilNotification / 60)
       });
 
+      // Use seconds-based trigger for better reliability
       const identifier = await Notifications.scheduleNotificationAsync({
         content: {
           title: notificationData.title,
@@ -272,13 +290,39 @@ class NotificationService {
           sound: notificationData.sound !== false,
           priority: this.getPriority(notificationData.priority),
         },
-        trigger,
+        trigger: {
+          seconds: secondsUntilNotification,
+        },
       });
 
-      console.log('Notification scheduled with identifier:', identifier);
+      console.log('Notification scheduled with identifier:', identifier, 'for', secondsUntilNotification, 'seconds from now');
       return identifier;
     } catch (error) {
       console.error('Error scheduling notification:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Send immediate notification
+   */
+  private async sendImmediateNotification(notificationData: NotificationData): Promise<string | null> {
+    try {
+      const identifier = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: notificationData.title,
+          body: notificationData.body,
+          data: notificationData.data || {},
+          sound: notificationData.sound !== false,
+          priority: this.getPriority(notificationData.priority),
+        },
+        trigger: null, // Immediate
+      });
+
+      console.log('Immediate notification sent with identifier:', identifier);
+      return identifier;
+    } catch (error) {
+      console.error('Error sending immediate notification:', error);
       return null;
     }
   }
