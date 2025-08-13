@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { WaitlistEntry } from "@/components/booking/WaitlistConfirmationModal";
+import { NotificationHelpers } from "@/lib/NotificationHelpers";
 import type { Database } from "@/types/supabase";
 
 type WaitlistRow = Database["public"]["Tables"]["waitlist"]["Row"];
@@ -64,12 +65,39 @@ export const useWaitlist = () => {
       const { data, error } = await supabase
         .from("waitlist")
         .insert(waitlistData)
-        .select()
+        .select(`
+          *,
+          restaurant:restaurants(name)
+        `)
         .single();
 
       if (error) {
         console.error("Failed to join waitlist:", error);
         throw new Error(error.message || "Failed to join waitlist");
+      }
+
+      // Send waitlist joined notification
+      try {
+        const timeSlotStart = entry.desiredTimeRange.includes('-')
+          ? entry.desiredTimeRange.split('-')[0].trim()
+          : entry.desiredTimeRange;
+        const timeSlotEnd = entry.desiredTimeRange.includes('-')
+          ? entry.desiredTimeRange.split('-')[1].trim()
+          : timeSlotStart;
+
+        await NotificationHelpers.createWaitlistNotification({
+          entryId: data.id,
+          restaurantId: entry.restaurantId,
+          restaurantName: data.restaurant?.name || "Restaurant",
+          requestedDate: entry.desiredDate,
+          timeSlotStart,
+          timeSlotEnd,
+          partySize: entry.partySize,
+          action: 'joined',
+          priority: 'default',
+        });
+      } catch (notificationError) {
+        console.warn("Failed to send waitlist joined notification:", notificationError);
       }
 
       return data;
@@ -113,6 +141,17 @@ export const useWaitlist = () => {
         throw new Error("Authentication required to remove from waitlist");
       }
 
+      // Get waitlist details before removing for notification
+      const { data: waitlistEntry } = await supabase
+        .from("waitlist")
+        .select(`
+          *,
+          restaurant:restaurants(name)
+        `)
+        .eq("id", waitlistId)
+        .eq("user_id", user.id)
+        .single();
+
       const { error } = await supabase
         .from("waitlist")
         .update({ status: "expired" })
@@ -122,6 +161,30 @@ export const useWaitlist = () => {
       if (error) {
         console.error("Failed to remove from waitlist:", error);
         throw new Error(error.message || "Failed to remove from waitlist");
+      }
+
+      // Send waitlist removed notification
+      if (waitlistEntry) {
+        try {
+          // Parse time range from PostgreSQL tstzrange format
+          const timeRange = waitlistEntry.desired_time_range;
+          const timeSlotStart = "12:00 PM"; // Default fallback
+          const timeSlotEnd = "1:00 PM"; // Default fallback
+
+          await NotificationHelpers.createWaitlistNotification({
+            entryId: waitlistId,
+            restaurantId: waitlistEntry.restaurant_id,
+            restaurantName: waitlistEntry.restaurant?.name || "Restaurant",
+            requestedDate: waitlistEntry.desired_date,
+            timeSlotStart,
+            timeSlotEnd,
+            partySize: waitlistEntry.party_size,
+            action: 'removed',
+            priority: 'default',
+          });
+        } catch (notificationError) {
+          console.warn("Failed to send waitlist removed notification:", notificationError);
+        }
       }
     },
     [user],

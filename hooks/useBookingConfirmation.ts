@@ -6,6 +6,7 @@ import { useAuth } from "@/context/supabase-provider";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { AvailabilityService } from "@/lib/AvailabilityService";
+import { NotificationHelpers } from "@/lib/NotificationHelpers";
 
 interface BookingConfirmationProps {
   restaurantId: string;
@@ -323,6 +324,72 @@ export const useBookingConfirmation = () => {
           Haptics.NotificationFeedbackType.Success,
         );
 
+        // Send booking notification
+        try {
+          // Format date and time consistently
+          const bookingDate = bookingTime.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          });
+          const bookingTimeStr = bookingTime.toLocaleTimeString('en-GB', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          });
+
+          // Note: Booking notifications are now handled by database triggers
+          // This prevents duplicate notifications from client and server
+          console.log(`Booking ${bookingPolicy === "instant" ? "confirmed" : "requested"} - notification will be sent by database trigger`);
+
+          // Schedule booking reminder (2 hours before booking time)
+          if (bookingPolicy === "instant") {
+            const reminderTime = new Date(bookingTime.getTime() - (2 * 60 * 60 * 1000));
+            const now = new Date();
+            const minScheduleTime = new Date(now.getTime() + (5 * 60 * 1000)); // At least 5 minutes from now
+
+            console.log('Booking time:', bookingTime.toISOString());
+            console.log('Reminder time:', reminderTime.toISOString());
+            console.log('Current time:', now.toISOString());
+            console.log('Min schedule time:', minScheduleTime.toISOString());
+            console.log('Should schedule reminder:', reminderTime > minScheduleTime);
+
+            if (reminderTime > minScheduleTime) {
+              console.log('Scheduling booking reminder for:', reminderTime.toISOString());
+              await NotificationHelpers.scheduleBookingReminder({
+                bookingId: bookingResult.booking.id,
+                restaurantId: restaurantId,
+                restaurantName: bookingResult.booking.restaurant_name || "Restaurant",
+                date: bookingDate,
+                time: bookingTimeStr,
+                partySize: partySize,
+                action: 'reminder',
+              }, reminderTime);
+            } else {
+              console.log('Booking reminder not scheduled - too close to current time');
+            }
+
+            // Schedule review reminder (1 day after booking time)
+            const reviewReminderTime = new Date(bookingTime.getTime() + (24 * 60 * 60 * 1000));
+            console.log('Scheduling review reminder for:', reviewReminderTime.toISOString());
+
+            // Only schedule if it's at least 5 minutes from now
+            if (reviewReminderTime > minScheduleTime) {
+              await NotificationHelpers.scheduleReviewReminder({
+                restaurantId: restaurantId,
+                restaurantName: bookingResult.booking.restaurant_name || "Restaurant",
+                visitDate: bookingDate,
+                action: 'reminder',
+                bookingId: bookingResult.booking.id,
+              }, reviewReminderTime);
+            } else {
+              console.log('Review reminder not scheduled - too close to current time');
+            }
+          }
+        } catch (notificationError) {
+          console.warn("Failed to send booking notification:", notificationError);
+        }
+
         // Clear availability cache
         try {
           const availabilityService = AvailabilityService.getInstance();
@@ -492,6 +559,23 @@ export const useBookingConfirmation = () => {
           }
         }
 
+        // Send status change notification
+        try {
+          const { data: bookingDetails, error: fetchError } = await supabase
+            .from("bookings")
+            .select(`
+              *,
+              restaurant:restaurants(name)
+            `)
+            .eq("id", bookingId)
+            .single();
+
+          // Note: Status change notifications are handled by database triggers
+          console.log(`Booking status changed to ${newStatus} - notification will be sent by database trigger`);
+        } catch (notificationError) {
+          console.warn("Failed to send status change notification:", notificationError);
+        }
+
         await Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success,
         );
@@ -563,6 +647,23 @@ export const useBookingConfirmation = () => {
         if (refundError) {
           console.error("Failed to refund loyalty points:", refundError);
         }
+      }
+
+      // Send cancellation notification
+      try {
+        const { data: bookingDetails, error: fetchError } = await supabase
+          .from("bookings")
+          .select(`
+            *,
+            restaurant:restaurants(name)
+          `)
+          .eq("id", bookingId)
+          .single();
+
+        // Note: Cancellation notifications are handled by database triggers
+        console.log("Booking cancelled - notification will be sent by database trigger");
+      } catch (notificationError) {
+        console.warn("Failed to send cancellation notification:", notificationError);
       }
 
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
