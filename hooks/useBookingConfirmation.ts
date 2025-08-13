@@ -332,31 +332,9 @@ export const useBookingConfirmation = () => {
             minute: '2-digit'
           });
 
-          if (bookingPolicy === "instant") {
-            // Send booking confirmation notification
-            await NotificationHelpers.createBookingNotification({
-              bookingId: bookingResult.booking.id,
-              restaurantId: restaurantId,
-              restaurantName: bookingResult.booking.restaurant_name || "Restaurant",
-              date: bookingDate,
-              time: bookingTimeStr,
-              partySize: partySize,
-              action: 'confirmed',
-              priority: 'high',
-            });
-          } else {
-            // Send booking request notification
-            await NotificationHelpers.createBookingNotification({
-              bookingId: bookingResult.booking.id,
-              restaurantId: restaurantId,
-              restaurantName: bookingResult.booking.restaurant_name || "Restaurant",
-              date: bookingDate,
-              time: bookingTimeStr,
-              partySize: partySize,
-              action: 'confirmed', // Will be updated when restaurant responds
-              priority: 'high',
-            });
-          }
+          // Note: Booking notifications are now handled by database triggers
+          // This prevents duplicate notifications from client and server
+          console.log(`Booking ${bookingPolicy === "instant" ? "confirmed" : "requested"} - notification will be sent by database trigger`);
 
           // Schedule booking reminder (2 hours before booking time)
           if (bookingPolicy === "instant") {
@@ -567,24 +545,8 @@ export const useBookingConfirmation = () => {
             .eq("id", bookingId)
             .single();
 
-          if (!fetchError && bookingDetails) {
-            const bookingDate = new Date(bookingDetails.booking_time).toLocaleDateString();
-            const bookingTimeStr = new Date(bookingDetails.booking_time).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit'
-            });
-
-            await NotificationHelpers.createBookingNotification({
-              bookingId: bookingId,
-              restaurantId: bookingDetails.restaurant_id,
-              restaurantName: bookingDetails.restaurant?.name || "Restaurant",
-              date: bookingDate,
-              time: bookingTimeStr,
-              partySize: bookingDetails.party_size,
-              action: newStatus === "confirmed" ? 'confirmed' : 'declined',
-              priority: 'high',
-            });
-          }
+          // Note: Status change notifications are handled by database triggers
+          console.log(`Booking status changed to ${newStatus} - notification will be sent by database trigger`);
         } catch (notificationError) {
           console.warn("Failed to send status change notification:", notificationError);
         }
@@ -673,24 +635,8 @@ export const useBookingConfirmation = () => {
           .eq("id", bookingId)
           .single();
 
-        if (!fetchError && bookingDetails) {
-          const bookingDate = new Date(bookingDetails.booking_time).toLocaleDateString();
-          const bookingTimeStr = new Date(bookingDetails.booking_time).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit'
-          });
-
-          await NotificationHelpers.createBookingNotification({
-            bookingId: bookingId,
-            restaurantId: bookingDetails.restaurant_id,
-            restaurantName: bookingDetails.restaurant?.name || "Restaurant",
-            date: bookingDate,
-            time: bookingTimeStr,
-            partySize: bookingDetails.party_size,
-            action: 'cancelled',
-            priority: 'default',
-          });
-        }
+        // Note: Cancellation notifications are handled by database triggers
+        console.log("Booking cancelled - notification will be sent by database trigger");
       } catch (notificationError) {
         console.warn("Failed to send cancellation notification:", notificationError);
       }
