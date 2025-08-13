@@ -380,7 +380,7 @@ class NotificationService {
     return await this.scheduleNotification({
       type: 'booking',
       title: '⏰ Booking Reminder',
-      body: `Don't forget your reservation at ${bookingData.restaurantName} on ${bookingData.date} at ${bookingData.time}!`,
+      body: `Don't forget your reservation at ${bookingData.restaurantName} today at ${bookingData.time}!`,
       data: {
         type: 'booking',
         bookingId: bookingData.bookingId,

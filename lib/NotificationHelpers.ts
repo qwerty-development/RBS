@@ -282,20 +282,11 @@ export class NotificationHelpers {
   static async scheduleReviewReminder(
     reviewData: CreateReviewNotificationParams,
     reminderTime: Date
-  ): Promise<string | null> {
-    return await this.notificationService.scheduleNotification({
-      type: 'review',
-      title: '⭐ How was your experience?',
-      body: `Please share your experience at ${reviewData.restaurantName}. Your feedback helps other diners!`,
-      data: {
-        type: 'review',
-        restaurantId: reviewData.restaurantId,
-        restaurantName: reviewData.restaurantName,
-        visitDate: reviewData.visitDate,
-        action: 'write_review',
-      },
+  ): Promise<void> {
+    await this.createReviewNotification({
+      ...reviewData,
+      action: 'reminder',
       scheduledFor: reminderTime,
-      priority: 'default',
     });
   }
 
