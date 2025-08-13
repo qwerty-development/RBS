@@ -34,8 +34,6 @@ import {
   KeyRound,
   User, // Added for guest view
   Heart, // Added for guest view
-  ChevronLeft,
-  Settings,
 } from "lucide-react-native";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -47,7 +45,6 @@ import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { useUserRating } from "@/hooks/useUserRating";
-import { useNotificationContext } from "@/context/notification-provider";
 import ProfileScreenSkeleton from "@/components/skeletons/ProfileScreenSkeleton";
 
 const iconMap: { [key: string]: any } = {
@@ -73,7 +70,6 @@ const iconMap: { [key: string]: any } = {
   KeyRound,
   User,
   Heart,
-  Settings,
 };
 
 interface MenuItem {
@@ -94,11 +90,10 @@ export default function ProfileScreen() {
   const {
     profile,
     signOut,
+    loading: authLoading,
     isGuest,
     convertGuestToUser,
   } = useAuth();
-
-  const { unreadCount, hasPermission } = useNotificationContext();
 
   // --- Guest View ---
   // If the user is a guest, display a call-to-action screen.
@@ -248,19 +243,9 @@ export default function ProfileScreen() {
         {
           id: "notifications",
           title: "Notifications",
-          subtitle: unreadCount > 0 ? `${unreadCount} unread notifications` : "View your notifications",
+          subtitle: "Manage your notification preferences",
           icon: "Bell",
           onPress: () => router.push("/profile/notifications"),
-          showBadge: unreadCount > 0,
-          badgeText: unreadCount > 0 ? unreadCount.toString() : undefined,
-          badgeColor: "#ef4444",
-        },
-        {
-          id: "notification-settings",
-          title: "Notification Settings",
-          subtitle: hasPermission ? "Customize notification preferences" : "Enable notifications",
-          icon: "Settings",
-          onPress: () => router.push("/profile/notification-settings"),
         },
         {
           id: "preferences",
@@ -313,18 +298,6 @@ export default function ProfileScreen() {
           subtitle: "Manage your connections",
           icon: "Users",
           onPress: () => router.push("/friends"),
-        },
-      ],
-    },
-    {
-      title: "Testing",
-      items: [
-        {
-          id: "test-notifications",
-          title: "Test Notifications",
-          subtitle: "Send test notifications to verify setup",
-          icon: "Bell",
-          onPress: () => router.push("/profile/test-notifications"),
         },
       ],
     },
@@ -402,24 +375,12 @@ export default function ProfileScreen() {
             )}
           </View>
         </View>
-        <View className="flex-row items-center">
-          {item.showBadge && item.badgeText && (
-            <View
-              className="min-w-[20px] h-5 rounded-full items-center justify-center mr-2 px-1.5"
-              style={{ backgroundColor: item.badgeColor || '#ef4444' }}
-            >
-              <Text className="text-white text-xs font-bold">
-                {item.badgeText}
-              </Text>
-            </View>
-          )}
-          {!item.destructive && <ChevronRight size={20} color="#666" />}
-        </View>
+        {!item.destructive && <ChevronRight size={20} color="#666" />}
       </Pressable>
     );
   };
 
-  if (userRating.loading) {
+  if (authLoading || userRating.loading) {
     return <ProfileScreenSkeleton />;
   }
 

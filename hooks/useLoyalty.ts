@@ -3,7 +3,6 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
-import { NotificationHelpers } from "@/lib/NotificationHelpers";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 type SpecialOffer = Database["public"]["Tables"]["special_offers"]["Row"] & {
@@ -364,19 +363,6 @@ export function useLoyalty() {
         // Refresh profile to get updated points and tier
         await refreshProfile();
 
-        // Send loyalty points notification
-        try {
-          await NotificationHelpers.createLoyaltyNotification({
-            restaurantId: relatedId || 'platform',
-            restaurantName: 'Booklet Platform',
-            points: multipliedPoints,
-            action: 'points_earned',
-            priority: 'default',
-          });
-        } catch (notificationError) {
-          console.warn("Failed to send loyalty points notification:", notificationError);
-        }
-
         return true;
       } catch (err: any) {
         console.error("Error awarding points:", err);
@@ -437,21 +423,6 @@ export function useLoyalty() {
         // Refresh profile and claimed rewards
         await refreshProfile();
         await fetchClaimedRewards();
-
-        // Send reward redemption notification
-        try {
-          await NotificationHelpers.createLoyaltyNotification({
-            restaurantId: reward.restaurant?.id || 'platform',
-            restaurantName: reward.restaurant?.name || 'Booklet Platform',
-            points: reward.pointsCost,
-            action: 'points_redeemed',
-            rewardId: reward.id,
-            rewardName: reward.title,
-            priority: 'default',
-          });
-        } catch (notificationError) {
-          console.warn("Failed to send reward redemption notification:", notificationError);
-        }
 
         return true;
       } catch (err: any) {

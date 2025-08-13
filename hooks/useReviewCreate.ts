@@ -9,7 +9,6 @@ import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
 import { REVIEW_VALIDATION, REVIEW_POINTS } from "@/constants/reviewConstants";
-import { NotificationHelpers } from "@/lib/NotificationHelpers";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 type Booking = Database["public"]["Tables"]["bookings"]["Row"];
@@ -260,21 +259,6 @@ export function useReviewCreate({
         form.getValues("comment")?.length || 0,
       );
       await awardLoyaltyPoints(profile.id, pointsToAward);
-
-      // Send loyalty points notification
-      if (pointsToAward > 0 && restaurant) {
-        try {
-          await NotificationHelpers.createLoyaltyNotification({
-            restaurantId: restaurantId,
-            restaurantName: restaurant.name,
-            points: pointsToAward,
-            action: 'points_earned',
-            priority: 'default',
-          });
-        } catch (notificationError) {
-          console.warn("Failed to send loyalty points notification:", notificationError);
-        }
-      }
 
       Alert.alert(
         "Review Submitted!",

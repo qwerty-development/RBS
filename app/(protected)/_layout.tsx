@@ -1,8 +1,7 @@
 // app/(protected)/_layout.tsx
-import React, { useEffect } from "react";
+import React from "react";
 import { Stack } from "expo-router";
 import { useAuth } from "@/context/supabase-provider";
-import { useNotificationContext } from "@/context/notification-provider";
 import { GlobalChatTab } from "@/components/ui/global-chat-tab";
 import { View, ActivityIndicator, Text } from "react-native";
 import { NetworkStatusBanner } from "@/components/network/NetworkStatusBanner";
@@ -16,24 +15,8 @@ export const unstable_settings = {
 
 export default function ProtectedLayout() {
   const { initialized, session, isGuest } = useAuth();
-  const { isInitialized, hasPermission, requestPermissions } = useNotificationContext();
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
-
-  // Request notification permissions for authenticated users
-  useEffect(() => {
-    const requestNotificationPermissions = async () => {
-      if (initialized && (session || !isGuest) && !hasPermission && !isInitialized) {
-        try {
-          await requestPermissions();
-        } catch (error) {
-          console.error('Failed to request notification permissions:', error);
-        }
-      }
-    };
-
-    requestNotificationPermissions();
-  }, [initialized, session, isGuest, hasPermission, isInitialized, requestPermissions]);
 
   // Show loading while auth is initializing
   if (!initialized) {

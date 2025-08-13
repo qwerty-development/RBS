@@ -6,7 +6,6 @@ import { useAuth } from "@/context/supabase-provider";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { AvailabilityService } from "@/lib/AvailabilityService";
-import { NotificationHelpers } from "@/lib/NotificationHelpers";
 
 interface BookingConfirmationProps {
   restaurantId: string;
@@ -324,69 +323,6 @@ export const useBookingConfirmation = () => {
           Haptics.NotificationFeedbackType.Success,
         );
 
-        // Send booking notification
-        try {
-          const bookingDate = bookingTime.toLocaleDateString();
-          const bookingTimeStr = bookingTime.toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit'
-          });
-
-          if (bookingPolicy === "instant") {
-            // Send booking confirmation notification
-            await NotificationHelpers.createBookingNotification({
-              bookingId: bookingResult.booking.id,
-              restaurantId: restaurantId,
-              restaurantName: bookingResult.booking.restaurant_name || "Restaurant",
-              date: bookingDate,
-              time: bookingTimeStr,
-              partySize: partySize,
-              action: 'confirmed',
-              priority: 'high',
-            });
-          } else {
-            // Send booking request notification
-            await NotificationHelpers.createBookingNotification({
-              bookingId: bookingResult.booking.id,
-              restaurantId: restaurantId,
-              restaurantName: bookingResult.booking.restaurant_name || "Restaurant",
-              date: bookingDate,
-              time: bookingTimeStr,
-              partySize: partySize,
-              action: 'confirmed', // Will be updated when restaurant responds
-              priority: 'high',
-            });
-          }
-
-          // Schedule booking reminder (2 hours before booking time)
-          if (bookingPolicy === "instant") {
-            const reminderTime = new Date(bookingTime.getTime() - (2 * 60 * 60 * 1000));
-            if (reminderTime > new Date()) {
-              await NotificationHelpers.scheduleBookingReminder({
-                bookingId: bookingResult.booking.id,
-                restaurantId: restaurantId,
-                restaurantName: bookingResult.booking.restaurant_name || "Restaurant",
-                date: bookingDate,
-                time: bookingTimeStr,
-                partySize: partySize,
-                action: 'reminder',
-              }, reminderTime);
-            }
-
-            // Schedule review reminder (1 day after booking time)
-            const reviewReminderTime = new Date(bookingTime.getTime() + (24 * 60 * 60 * 1000));
-            await NotificationHelpers.scheduleReviewReminder({
-              restaurantId: restaurantId,
-              restaurantName: bookingResult.booking.restaurant_name || "Restaurant",
-              visitDate: bookingDate,
-              action: 'reminder',
-              bookingId: bookingResult.booking.id,
-            }, reviewReminderTime);
-          }
-        } catch (notificationError) {
-          console.warn("Failed to send booking notification:", notificationError);
-        }
-
         // Clear availability cache
         try {
           const availabilityService = AvailabilityService.getInstance();
@@ -556,39 +492,6 @@ export const useBookingConfirmation = () => {
           }
         }
 
-        // Send status change notification
-        try {
-          const { data: bookingDetails, error: fetchError } = await supabase
-            .from("bookings")
-            .select(`
-              *,
-              restaurant:restaurants(name)
-            `)
-            .eq("id", bookingId)
-            .single();
-
-          if (!fetchError && bookingDetails) {
-            const bookingDate = new Date(bookingDetails.booking_time).toLocaleDateString();
-            const bookingTimeStr = new Date(bookingDetails.booking_time).toLocaleTimeString([], {
-              hour: '2-digit',
-              minute: '2-digit'
-            });
-
-            await NotificationHelpers.createBookingNotification({
-              bookingId: bookingId,
-              restaurantId: bookingDetails.restaurant_id,
-              restaurantName: bookingDetails.restaurant?.name || "Restaurant",
-              date: bookingDate,
-              time: bookingTimeStr,
-              partySize: bookingDetails.party_size,
-              action: newStatus === "confirmed" ? 'confirmed' : 'declined',
-              priority: 'high',
-            });
-          }
-        } catch (notificationError) {
-          console.warn("Failed to send status change notification:", notificationError);
-        }
-
         await Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success,
         );
@@ -660,39 +563,6 @@ export const useBookingConfirmation = () => {
         if (refundError) {
           console.error("Failed to refund loyalty points:", refundError);
         }
-      }
-
-      // Send cancellation notification
-      try {
-        const { data: bookingDetails, error: fetchError } = await supabase
-          .from("bookings")
-          .select(`
-            *,
-            restaurant:restaurants(name)
-          `)
-          .eq("id", bookingId)
-          .single();
-
-        if (!fetchError && bookingDetails) {
-          const bookingDate = new Date(bookingDetails.booking_time).toLocaleDateString();
-          const bookingTimeStr = new Date(bookingDetails.booking_time).toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit'
-          });
-
-          await NotificationHelpers.createBookingNotification({
-            bookingId: bookingId,
-            restaurantId: bookingDetails.restaurant_id,
-            restaurantName: bookingDetails.restaurant?.name || "Restaurant",
-            date: bookingDate,
-            time: bookingTimeStr,
-            partySize: bookingDetails.party_size,
-            action: 'cancelled',
-            priority: 'default',
-          });
-        }
-      } catch (notificationError) {
-        console.warn("Failed to send cancellation notification:", notificationError);
       }
 
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
