@@ -34,6 +34,7 @@ import {
   KeyRound,
   User, // Added for guest view
   Heart, // Added for guest view
+  ChevronLeft,
 } from "lucide-react-native";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -386,6 +387,21 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
+      {/* Spacer to avoid overlap with floating back button */}
+      <View className="h-14" />
+      {/* Floating Back Button (consistent with other pages) */}
+      <View className="absolute top-0 left-0 right-0 z-50">
+        <SafeAreaView edges={["top"]}>
+          <View className="p-4">
+            <Pressable
+              onPress={() => router.back()}
+              className="w-10 h-10 bg-black/50 rounded-full items-center justify-center"
+            >
+              <ChevronLeft size={24} color="white" />
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </View>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={

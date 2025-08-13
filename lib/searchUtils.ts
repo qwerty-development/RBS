@@ -288,7 +288,7 @@ export const calculateActiveFilterCount = (
   bookingFilters: BookingFilters,
 ): number => {
   let count = 0;
-  count++;
+  if (generalFilters.sortBy !== "rating") count++;
   count += generalFilters.cuisines.length;
   count += generalFilters.features.length;
   if (generalFilters.priceRange.length < 4) count++;

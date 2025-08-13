@@ -23,6 +23,7 @@ import {
   Leaf,
   Wheat,
   Info,
+  ChevronLeft,
 } from "lucide-react-native";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -213,6 +214,21 @@ export default function MenuScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
+      {/* Back Button Header (consistent with other pages) */}
+      <View className="absolute top-0 left-0 right-0 z-50">
+        <SafeAreaView edges={["top"]}>
+          <View className="p-4">
+            <Pressable
+              onPress={() => router.back()}
+              className="w-10 h-10 bg-black/50 rounded-full items-center justify-center"
+            >
+              <ChevronLeft size={24} color="white" />
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </View>
+      {/* Spacer to avoid overlap with floating back button */}
+      <View className="h-14" />
       {/* Header with Search */}
       <View className="p-4 border-b border-border">
         <View className="flex-row items-center gap-3">

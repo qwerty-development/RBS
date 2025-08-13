@@ -656,7 +656,7 @@ const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
                     size={12}
                     color="#f59e0b"
                     fill={
-                      star <= (review.overall_rating || 0) ? "#f59e0b" : "none"
+                      star <= (review.rating || 0) ? "#f59e0b" : "none"
                     }
                   />
                 ))}

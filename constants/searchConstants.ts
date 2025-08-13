@@ -80,7 +80,15 @@ export const DEFAULT_BOOKING_FILTERS: BookingFilters = {
   availableOnly: false,
 };
 
-
+export const DEFAULT_GENERAL_FILTERS: GeneralFilters = {
+  sortBy: "rating",
+  cuisines: [],
+  features: [],
+  priceRange: [1, 2, 3, 4],
+  bookingPolicy: "all",
+  minRating: 0,
+  maxDistance: 1000, // No distance limit by default
+};
 
 // Map Configuration
 export const DEFAULT_MAP_REGION = {
