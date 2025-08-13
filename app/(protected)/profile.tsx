@@ -33,7 +33,8 @@ import {
   Bot,
   KeyRound,
   User, // Added for guest view
-  Heart, // Added for guest view
+  Heart,
+  ChevronLeft, // Added for guest view
 } from "lucide-react-native";
 
 import { SafeAreaView } from "@/components/safe-area-view";
