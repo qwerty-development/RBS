@@ -336,12 +336,8 @@ export const useBookingConfirmation = () => {
           // This prevents duplicate notifications from client and server
           console.log(`Booking ${bookingPolicy === "instant" ? "confirmed" : "requested"} - notification will be sent by database trigger`);
 
-          // TEMPORARY: Disable scheduled notifications due to Expo development issues
-          // TODO: Re-enable for production build
-          const ENABLE_SCHEDULED_NOTIFICATIONS = false;
-
-          if (bookingPolicy === "instant" && ENABLE_SCHEDULED_NOTIFICATIONS) {
-            // Schedule booking reminder (2 hours before booking time)
+          // Schedule booking reminder (2 hours before booking time)
+          if (bookingPolicy === "instant") {
             const reminderTime = new Date(bookingTime.getTime() - (2 * 60 * 60 * 1000));
             const now = new Date();
 
@@ -376,8 +372,6 @@ export const useBookingConfirmation = () => {
               action: 'reminder',
               bookingId: bookingResult.booking.id,
             }, reviewReminderTime);
-          } else {
-            console.log('Scheduled notifications disabled in development mode');
           }
         } catch (notificationError) {
           console.warn("Failed to send booking notification:", notificationError);
