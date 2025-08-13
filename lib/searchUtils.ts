@@ -249,7 +249,6 @@ export const sortRestaurants = (
         return a.name.localeCompare(b.name);
       case "distance":
         return (a.distance || Infinity) - (b.distance || Infinity);
-      case "recommended":
       default:
         const scoreA =
           (a.average_rating || 0) * 0.4 +
@@ -289,7 +288,7 @@ export const calculateActiveFilterCount = (
   bookingFilters: BookingFilters,
 ): number => {
   let count = 0;
-  if (generalFilters.sortBy !== "recommended") count++;
+  count++;
   count += generalFilters.cuisines.length;
   count += generalFilters.features.length;
   if (generalFilters.priceRange.length < 4) count++;

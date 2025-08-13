@@ -12,7 +12,7 @@ interface SearchFilters {
   features: string[];
   bookingPolicy: "all" | "instant" | "request";
   priceRange: [number, number];
-  sortBy: "recommended" | "rating" | "distance" | "name";
+  sortBy:  "rating" | "distance" | "name";
   openNow?: boolean;
   date?: Date;
   time?: string;
