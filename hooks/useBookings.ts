@@ -116,7 +116,7 @@ export function useBookings() {
   const fetchBookings = useCallback(async () => {
     // Store user ID to prevent reference changes causing re-renders
     const userId = user?.id;
-    
+
     // Don't fetch if guest or no user
     if (!userId || isGuest) {
       console.log("Skipping bookings fetch - no user or guest");
@@ -161,7 +161,7 @@ export function useBookings() {
           .in("status", ["pending", "confirmed"])
           .gte("booking_time", now)
           .order("booking_time", { ascending: true }),
-        
+
         supabase
           .from("bookings")
           .select(
@@ -175,26 +175,35 @@ export function useBookings() {
             `booking_time.lt.${now},status.in.(completed,cancelled_by_user,declined_by_restaurant,no_show)`,
           )
           .order("booking_time", { ascending: false })
-          .limit(50)
+          .limit(50),
       ]);
 
       // Handle upcoming bookings result
       let upcomingData = [];
       if (upcomingResult.status === "fulfilled") {
         if (upcomingResult.value.error) {
-          console.error("Error fetching upcoming bookings:", upcomingResult.value.error);
+          console.error(
+            "Error fetching upcoming bookings:",
+            upcomingResult.value.error,
+          );
         } else {
           upcomingData = upcomingResult.value.data || [];
         }
       } else {
-        console.error("Upcoming bookings request failed:", upcomingResult.reason);
+        console.error(
+          "Upcoming bookings request failed:",
+          upcomingResult.reason,
+        );
       }
 
       // Handle past bookings result
       let pastData = [];
       if (pastResult.status === "fulfilled") {
         if (pastResult.value.error) {
-          console.error("Error fetching past bookings:", pastResult.value.error);
+          console.error(
+            "Error fetching past bookings:",
+            pastResult.value.error,
+          );
         } else {
           pastData = pastResult.value.data || [];
         }
@@ -209,12 +218,14 @@ export function useBookings() {
       console.log(
         `Fetched ${upcomingData.length} upcoming and ${pastData.length} past bookings`,
       );
-      
+
       // Only throw error if both requests failed
-      if (upcomingResult.status === "rejected" && pastResult.status === "rejected") {
+      if (
+        upcomingResult.status === "rejected" &&
+        pastResult.status === "rejected"
+      ) {
         throw new Error("Failed to fetch both upcoming and past bookings");
       }
-      
     } catch (error) {
       console.error("Error fetching bookings:", error);
       setError(error as Error);
@@ -235,7 +246,6 @@ export function useBookings() {
     setUpcomingBookings,
     setPastBookings,
     setBookingsLoading,
-    refreshing
   ]);
 
   // Navigation Functions with error handling

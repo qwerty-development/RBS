@@ -17,22 +17,27 @@ export const useWaitlist = () => {
       }
 
       // Parse the desired date to ensure it's a valid date
-      const desiredDate = new Date(entry.desiredDate).toISOString().split('T')[0];
-      
+      const desiredDate = new Date(entry.desiredDate)
+        .toISOString()
+        .split("T")[0];
+
       // Parse the time range and create a PostgreSQL tstzrange
       // Expected format: [HH:MM,HH:MM) or HH:MM-HH:MM
       let timeRange: string;
-      
-      if (entry.desiredTimeRange.startsWith('[') && entry.desiredTimeRange.endsWith(')')) {
+
+      if (
+        entry.desiredTimeRange.startsWith("[") &&
+        entry.desiredTimeRange.endsWith(")")
+      ) {
         // Format: [14:30,15:30) - extract times and convert to full timestamps
         const rangeContent = entry.desiredTimeRange.slice(1, -1); // Remove [ and )
-        const [startTime, endTime] = rangeContent.split(',');
+        const [startTime, endTime] = rangeContent.split(",");
         const startDateTime = `${desiredDate}T${startTime.trim()}:00.000Z`;
         const endDateTime = `${desiredDate}T${endTime.trim()}:00.000Z`;
         timeRange = `["${startDateTime}","${endDateTime}")`;
-      } else if (entry.desiredTimeRange.includes('-')) {
+      } else if (entry.desiredTimeRange.includes("-")) {
         // Format: 14:30-15:30
-        const [startTime, endTime] = entry.desiredTimeRange.split('-');
+        const [startTime, endTime] = entry.desiredTimeRange.split("-");
         const startDateTime = `${desiredDate}T${startTime.trim()}:00.000Z`;
         const endDateTime = `${desiredDate}T${endTime.trim()}:00.000Z`;
         timeRange = `["${startDateTime}","${endDateTime}")`;

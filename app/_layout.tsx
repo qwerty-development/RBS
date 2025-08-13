@@ -17,6 +17,8 @@ import { useNetworkMonitor } from "@/hooks/useNetworkMonitor";
 import * as Sentry from "@sentry/react-native";
 import { getThemedColors } from "@/lib/utils";
 
+LogBox.ignoreAllLogs();
+
 // Network status bar component
 function NetworkStatusBar() {
   const { isOnline, connectionQuality, isLoading, hasInitialized } =

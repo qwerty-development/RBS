@@ -162,14 +162,20 @@ export function BookingCard({
   processingBookingId,
 }: BookingCardProps) {
   // Early return if booking is invalid
-  if (!booking || !booking.id || !booking.booking_time) {
-    console.warn("Invalid booking data provided to BookingCard");
+  if (!booking || !booking.id || !booking.booking_time || !booking.restaurant) {
+    console.warn("Invalid booking data provided to BookingCard", {
+      hasBooking: !!booking,
+      hasId: !!booking?.id,
+      hasBookingTime: !!booking?.booking_time,
+      hasRestaurant: !!booking?.restaurant,
+    });
     return null;
   }
 
-  const statusConfig = BOOKING_STATUS_CONFIG[booking.status] || BOOKING_STATUS_CONFIG.pending;
+  const statusConfig =
+    BOOKING_STATUS_CONFIG[booking.status] || BOOKING_STATUS_CONFIG.pending;
   const StatusIcon = statusConfig.icon;
-  
+
   // Safe date parsing with error handling
   let bookingDate: Date;
   try {
@@ -186,20 +192,20 @@ export function BookingCard({
   // Safe date comparisons
   let isToday = false;
   let isTomorrow = false;
-  
+
   try {
     const today = new Date();
     const tomorrow = new Date();
     tomorrow.setDate(today.getDate() + 1);
-    
+
     isToday = bookingDate.toDateString() === today.toDateString();
-    
+
     // Create new date objects to avoid mutating original dates
     const bookingDateOnly = new Date(bookingDate);
     bookingDateOnly.setHours(0, 0, 0, 0);
     const tomorrowOnly = new Date(tomorrow);
     tomorrowOnly.setHours(0, 0, 0, 0);
-    
+
     isTomorrow = bookingDateOnly.getTime() === tomorrowOnly.getTime();
   } catch (error) {
     console.warn("Error calculating date comparisons:", error);
@@ -231,7 +237,7 @@ export function BookingCard({
 
   useEffect(() => {
     let isCancelled = false;
-    
+
     const checkReview = async () => {
       if (isCompleted && booking?.id) {
         try {
@@ -240,7 +246,7 @@ export function BookingCard({
             .select("id")
             .eq("booking_id", booking.id)
             .single();
-          
+
           // Only update state if component hasn't been unmounted
           if (!isCancelled) {
             setHasReview(!!data && !error);
@@ -253,9 +259,9 @@ export function BookingCard({
         }
       }
     };
-    
+
     checkReview();
-    
+
     // Cleanup function to prevent memory leaks
     return () => {
       isCancelled = true;
@@ -550,8 +556,10 @@ export function BookingCard({
         {/* Restaurant Header */}
         <View className="flex-row p-4">
           <Image
-            source={{ 
-              uri: booking.restaurant?.main_image_url || "https://via.placeholder.com/80x80?text=No+Image" 
+            source={{
+              uri:
+                booking.restaurant?.main_image_url ||
+                "https://via.placeholder.com/80x80?text=No+Image",
             }}
             className="w-20 h-20 rounded-lg bg-muted"
             contentFit="cover"
@@ -567,9 +575,11 @@ export function BookingCard({
               className="flex-row items-start justify-between"
             >
               <View className="flex-1">
-                <H3 className="mb-1 text-lg">{booking.restaurant.name}</H3>
+                <H3 className="mb-1 text-lg">
+                  {booking.restaurant.name || "Restaurant"}
+                </H3>
                 <Text className="text-muted-foreground text-sm">
-                  {booking.restaurant.cuisine_type}
+                  {booking.restaurant.cuisine_type || "Cuisine"}
                 </Text>
               </View>
               <ChevronRight size={20} color="#666" />
@@ -644,8 +654,8 @@ export function BookingCard({
               <View className="flex-row items-center gap-2">
                 <Users size={16} color="#666" />
                 <Text className="text-sm text-muted-foreground">
-                  {booking.party_size}{" "}
-                  {booking.party_size === 1 ? "Guest" : "Guests"}
+                  {booking.party_size || 1}{" "}
+                  {(booking.party_size || 1) === 1 ? "Guest" : "Guests"}
                 </Text>
               </View>
               {booking.confirmation_code && !isPending && (
@@ -656,7 +666,7 @@ export function BookingCard({
                 >
                   <Copy size={14} color="#666" />
                   <Text className="text-sm font-mono font-medium">
-                    {booking.confirmation_code}
+                    {booking.confirmation_code || "N/A"}
                   </Text>
                 </Pressable>
               )}

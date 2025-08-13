@@ -509,7 +509,14 @@ export interface Database {
           desired_date: string;
           desired_time_range: string;
           party_size: number;
-          table_type: "any" | "booth" | "window" | "patio" | "standard" | "bar" | "private";
+          table_type:
+            | "any"
+            | "booth"
+            | "window"
+            | "patio"
+            | "standard"
+            | "bar"
+            | "private";
           status: "active" | "notified" | "booked" | "expired";
           created_at: string;
         };
@@ -520,7 +527,14 @@ export interface Database {
           desired_date: string;
           desired_time_range: string;
           party_size: number;
-          table_type?: "any" | "booth" | "window" | "patio" | "standard" | "bar" | "private";
+          table_type?:
+            | "any"
+            | "booth"
+            | "window"
+            | "patio"
+            | "standard"
+            | "bar"
+            | "private";
           status?: "active" | "notified" | "booked" | "expired";
           created_at?: string;
         };
@@ -531,7 +545,14 @@ export interface Database {
           desired_date?: string;
           desired_time_range?: string;
           party_size?: number;
-          table_type?: "any" | "booth" | "window" | "patio" | "standard" | "bar" | "private";
+          table_type?:
+            | "any"
+            | "booth"
+            | "window"
+            | "patio"
+            | "standard"
+            | "bar"
+            | "private";
           status?: "active" | "notified" | "booked" | "expired";
           created_at?: string;
         };
@@ -706,3 +727,42 @@ export interface Database {
     };
   };
 }
+
+// Re-export types from Supabase for convenience
+export type Session = {
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  expires_at?: number;
+  refresh_token: string;
+  user: User;
+};
+
+export type User = {
+  id: string;
+  aud: string;
+  role?: string;
+  email?: string;
+  email_confirmed_at?: string;
+  phone?: string;
+  phone_confirmed_at?: string;
+  confirmation_sent_at?: string;
+  confirmed_at?: string;
+  recovery_sent_at?: string;
+  last_sign_in_at?: string;
+  app_metadata: Record<string, any>;
+  user_metadata: Record<string, any>;
+  identities?: {
+    id: string;
+    user_id: string;
+    identity_data?: Record<string, any>;
+    provider: string;
+    created_at: string;
+    last_sign_in_at: string;
+    updated_at?: string;
+  }[];
+  created_at: string;
+  updated_at?: string;
+};
+
+export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
