@@ -253,15 +253,46 @@ class NotificationService {
    */
   async scheduleNotification(notificationData: NotificationData): Promise<string | null> {
     try {
-      const trigger = notificationData.scheduledFor
-        ? { date: notificationData.scheduledFor }
-        : null; // null means show immediately
+      // If no scheduledFor date, send immediately
+      if (!notificationData.scheduledFor) {
+        const identifier = await Notifications.scheduleNotificationAsync({
+          content: {
+            title: notificationData.title,
+            body: notificationData.body,
+            data: notificationData.data || {},
+            sound: notificationData.sound !== false,
+            priority: this.getPriority(notificationData.priority),
+          },
+          trigger: null, // Send immediately
+        });
 
-      console.log('Scheduling notification:', {
+        console.log('Immediate notification sent with identifier:', identifier);
+        return identifier;
+      }
+
+      // Check if the scheduled time is in the future
+      const now = new Date();
+      if (notificationData.scheduledFor <= now) {
+        console.log('Scheduled time is in the past, sending immediately');
+        const identifier = await Notifications.scheduleNotificationAsync({
+          content: {
+            title: notificationData.title,
+            body: notificationData.body,
+            data: notificationData.data || {},
+            sound: notificationData.sound !== false,
+            priority: this.getPriority(notificationData.priority),
+          },
+          trigger: null,
+        });
+        return identifier;
+      }
+
+      // Schedule for future delivery
+      console.log('Scheduling notification for future delivery:', {
         title: notificationData.title,
-        scheduledFor: notificationData.scheduledFor?.toISOString(),
-        trigger: trigger ? 'scheduled' : 'immediate',
-        triggerDate: trigger?.date?.toISOString()
+        scheduledFor: notificationData.scheduledFor.toISOString(),
+        currentTime: now.toISOString(),
+        minutesFromNow: Math.round((notificationData.scheduledFor.getTime() - now.getTime()) / (1000 * 60))
       });
 
       const identifier = await Notifications.scheduleNotificationAsync({
@@ -272,7 +303,9 @@ class NotificationService {
           sound: notificationData.sound !== false,
           priority: this.getPriority(notificationData.priority),
         },
-        trigger,
+        trigger: {
+          date: notificationData.scheduledFor,
+        },
       });
 
       console.log('Notification scheduled with identifier:', identifier);

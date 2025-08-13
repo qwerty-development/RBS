@@ -326,10 +326,16 @@ export const useBookingConfirmation = () => {
 
         // Send booking notification
         try {
-          const bookingDate = bookingTime.toLocaleDateString();
-          const bookingTimeStr = bookingTime.toLocaleTimeString([], {
+          // Format date and time consistently
+          const bookingDate = bookingTime.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+          });
+          const bookingTimeStr = bookingTime.toLocaleTimeString('en-GB', {
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
+            hour12: false
           });
 
           // Note: Booking notifications are now handled by database triggers
@@ -340,13 +346,15 @@ export const useBookingConfirmation = () => {
           if (bookingPolicy === "instant") {
             const reminderTime = new Date(bookingTime.getTime() - (2 * 60 * 60 * 1000));
             const now = new Date();
+            const minScheduleTime = new Date(now.getTime() + (5 * 60 * 1000)); // At least 5 minutes from now
 
             console.log('Booking time:', bookingTime.toISOString());
             console.log('Reminder time:', reminderTime.toISOString());
             console.log('Current time:', now.toISOString());
-            console.log('Should schedule reminder:', reminderTime > now);
+            console.log('Min schedule time:', minScheduleTime.toISOString());
+            console.log('Should schedule reminder:', reminderTime > minScheduleTime);
 
-            if (reminderTime > now) {
+            if (reminderTime > minScheduleTime) {
               console.log('Scheduling booking reminder for:', reminderTime.toISOString());
               await NotificationHelpers.scheduleBookingReminder({
                 bookingId: bookingResult.booking.id,
@@ -358,20 +366,25 @@ export const useBookingConfirmation = () => {
                 action: 'reminder',
               }, reminderTime);
             } else {
-              console.log('Booking reminder not scheduled - too close to booking time');
+              console.log('Booking reminder not scheduled - too close to current time');
             }
 
             // Schedule review reminder (1 day after booking time)
             const reviewReminderTime = new Date(bookingTime.getTime() + (24 * 60 * 60 * 1000));
             console.log('Scheduling review reminder for:', reviewReminderTime.toISOString());
 
-            await NotificationHelpers.scheduleReviewReminder({
-              restaurantId: restaurantId,
-              restaurantName: bookingResult.booking.restaurant_name || "Restaurant",
-              visitDate: bookingDate,
-              action: 'reminder',
-              bookingId: bookingResult.booking.id,
-            }, reviewReminderTime);
+            // Only schedule if it's at least 5 minutes from now
+            if (reviewReminderTime > minScheduleTime) {
+              await NotificationHelpers.scheduleReviewReminder({
+                restaurantId: restaurantId,
+                restaurantName: bookingResult.booking.restaurant_name || "Restaurant",
+                visitDate: bookingDate,
+                action: 'reminder',
+                bookingId: bookingResult.booking.id,
+              }, reviewReminderTime);
+            } else {
+              console.log('Review reminder not scheduled - too close to current time');
+            }
           }
         } catch (notificationError) {
           console.warn("Failed to send booking notification:", notificationError);
