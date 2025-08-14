@@ -1,9 +1,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
-  FlatList,
   Pressable,
-  ActivityIndicator,
   RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -13,7 +11,6 @@ import {
   Heart,
   Star,
   Trophy,
-  MapPin,
   Clock,
   ChevronRight,
   ArrowLeft,
@@ -22,150 +19,156 @@ import {
 import { NotificationsScreenSkeleton } from "@/components/skeletons/NotificationScreenSkeleton";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
-import { H2, H3, P, Muted } from "@/components/ui/typography";
+import { H2, Muted } from "@/components/ui/typography";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { OptimizedList } from "@/components/ui/optimized-list";
+import { supabase } from "@/config/supabase";
 
-// Mock notification types
-type NotificationType =
+// Notification types aligned with backend categories
+type NotificationCategory =
   | "booking"
-  | "favorite"
-  | "review"
+  | "waitlist"
+  | "offers"
+  | "reviews"
   | "loyalty"
   | "system";
 
+type NotificationType = string; // server-defined types per category
+
 interface Notification {
   id: string;
+  category: NotificationCategory;
   type: NotificationType;
   title: string;
   message: string;
-  timestamp: string;
+  created_at: string;
   read: boolean;
-  data?: {
-    restaurantId?: string;
-    bookingId?: string;
-    points?: number;
-  };
+  deeplink?: string;
+  data?: any;
 }
 
-// Mock notifications data
-const mockNotifications: Notification[] = [
-  {
-    id: "1",
-    type: "booking",
-    title: "Booking Confirmed",
-    message:
-      "Your reservation at Le Petit Bistro is confirmed for tomorrow at 7:00 PM",
-    timestamp: "2 hours ago",
-    read: false,
-    data: {
-      restaurantId: "123",
-      bookingId: "456",
-    },
-  },
-  {
-    id: "2",
-    type: "loyalty",
-    title: "New Reward Available",
-    message:
-      "You've earned 500 loyalty points! Redeem them for a free dessert.",
-    timestamp: "5 hours ago",
-    read: false,
-    data: {
-      points: 500,
-    },
-  },
-  {
-    id: "3",
-    type: "review",
-    title: "Review Request",
-    message: "How was your experience at Sushi Master? Share your thoughts!",
-    timestamp: "1 day ago",
-    read: true,
-    data: {
-      restaurantId: "789",
-    },
-  },
-  {
-    id: "4",
-    type: "favorite",
-    title: "New Menu Items",
-    message:
-      "Your favorite restaurant, Pasta Paradise, has added new dishes to their menu",
-    timestamp: "2 days ago",
-    read: true,
-    data: {
-      restaurantId: "101",
-    },
-  },
-  {
-    id: "5",
-    type: "system",
-    title: "App Update",
-    message:
-      "New features are available! Update your app to the latest version.",
-    timestamp: "3 days ago",
-    read: true,
-  },
-];
+// Removed mock notifications; will fetch from database
 
 export default function NotificationsScreen() {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();
 
-  const [notifications, setNotifications] =
-    useState<Notification[]>(mockNotifications);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Simulate loading notifications
-  useEffect(() => {
-    const loadNotifications = async () => {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      setLoading(false);
-    };
+  const fetchNotifications = useCallback(async () => {
+    if (!profile?.id) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("notifications")
+      .select("id, category, type, title, message, data, created_at, read, deeplink")
+      .eq("user_id", profile.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (!error && data) {
+      setNotifications(
+        data.map((n: any) => ({
+          id: n.id,
+          category: n.category,
+          type: n.type,
+          title: n.title,
+          message: n.message,
+          data: n.data,
+          created_at: n.created_at,
+          read: !!n.read,
+          deeplink: n.deeplink || undefined,
+        })),
+      );
+    }
+    setLoading(false);
+  }, [profile?.id]);
 
-    loadNotifications();
-  }, []);
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    // Simulate refresh
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await fetchNotifications();
     setRefreshing(false);
-  }, []);
+  }, [fetchNotifications]);
+
+  const handleSendTest = useCallback(async () => {
+    if (!profile?.id) return;
+    const { error } = await supabase.rpc("enqueue_notification", {
+      p_user_id: profile.id,
+      p_category: "system",
+      p_type: "test_notification",
+      p_title: "Test notification",
+      p_message: `This is a test notification at ${new Date().toLocaleString()}`,
+      p_data: { debug: true },
+      p_deeplink: "app://profile/notifications",
+      p_channels: ["inapp", "push"],
+    });
+    if (!error) {
+      await fetchNotifications();
+    }
+  }, [profile?.id, fetchNotifications]);
+
+  const handleTriggerNotify = useCallback(async () => {
+    try {
+      // Call the notify Edge Function directly to process the outbox
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/notify`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await response.json();
+      console.log('Notify result:', result);
+      await fetchNotifications();
+    } catch (error) {
+      console.error('Error triggering notify:', error);
+    }
+  }, [fetchNotifications]);
 
   const handleNotificationPress = useCallback(
-    (notification: Notification) => {
-      // Mark as read
-      setNotifications((prev) =>
-        prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n)),
-      );
+    async (notification: Notification) => {
+      // Mark as read in DB and locally
+      await supabase.from("notifications").update({ read: true, read_at: new Date().toISOString() }).eq("id", notification.id);
+      setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n)));
 
-      // Navigate based on notification type
-      switch (notification.type) {
+      // Navigate based on deeplink/category
+      if (notification.deeplink) {
+        const deeplink = notification.deeplink.startsWith("app://")
+          ? notification.deeplink.replace("app://", "/")
+          : notification.deeplink;
+        router.push(deeplink as any);
+        return;
+      }
+
+      switch (notification.category) {
         case "booking":
           if (notification.data?.bookingId) {
-            router.push({
-              pathname: "/bookings",
-              params: { highlightBookingId: notification.data.bookingId },
-            });
+            router.push({ pathname: "/booking/[id]", params: { id: notification.data.bookingId } });
+          } else {
+            router.push("/bookings");
           }
           break;
-        case "favorite":
-        case "review":
+        case "reviews":
           if (notification.data?.restaurantId) {
-            router.push({
-              pathname: "/restaurant/[id]",
-              params: { id: notification.data.restaurantId },
-            });
+            router.push({ pathname: "/restaurant/[id]", params: { id: notification.data.restaurantId } });
+          } else {
+            router.push("/profile/reviews");
           }
+          break;
+        case "offers":
+          router.push("/profile/my-rewards");
           break;
         case "loyalty":
-          router.push("/profile");
+          router.push("/profile/loyalty");
+          break;
+        case "waitlist":
+          router.push("/waiting-list");
           break;
         default:
           break;
@@ -174,39 +177,43 @@ export default function NotificationsScreen() {
     [router],
   );
 
-  const getNotificationIcon = (type: NotificationType) => {
-    switch (type) {
+  const getNotificationIcon = (category: NotificationCategory) => {
+    switch (category) {
       case "booking":
         return Calendar;
-      case "favorite":
+      case "offers":
         return Heart;
-      case "review":
+      case "reviews":
         return Star;
       case "loyalty":
         return Trophy;
+      case "waitlist":
+        return Clock;
       default:
         return Bell;
     }
   };
 
-  const getNotificationColor = (type: NotificationType) => {
-    switch (type) {
+  const getNotificationColor = (category: NotificationCategory) => {
+    switch (category) {
       case "booking":
         return "#3b82f6"; // blue
-      case "favorite":
+      case "offers":
         return "#ef4444"; // red
-      case "review":
+      case "reviews":
         return "#f59e0b"; // amber
       case "loyalty":
         return "#10b981"; // green
+      case "waitlist":
+        return "#8b5cf6"; // purple
       default:
         return "#6b7280"; // gray
     }
   };
 
   const renderNotification = ({ item }: { item: Notification }) => {
-    const Icon = getNotificationIcon(item.type);
-    const color = getNotificationColor(item.type);
+    const Icon = getNotificationIcon(item.category);
+    const color = getNotificationColor(item.category);
 
     return (
       <Pressable
@@ -224,7 +231,7 @@ export default function NotificationsScreen() {
         <View className="flex-1 ml-3">
           <View className="flex-row items-center justify-between">
             <Text className="font-medium">{item.title}</Text>
-            <Muted className="text-xs">{item.timestamp}</Muted>
+            <Muted className="text-xs">{new Date(item.created_at).toLocaleString()}</Muted>
           </View>
           <Muted className="text-sm mt-1">{item.message}</Muted>
         </View>
@@ -241,18 +248,46 @@ export default function NotificationsScreen() {
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* Header */}
       <View className="px-4 pt-4 pb-2">
-        <View className="flex-row items-center">
-          <Pressable
-            onPress={() => router.back()}
-            className="mr-3 p-2 rounded-full bg-muted"
-          >
-            <ArrowLeft
-              size={20}
-              color={colorScheme === "dark" ? "#fff" : "#000"}
-            />
-          </Pressable>
-          <H2 className="text-2xl">Notifications</H2>
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center">
+            <Pressable
+              onPress={() => router.back()}
+              className="mr-3 p-2 rounded-full bg-muted"
+            >
+              <ArrowLeft
+                size={20}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+              />
+            </Pressable>
+            <H2 className="text-2xl">Notifications</H2>
+          </View>
+          {/* Mark all as read */}
+          {notifications.some((n) => !n.read) && (
+            <Pressable
+              onPress={async () => {
+                await supabase
+                  .from("notifications")
+                  .update({ read: true, read_at: new Date().toISOString() })
+                  .eq("user_id", profile?.id)
+                  .eq("read", false);
+                setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+              }}
+              className="px-3 py-2 rounded-md bg-primary/10"
+            >
+              <Text className="text-primary font-medium">Mark all as read</Text>
+            </Pressable>
+          )}
         </View>
+      </View>
+
+      {/* Actions */}
+      <View className="px-4 mb-2 gap-2">
+        <Pressable onPress={handleSendTest} className="px-4 py-3 rounded-md bg-primary">
+          <Text className="text-primary-foreground font-semibold text-center">Send test notification</Text>
+        </Pressable>
+        <Pressable onPress={handleTriggerNotify} className="px-4 py-3 rounded-md bg-secondary">
+          <Text className="text-secondary-foreground font-semibold text-center">Process outbox now</Text>
+        </Pressable>
       </View>
 
       {/* Notifications List */}

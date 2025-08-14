@@ -330,9 +330,8 @@ export const useProfileData = () => {
           subtitle: "Manage your notification settings",
           icon: "Bell",
           onPress: () => router.push("/profile/notifications"),
-          showBadge: true,
-          badgeText: "2",
-          badgeColor: "#3b82f6",
+          // Badge is now driven by real unread count in screen, so default off here
+          showBadge: false,
         },
       ],
     },
