@@ -1,7 +1,7 @@
 import "./polyfills";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../global.css";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { AuthProvider } from "@/context/supabase-provider";
 import { NetworkProvider } from "@/context/network-provider";
 import { useColorScheme } from "@/lib/useColorScheme";
@@ -16,6 +16,8 @@ import {
 import { useNetworkMonitor } from "@/hooks/useNetworkMonitor";
 import * as Sentry from "@sentry/react-native";
 import { getThemedColors } from "@/lib/utils";
+import { initializeNotificationHandlers, ensurePushPermissionsAndToken, registerDeviceForPush } from "@/lib/notifications/setup";
+import { useAuth } from "@/context/supabase-provider";
 
 LogBox.ignoreAllLogs();
 
@@ -32,23 +34,19 @@ function NetworkStatusBar() {
 
   // Control banner visibility with proper initialization checks
   useEffect(() => {
-    // Don't show banner if still loading or not initialized
     if (isLoading || !hasInitialized) {
       setShowBanner(false);
       return;
     }
 
-    // Add a small delay after initialization to ensure stable state
     const timer = setTimeout(() => {
-      // Show banner if offline or poor connection
       const shouldShow = !isOnline || connectionQuality === "poor";
       setShowBanner(shouldShow);
-    }, 1000); // 1 second delay after initialization
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, [isOnline, connectionQuality, isLoading, hasInitialized]);
 
-  // Don't render anything if banner shouldn't be shown
   if (!showBanner) {
     return null;
   }
@@ -80,6 +78,32 @@ function NetworkStatusBar() {
 function RootLayoutContent() {
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
+  const { profile } = useAuth();
+
+  useEffect(() => {
+    initializeNotificationHandlers((deeplink) => {
+      try {
+        if (deeplink.startsWith("app://")) {
+          const path = deeplink.replace("app://", "/");
+          router.push(path);
+        } else {
+          router.push(deeplink);
+        }
+      } catch (e) {
+        console.warn("Failed to navigate from notification:", e);
+      }
+    });
+    ensurePushPermissionsAndToken();
+    return () => {
+      // handlers cleaned up on unmount if needed
+    };
+  }, []);
+
+  useEffect(() => {
+    if (profile?.id) {
+      registerDeviceForPush(profile.id);
+    }
+  }, [profile?.id]);
 
   // Hide warnings in development
   useEffect(() => {
@@ -115,9 +139,7 @@ function RootLayoutContent() {
             ],
           );
         }
-      } catch (error) {
-
-      }
+      } catch (error) {}
     }
 
     if (!__DEV__) {
@@ -145,11 +167,8 @@ export default function RootLayout() {
     <ErrorBoundary
       showDetails={__DEV__}
       onError={(error, errorInfo) => {
-        // Custom error logging
         console.error("Root Error:", error);
         console.error("Error Info:", errorInfo);
-
-        // Additional error tracking
         if (!__DEV__) {
           Sentry.withScope((scope) => {
             scope.setTag("location", "root_layout");

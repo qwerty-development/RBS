@@ -1,17 +1,19 @@
 // app/(protected)/(tabs)/_layout.tsx
 import React, { useRef } from "react";
 import { Tabs } from "expo-router";
-import { Home, Search, Heart, Calendar, User } from "lucide-react-native";
-import { ScrollView } from "react-native";
+import { Home, Search, Heart, Calendar, User, Bell } from "lucide-react-native";
+import { ScrollView, View, Text } from "react-native";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
 import { getThemedColors } from "@/lib/utils";
+import { useNotificationsBadge } from "@/hooks/useNotificationsBadge";
 
 export const homeScrollRef = useRef<ScrollView>(null);
 
 export default function TabsLayout() {
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
+  const { unreadCount } = useNotificationsBadge();
 
   return (
     <Tabs
@@ -33,20 +35,14 @@ export default function TabsLayout() {
           right: 0,
           // Add subtle elevation for better visual hierarchy
           shadowColor: themedColors.foreground,
-          shadowOffset: {
-            width: 0,
-            height: -2,
-          },
+          shadowOffset: { width: 0, height: -2 },
           shadowOpacity: colorScheme === "dark" ? 0.25 : 0.1,
           shadowRadius: 8,
           elevation: 8,
         },
         tabBarActiveTintColor: themedColors.primary,
         tabBarInactiveTintColor: themedColors.mutedForeground,
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "500",
-        },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: "500" },
       }}
     >
       <Tabs.Screen
@@ -59,12 +55,9 @@ export default function TabsLayout() {
         }}
         listeners={({ navigation }) => ({
           tabPress: (e) => {
-            // Check if the home tab is already active
             const state = navigation.getState();
             const isHomeTabActive = state.routes[state.index]?.name === "index";
-
             if (isHomeTabActive && homeScrollRef.current) {
-              // Prevent default navigation and scroll to top
               e.preventDefault();
               homeScrollRef.current.scrollTo({ y: 0, animated: true });
             }
@@ -98,12 +91,35 @@ export default function TabsLayout() {
           ),
         }}
       />
+      {/* Notifications inside Social tab icon with badge for simplicity */}
       <Tabs.Screen
         name="social"
         options={{
           title: "Social",
           tabBarIcon: ({ color, size }) => (
-            <User size={size} color={color} strokeWidth={2} />
+            <View>
+              <User size={size} color={color} strokeWidth={2} />
+              {unreadCount > 0 && (
+                <View
+                  style={{
+                    position: "absolute",
+                    right: -4,
+                    top: -4,
+                    backgroundColor: "#EF4444",
+                    borderRadius: 10,
+                    minWidth: 16,
+                    height: 16,
+                    paddingHorizontal: 3,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text style={{ color: "white", fontSize: 10, fontWeight: "700" }}>
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </Text>
+                </View>
+              )}
+            </View>
           ),
         }}
       />
