@@ -437,24 +437,16 @@ export function useRestaurant(
           };
           setRestaurant(updatedRestaurant);
         } else {
-          // No reviews, set zero summary
-          const zeroSummary = {
-            total_reviews: 0,
-            average_rating: 0,
-            rating_distribution: { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0 },
-            detailed_ratings: {
-              food_avg: 0,
-              service_avg: 0,
-              ambiance_avg: 0,
-              value_avg: 0,
-            },
-            recommendation_percentage: 0,
-          };
+          // No reviews returned: preserve any existing aggregates on the restaurant row
+          const preservedAverage =
+            (restaurantData as any).average_rating ?? 0;
+          const preservedTotal = (restaurantData as any).total_reviews ?? 0;
+
           const updatedRestaurant = {
             ...restaurantData,
-            review_summary: zeroSummary,
-            average_rating: 0,
-            total_reviews: 0,
+            review_summary: null,
+            average_rating: preservedAverage,
+            total_reviews: preservedTotal,
           };
           setRestaurant(updatedRestaurant);
         }
