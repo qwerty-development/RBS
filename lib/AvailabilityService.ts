@@ -182,7 +182,7 @@ export class AvailabilityService {
   private async getMaxTurnTime(restaurantId: string): Promise<number> {
     const cacheKey = `turn-time:${restaurantId}`;
     let cached = this.restaurantConfigCache.get(cacheKey);
-
+git 
     if (cached) return cached;
 
     try {
@@ -262,6 +262,7 @@ export class AvailabilityService {
           shift.closeTime,
           restaurantId,
           partySize,
+          date,
         );
         allBaseSlots.push(...shiftSlots);
       }
@@ -340,7 +341,11 @@ export class AvailabilityService {
         p_party_size: partySize,
       });
 
-      this.batchedQueries.set(queryKey, tablesPromise);
+      // Store as a generic promise for the batched cache to satisfy typing
+      this.batchedQueries.set(
+        queryKey,
+        tablesPromise as unknown as Promise<any>,
+      );
       setTimeout(() => this.batchedQueries.delete(queryKey), 5000);
 
       const { data: availableTables, error } = await tablesPromise;
@@ -1332,6 +1337,7 @@ export class AvailabilityService {
     closeTime: string,
     restaurantId: string,
     partySize: number,
+    date: Date,
   ): Promise<{ time: string }[]> {
     const slots: { time: string }[] = [];
     const [openHour, openMin] = openTime.split(":").map(Number);
@@ -1348,15 +1354,13 @@ export class AvailabilityService {
 
     const closeTimeInMinutes = closeHour * 60 + closeMin;
 
-    // For large parties, get appropriate turn time
-    const turnTimeForParty = this.getDefaultTurnTime(partySize);
-    const maxTurnTime = Math.max(
-      await this.getMaxTurnTime(restaurantId),
-      turnTimeForParty,
+    // Use the per‑party turn time (day-aware via RPC) as the closing buffer
+    // so small parties can book later if appropriate.
+    const bufferTime = await this.getTurnTimeForParty(
+      restaurantId,
+      partySize,
+      date,
     );
-
-    // Allow booking closer to closing time for large parties
-    const bufferTime = partySize > 8 ? maxTurnTime - 30 : maxTurnTime;
 
     while (currentHour * 60 + currentMin <= closeTimeInMinutes - bufferTime) {
       slots.push({
