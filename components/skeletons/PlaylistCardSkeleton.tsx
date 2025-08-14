@@ -5,9 +5,9 @@ import { View } from "react-native";
 const PlaylistCardSkeleton = () => {
   return (
     <View
+      className="bg-card"
       style={{
         padding: 16,
-        backgroundColor: "#fff",
         borderRadius: 8,
         marginBottom: 16,
       }}

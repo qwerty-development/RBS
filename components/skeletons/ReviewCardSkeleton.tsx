@@ -7,9 +7,9 @@ const ReviewCardSkeleton = () => {
     <View
       style={{
         padding: 16,
-        backgroundColor: "#fff",
         borderBottomWidth: 1,
         borderBottomColor: "#eee",
+        backgroundColor: "transparent",
       }}
     >
       <View style={{ width: "100%" }}>

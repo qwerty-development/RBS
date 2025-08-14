@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { View, StyleSheet, Animated, Easing } from "react-native";
+import { useColorScheme } from "@/lib/useColorScheme";
 
 interface SkeletonPlaceholderProps {
   width: number | string;
@@ -15,6 +16,7 @@ const SkeletonPlaceholder: React.FC<SkeletonPlaceholderProps> = ({
   style,
 }) => {
   const pulseAnim = useRef(new Animated.Value(0)).current;
+  const { isDarkColorScheme } = useColorScheme();
 
   useEffect(() => {
     const sharedAnimation = Animated.loop(
@@ -53,6 +55,7 @@ const SkeletonPlaceholder: React.FC<SkeletonPlaceholderProps> = ({
       style={[
         styles.placeholder,
         { width, height, borderRadius },
+        { backgroundColor: isDarkColorScheme ? "#2A2F36" : "#E1E9EE" },
         animatedStyle,
         style,
       ]}

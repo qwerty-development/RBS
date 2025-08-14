@@ -37,7 +37,7 @@ const ProfileScreenSkeleton = () => {
   );
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
+    <SafeAreaView style={{ flex: 1 }}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <ProfileHeaderSkeleton />
         <View style={{ marginTop: 24 }}>
@@ -46,7 +46,7 @@ const ProfileScreenSkeleton = () => {
               <View style={{ paddingHorizontal: 16, marginBottom: 12 }}>
                 <SkeletonPlaceholder width={120} height={20} />
               </View>
-              <View style={{ backgroundColor: "#fff" }}>
+              <View style={{ backgroundColor: "transparent" }}>
                 {[...Array(3)].map((_, itemIndex) => (
                   <MenuItemSkeleton key={itemIndex} />
                 ))}

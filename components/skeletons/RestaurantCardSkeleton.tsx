@@ -6,10 +6,12 @@ const RestaurantCardSkeleton = () => {
   return (
     <View
       style={{
+        width: 260,
         padding: 16,
-        backgroundColor: "#fff",
         borderRadius: 8,
         marginBottom: 16,
+        marginRight: 16,
+        backgroundColor: "transparent",
       }}
     >
       <View style={{ width: "100%" }}>

@@ -7,9 +7,9 @@ const OfferCardSkeleton = () => {
     <View
       style={{
         padding: 16,
-        backgroundColor: "#fff",
         borderRadius: 8,
         marginBottom: 16,
+        backgroundColor: "transparent",
       }}
     >
       <View style={{ width: "100%" }}>
