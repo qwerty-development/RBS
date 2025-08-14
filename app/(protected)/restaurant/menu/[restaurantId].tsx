@@ -54,6 +54,20 @@ export default function MenuScreen() {
 
   const router = useRouter();
   const { restaurantId } = useLocalSearchParams<{ restaurantId: string }>();
+  const handleBack = useCallback(() => {
+    if (router.canGoBack && router.canGoBack()) {
+      router.back();
+      return;
+    }
+    if (restaurantId) {
+      router.replace({
+        pathname: "/restaurant/[id]",
+        params: { id: restaurantId },
+      });
+    } else {
+      router.replace("/");
+    }
+  }, [router, restaurantId]);
   const { colorScheme } = useColorScheme();
 
   const {
@@ -214,24 +228,15 @@ export default function MenuScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      {/* Back Button Header (consistent with other pages) */}
-      <View className="absolute top-0 left-0 right-0 z-50">
-        <SafeAreaView edges={["top"]}>
-          <View className="p-4">
-            <Pressable
-              onPress={() => router.back()}
-              className="w-10 h-10 bg-black/50 rounded-full items-center justify-center"
-            >
-              <ChevronLeft size={24} color="white" />
-            </Pressable>
-          </View>
-        </SafeAreaView>
-      </View>
-      {/* Spacer to avoid overlap with floating back button */}
-      <View className="h-14" />
-      {/* Header with Search */}
+      {/* Header with Back + Search + Filter */}
       <View className="p-4 border-b border-border">
         <View className="flex-row items-center gap-3">
+          <Pressable
+            onPress={handleBack}
+            className="bg-primary/10 p-2 rounded-lg flex-row items-center"
+          >
+            <ChevronLeft size={20} className="text-primary mr-1" />
+          </Pressable>
           <View className="flex-1 bg-muted rounded-lg px-3 py-2 flex-row items-center">
             <Search size={20} className="text-muted-foreground mr-2" />
             <TextInput

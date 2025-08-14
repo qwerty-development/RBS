@@ -1,5 +1,5 @@
 // app/(protected)/restaurant/[id]/reviews.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   ScrollView,
   View,
@@ -36,6 +36,21 @@ export default function RestaurantReviewsScreen() {
 
   const params = useLocalSearchParams<{ id: string }>();
   const restaurantId = params?.id;
+
+  const handleBack = useCallback(() => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    if (restaurantId) {
+      router.replace({
+        pathname: "/restaurant/[id]",
+        params: { id: restaurantId },
+      });
+    } else {
+      router.replace("/");
+    }
+  }, [router, restaurantId]);
 
   const {
     restaurant,
@@ -94,7 +109,7 @@ export default function RestaurantReviewsScreen() {
       {/* Header */}
       <ReviewsHeader
         restaurantName={restaurant.name}
-        onBack={() => router.back()}
+        onBack={handleBack}
         onFilter={handleFilterToggle}
       />
 

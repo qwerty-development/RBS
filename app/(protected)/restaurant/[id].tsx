@@ -146,7 +146,7 @@ const ImageGallery: React.FC<{
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={(event) => {
           const index = Math.round(
-            event.nativeEvent.contentOffset.x / SCREEN_WIDTH,
+            event.nativeEvent.contentOffset.x / SCREEN_WIDTH
           );
           setActiveIndex(index);
         }}
@@ -262,7 +262,8 @@ const RestaurantHeaderInfo: React.FC<{
 
   // Use the new availability check
   const availabilityStatus = useMemo(() => {
-    return checkAvailability(new Date());
+    const now = new Date();
+    return checkAvailability(now, format(now, "HH:mm"));
   }, [checkAvailability]);
 
   const isOpen = availabilityStatus.isOpen;
@@ -488,7 +489,7 @@ const LocationMap: React.FC<{
   restaurant: Restaurant;
 }> = ({ restaurant }) => {
   const { address, coordinates, isLoading } = useRestaurantLocation(
-    restaurant.location,
+    restaurant.location
   );
   const [mapReady, setMapReady] = useState(false);
 
@@ -657,9 +658,7 @@ const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
                     key={star}
                     size={12}
                     color="#f59e0b"
-                    fill={
-                      star <= (review.rating || 0) ? "#f59e0b" : "none"
-                    }
+                    fill={star <= (review.rating || 0) ? "#f59e0b" : "none"}
                   />
                 ))}
               </View>
@@ -727,7 +726,7 @@ export default function RestaurantDetailsScreen() {
   const handleAddToPlaylist = useCallback(() => {
     runProtectedAction(
       () => setShowAddToPlaylist(true),
-      "add restaurants to a playlist",
+      "add restaurants to a playlist"
     );
   }, [runProtectedAction]);
 
@@ -757,10 +756,10 @@ export default function RestaurantDetailsScreen() {
       Alert.alert(
         "Added to Playlist",
         `${restaurant?.name} has been added to "${playlistName}"`,
-        [{ text: "OK" }],
+        [{ text: "OK" }]
       );
     },
-    [restaurant?.name],
+    [restaurant?.name]
   );
 
   const allImages = React.useMemo(() => {
