@@ -64,7 +64,6 @@ function BookingsScreenContent() {
   useFocusEffect(
     useCallback(() => {
       if (user && !isGuest && isInitialized && !hasFocusedRef.current) {
-     
         handleRefresh();
         hasFocusedRef.current = true;
       }
@@ -179,7 +178,7 @@ function BookingsScreenContent() {
       >
         <View style={{ minHeight: "100%" }}>
           {currentBookings.length === 0 ? (
-            <View className="flex-1 justify-center">
+            <View className="flex-1 justify-center py-20">
               {activeTab === "upcoming" ? (
                 <EmptyState
                   icon={Calendar}
