@@ -5,13 +5,13 @@
 @layer base {
 	:root {
 		/* New Brand Color Palette */
-		--background: 45 29% 97%; /* off white 45 29% 97% */
+		--background: 45 29% 97%; /* off white */
 		--foreground: 345 55% 31%; /* Mulberry Velvet */
-		--card: 25 50% 96%; /* Blushed Linen */
+		--card: 25 50% 96%; /* Light Blushed Linen */
 		--card-foreground: 345 55% 31%; /* Mulberry Velvet */
 		--popover: 0 0% 100%;
 		--popover-foreground: 345 55% 31%; /* Mulberry Velvet */
-		--primary: 345 55% 31%; /* Golden Crust */
+		--primary: 345 55% 31%; /* Mulbery Velvet */
 		--primary-foreground: 0 0% 100%;
 		--secondary: 25 100% 94%; /* Blushed Linen */
 		--secondary-foreground: 345 55% 31%; /* Mulberry Velvet */
@@ -23,7 +23,7 @@
 		--destructive-foreground: 0 0% 100%;
 		--border: 25 30% 88%; /* Subtle Blushed Linen */
 		--input: 25 30% 88%; /* Subtle Blushed Linen */
-		--ring: 345 55% 31%; /* Golden Crust */
+		--ring: 345 55% 31%; /* Mulberry Velvet */
 	}
 
 	.dark:root {
