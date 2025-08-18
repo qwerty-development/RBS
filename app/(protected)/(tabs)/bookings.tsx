@@ -172,7 +172,7 @@ function BookingsScreenContent() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={getRefreshControlColor(colorScheme)}
+            tintColor={getRefreshControlColor()}
           />
         }
       >

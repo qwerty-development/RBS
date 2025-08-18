@@ -47,18 +47,18 @@ export function UserRatingStats({ stats, className }: UserRatingStatsProps) {
   const chartConfig = {
     backgroundGradientFrom: "#ffffff",
     backgroundGradientTo: "#ffffff",
-    color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
+    color: (opacity = 1) => `rgba(242, 178, 95, ${opacity})`, // Golden Crust
     strokeWidth: 2,
     barPercentage: 0.5,
     useShadowColorFromDataset: false,
   };
 
   const getCompletionRateColor = (rate: number): string => {
-    if (rate >= 90) return "text-green-600";
-    if (rate >= 80) return "text-blue-600";
-    if (rate >= 70) return "text-yellow-600";
-    if (rate >= 60) return "text-orange-600";
-    return "text-red-600";
+    if (rate >= 90) return "text-primary"; // Golden Crust for excellent
+    if (rate >= 80) return "text-accent"; // Lavender Fog for good
+    if (rate >= 70) return "text-muted-foreground"; // Charcoal Mood for fair
+    if (rate >= 60) return "text-foreground"; // Mulberry Velvet for poor
+    return "text-destructive"; // Keep destructive for very poor
   };
 
   const getTrendColor = (trend: string): string => {

@@ -12,7 +12,7 @@ export const homeScrollRef = useRef<ScrollView>(null);
 
 export default function TabsLayout() {
   const { colorScheme } = useColorScheme();
-  const themedColors = getThemedColors(colorScheme);
+  const themedColors = getThemedColors();
   const { unreadCount } = useNotificationsBadge();
 
   return (

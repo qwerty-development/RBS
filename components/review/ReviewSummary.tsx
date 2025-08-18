@@ -41,7 +41,7 @@ export function ReviewSummary({ reviewSummary }: ReviewSummaryProps) {
     return (
       <View className="flex-row items-center gap-2 mb-1">
         <Text className="text-xs w-4">{rating}</Text>
-        <Star size={12} color="#f59e0b" fill="#f59e0b" />
+        <Star size={12} color="#F2B25F" fill="#F2B25F" />
         <View className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
           <View
             className="h-full bg-yellow-400"
@@ -119,7 +119,7 @@ export function ReviewSummary({ reviewSummary }: ReviewSummaryProps) {
       {reviewSummary.recommendation_percentage > 0 && (
         <View className="border-t border-border pt-4 mt-4">
           <View className="flex-row items-center gap-2">
-            <ThumbsUp size={16} color="#10b981" />
+            <ThumbsUp size={16} color="#F2B25F" />
             <Text className="text-sm">
               {reviewSummary.recommendation_percentage}% recommend to friends
             </Text>

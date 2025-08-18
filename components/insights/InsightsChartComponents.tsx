@@ -89,14 +89,14 @@ export const SimpleLineChart: React.FC<{
                   className="w-3 rounded-t"
                   style={{
                     height: bookingHeight,
-                    backgroundColor: "#3b82f6",
+                    backgroundColor: "#F2B25F", // Golden Crust
                   }}
                 />
                 <View
                   className="w-3 rounded-t"
                   style={{
                     height: completedHeight,
-                    backgroundColor: "#10b981",
+                    backgroundColor: "#D9C3DB", // Lavender Fog
                   }}
                 />
               </View>
@@ -124,11 +124,11 @@ export const SimpleLineChart: React.FC<{
       {/* Legend */}
       <View className="flex-row justify-center gap-6 mt-4">
         <View className="flex-row items-center gap-2">
-          <View className="w-3 h-3 rounded bg-[#3b82f6]" />
+          <View className="w-3 h-3 rounded bg-primary" />
           <Text className="text-xs text-muted-foreground">Total</Text>
         </View>
         <View className="flex-row items-center gap-2">
-          <View className="w-3 h-3 rounded bg-[#10b981]" />
+          <View className="w-3 h-3 rounded bg-accent" />
           <Text className="text-xs text-muted-foreground">Completed</Text>
         </View>
       </View>
@@ -226,7 +226,7 @@ export const TierProgressBar: React.FC<{
       <ProgressBar
         value={Math.max(0, progress)}
         maxValue={100}
-        color="#f59e0b"
+        color="#F2B25F"
         height={10}
       />
       <Text className="text-xs text-muted-foreground">

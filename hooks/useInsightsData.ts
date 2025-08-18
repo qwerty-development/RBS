@@ -104,18 +104,18 @@ export interface LoyaltyData {
   pointsFromReviews: number;
 }
 
-// Constants
+// Constants - Updated with brand color palette
 const CUISINE_COLORS = [
-  "#3b82f6",
-  "#ef4444",
-  "#10b981",
-  "#f59e0b",
-  "#8b5cf6",
-  "#06b6d4",
-  "#f97316",
-  "#84cc16",
-  "#ec4899",
-  "#6366f1",
+  "#F2B25F", // Golden Crust
+  "#792339", // Mulberry Velvet
+  "#D9C3DB", // Lavender Fog
+  "#787878", // Charcoal Mood
+  "#FFECE2", // Blushed Linen
+  "#F2B25F", // Golden Crust (repeat)
+  "#792339", // Mulberry Velvet (repeat)
+  "#D9C3DB", // Lavender Fog (repeat)
+  "#787878", // Charcoal Mood (repeat)
+  "#FFECE2", // Blushed Linen (repeat)
 ];
 
 const TIME_SLOTS = [

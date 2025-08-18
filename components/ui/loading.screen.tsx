@@ -1,6 +1,5 @@
 import React from "react";
 import { View, ActivityIndicator, Text } from "react-native";
-import { useColorScheme } from "@/lib/useColorScheme";
 import { getActivityIndicatorColor, getThemedColors } from "@/lib/utils";
 
 export function LoadingScreen({
@@ -8,8 +7,7 @@ export function LoadingScreen({
 }: {
   message?: string;
 }) {
-  const { colorScheme } = useColorScheme();
-  const themedColors = getThemedColors(colorScheme);
+  const themedColors = getThemedColors();
 
   return (
     <View
@@ -23,7 +21,7 @@ export function LoadingScreen({
     >
       <ActivityIndicator
         size="large"
-        color={getActivityIndicatorColor(colorScheme)}
+        color={getActivityIndicatorColor()}
       />
       <Text
         style={{

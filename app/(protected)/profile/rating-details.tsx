@@ -221,7 +221,7 @@ export default function RatingDetailsPage() {
     propsForDots: {
       r: "4",
       strokeWidth: "2",
-      stroke: "#3b82f6",
+      stroke: "#F2B25F", // Golden Crust
     },
   };
 

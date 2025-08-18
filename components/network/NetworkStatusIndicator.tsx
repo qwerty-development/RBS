@@ -32,29 +32,29 @@ export function NetworkStatusIndicator({
     if (!isOnline) {
       return {
         icon: WifiOff,
-        color: "#ef4444", // red-500
+        color: "#792339", // Mulberry Velvet
         text: "Offline",
-        bgColor: "bg-red-100 dark:bg-red-900",
-        textColor: "text-red-700 dark:text-red-300",
+        bgColor: "bg-destructive/10",
+        textColor: "text-destructive",
       };
     }
 
     if (isSlowConnection) {
       return {
         icon: Signal,
-        color: "#f59e0b", // amber-500
+        color: "#F2B25F", // Golden Crust
         text: `Slow (${connectionQuality})`,
-        bgColor: "bg-amber-100 dark:bg-amber-900",
-        textColor: "text-amber-700 dark:text-amber-300",
+        bgColor: "bg-primary/10",
+        textColor: "text-primary",
       };
     }
 
     return {
       icon: Wifi,
-      color: "#10b981", // emerald-500
+      color: "#F2B25F", // Golden Crust
       text: `Online (${connectionQuality})`,
-      bgColor: "bg-emerald-100 dark:bg-emerald-900",
-      textColor: "text-emerald-700 dark:text-emerald-300",
+      bgColor: "bg-primary/10",
+      textColor: "text-primary",
     };
   };
 
