@@ -572,7 +572,7 @@ export default function FavoritesScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor={getRefreshControlColor(colorScheme)}
+              tintColor={getRefreshControlColor()}
             />
           }
           contentContainerStyle={{ flexGrow: 1 }}

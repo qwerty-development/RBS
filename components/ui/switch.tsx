@@ -37,12 +37,12 @@ SwitchWeb.displayName = "SwitchWeb";
 
 const RGB_COLORS = {
   light: {
-    primary: "rgb(24, 24, 27)",
-    input: "rgb(228, 228, 231)",
+    primary: "rgb(242, 178, 95)", // Golden Crust
+    input: "rgb(248, 230, 215)", // Subtle Blushed Linen
   },
   dark: {
-    primary: "rgb(250, 250, 250)",
-    input: "rgb(39, 39, 42)",
+    primary: "rgb(242, 178, 95)", // Golden Crust (same for light mode only)
+    input: "rgb(248, 230, 215)", // Subtle Blushed Linen (same for light mode only)
   },
 } as const;
 

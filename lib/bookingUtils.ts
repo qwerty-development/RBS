@@ -94,22 +94,22 @@ export const TABLE_PREFERENCES = [
 export const TIER_CONFIG = {
   bronze: {
     name: "Bronze",
-    color: "#CD7F32",
+    color: "#787878", // Charcoal Mood
     pointsMultiplier: 1,
   },
   silver: {
     name: "Silver",
-    color: "#C0C0C0",
+    color: "#D9C3DB", // Lavender Fog
     pointsMultiplier: 1.1,
   },
   gold: {
     name: "Gold",
-    color: "#FFD700",
+    color: "#F2B25F", // Golden Crust
     pointsMultiplier: 1.2,
   },
   platinum: {
     name: "Platinum",
-    color: "#E5E4E2",
+    color: "#792339", // Mulberry Velvet
     pointsMultiplier: 1.5,
   },
 } as const;
@@ -120,42 +120,42 @@ export type TierType = keyof typeof TIER_CONFIG;
 export const BOOKING_STATUS_CONFIG = {
   pending: {
     label: "Pending Confirmation",
-    color: "#f59e0b",
-    bgColor: "#fef3c7",
+    color: "#F2B25F", // Golden Crust
+    bgColor: "#FFECE2", // Blushed Linen
     description:
       "Your booking is waiting for restaurant confirmation. We'll notify you once it's confirmed.",
   },
   confirmed: {
     label: "Confirmed",
-    color: "#10b981",
-    bgColor: "#d1fae5",
+    color: "#F2B25F", // Golden Crust
+    bgColor: "#D9C3DB", // Lavender Fog
     description:
       "Your table is confirmed! Please arrive on time and show your confirmation code.",
   },
   cancelled_by_user: {
     label: "Cancelled by You",
-    color: "#6b7280",
-    bgColor: "#f3f4f6",
+    color: "#787878", // Charcoal Mood
+    bgColor: "#FFECE2", // Blushed Linen
     description: "You cancelled this booking.",
   },
   declined_by_restaurant: {
     label: "Declined by Restaurant",
-    color: "#ef4444",
-    bgColor: "#fee2e2",
+    color: "#792339", // Mulberry Velvet
+    bgColor: "#FFECE2", // Blushed Linen
     description:
       "Unfortunately, the restaurant couldn't accommodate your booking.",
   },
   completed: {
     label: "Completed",
-    color: "#3b82f6",
-    bgColor: "#dbeafe",
+    color: "#F2B25F", // Golden Crust
+    bgColor: "#FFECE2", // Blushed Linen
     description:
       "Thank you for dining with us! We hope you had a great experience.",
   },
   no_show: {
     label: "No Show",
-    color: "#dc2626",
-    bgColor: "#fee2e2",
+    color: "#792339", // Mulberry Velvet
+    bgColor: "#D9C3DB", // Lavender Fog
     description: "This booking was marked as a no-show.",
   },
 } as const;

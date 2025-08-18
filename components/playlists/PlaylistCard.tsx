@@ -170,14 +170,14 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
       <Pressable
         onPress={onPress}
         className={cn(
-          "bg-white dark:bg-gray-800 rounded-2xl overflow-hidden",
-          "shadow-sm dark:shadow-none border border-gray-200 dark:border-gray-700",
+          "bg-background rounded-2xl overflow-hidden",
+          "shadow-sm border border-border",
           "active:scale-95 transition-transform",
           className || "",
         )}
       >
         {/* Cover Image */}
-        <View className="h-32 bg-gray-100 dark:bg-gray-700 relative">
+        <View className="h-32 bg-muted relative">
           {playlist.preview_images && playlist.preview_images.length > 0 ? (
             <ImageBackground
               source={{ uri: playlist.preview_images[0] }}

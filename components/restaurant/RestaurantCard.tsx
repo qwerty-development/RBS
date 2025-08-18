@@ -111,8 +111,8 @@ export function RestaurantCard({
     <View className="flex-row items-center gap-1">
       <Star
         size={variant === "compact" ? 12 : 14}
-        color="#f59e0b"
-        fill="#f59e0b"
+        color="#F2B25F"
+        fill="#F2B25F"
       />
       <Text
         className={cn(
@@ -148,11 +148,11 @@ export function RestaurantCard({
 
     return (
       <View className="flex-row items-center gap-1 mt-1">
-        <Clock size={12} color={availability.isOpen ? "#10b981" : "#ef4444"} />
+        <Clock size={12} color={availability.isOpen ? "#F2B25F" : "#792339"} />
         <Text
           className={cn(
             "text-xs font-medium",
-            availability.isOpen ? "text-green-600" : "text-red-600",
+            availability.isOpen ? "text-primary" : "text-foreground",
           )}
         >
           {availability.isOpen ? "Open" : "Closed"}
@@ -359,7 +359,7 @@ export function RestaurantCard({
 
                 {restaurantData.address && (
                   <View className="flex-row items-center gap-1 flex-1">
-                    <MapPin size={14} color="#666" />
+                    <MapPin size={14} color="#787878" />
                     <Text
                       className="text-xs text-muted-foreground"
                       numberOfLines={1}
@@ -375,8 +375,8 @@ export function RestaurantCard({
                   className={cn(
                     "text-sm font-medium mt-2",
                     restaurantData.booking_policy === "instant"
-                      ? "text-green-600"
-                      : "text-orange-600",
+                      ? "text-primary"
+                      : "text-accent",
                   )}
                 >
                   {restaurantData.booking_policy === "instant"

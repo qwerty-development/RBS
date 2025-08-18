@@ -8,50 +8,41 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Get themed colors based on current color scheme
+ * Get themed colors - Light mode only
  * This helps migrate from hard-coded colors to theme-aware colors
  */
-export function getThemedColors(colorScheme: "light" | "dark") {
-  return colors[colorScheme];
+export function getThemedColors(): typeof colors.light {
+  return colors.light;
 }
 
 /**
- * Get a themed color value for inline styles
- * Usage: getThemedColor('primary', colorScheme)
+ * Get a themed color value for inline styles - Light mode only
+ * Usage: getThemedColor('primary')
  */
 export function getThemedColor(
   colorName: keyof typeof colors.light,
-  colorScheme: "light" | "dark",
 ): string {
-  return colors[colorScheme][colorName] || colors[colorScheme].foreground;
+  return colors.light[colorName] || colors.light.foreground;
 }
 
 /**
- * Get icon color based on theme
+ * Get icon color - Light mode only
  * Replaces hard-coded "#fff" and "#000" patterns
  */
-export function getIconColor(colorScheme: "light" | "dark"): string {
-  return colorScheme === "dark"
-    ? colors.dark.foreground
-    : colors.light.foreground;
+export function getIconColor(): string {
+  return colors.light.foreground;
 }
 
 /**
- * Get activity indicator color based on theme
+ * Get activity indicator color - Light mode only
  */
-export function getActivityIndicatorColor(
-  colorScheme: "light" | "dark",
-): string {
-  return colorScheme === "dark"
-    ? colors.dark.foreground
-    : colors.light.foreground;
+export function getActivityIndicatorColor(): string {
+  return colors.light.foreground;
 }
 
 /**
- * Get refresh control tint color based on theme
+ * Get refresh control tint color - Light mode only
  */
-export function getRefreshControlColor(colorScheme: "light" | "dark"): string {
-  return colorScheme === "dark"
-    ? colors.dark.foreground
-    : colors.light.foreground;
+export function getRefreshControlColor(): string {
+  return colors.light.foreground;
 }
