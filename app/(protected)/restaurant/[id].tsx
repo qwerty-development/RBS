@@ -4,7 +4,6 @@ import {
   BookOpen,
   FolderPlus,
   ChevronLeft,
-  Share,
   Heart,
   Star,
   MapPin,
@@ -127,13 +126,26 @@ const useRestaurantLocation = (location: any) => {
 };
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
-const IMAGE_HEIGHT = Math.min(SCREEN_HEIGHT * 0.4, 320);
+const IMAGE_HEIGHT = Math.min(SCREEN_HEIGHT * 0.6, 400);
 
 // Image Gallery Component
 const ImageGallery: React.FC<{
   images: string[];
   onImagePress: (index: number) => void;
-}> = ({ images, onImagePress }) => {
+  restaurant: Restaurant;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
+  onAddToPlaylist: () => void;
+  colorScheme: any;
+}> = ({
+  images,
+  onImagePress,
+  restaurant,
+  isFavorite,
+  onToggleFavorite,
+  onAddToPlaylist,
+  colorScheme
+}) => {
   const [activeIndex, setActiveIndex] = useState(0);
 
   if (!images.length) return null;
@@ -166,90 +178,49 @@ const ImageGallery: React.FC<{
         ))}
       </ScrollView>
 
-      {/* Image Indicators */}
-      <View className="absolute bottom-4 left-0 right-0 flex-row justify-center">
-        <View className="flex-row bg-black/50 rounded-full px-3 py-1 gap-1">
-          {images.map((_, index) => (
-            <View
-              key={index}
-              className={`w-2 h-2 rounded-full ${
-                index === activeIndex ? "bg-white" : "bg-white/50"
-              }`}
-            />
-          ))}
-        </View>
+      {/* Overlay Action Buttons */}
+      <View className="absolute top-16 right-4 flex-col gap-2">
+        <Pressable
+          onPress={onToggleFavorite}
+          className="w-10 h-10 bg-black/30 rounded-full items-center justify-center"
+        >
+          <Heart
+            size={20}
+            color={isFavorite ? "#ef4444" : "white"}
+            fill={isFavorite ? "#ef4444" : "none"}
+          />
+        </Pressable>
+        <Pressable
+          onPress={onAddToPlaylist}
+          className="w-10 h-10 bg-black/30 rounded-full items-center justify-center"
+        >
+          <FolderPlus
+            size={20}
+            color="white"
+          />
+        </Pressable>
       </View>
 
-      {/* Camera Button */}
-      <Pressable
-        onPress={() => onImagePress(activeIndex)}
-        className="absolute bottom-4 right-4 bg-black/50 rounded-full p-3"
-      >
-        <Camera size={20} color="white" />
-      </Pressable>
-    </View>
-  );
-};
-
-// Quick Actions Bar
-const QuickActionsBar: React.FC<{
-  restaurant: Restaurant;
-  isFavorite: boolean;
-  onToggleFavorite: () => void;
-  onShare: () => void;
-  onCall: () => void;
-  onAddToPlaylist: () => void;
-  colorScheme: any;
-}> = ({
-  restaurant,
-  isFavorite,
-  onToggleFavorite,
-  onShare,
-  onCall,
-  onAddToPlaylist,
-  colorScheme,
-}) => {
-  return (
-    <View className="flex-row justify-around py-4 border-b border-border bg-background">
-      <Pressable onPress={onToggleFavorite} className="items-center gap-1 p-2">
-        <Heart
-          size={24}
-          color={isFavorite ? "#ef4444" : "#666"}
-          fill={isFavorite ? "#ef4444" : "none"}
-        />
-        <Text className="text-xs text-muted-foreground">
-          {isFavorite ? "Saved" : "Save"}
-        </Text>
-      </Pressable>
-      <Pressable onPress={onAddToPlaylist} className="items-center gap-1 p-2">
-        <FolderPlus
-          size={24}
-          color={colorScheme === "dark" ? "#fff" : "#000"}
-        />
-        <Text className="text-xs text-muted-foreground">Add</Text>
-      </Pressable>
-
-      <Pressable onPress={onShare} className="items-center gap-1 p-2">
-        <Share size={24} color="#666" />
-        <Text className="text-xs text-muted-foreground">Share</Text>
-      </Pressable>
-
-      {restaurant.phone_number && (
-        <Pressable onPress={onCall} className="items-center gap-1 p-2">
-          <Phone size={24} color="#666" />
-          <Text className="text-xs text-muted-foreground">Call</Text>
-        </Pressable>
+      {/* Image Indicators - More Subtle */}
+      {images.length > 1 && (
+        <View className="absolute bottom-4 left-0 right-0 flex-row justify-center">
+          <View className="flex-row bg-black/20 rounded-full px-2 py-0.5 gap-0.5">
+            {images.map((_, index) => (
+              <View
+                key={index}
+                className={`w-1.5 h-1.5 rounded-full ${
+                  index === activeIndex ? "bg-white" : "bg-white/40"
+                }`}
+              />
+            ))}
+          </View>
+        </View>
       )}
-
-      <DirectionsButton
-        restaurant={restaurant}
-        variant="text"
-        size="sm"
-        showText={true}
-      />
     </View>
   );
 };
+
+
 
 // Restaurant Header Info - Updated to use new hours system
 const RestaurantHeaderInfo: React.FC<{
@@ -710,7 +681,6 @@ export default function RestaurantDetailsScreen() {
     isFavorite,
     loading,
     toggleFavorite,
-    handleShare,
     handleCall,
   } = useRestaurant(id);
 
@@ -840,38 +810,45 @@ export default function RestaurantDetailsScreen() {
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
       >
-        <ImageGallery images={allImages} onImagePress={() => {}} />
-
-        <QuickActionsBar
+        <ImageGallery
+          images={allImages}
+          onImagePress={() => {}}
           restaurant={restaurant}
           isFavorite={isFavorite}
           onToggleFavorite={handleToggleFavorite}
-          onShare={handleShare}
-          onCall={() => handleCall(restaurant)}
-          colorScheme={colorScheme}
           onAddToPlaylist={handleAddToPlaylist}
+          colorScheme={colorScheme}
         />
 
+        {/* 1. Name, cuisine, etc. */}
         <RestaurantHeaderInfo restaurant={restaurant} restaurantId={id!} />
 
         {!isGuest && (
           <RestaurantPlaylistIndicator restaurantId={restaurant.id} />
         )}
 
-        <AboutSection restaurant={restaurant} />
-        <FeaturesSection restaurant={restaurant} />
-        <RestaurantLoyaltyRules restaurantId={id as string} />
+        {/* 2. Contact */}
         <ContactInfo
           restaurant={restaurant}
           onCall={() => handleCall(restaurant)}
           onWebsite={handleWebsite}
         />
 
-        {/* Operating Hours Section */}
+        {/* 3. Menu */}
+        <MenuSection onViewMenu={handleViewMenu} />
+
+        {/* 4. Hours */}
         <RestaurantHoursDisplay restaurantId={restaurant.id} className="mb-6" />
 
-        <MenuSection onViewMenu={handleViewMenu} />
+        {/* 5. Location */}
         <LocationMap restaurant={restaurant} />
+
+        {/* 6. About and Features */}
+        <AboutSection restaurant={restaurant} />
+        <FeaturesSection restaurant={restaurant} />
+        <RestaurantLoyaltyRules restaurantId={id as string} />
+
+        {/* 7. Reviews */}
         <ReviewsSummary
           restaurant={restaurant}
           reviews={reviews}

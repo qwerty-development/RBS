@@ -159,15 +159,9 @@ export const useRestaurantLoyalty = (restaurantId?: string) => {
         return null;
       }
 
-      // If no balance or zero balance, no points available
+      // If no balance or zero balance, treat as if no loyalty program
       if (balance.current_balance <= 0) {
-        return {
-          ruleId: "",
-          ruleName: "No Points Available",
-          pointsToAward: 0,
-          available: false,
-          reason: "The restaurant has run out of loyalty points",
-        };
+        return null;
       }
 
       // If no rules, no points available
