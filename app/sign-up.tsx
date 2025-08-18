@@ -8,6 +8,7 @@ import {
   Platform,
   Alert,
 } from "react-native";
+import { useRouter } from "expo-router";
 import * as z from "zod";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -79,6 +80,7 @@ const formSchema = z
 
 export default function SignUp() {
   const { signUp, loading } = useAuth();
+  const router = useRouter();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -276,9 +278,7 @@ export default function SignUp() {
               </Text>
               <Text
                 className="text-primary font-medium"
-                onPress={() => {
-                  // Navigate to sign in
-                }}
+                onPress={() => {router.replace("/sign-in")}}
               >
                 Sign In
               </Text>

@@ -113,7 +113,7 @@ export default function SignIn() {
         if (error.message !== "User canceled Apple sign-in") {
           Alert.alert(
             "Sign In Error",
-            error.message || "Apple sign in failed.",
+            error.message || "Apple sign in failed."
           );
         }
       } else if (needsProfileUpdate) {
@@ -126,7 +126,7 @@ export default function SignIn() {
       console.error("Apple sign in error:", err);
       Alert.alert(
         "Sign In Error",
-        err.message || "Failed to sign in with Apple.",
+        err.message || "Failed to sign in with Apple."
       );
     } finally {
       setIsAppleLoading(false);
@@ -143,7 +143,7 @@ export default function SignIn() {
         if (error.message !== "User canceled Google sign-in") {
           Alert.alert(
             "Sign In Error",
-            error.message || "Google sign in failed.",
+            error.message || "Google sign in failed."
           );
         }
       } else if (needsProfileUpdate) {
@@ -156,7 +156,7 @@ export default function SignIn() {
       console.error("Google sign in error:", err);
       Alert.alert(
         "Sign In Error",
-        err.message || "Failed to sign in with Google.",
+        err.message || "Failed to sign in with Google."
       );
     } finally {
       setIsGoogleLoading(false);
@@ -213,7 +213,12 @@ export default function SignIn() {
                 )}
               />
               <TouchableOpacity
-                onPress={() => router.push("/password-reset")}
+                onPress={() =>
+                  router.replace({
+                    pathname: "/password-reset",
+                    params: { from: "sign-in" },
+                  })
+                }
                 className="mt-2 self-end"
               >
                 <Text className="text-primary font-medium">
@@ -315,7 +320,7 @@ export default function SignIn() {
             </Text>
             <Text
               className="text-primary font-medium"
-              onPress={() => router.push("/sign-up")}
+              onPress={() => router.replace("/sign-up")}
             >
               Sign Up
             </Text>
