@@ -104,15 +104,15 @@ export interface LoyaltyData {
   pointsFromReviews: number;
 }
 
-// Constants - Updated with brand color palette
+// Constants - Updated with brand color palette (switched)
 const CUISINE_COLORS = [
-  "#F2B25F", // Golden Crust
   "#792339", // Mulberry Velvet
+  "#F2B25F", // Golden Crust
   "#D9C3DB", // Lavender Fog
   "#787878", // Charcoal Mood
   "#FFECE2", // Blushed Linen
-  "#F2B25F", // Golden Crust (repeat)
   "#792339", // Mulberry Velvet (repeat)
+  "#F2B25F", // Golden Crust (repeat)
   "#D9C3DB", // Lavender Fog (repeat)
   "#787878", // Charcoal Mood (repeat)
   "#FFECE2", // Blushed Linen (repeat)

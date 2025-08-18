@@ -4,26 +4,26 @@
 
 @layer base {
 	:root {
-		/* New Brand Color Palette */
+		/* New Brand Color Palette - Switched Mulberry Velvet and Golden Crust */
 		--background: 0 0% 100%;
-		--foreground: 345 55% 31%; /* Mulberry Velvet */
+		--foreground: 34 85% 66%; /* Golden Crust */
 		--card: 25 100% 94%; /* Blushed Linen */
-		--card-foreground: 345 55% 31%; /* Mulberry Velvet */
+		--card-foreground: 34 85% 66%; /* Golden Crust */
 		--popover: 0 0% 100%;
-		--popover-foreground: 345 55% 31%; /* Mulberry Velvet */
-		--primary: 34 85% 66%; /* Golden Crust */
+		--popover-foreground: 34 85% 66%; /* Golden Crust */
+		--primary: 345 55% 31%; /* Mulberry Velvet */
 		--primary-foreground: 0 0% 100%;
 		--secondary: 25 100% 94%; /* Blushed Linen */
-		--secondary-foreground: 345 55% 31%; /* Mulberry Velvet */
+		--secondary-foreground: 34 85% 66%; /* Golden Crust */
 		--muted: 25 50% 96%; /* Lighter Blushed Linen */
 		--muted-foreground: 0 0% 47%; /* Charcoal Mood */
 		--accent: 295 30% 81%; /* Lavender Fog */
-		--accent-foreground: 345 55% 31%; /* Mulberry Velvet */
+		--accent-foreground: 34 85% 66%; /* Golden Crust */
 		--destructive: 0 80% 57.70%;
 		--destructive-foreground: 0 0% 100%;
 		--border: 25 30% 88%; /* Subtle Blushed Linen */
 		--input: 25 30% 88%; /* Subtle Blushed Linen */
-		--ring: 34 85% 66%; /* Golden Crust */
+		--ring: 345 55% 31%; /* Mulberry Velvet */
 	}
 
 	/* Light mode only - no dark mode support needed */

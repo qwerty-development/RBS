@@ -111,8 +111,8 @@ export function RestaurantCard({
     <View className="flex-row items-center gap-1">
       <Star
         size={variant === "compact" ? 12 : 14}
-        color="#F2B25F"
-        fill="#F2B25F"
+        color="#792339"
+        fill="#792339"
       />
       <Text
         className={cn(
@@ -148,7 +148,7 @@ export function RestaurantCard({
 
     return (
       <View className="flex-row items-center gap-1 mt-1">
-        <Clock size={12} color={availability.isOpen ? "#F2B25F" : "#792339"} />
+        <Clock size={12} color={availability.isOpen ? "#792339" : "#F2B25F"} />
         <Text
           className={cn(
             "text-xs font-medium",

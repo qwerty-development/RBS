@@ -104,12 +104,12 @@ export const TIER_CONFIG = {
   },
   gold: {
     name: "Gold",
-    color: "#F2B25F", // Golden Crust
+    color: "#792339", // Mulberry Velvet
     pointsMultiplier: 1.2,
   },
   platinum: {
     name: "Platinum",
-    color: "#792339", // Mulberry Velvet
+    color: "#F2B25F", // Golden Crust
     pointsMultiplier: 1.5,
   },
 } as const;
@@ -120,14 +120,14 @@ export type TierType = keyof typeof TIER_CONFIG;
 export const BOOKING_STATUS_CONFIG = {
   pending: {
     label: "Pending Confirmation",
-    color: "#F2B25F", // Golden Crust
+    color: "#792339", // Mulberry Velvet
     bgColor: "#FFECE2", // Blushed Linen
     description:
       "Your booking is waiting for restaurant confirmation. We'll notify you once it's confirmed.",
   },
   confirmed: {
     label: "Confirmed",
-    color: "#F2B25F", // Golden Crust
+    color: "#792339", // Mulberry Velvet
     bgColor: "#D9C3DB", // Lavender Fog
     description:
       "Your table is confirmed! Please arrive on time and show your confirmation code.",
@@ -140,21 +140,21 @@ export const BOOKING_STATUS_CONFIG = {
   },
   declined_by_restaurant: {
     label: "Declined by Restaurant",
-    color: "#792339", // Mulberry Velvet
+    color: "#F2B25F", // Golden Crust
     bgColor: "#FFECE2", // Blushed Linen
     description:
       "Unfortunately, the restaurant couldn't accommodate your booking.",
   },
   completed: {
     label: "Completed",
-    color: "#F2B25F", // Golden Crust
+    color: "#792339", // Mulberry Velvet
     bgColor: "#FFECE2", // Blushed Linen
     description:
       "Thank you for dining with us! We hope you had a great experience.",
   },
   no_show: {
     label: "No Show",
-    color: "#792339", // Mulberry Velvet
+    color: "#F2B25F", // Golden Crust
     bgColor: "#D9C3DB", // Lavender Fog
     description: "This booking was marked as a no-show.",
   },
