@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Alert,
   Dimensions,
+  Modal,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -34,7 +35,9 @@ import {
   Clock,
   Timer,
   Search,
+  X,
 } from "lucide-react-native";
+import { Calendar as RNCalendar } from "react-native-calendars";
 import * as Haptics from "expo-haptics";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -273,24 +276,39 @@ const PartySizeSelector = React.memo<{
   );
 });
 
-// Enhanced Date Selector with better performance
+// Enhanced Date Selector with calendar picker
 const DateSelector = React.memo<{
   selectedDate: Date;
   onDateChange: (date: Date) => void;
   maxDaysAhead?: number;
   disabled?: boolean;
 }>(({ selectedDate, onDateChange, maxDaysAhead = 30, disabled = false }) => {
+  const [showCalendar, setShowCalendar] = useState(false);
+
   const dates = useMemo(() => {
     const today = new Date();
     const datesArray = [];
 
-    for (let i = 0; i < maxDaysAhead; i++) {
+    for (let i = 0; i < Math.min(14, maxDaysAhead); i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       datesArray.push(date);
     }
 
     return datesArray;
+  }, [maxDaysAhead]);
+
+  const calendarDates = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Reset time to start of day
+    const minDate = today.toISOString().split('T')[0];
+
+    const maxDateObj = new Date(today);
+    maxDateObj.setDate(today.getDate() + maxDaysAhead - 1);
+    const maxDate = maxDateObj.toISOString().split('T')[0];
+
+    console.log('Calendar date range:', { minDate, maxDate, maxDaysAhead });
+    return { minDate, maxDate };
   }, [maxDaysAhead]);
 
   const handleDateChange = useCallback(
@@ -302,73 +320,163 @@ const DateSelector = React.memo<{
     [onDateChange, disabled],
   );
 
+  const handleCalendarDateSelect = useCallback(
+    (day: any) => {
+      console.log('Calendar date selected:', day.dateString);
+      const selectedDate = new Date(day.dateString + 'T00:00:00');
+      handleDateChange(selectedDate);
+      setShowCalendar(false);
+    },
+    [handleDateChange],
+  );
+
+  const openCalendar = useCallback(() => {
+    if (!disabled) {
+      setShowCalendar(true);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+  }, [disabled]);
+
   return (
-    <View
-      className={`bg-card border border-border rounded-xl p-4 ${disabled ? "opacity-60" : ""}`}
-    >
-      <View className="flex-row items-center gap-3 mb-3">
-        <Calendar size={20} color="#3b82f6" />
-        <Text className="font-semibold text-lg">Select Date</Text>
+    <>
+      <View
+        className={`bg-card border border-border rounded-xl p-4 ${disabled ? "opacity-60" : ""}`}
+      >
+        <View className="flex-row items-center justify-between mb-3">
+          <View className="flex-row items-center gap-3">
+            <Calendar size={20} color="#3b82f6" />
+            <Text className="font-semibold text-lg">Select Date</Text>
+          </View>
+          <Pressable
+            onPress={openCalendar}
+            disabled={disabled}
+            className="flex-row items-center gap-2 bg-primary/10 px-3 py-2 rounded-lg"
+          >
+            <Calendar size={16} color="#3b82f6" />
+            <Text className="text-primary font-medium text-sm">Calendar</Text>
+          </Pressable>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <View className="flex-row gap-3">
+            {dates.map((date) => {
+              const isSelected =
+                date.toDateString() === selectedDate.toDateString();
+              const isToday = date.toDateString() === new Date().toDateString();
+              const isTomorrow =
+                date.toDateString() ===
+                new Date(Date.now() + 86400000).toDateString();
+
+              return (
+                <Pressable
+                  key={date.toISOString()}
+                  onPress={() => handleDateChange(date)}
+                  disabled={disabled}
+                  className={`min-w-[80px] p-3 rounded-lg border-2 items-center ${
+                    isSelected
+                      ? "bg-primary border-primary"
+                      : "bg-background border-border"
+                  }`}
+                >
+                  <Text
+                    className={`text-xs font-medium mb-1 ${
+                      isSelected
+                        ? "text-primary-foreground"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {date
+                      .toLocaleDateString("en-US", { weekday: "short" })
+                      .toUpperCase()}
+                  </Text>
+                  <Text
+                    className={`text-lg font-bold mb-1 ${
+                      isSelected ? "text-primary-foreground" : "text-foreground"
+                    }`}
+                  >
+                    {date.getDate()}
+                  </Text>
+                  <Text
+                    className={`text-xs ${
+                      isSelected
+                        ? "text-primary-foreground"
+                        : "text-muted-foreground"
+                    }`}
+                  >
+                    {isToday
+                      ? "Today"
+                      : isTomorrow
+                        ? "Tomorrow"
+                        : date.toLocaleDateString("en-US", { month: "short" })}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </ScrollView>
       </View>
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View className="flex-row gap-3">
-          {dates.map((date) => {
-            const isSelected =
-              date.toDateString() === selectedDate.toDateString();
-            const isToday = date.toDateString() === new Date().toDateString();
-            const isTomorrow =
-              date.toDateString() ===
-              new Date(Date.now() + 86400000).toDateString();
-
-            return (
-              <Pressable
-                key={date.toISOString()}
-                onPress={() => handleDateChange(date)}
-                disabled={disabled}
-                className={`min-w-[80px] p-3 rounded-lg border-2 items-center ${
-                  isSelected
-                    ? "bg-primary border-primary"
-                    : "bg-background border-border"
-                }`}
-              >
-                <Text
-                  className={`text-xs font-medium mb-1 ${
-                    isSelected
-                      ? "text-primary-foreground"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {date
-                    .toLocaleDateString("en-US", { weekday: "short" })
-                    .toUpperCase()}
-                </Text>
-                <Text
-                  className={`text-lg font-bold mb-1 ${
-                    isSelected ? "text-primary-foreground" : "text-foreground"
-                  }`}
-                >
-                  {date.getDate()}
-                </Text>
-                <Text
-                  className={`text-xs ${
-                    isSelected
-                      ? "text-primary-foreground"
-                      : "text-muted-foreground"
-                  }`}
-                >
-                  {isToday
-                    ? "Today"
-                    : isTomorrow
-                      ? "Tomorrow"
-                      : date.toLocaleDateString("en-US", { month: "short" })}
-                </Text>
+      {/* Calendar Modal */}
+      <Modal
+        visible={showCalendar}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCalendar(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/50 justify-center items-center"
+          onPress={() => setShowCalendar(false)}
+        >
+          <Pressable
+            className="bg-background rounded-2xl w-80 shadow-xl"
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <View className="flex-row items-center justify-between p-4 border-b border-border">
+              <View className="flex-row items-center gap-2">
+                <Calendar size={20} color="#666" />
+                <Text className="font-semibold text-lg">Select Date</Text>
+              </View>
+              <Pressable onPress={() => setShowCalendar(false)} className="p-1">
+                <X size={20} color="#666" />
               </Pressable>
-            );
-          })}
-        </View>
-      </ScrollView>
-    </View>
+            </View>
+
+            {/* Calendar */}
+            <View className="p-4">
+              <RNCalendar
+                onDayPress={handleCalendarDateSelect}
+                markedDates={{
+                  [selectedDate.toISOString().split('T')[0]]: {
+                    selected: true,
+                    selectedColor: '#3b82f6',
+                  },
+                }}
+                minDate={calendarDates.minDate}
+                maxDate={calendarDates.maxDate}
+                enableSwipeMonths={true}
+                theme={{
+                  backgroundColor: 'transparent',
+                  calendarBackground: 'transparent',
+                  textSectionTitleColor: '#666',
+                  selectedDayBackgroundColor: '#3b82f6',
+                  selectedDayTextColor: '#ffffff',
+                  todayTextColor: '#3b82f6',
+                  dayTextColor: '#333',
+                  textDisabledColor: '#ccc',
+                  arrowColor: '#3b82f6',
+                  monthTextColor: '#333',
+                  indicatorColor: '#3b82f6',
+                  textDayFontWeight: '500',
+                  textMonthFontWeight: '600',
+                  textDayHeaderFontWeight: '500',
+                }}
+              />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
   );
 });
 
@@ -465,73 +573,7 @@ const OffersPreview = React.memo<{
   );
 });
 
-const QuickStats = React.memo<{
-  restaurant: Restaurant;
-  timeSlots: any[];
-  isLoading: boolean;
-  selectedLoyaltyPoints: PotentialLoyaltyPoints | null;
-  isRequestBooking: boolean;
-  hasLoyaltyProgram: boolean;
-}>(
-  ({
-    restaurant,
-    timeSlots,
-    isLoading,
-    selectedLoyaltyPoints,
-    isRequestBooking,
-    hasLoyaltyProgram,
-  }) => (
-    <View className="mx-4 my-2 p-3 bg-card/50 rounded-lg border border-border/50">
-      <View className="flex-row justify-around">
-        <View className="items-center">
-          {isLoading ? (
-            <ActivityIndicator size="small" />
-          ) : (
-            <Text className="text-lg font-bold text-primary">
-              {timeSlots.length}
-            </Text>
-          )}
-          <Text className="text-xs text-muted-foreground">Available</Text>
-        </View>
 
-        <View className="items-center">
-          <View className="flex-row items-center gap-1">
-            {isRequestBooking ? (
-              <Timer size={12} color="#f97316" />
-            ) : (
-              <Zap size={12} color="#f59e0b" />
-            )}
-            <Text
-              className={`text-lg font-bold ${
-                isRequestBooking ? "text-orange-600" : "text-amber-600"
-              }`}
-            >
-              {isRequestBooking ? "2hr" : "Instant"}
-            </Text>
-          </View>
-          <Text className="text-xs text-muted-foreground">
-            {isRequestBooking ? "Response" : "Booking"}
-          </Text>
-        </View>
-
-        {/* Only show points if restaurant has loyalty program */}
-        {hasLoyaltyProgram && !isRequestBooking && (
-          <View className="items-center">
-            <View className="flex-row items-center gap-1">
-              <Trophy size={12} color="#10b981" />
-              <Text className="text-lg font-bold text-green-600">
-                {selectedLoyaltyPoints?.available
-                  ? `+${selectedLoyaltyPoints.pointsToAward}`
-                  : "N/A"}
-              </Text>
-            </View>
-            <Text className="text-xs text-muted-foreground">Points</Text>
-          </View>
-        )}
-      </View>
-    </View>
-  ),
-);
 
 // Main Component
 export default function AvailabilitySelectionScreen() {
@@ -685,6 +727,7 @@ export default function AvailabilitySelectionScreen() {
             restaurant.id,
             restaurant.booking_window_days || 30,
           );
+          console.log('Max booking days calculated:', days, 'Restaurant default:', restaurant.booking_window_days);
           setMaxBookingDays(days);
         } catch (error) {
           console.error("Error fetching max booking days:", error);
@@ -993,18 +1036,7 @@ export default function AvailabilitySelectionScreen() {
       {/* Restaurant Info Card */}
       <RestaurantInfoCard restaurant={restaurant} />
 
-      {/* Quick Stats */}
-      {hasTimeSlots && (
-        <QuickStats
-          restaurant={restaurant}
-          timeSlots={timeSlots}
-          isLoading={timeSlotsLoading}
-          selectedLoyaltyPoints={selectedLoyaltyPoints}
-          isRequestBooking={isRequestBooking}
-          hasLoyaltyProgram={hasLoyaltyProgram}
-        />
-      )}
-
+ 
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
@@ -1242,9 +1274,7 @@ export default function AvailabilitySelectionScreen() {
                       points
                     </Text>
                   )}
-                  <Text className="text-sm text-blue-600 dark:text-blue-400 font-medium">
-                    • Real-time availability with curated dining experiences
-                  </Text>
+            
                 </View>
               </View>
             </>
