@@ -1168,20 +1168,6 @@ export default function AvailabilitySelectionScreen() {
                 </Text>
               </Pressable>
 
-              {/* Experience Header */}
-              {hasMultipleExperiences && (
-                <View className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg p-3 border border-purple-200 dark:border-purple-800">
-                  <View className="flex-row items-center gap-2">
-                    <Sparkles size={16} color="#8b5cf6" />
-                    <Text className="text-sm font-medium text-purple-800 dark:text-purple-200">
-                      {experienceCount} unique dining experiences available
-                    </Text>
-                  </View>
-                  <Text className="text-xs text-purple-700 dark:text-purple-300 mt-1">
-                    Each offers a different atmosphere and setting for your meal
-                  </Text>
-                </View>
-              )}
 
               {/* Loyalty Points Display for Experience Step */}
               {bookingDateTime && !isRequestBooking && hasLoyaltyProgram && (
@@ -1317,11 +1303,7 @@ export default function AvailabilitySelectionScreen() {
                 </>
               )}
             </View>
-            {currentStep === "experience" && primaryExperience && (
-              <Text className="text-xs text-blue-600 dark:text-blue-400 mt-1">
-                Recommended: {primaryExperience}
-              </Text>
-            )}
+            
           </View>
 
           {/* Dynamic CTA based on step */}
