@@ -88,7 +88,6 @@ export default function HomeScreen() {
   // --- Protected Action Handlers ---
   const handleToggleFavorite = (restaurantId: string) => {
     runProtectedAction(() => {
-
       // e.g., call a function from a `useFavorites` hook
     }, "save your favorite restaurants");
   };

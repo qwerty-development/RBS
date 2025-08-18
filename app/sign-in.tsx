@@ -71,7 +71,7 @@ export default function SignIn() {
       await signIn(data.email, data.password);
       // Redirect to the protected home/tabs stack after successful sign-in
       router.replace("/(protected)/(tabs)");
-     
+
       form.reset();
     } catch (error: any) {
       console.error("❌ Sign-in error:", error);
@@ -118,7 +118,6 @@ export default function SignIn() {
         }
       } else if (needsProfileUpdate) {
         // Navigate to profile completion if needed
-     
       } else {
         // Successful Apple sign-in, navigate to protected home
         router.replace("/(protected)/(tabs)");
@@ -149,7 +148,6 @@ export default function SignIn() {
         }
       } else if (needsProfileUpdate) {
         // Navigate to profile completion if needed
-  
       } else {
         // Successful Google sign-in, navigate to protected home
         router.replace("/(protected)/(tabs)");

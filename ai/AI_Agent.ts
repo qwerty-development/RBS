@@ -89,7 +89,9 @@ export async function ourAgent(messages: ChatMessage[]): Promise<ChatMessage> {
         };
 
         // Helper function to format shift-based hours
-        const formatShiftHours = (shifts?: { open: string; close: string }[]) => {
+        const formatShiftHours = (
+          shifts?: { open: string; close: string }[],
+        ) => {
           if (!shifts || shifts.length === 0) return "Not available";
           return shifts.map((s) => `${s.open}-${s.close}`).join(", ");
         };

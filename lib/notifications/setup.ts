@@ -16,7 +16,8 @@ export type NotificationData = {
 
 export async function ensurePushPermissionsAndToken(): Promise<string | null> {
   try {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
     if (existingStatus !== "granted") {
       const { status } = await Notifications.requestPermissionsAsync();
@@ -65,34 +66,39 @@ export async function registerDeviceForPush(userId: string): Promise<void> {
   }
 }
 
-export function initializeNotificationHandlers(onOpenDeeplink?: (deeplink: string, data?: any) => void) {
+export function initializeNotificationHandlers(
+  onOpenDeeplink?: (deeplink: string, data?: any) => void,
+) {
   try {
     Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-        shouldShowBanner: true as any, // web compat
-        shouldShowList: true as any,   // web compat
-      } as any),
+      handleNotification: async () =>
+        ({
+          shouldShowAlert: true,
+          shouldPlaySound: true,
+          shouldSetBadge: true,
+          shouldShowBanner: true as any, // web compat
+          shouldShowList: true as any, // web compat
+        }) as any,
     });
 
     if (!receivedListenerSub) {
-      receivedListenerSub = Notifications.addNotificationReceivedListener(() => {
-        // Could increment in-app badge count here
-      });
+      receivedListenerSub = Notifications.addNotificationReceivedListener(
+        () => {
+          // Could increment in-app badge count here
+        },
+      );
     }
 
     if (!responseListenerSub) {
-      responseListenerSub = Notifications.addNotificationResponseReceivedListener(
-        (response) => {
-          const data = response.notification.request.content.data as NotificationData;
+      responseListenerSub =
+        Notifications.addNotificationResponseReceivedListener((response) => {
+          const data = response.notification.request.content
+            .data as NotificationData;
           const deeplink = (data?.deeplink as string) || undefined;
           if (deeplink && onOpenDeeplink) {
             onOpenDeeplink(deeplink, data);
           }
-        },
-      );
+        });
     }
   } catch (e) {
     console.warn("Failed to initialize notification handlers:", e);
@@ -105,4 +111,3 @@ export function cleanupNotificationHandlers() {
   responseListenerSub = null;
   receivedListenerSub = null;
 }
-

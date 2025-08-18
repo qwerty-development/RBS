@@ -4,7 +4,13 @@ import { View } from "react-native";
 
 const ProfileHeaderSkeleton = () => {
   return (
-    <View style={{ padding: 24, alignItems: "center", backgroundColor: "transparent" }}>
+    <View
+      style={{
+        padding: 24,
+        alignItems: "center",
+        backgroundColor: "transparent",
+      }}
+    >
       <View style={{ alignItems: "center" }}>
         <SkeletonPlaceholder
           width={100}

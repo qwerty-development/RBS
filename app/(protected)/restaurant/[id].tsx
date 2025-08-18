@@ -146,7 +146,7 @@ const ImageGallery: React.FC<{
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={(event) => {
           const index = Math.round(
-            event.nativeEvent.contentOffset.x / SCREEN_WIDTH
+            event.nativeEvent.contentOffset.x / SCREEN_WIDTH,
           );
           setActiveIndex(index);
         }}
@@ -489,7 +489,7 @@ const LocationMap: React.FC<{
   restaurant: Restaurant;
 }> = ({ restaurant }) => {
   const { address, coordinates, isLoading } = useRestaurantLocation(
-    restaurant.location
+    restaurant.location,
   );
   const [mapReady, setMapReady] = useState(false);
 
@@ -726,7 +726,7 @@ export default function RestaurantDetailsScreen() {
   const handleAddToPlaylist = useCallback(() => {
     runProtectedAction(
       () => setShowAddToPlaylist(true),
-      "add restaurants to a playlist"
+      "add restaurants to a playlist",
     );
   }, [runProtectedAction]);
 
@@ -756,10 +756,10 @@ export default function RestaurantDetailsScreen() {
       Alert.alert(
         "Added to Playlist",
         `${restaurant?.name} has been added to "${playlistName}"`,
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
     },
-    [restaurant?.name]
+    [restaurant?.name],
   );
 
   const allImages = React.useMemo(() => {

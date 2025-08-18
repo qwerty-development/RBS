@@ -438,8 +438,7 @@ export function useRestaurant(
           setRestaurant(updatedRestaurant);
         } else {
           // No reviews returned: preserve any existing aggregates on the restaurant row
-          const preservedAverage =
-            (restaurantData as any).average_rating ?? 0;
+          const preservedAverage = (restaurantData as any).average_rating ?? 0;
           const preservedTotal = (restaurantData as any).total_reviews ?? 0;
 
           const updatedRestaurant = {

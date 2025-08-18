@@ -114,7 +114,9 @@ export default function TabsLayout() {
                     justifyContent: "center",
                   }}
                 >
-                  <Text style={{ color: "white", fontSize: 10, fontWeight: "700" }}>
+                  <Text
+                    style={{ color: "white", fontSize: 10, fontWeight: "700" }}
+                  >
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </Text>
                 </View>

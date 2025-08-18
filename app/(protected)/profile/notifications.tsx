@@ -1,9 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
-import {
-  View,
-  Pressable,
-  RefreshControl,
-} from "react-native";
+import { View, Pressable, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import {
   Bell,
@@ -64,7 +60,9 @@ export default function NotificationsScreen() {
     setLoading(true);
     const { data, error } = await supabase
       .from("notifications")
-      .select("id, category, type, title, message, data, created_at, read, deeplink")
+      .select(
+        "id, category, type, title, message, data, created_at, read, deeplink",
+      )
       .eq("user_id", profile.id)
       .order("created_at", { ascending: false })
       .limit(50);
@@ -116,26 +114,34 @@ export default function NotificationsScreen() {
   const handleTriggerNotify = useCallback(async () => {
     try {
       // Call the notify Edge Function directly to process the outbox
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/notify`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${supabase.supabaseKey}`,
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${supabase.supabaseUrl}/functions/v1/notify`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${supabase.supabaseKey}`,
+            "Content-Type": "application/json",
+          },
         },
-      });
+      );
       const result = await response.json();
-      console.log('Notify result:', result);
+      console.log("Notify result:", result);
       await fetchNotifications();
     } catch (error) {
-      console.error('Error triggering notify:', error);
+      console.error("Error triggering notify:", error);
     }
   }, [fetchNotifications]);
 
   const handleNotificationPress = useCallback(
     async (notification: Notification) => {
       // Mark as read in DB and locally
-      await supabase.from("notifications").update({ read: true, read_at: new Date().toISOString() }).eq("id", notification.id);
-      setNotifications((prev) => prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n)));
+      await supabase
+        .from("notifications")
+        .update({ read: true, read_at: new Date().toISOString() })
+        .eq("id", notification.id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notification.id ? { ...n, read: true } : n)),
+      );
 
       // Navigate based on deeplink/category
       if (notification.deeplink) {
@@ -149,14 +155,20 @@ export default function NotificationsScreen() {
       switch (notification.category) {
         case "booking":
           if (notification.data?.bookingId) {
-            router.push({ pathname: "/booking/[id]", params: { id: notification.data.bookingId } });
+            router.push({
+              pathname: "/booking/[id]",
+              params: { id: notification.data.bookingId },
+            });
           } else {
             router.push("/bookings");
           }
           break;
         case "reviews":
           if (notification.data?.restaurantId) {
-            router.push({ pathname: "/restaurant/[id]", params: { id: notification.data.restaurantId } });
+            router.push({
+              pathname: "/restaurant/[id]",
+              params: { id: notification.data.restaurantId },
+            });
           } else {
             router.push("/profile/reviews");
           }
@@ -231,7 +243,9 @@ export default function NotificationsScreen() {
         <View className="flex-1 ml-3">
           <View className="flex-row items-center justify-between">
             <Text className="font-medium">{item.title}</Text>
-            <Muted className="text-xs">{new Date(item.created_at).toLocaleString()}</Muted>
+            <Muted className="text-xs">
+              {new Date(item.created_at).toLocaleString()}
+            </Muted>
           </View>
           <Muted className="text-sm mt-1">{item.message}</Muted>
         </View>
@@ -270,7 +284,9 @@ export default function NotificationsScreen() {
                   .update({ read: true, read_at: new Date().toISOString() })
                   .eq("user_id", profile?.id)
                   .eq("read", false);
-                setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+                setNotifications((prev) =>
+                  prev.map((n) => ({ ...n, read: true })),
+                );
               }}
               className="px-3 py-2 rounded-md bg-primary/10"
             >
@@ -282,11 +298,21 @@ export default function NotificationsScreen() {
 
       {/* Actions */}
       <View className="px-4 mb-2 gap-2">
-        <Pressable onPress={handleSendTest} className="px-4 py-3 rounded-md bg-primary">
-          <Text className="text-primary-foreground font-semibold text-center">Send test notification</Text>
+        <Pressable
+          onPress={handleSendTest}
+          className="px-4 py-3 rounded-md bg-primary"
+        >
+          <Text className="text-primary-foreground font-semibold text-center">
+            Send test notification
+          </Text>
         </Pressable>
-        <Pressable onPress={handleTriggerNotify} className="px-4 py-3 rounded-md bg-secondary">
-          <Text className="text-secondary-foreground font-semibold text-center">Process outbox now</Text>
+        <Pressable
+          onPress={handleTriggerNotify}
+          className="px-4 py-3 rounded-md bg-secondary"
+        >
+          <Text className="text-secondary-foreground font-semibold text-center">
+            Process outbox now
+          </Text>
         </Pressable>
       </View>
 

@@ -2,7 +2,7 @@ import "./polyfills";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../global.css";
 import { Stack, router } from "expo-router";
-import { AuthProvider } from "@/context/supabase-provider";
+import { AuthProvider, useAuth } from "@/context/supabase-provider";
 import { NetworkProvider } from "@/context/network-provider";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
@@ -16,8 +16,11 @@ import {
 import { useNetworkMonitor } from "@/hooks/useNetworkMonitor";
 import * as Sentry from "@sentry/react-native";
 import { getThemedColors } from "@/lib/utils";
-import { initializeNotificationHandlers, ensurePushPermissionsAndToken, registerDeviceForPush } from "@/lib/notifications/setup";
-import { useAuth } from "@/context/supabase-provider";
+import {
+  initializeNotificationHandlers,
+  ensurePushPermissionsAndToken,
+  registerDeviceForPush,
+} from "@/lib/notifications/setup";
 
 LogBox.ignoreAllLogs();
 

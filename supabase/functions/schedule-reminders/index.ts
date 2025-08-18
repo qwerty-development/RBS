@@ -7,7 +7,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 serve(async (req) => {
   try {
     const secret = req.headers.get("authorization");
-    if (!secret || secret !== `Bearer ${Deno.env.get("EDGE_FUNCTION_SECRET")}`) {
+    if (
+      !secret ||
+      secret !== `Bearer ${Deno.env.get("EDGE_FUNCTION_SECRET")}`
+    ) {
       return new Response("Unauthorized", { status: 401 });
     }
 
@@ -28,12 +31,14 @@ serve(async (req) => {
 
     const ok = Object.keys(results).length === 0;
 
-    return new Response(JSON.stringify({ status: ok ? "ok" : "partial", details: results }), {
-      headers: { "content-type": "application/json" },
-      status: ok ? 200 : 207,
-    });
+    return new Response(
+      JSON.stringify({ status: ok ? "ok" : "partial", details: results }),
+      {
+        headers: { "content-type": "application/json" },
+        status: ok ? 200 : 207,
+      },
+    );
   } catch (e) {
     return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
   }
 });
-

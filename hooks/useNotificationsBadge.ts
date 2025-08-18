@@ -42,15 +42,20 @@ export function useNotificationsBadge() {
     const channel = supabase
       .channel(`notifications_badge_${userId}`)
       .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'notifications', filter: `user_id=eq.${userId}` },
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${userId}`,
+        },
         () => {
           // Refresh on any insert/update/delete for this user
           refreshCount();
-        }
+        },
       )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
+        if (status === "SUBSCRIBED") {
           // Optional: initial sync already done by refreshCount
         }
       });
@@ -65,4 +70,3 @@ export function useNotificationsBadge() {
 
   return { unreadCount, refreshCount, markAllAsRead };
 }
-

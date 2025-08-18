@@ -22,7 +22,10 @@ const EXPO_PUSH_URL = "https://exp.host/--/api/v2/push/send";
 serve(async (req) => {
   try {
     const secret = req.headers.get("authorization");
-    if (!secret || secret !== `Bearer ${Deno.env.get("EDGE_FUNCTION_SECRET")}`) {
+    if (
+      !secret ||
+      secret !== `Bearer ${Deno.env.get("EDGE_FUNCTION_SECRET")}`
+    ) {
       return new Response("Unauthorized", { status: 401 });
     }
 
@@ -50,7 +53,9 @@ serve(async (req) => {
             .eq("enabled", true);
           if (devErr) throw devErr;
 
-          const tokens = (devices || []).map((d: DeviceRow) => d.expo_push_token).filter(Boolean) as string[];
+          const tokens = (devices || [])
+            .map((d: DeviceRow) => d.expo_push_token)
+            .filter(Boolean) as string[];
 
           if (tokens.length === 0) {
             await supabase
@@ -65,7 +70,18 @@ serve(async (req) => {
             sound: "default",
             title: item.payload?.title,
             body: item.payload?.message,
-            data: item.payload?.data ? { ...item.payload.data, deeplink: item.payload?.deeplink, category: item.payload?.category, type: item.payload?.type } : { deeplink: item.payload?.deeplink, category: item.payload?.category, type: item.payload?.type },
+            data: item.payload?.data
+              ? {
+                  ...item.payload.data,
+                  deeplink: item.payload?.deeplink,
+                  category: item.payload?.category,
+                  type: item.payload?.type,
+                }
+              : {
+                  deeplink: item.payload?.deeplink,
+                  category: item.payload?.category,
+                  type: item.payload?.type,
+                },
             priority: "high",
           }));
 
@@ -78,7 +94,12 @@ serve(async (req) => {
 
           await supabase
             .from("notification_outbox")
-            .update({ status: res.ok ? "sent" : "failed", attempts: 1, sent_at: new Date().toISOString(), error: res.ok ? null : JSON.stringify(json) })
+            .update({
+              status: res.ok ? "sent" : "failed",
+              attempts: 1,
+              sent_at: new Date().toISOString(),
+              error: res.ok ? null : JSON.stringify(json),
+            })
             .eq("id", item.id);
 
           await supabase.from("notification_delivery_logs").insert({
@@ -90,7 +111,11 @@ serve(async (req) => {
         } else if (item.channel === "inapp") {
           await supabase
             .from("notification_outbox")
-            .update({ status: "sent", attempts: 1, sent_at: new Date().toISOString() })
+            .update({
+              status: "sent",
+              attempts: 1,
+              sent_at: new Date().toISOString(),
+            })
             .eq("id", item.id);
         } else if (item.channel === "email") {
           // TODO: integrate with email provider
@@ -120,4 +145,3 @@ serve(async (req) => {
     return new Response(JSON.stringify({ error: String(e) }), { status: 500 });
   }
 });
-

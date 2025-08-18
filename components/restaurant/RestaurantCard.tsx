@@ -6,10 +6,10 @@ import {
   Star,
   DollarSign,
   MapPin,
-  Clock,
   Heart,
   FolderPlus,
-  Navigation,
+  Award,
+  Clock,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
@@ -21,6 +21,7 @@ import { cn } from "@/lib/utils";
 import { AddToPlaylistModal } from "@/components/playlists/AddToPlaylistModal"; // Assuming this path is correct
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
+import { useRestaurantLoyalty } from "@/hooks/useRestaurantLoyalty";
 
 type BaseRestaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -46,6 +47,7 @@ interface RestaurantCardProps {
   showAddToPlaylistButton?: boolean; // New prop for playlist feature
   showDirections?: boolean; // New prop to control directions button visibility
   showAvailability?: boolean; // New prop to show/hide availability status
+  showLoyalty?: boolean; // New prop to show/hide loyalty indicator
 }
 
 export function RestaurantCard({
@@ -59,8 +61,9 @@ export function RestaurantCard({
   className,
   showFavorite = true,
   showAddToPlaylistButton = true, // Default to true
-  showDirections = true, // Default to true
+  showDirections = false, // Default to false
   showAvailability = true, // Default to true
+  showLoyalty = true, // Default to true
 }: RestaurantCardProps) {
   const router = useRouter();
   const [isPlaylistModalVisible, setPlaylistModalVisible] = useState(false);
@@ -69,11 +72,13 @@ export function RestaurantCard({
   const restaurantData = restaurant || item;
 
   // Use the availability hook
-  const {
-    formatOperatingHours,
-    checkAvailability,
-    loading: availabilityLoading,
-  } = useRestaurantAvailability(restaurantData?.id || "");
+  const { checkAvailability, loading: availabilityLoading } =
+    useRestaurantAvailability(restaurantData?.id || "");
+
+  // Use the loyalty hook to check if restaurant has loyalty program
+  const { hasLoyaltyProgram, balance } = useRestaurantLoyalty(
+    restaurantData?.id,
+  );
 
   if (!restaurantData || !restaurantData.id) {
     console.warn("Invalid restaurant data:", restaurantData);
@@ -100,33 +105,6 @@ export function RestaurantCard({
     // You can add a Toast notification here for better UX
     console.log(`Added ${restaurantData.name} to ${playlistName}`);
     setPlaylistModalVisible(false);
-  };
-
-  // Render availability status
-  const renderAvailabilityStatus = () => {
-    if (!showAvailability || availabilityLoading) return null;
-
-    const today = new Date();
-    const availability = checkAvailability(today);
-
-    return (
-      <View className="flex-row items-center gap-1 mt-1">
-        <Clock size={12} color={availability.isOpen ? "#10b981" : "#ef4444"} />
-        <Text
-          className={cn(
-            "text-xs font-medium",
-            availability.isOpen ? "text-green-600" : "text-red-600",
-          )}
-        >
-          {availability.isOpen ? "Open" : "Closed"}
-        </Text>
-        {!availabilityLoading && (
-          <Text className="text-xs text-muted-foreground">
-            • {formatOperatingHours()}
-          </Text>
-        )}
-      </View>
-    );
   };
 
   const renderStars = (rating: number) => (
@@ -161,17 +139,43 @@ export function RestaurantCard({
     </Text>
   );
 
-  const renderTags = (tags: string[]) => {
-    if (!tags || tags.length === 0) return null;
-    const maxTags = variant === "compact" ? 2 : 3;
+  // Render availability status (without hours)
+  const renderAvailabilityStatus = () => {
+    if (!showAvailability || availabilityLoading) return null;
+
+    const today = new Date();
+    const availability = checkAvailability(today);
 
     return (
-      <View className="flex-row flex-wrap gap-1 mt-2">
-        {tags.slice(0, maxTags).map((tag) => (
-          <View key={tag} className="bg-muted px-2 py-1 rounded-full">
-            <Text className="text-xs">{tag}</Text>
-          </View>
-        ))}
+      <View className="flex-row items-center gap-1 mt-1">
+        <Clock size={12} color={availability.isOpen ? "#10b981" : "#ef4444"} />
+        <Text
+          className={cn(
+            "text-xs font-medium",
+            availability.isOpen ? "text-green-600" : "text-red-600",
+          )}
+        >
+          {availability.isOpen ? "Open" : "Closed"}
+        </Text>
+      </View>
+    );
+  };
+
+  // Render loyalty indicator
+  const renderLoyaltyIndicator = () => {
+    if (!showLoyalty || !hasLoyaltyProgram) return null;
+
+    // Check if restaurant has enough loyalty points left
+    const hasPointsAvailable = balance && balance.current_balance > 0;
+
+    if (!hasPointsAvailable) return null;
+
+    return (
+      <View className="flex-row items-center gap-1 mt-1">
+        <Award size={14} color="#f59e0b" fill="#f59e0b" />
+        <Text className="text-xs font-medium text-amber-600">
+          Loyalty Points Available
+        </Text>
       </View>
     );
   };
@@ -183,7 +187,7 @@ export function RestaurantCard({
         <Pressable
           onPress={handlePress}
           className={cn(
-            "bg-card border border-border rounded-xl overflow-hidden shadow-sm mr-3 w-64",
+            "bg-card border-2 border-border rounded-xl overflow-hidden shadow-sm mr-3 w-64",
             className,
           )}
         >
@@ -207,6 +211,7 @@ export function RestaurantCard({
               {renderPriceRange(restaurantData.price_range)}
             </View>
             {renderAvailabilityStatus()}
+            {renderLoyaltyIndicator()}
           </View>
         </Pressable>
       )}
@@ -215,7 +220,7 @@ export function RestaurantCard({
         <Pressable
           onPress={handlePress}
           className={cn(
-            "bg-card rounded-xl overflow-hidden shadow-sm mr-4 w-72",
+            "bg-card border-2 border-border rounded-xl overflow-hidden shadow-sm mr-4 w-72",
             className,
           )}
         >
@@ -278,8 +283,8 @@ export function RestaurantCard({
               {renderStars(restaurantData.average_rating)}
               {renderPriceRange(restaurantData.price_range)}
             </View>
-            {renderTags(restaurantData.tags)}
             {renderAvailabilityStatus()}
+            {renderLoyaltyIndicator()}
           </View>
         </Pressable>
       )}
@@ -288,7 +293,7 @@ export function RestaurantCard({
         <Pressable
           onPress={handlePress}
           className={cn(
-            "bg-card rounded-xl overflow-hidden shadow-sm",
+            "bg-card border-2 border-border rounded-xl overflow-hidden shadow-sm",
             className,
           )}
         >
@@ -381,7 +386,7 @@ export function RestaurantCard({
               )}
 
               {renderAvailabilityStatus()}
-              {renderTags(restaurantData.tags)}
+              {renderLoyaltyIndicator()}
             </View>
           </View>
         </Pressable>

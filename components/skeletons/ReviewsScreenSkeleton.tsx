@@ -73,7 +73,6 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 12,
     borderRadius: 8,
-    
   },
   ratingContainer: {
     flexDirection: "row",

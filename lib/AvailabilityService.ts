@@ -182,7 +182,7 @@ export class AvailabilityService {
   private async getMaxTurnTime(restaurantId: string): Promise<number> {
     const cacheKey = `turn-time:${restaurantId}`;
     let cached = this.restaurantConfigCache.get(cacheKey);
-git 
+    git;
     if (cached) return cached;
 
     try {
