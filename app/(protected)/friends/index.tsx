@@ -8,7 +8,6 @@ import {
   TextInput,
   ActivityIndicator,
   Alert,
-  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -107,6 +106,10 @@ export default function FriendsScreen() {
   // Load initial data
   useEffect(() => {
     loadData();
+    // Clear search state when switching tabs to avoid leaking queries/results across tabs
+    setSearchQuery("");
+    setSearchResults([]);
+    setSearchLoading(false);
   }, [activeTab]);
 
   const loadData = async () => {
@@ -189,6 +192,26 @@ export default function FriendsScreen() {
       return;
     }
 
+    // Friends tab: filter existing friends locally for fast, accurate navigation
+    if (activeTab === "friends") {
+      const loweredQuery = query.toLowerCase();
+      const filteredFriends = friends
+        .filter((friend) =>
+          friend.full_name.toLowerCase().includes(loweredQuery)
+        )
+        .map((friend) => ({
+          id: friend.id,
+          full_name: friend.full_name,
+          avatar_url: friend.avatar_url,
+          is_friend: true,
+          hasPendingRequest: false,
+        }));
+
+      setSearchResults(filteredFriends);
+      return;
+    }
+
+    // Discover tab: global user search via RPC
     setSearchLoading(true);
     try {
       const { data, error } = await supabase.rpc("search_users", {
@@ -453,7 +476,12 @@ export default function FriendsScreen() {
   };
 
   const renderSearchResult = ({ item }: { item: SearchResult }) => (
-    <View
+    <Pressable
+      onPress={() => {
+        if (activeTab === "friends" || item.is_friend) {
+          router.push(`/(protected)/friends/${item.id}` as any);
+        }
+      }}
       className="flex-row items-center justify-between p-4 mb-2 bg-white dark:bg-gray-800 rounded-2xl"
       style={{
         shadowColor: "#000",
@@ -474,7 +502,7 @@ export default function FriendsScreen() {
         />
         <View className="ml-3 flex-1">
           <Text className="font-semibold text-base">{item.full_name}</Text>
-          {item.is_friend && (
+          {activeTab === "discover" && item.is_friend && (
             <View className="flex-row items-center mt-1">
               <UserCheck size={14} color="#10b981" />
               <Muted className="text-sm ml-1">Already friends</Muted>
@@ -483,30 +511,32 @@ export default function FriendsScreen() {
         </View>
       </View>
 
-      {!item.is_friend && !item.hasPendingRequest && (
-        <Button
-          size="sm"
-          onPress={() => sendFriendRequest(item.id)}
-          disabled={processingIds.has(item.id)}
-        >
-          {processingIds.has(item.id) ? (
-            <ActivityIndicator size="small" color="white" />
-          ) : (
-            <View className="flex-row items-center justify-center gap-2">
-              <UserPlus size={16} color="white" />
-              <Text className="text-white">Add</Text>
-            </View>
-          )}
-        </Button>
-      )}
+      {activeTab === "discover" &&
+        !item.is_friend &&
+        !item.hasPendingRequest && (
+          <Button
+            size="sm"
+            onPress={() => sendFriendRequest(item.id)}
+            disabled={processingIds.has(item.id)}
+          >
+            {processingIds.has(item.id) ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <View className="flex-row items-center justify-center gap-2">
+                <UserPlus size={16} color="white" />
+                <Text className="text-white">Add</Text>
+              </View>
+            )}
+          </Button>
+        )}
 
-      {item.hasPendingRequest && (
+      {activeTab === "discover" && item.hasPendingRequest && (
         <View className="flex-row items-center">
           <Clock size={16} color="#f59e0b" />
           <Muted className="ml-1">Pending</Muted>
         </View>
       )}
-    </View>
+    </Pressable>
   );
 
   const renderSuggestion = ({ item }: { item: FriendSuggestion }) => (
@@ -656,73 +686,82 @@ export default function FriendsScreen() {
       {loading ? (
         <FriendListSkeleton />
       ) : (
-        <OptimizedList
-          data={
+        (() => {
+          const listData =
             searchQuery && (activeTab === "friends" || activeTab === "discover")
               ? (searchResults as any[])
               : activeTab === "friends"
                 ? (friends as any[])
                 : activeTab === "requests"
                   ? (friendRequests as any[])
-                  : (suggestions as any[])
-          }
-          renderItem={
+                  : (suggestions as any[]);
+
+          const listRenderItem =
             searchQuery && (activeTab === "friends" || activeTab === "discover")
               ? (renderSearchResult as any)
               : activeTab === "friends"
                 ? (renderFriend as any)
                 : activeTab === "requests"
                   ? (renderFriendRequest as any)
-                  : (renderSuggestion as any)
+                  : (renderSuggestion as any);
+
+          if (listData.length === 0) {
+            return (
+              <View className="items-center justify-center py-8">
+                {activeTab === "friends" && !searchQuery && (
+                  <>
+                    <Users size={48} color="#9ca3af" />
+                    <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
+                      No friends yet. Start connecting!
+                    </Text>
+                    <Button
+                      className="mt-4"
+                      onPress={() => setActiveTab("discover")}
+                    >
+                      <Text className="text-white">Discover Friends</Text>
+                    </Button>
+                  </>
+                )}
+                {activeTab === "requests" && (
+                  <>
+                    <UserPlus size={48} color="#9ca3af" />
+                    <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
+                      No pending friend requests
+                    </Text>
+                  </>
+                )}
+                {activeTab === "discover" && !searchQuery && (
+                  <>
+                    <Search size={48} color="#9ca3af" />
+                    <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
+                      No suggestions available right now
+                    </Text>
+                  </>
+                )}
+                {searchQuery && listData.length === 0 && (
+                  <>
+                    <Search size={48} color="#9ca3af" />
+                    <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
+                      No results found for "{searchQuery}"
+                    </Text>
+                  </>
+                )}
+              </View>
+            );
           }
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16 }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-          }
-          ListEmptyComponent={
-            <View className="items-center justify-center py-8">
-              {activeTab === "friends" && !searchQuery && (
-                <>
-                  <Users size={48} color="#9ca3af" />
-                  <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
-                    No friends yet. Start connecting!
-                  </Text>
-                  <Button
-                    className="mt-4"
-                    onPress={() => setActiveTab("discover")}
-                  >
-                    <Text className="text-white">Discover Friends</Text>
-                  </Button>
-                </>
-              )}
-              {activeTab === "requests" && (
-                <>
-                  <UserPlus size={48} color="#9ca3af" />
-                  <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
-                    No pending friend requests
-                  </Text>
-                </>
-              )}
-              {activeTab === "discover" && !searchQuery && (
-                <>
-                  <Search size={48} color="#9ca3af" />
-                  <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
-                    No suggestions available right now
-                  </Text>
-                </>
-              )}
-              {searchQuery && searchResults.length === 0 && (
-                <>
-                  <Search size={48} color="#9ca3af" />
-                  <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
-                    No results found for "{searchQuery}"
-                  </Text>
-                </>
-              )}
+
+          return (
+            <View style={{ padding: 16 }}>
+              <OptimizedList
+                data={listData}
+                renderItem={listRenderItem}
+                keyExtractor={(item) => item.id}
+                onRefresh={onRefresh}
+                refreshing={refreshing}
+              />
             </View>
-          }
-        />
+          );
+        })()
       )}
     </SafeAreaView>
   );

@@ -101,7 +101,17 @@ const PostCard: React.FC<{
   onLike: (postId: string) => void;
   onComment: (postId: string) => void;
   onShare: (post: Post) => void;
-}> = ({ post, isGuest, onLike, onComment, onShare }) => {
+  friendIdSet: Set<string>;
+  currentUserId?: string;
+}> = ({
+  post,
+  isGuest,
+  onLike,
+  onComment,
+  onShare,
+  friendIdSet,
+  currentUserId,
+}) => {
   const router = useRouter();
   const [imageIndex, setImageIndex] = useState(0);
 
@@ -110,9 +120,14 @@ const PostCard: React.FC<{
       {/* Header */}
       <Pressable
         // Guests cannot navigate to user profiles
-        onPress={() =>
-          !isGuest && router.push(`/social/profile/${post.user_id}`)
-        }
+        onPress={() => {
+          if (isGuest) return;
+          if (friendIdSet.has(post.user_id)) {
+            router.push(`/(protected)/friends/${post.user_id}`);
+          } else {
+            router.push(`/social/profile/${post.user_id}`);
+          }
+        }}
         className="flex-row items-center p-4"
         disabled={isGuest}
       >
@@ -162,9 +177,14 @@ const PostCard: React.FC<{
             {post.tagged_friends.map((friend, index) => (
               <React.Fragment key={friend.id}>
                 <Pressable
-                  onPress={() =>
-                    !isGuest && router.push(`/social/profile/${friend.id}`)
-                  }
+                  onPress={() => {
+                    if (isGuest) return;
+                    if (friendIdSet.has(friend.id)) {
+                      router.push(`/(protected)/friends/${friend.id}`);
+                    } else {
+                      router.push(`/social/profile/${friend.id}`);
+                    }
+                  }}
                   disabled={isGuest}
                 >
                   <Text className="text-sm text-primary">
@@ -265,6 +285,7 @@ export default function SocialFeedScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [showGuestPrompt, setShowGuestPrompt] = useState(false);
   const [promptedFeature, setPromptedFeature] = useState("");
+  const [friendIdSet, setFriendIdSet] = useState<Set<string>>(new Set());
 
   // --- NEW: Guest Guard Logic ---
   const runProtectedAction = (callback: () => void, featureName: string) => {
@@ -316,6 +337,9 @@ export default function SocialFeedScreen() {
           }, []) || [];
         friendIds.push(profile.id);
 
+        // Keep a set for quick friend checks
+        setFriendIdSet(new Set(friendIds.filter((i) => i !== profile.id)));
+
         const { data: postsData, error: postsError } = await supabase
           .from("posts_with_details")
           .select("*")
@@ -365,8 +389,8 @@ export default function SocialFeedScreen() {
             posts.map((p) =>
               p.id === postId
                 ? { ...p, liked_by_user: false, likes_count: p.likes_count - 1 }
-                : p,
-            ),
+                : p
+            )
           );
         } else {
           await supabase
@@ -376,8 +400,8 @@ export default function SocialFeedScreen() {
             posts.map((p) =>
               p.id === postId
                 ? { ...p, liked_by_user: true, likes_count: p.likes_count + 1 }
-                : p,
-            ),
+                : p
+            )
           );
         }
       } catch (error) {
@@ -483,6 +507,8 @@ export default function SocialFeedScreen() {
                 onLike={handleLike}
                 onComment={handleComment}
                 onShare={handleShare}
+                friendIdSet={friendIdSet}
+                currentUserId={profile?.id}
               />
             ))}
           </View>
