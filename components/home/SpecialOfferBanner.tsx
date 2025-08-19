@@ -2,6 +2,7 @@ import React from "react";
 import { View, Pressable, Dimensions } from "react-native";
 import { useRouter } from "expo-router";
 import { Image } from "@/components/image";
+import { Card } from "@/components/ui/card";
 import { EnrichedOffer } from "@/hooks/useOffers";
 
 interface SpecialOfferBannerProps {
@@ -33,9 +34,13 @@ export function SpecialOfferBanner({ offer }: SpecialOfferBannerProps) {
         transform: [{ scale: pressed ? 0.98 : 1 }],
       })}
     >
-      <View
-        className="bg-card border border-border rounded-2xl overflow-hidden shadow-lg shadow-black/10"
-        style={{ width: bannerWidth, height: bannerHeight }}
+      <Card
+        variant="elevated"
+        style={{
+          width: bannerWidth,
+          height: bannerHeight,
+          padding: 0,
+        }}
       >
         {/* Banner Image Only */}
         <Image
@@ -43,7 +48,7 @@ export function SpecialOfferBanner({ offer }: SpecialOfferBannerProps) {
           style={{ width: bannerWidth, height: bannerHeight }}
           contentFit="cover"
         />
-      </View>
+      </Card>
     </Pressable>
   );
 }

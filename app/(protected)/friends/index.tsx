@@ -197,7 +197,7 @@ export default function FriendsScreen() {
       const loweredQuery = query.toLowerCase();
       const filteredFriends = friends
         .filter((friend) =>
-          friend.full_name.toLowerCase().includes(loweredQuery)
+          friend.full_name.toLowerCase().includes(loweredQuery),
         )
         .map((friend) => ({
           id: friend.id,

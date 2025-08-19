@@ -58,7 +58,7 @@ export const SearchContent = ({
       <View className="flex-1 justify-center items-center">
         <ActivityIndicator
           size="large"
-          color={getActivityIndicatorColor()}
+          color={getActivityIndicatorColor(colorScheme)}
         />
         <Text className="mt-4 text-muted-foreground">
           Loading restaurants...
@@ -159,7 +159,7 @@ export const SearchContent = ({
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor={getRefreshControlColor()}
+          tintColor={getRefreshControlColor(colorScheme)}
         />
       }
       onScroll={onScroll}

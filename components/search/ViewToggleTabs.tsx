@@ -39,7 +39,7 @@ export const ViewToggleTabs = ({
     [viewMode, onViewModeChange, onMapViewSelected],
   );
 
-  const themedColors = getThemedColors();
+  const themedColors = getThemedColors(colorScheme);
 
   return (
     <View className="bg-background border-b border-border">

@@ -121,7 +121,7 @@ export function HomeHeader({
                   right: 0,
                   width: 12,
                   height: 12,
-                  backgroundColor: "#F2B25F", // Golden Crust for online status
+                  backgroundColor: "#792339", // Mulberry Velvet for online status
                   borderRadius: 6,
                   borderWidth: 2,
                   borderColor: colorScheme === "dark" ? "#000" : "#fff",

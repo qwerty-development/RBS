@@ -361,8 +361,8 @@ export default function FavoritesScreen() {
         return (
           <PlaylistErrorBoundary
             fallback={
-              <View className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg m-2">
-                <Text className="text-center text-gray-500">
+              <View className="p-4 bg-muted dark:bg-card rounded-lg m-2">
+                <Text className="text-center text-muted-foreground">
                   Unable to load playlist: {item.name || "Unknown"}
                 </Text>
               </View>
@@ -379,8 +379,8 @@ export default function FavoritesScreen() {
       } catch (error) {
         console.error("Error rendering playlist item:", error);
         return (
-          <View className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg m-2">
-            <Text className="text-center text-gray-500">
+          <View className="p-4 bg-muted dark:bg-card rounded-lg m-2">
+            <Text className="text-center text-muted-foreground">
               Unable to load playlist: {item?.name || "Unknown"}
             </Text>
           </View>
@@ -395,7 +395,7 @@ export default function FavoritesScreen() {
         {!invitationError && (
           <Pressable
             onPress={navigateToInvitations}
-            className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg relative"
+            className="p-2 bg-muted dark:bg-card rounded-lg relative"
           >
             <Mail size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
             {pendingCount > 0 && (
@@ -409,7 +409,7 @@ export default function FavoritesScreen() {
         )}
         <Pressable
           onPress={navigateToJoinPlaylist}
-          className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg"
+          className="p-2 bg-muted dark:bg-card rounded-lg"
         >
           <UserPlus
             size={20}
@@ -497,11 +497,11 @@ export default function FavoritesScreen() {
 
       <View className="px-4">
         {/* Tabs */}
-        <View className="flex-row bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+        <View className="flex-row bg-muted dark:bg-card rounded-xl p-1">
           <Pressable
             onPress={() => handleTabSwitch("favorites")}
             className={`flex-1 flex-row items-center justify-center py-2.5 rounded-lg ${
-              activeTab === "favorites" ? "bg-white dark:bg-gray-700" : ""
+              activeTab === "favorites" ? "bg-background dark:bg-secondary" : ""
             }`}
           >
             <Heart
@@ -513,7 +513,7 @@ export default function FavoritesScreen() {
               className={`ml-2 font-medium ${
                 activeTab === "favorites"
                   ? "text-primary"
-                  : "text-gray-600 dark:text-gray-400"
+                  : "text-muted-foreground"
               }`}
             >
               Favorites
@@ -523,7 +523,7 @@ export default function FavoritesScreen() {
           <Pressable
             onPress={() => handleTabSwitch("playlists")}
             className={`flex-1 flex-row items-center justify-center py-2.5 rounded-lg relative ${
-              activeTab === "playlists" ? "bg-white dark:bg-gray-700" : ""
+              activeTab === "playlists" ? "bg-background dark:bg-secondary" : ""
             }`}
           >
             <FolderPlus
@@ -534,7 +534,7 @@ export default function FavoritesScreen() {
               className={`ml-2 font-medium ${
                 activeTab === "playlists"
                   ? "text-primary"
-                  : "text-gray-600 dark:text-gray-400"
+                  : "text-muted-foreground"
               }`}
             >
               Playlists
@@ -550,7 +550,7 @@ export default function FavoritesScreen() {
         </View>
       </View>
 
-      {/* Content with ScrollView for pull-to-refresh */}
+
       <PlaylistErrorBoundary
         fallback={
           <View className="flex-1 items-center justify-center px-8">
@@ -611,7 +611,7 @@ export default function FavoritesScreen() {
             )
           ) : // Playlists content
           (playlists?.length || 0) === 0 ? (
-            <View className="flex-1 items-center justify-center px-8">
+            <View className="flex-1 items-center justify-center px-8 pt-6">
               <FolderPlus size={64} color="#6b7280" className="mb-4" />
               <H3 className="text-center mb-2">No Playlists Yet</H3>
               <Text className="text-center text-muted-foreground mb-6">
@@ -644,15 +644,15 @@ export default function FavoritesScreen() {
               </View>
             </View>
           ) : (
-            <View className="pb-24">
+            <View className="pb-24 pt-7">
               {playlists?.map((item: any, index: number) => {
                 if (!item || !item.id) {
                   return (
                     <View
                       key={`invalid-playlist-${index}`}
-                      className="p-4 bg-yellow-50 dark:bg-yellow-900 rounded-lg m-2"
+                      className="p-4 bg-muted dark:bg-card border border-destructive/20 rounded-lg m-2"
                     >
-                      <Text className="text-center text-yellow-800 dark:text-yellow-200">
+                      <Text className="text-center text-destructive">
                         Invalid playlist data at position {index + 1}
                       </Text>
                     </View>
@@ -671,9 +671,9 @@ export default function FavoritesScreen() {
                   return (
                     <View
                       key={`error-playlist-${item.id}`}
-                      className="p-4 bg-red-50 dark:bg-red-900 rounded-lg m-2"
+                      className="p-4 bg-muted dark:bg-card border border-destructive/20 rounded-lg m-2"
                     >
-                      <Text className="text-center text-red-600 dark:text-red-300">
+                      <Text className="text-center text-destructive">
                         Error rendering playlist: {item.name || "Unknown"}
                       </Text>
                     </View>

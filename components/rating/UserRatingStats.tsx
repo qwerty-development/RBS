@@ -47,7 +47,7 @@ export function UserRatingStats({ stats, className }: UserRatingStatsProps) {
   const chartConfig = {
     backgroundGradientFrom: "#ffffff",
     backgroundGradientTo: "#ffffff",
-    color: (opacity = 1) => `rgba(242, 178, 95, ${opacity})`, // Golden Crust
+    color: (opacity = 1) => `rgba(121, 35, 57, ${opacity})`, // Mulberry Velvet
     strokeWidth: 2,
     barPercentage: 0.5,
     useShadowColorFromDataset: false,

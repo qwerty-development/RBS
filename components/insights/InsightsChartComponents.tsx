@@ -89,7 +89,7 @@ export const SimpleLineChart: React.FC<{
                   className="w-3 rounded-t"
                   style={{
                     height: bookingHeight,
-                    backgroundColor: "#F2B25F", // Golden Crust
+                    backgroundColor: "#792339", // Mulberry Velvet
                   }}
                 />
                 <View
@@ -226,7 +226,7 @@ export const TierProgressBar: React.FC<{
       <ProgressBar
         value={Math.max(0, progress)}
         maxValue={100}
-        color="#F2B25F"
+        color="#792339"
         height={10}
       />
       <Text className="text-xs text-muted-foreground">

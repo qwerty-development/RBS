@@ -301,13 +301,13 @@ const DateSelector = React.memo<{
   const calendarDates = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Reset time to start of day
-    const minDate = today.toISOString().split('T')[0];
+    const minDate = today.toISOString().split("T")[0];
 
     const maxDateObj = new Date(today);
     maxDateObj.setDate(today.getDate() + maxDaysAhead - 1);
-    const maxDate = maxDateObj.toISOString().split('T')[0];
+    const maxDate = maxDateObj.toISOString().split("T")[0];
 
-    console.log('Calendar date range:', { minDate, maxDate, maxDaysAhead });
+    console.log("Calendar date range:", { minDate, maxDate, maxDaysAhead });
     return { minDate, maxDate };
   }, [maxDaysAhead]);
 
@@ -322,8 +322,8 @@ const DateSelector = React.memo<{
 
   const handleCalendarDateSelect = useCallback(
     (day: any) => {
-      console.log('Calendar date selected:', day.dateString);
-      const selectedDate = new Date(day.dateString + 'T00:00:00');
+      console.log("Calendar date selected:", day.dateString);
+      const selectedDate = new Date(day.dateString + "T00:00:00");
       handleDateChange(selectedDate);
       setShowCalendar(false);
     },
@@ -447,29 +447,29 @@ const DateSelector = React.memo<{
               <RNCalendar
                 onDayPress={handleCalendarDateSelect}
                 markedDates={{
-                  [selectedDate.toISOString().split('T')[0]]: {
+                  [selectedDate.toISOString().split("T")[0]]: {
                     selected: true,
-                    selectedColor: '#3b82f6',
+                    selectedColor: "#3b82f6",
                   },
                 }}
                 minDate={calendarDates.minDate}
                 maxDate={calendarDates.maxDate}
                 enableSwipeMonths={true}
                 theme={{
-                  backgroundColor: 'transparent',
-                  calendarBackground: 'transparent',
-                  textSectionTitleColor: '#666',
-                  selectedDayBackgroundColor: '#3b82f6',
-                  selectedDayTextColor: '#ffffff',
-                  todayTextColor: '#3b82f6',
-                  dayTextColor: '#333',
-                  textDisabledColor: '#ccc',
-                  arrowColor: '#3b82f6',
-                  monthTextColor: '#333',
-                  indicatorColor: '#3b82f6',
-                  textDayFontWeight: '500',
-                  textMonthFontWeight: '600',
-                  textDayHeaderFontWeight: '500',
+                  backgroundColor: "transparent",
+                  calendarBackground: "transparent",
+                  textSectionTitleColor: "#666",
+                  selectedDayBackgroundColor: "#3b82f6",
+                  selectedDayTextColor: "#ffffff",
+                  todayTextColor: "#3b82f6",
+                  dayTextColor: "#333",
+                  textDisabledColor: "#ccc",
+                  arrowColor: "#3b82f6",
+                  monthTextColor: "#333",
+                  indicatorColor: "#3b82f6",
+                  textDayFontWeight: "500",
+                  textMonthFontWeight: "600",
+                  textDayHeaderFontWeight: "500",
                 }}
               />
             </View>
@@ -572,8 +572,6 @@ const OffersPreview = React.memo<{
     </Pressable>
   );
 });
-
-
 
 // Main Component
 export default function AvailabilitySelectionScreen() {
@@ -727,7 +725,12 @@ export default function AvailabilitySelectionScreen() {
             restaurant.id,
             restaurant.booking_window_days || 30,
           );
-          console.log('Max booking days calculated:', days, 'Restaurant default:', restaurant.booking_window_days);
+          console.log(
+            "Max booking days calculated:",
+            days,
+            "Restaurant default:",
+            restaurant.booking_window_days,
+          );
           setMaxBookingDays(days);
         } catch (error) {
           console.error("Error fetching max booking days:", error);
@@ -1036,7 +1039,6 @@ export default function AvailabilitySelectionScreen() {
       {/* Restaurant Info Card */}
       <RestaurantInfoCard restaurant={restaurant} />
 
- 
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}
@@ -1168,7 +1170,6 @@ export default function AvailabilitySelectionScreen() {
                 </Text>
               </Pressable>
 
-
               {/* Loyalty Points Display for Experience Step */}
               {bookingDateTime && !isRequestBooking && hasLoyaltyProgram && (
                 <LoyaltyPointsDisplay
@@ -1260,7 +1261,6 @@ export default function AvailabilitySelectionScreen() {
                       points
                     </Text>
                   )}
-            
                 </View>
               </View>
             </>
@@ -1303,7 +1303,6 @@ export default function AvailabilitySelectionScreen() {
                 </>
               )}
             </View>
-            
           </View>
 
           {/* Dynamic CTA based on step */}

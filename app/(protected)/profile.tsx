@@ -256,6 +256,13 @@ export default function ProfileScreen() {
           onPress: () => router.push("/profile/preferences"),
         },
         {
+          id: "appearance",
+          title: "Appearance",
+          subtitle: "Theme and color settings",
+          icon: "Palette",
+          onPress: () => router.push("/profile/appearance"),
+        },
+        {
           id: "reset-password",
           title: "Reset Password",
           subtitle: "Update your password",

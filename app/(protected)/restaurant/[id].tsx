@@ -57,7 +57,7 @@ import { useRestaurant } from "@/hooks/useRestaurant";
 import { useRestaurantReviews } from "@/hooks/useRestaurantReviews";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
-import { RestaurantPlaylistIndicator } from "@/components/restaurant/RestaurantPlaylistIndicator";
+
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 import RestaurantDetailsScreenSkeleton from "@/components/skeletons/RestaurantDetailsScreenSkeleton";
 import { Database } from "@/types/supabase";
@@ -144,7 +144,7 @@ const ImageGallery: React.FC<{
   isFavorite,
   onToggleFavorite,
   onAddToPlaylist,
-  colorScheme
+  colorScheme,
 }) => {
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -194,10 +194,7 @@ const ImageGallery: React.FC<{
           onPress={onAddToPlaylist}
           className="w-10 h-10 bg-black/30 rounded-full items-center justify-center"
         >
-          <FolderPlus
-            size={20}
-            color="white"
-          />
+          <FolderPlus size={20} color="white" />
         </Pressable>
       </View>
 
@@ -219,8 +216,6 @@ const ImageGallery: React.FC<{
     </View>
   );
 };
-
-
 
 // Restaurant Header Info - Updated to use new hours system
 const RestaurantHeaderInfo: React.FC<{
@@ -822,10 +817,6 @@ export default function RestaurantDetailsScreen() {
 
         {/* 1. Name, cuisine, etc. */}
         <RestaurantHeaderInfo restaurant={restaurant} restaurantId={id!} />
-
-        {!isGuest && (
-          <RestaurantPlaylistIndicator restaurantId={restaurant.id} />
-        )}
 
         {/* 2. Contact */}
         <ContactInfo
