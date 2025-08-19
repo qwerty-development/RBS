@@ -13,6 +13,8 @@ config.resolver = {
     ...config.resolver?.alias,
     // Add crypto polyfill if needed
     crypto: require.resolve("expo-crypto"),
+    // Add path aliases to match tsconfig.json
+    "@": path.resolve(__dirname, "."),
   },
 };
 

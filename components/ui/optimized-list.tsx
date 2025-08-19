@@ -1,6 +1,6 @@
 // components/ui/optimized-list.tsx
 import React, { useCallback, useMemo, useRef } from "react";
-import { FlatList, ViewToken } from "react-native";
+import { FlatList, ViewToken, FlatListProps } from "react-native";
 import { imageCache } from "@/utils/imageCache";
 import { useDebounce } from "use-debounce";
 
@@ -11,6 +11,7 @@ interface OptimizedListProps<T> {
   onEndReached?: () => void;
   onRefresh?: () => void;
   refreshing?: boolean;
+  listProps?: Partial<FlatListProps<T>>;
 }
 
 export function OptimizedList<T>({
@@ -20,6 +21,7 @@ export function OptimizedList<T>({
   onEndReached,
   onRefresh,
   refreshing,
+  listProps,
 }: OptimizedListProps<T>) {
   const viewabilityConfig = useRef({
     minimumViewTime: 50,
@@ -43,6 +45,7 @@ export function OptimizedList<T>({
       data={data}
       renderItem={renderItem}
       keyExtractor={keyExtractor}
+      onEndReached={onEndReached}
       onEndReachedThreshold={0.5}
       onRefresh={onRefresh}
       refreshing={refreshing}
@@ -58,6 +61,7 @@ export function OptimizedList<T>({
         offset: 120 * index,
         index,
       })}
+      {...(listProps as object)}
     />
   );
 }
