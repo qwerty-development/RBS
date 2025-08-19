@@ -19,7 +19,17 @@
     "build:android:preview": "eas build --platform android --profile preview",
     "build:production": "eas build --platform all --profile production",
     "builds:status": "node scripts/check-builds.js",
-    "builds:list": "eas build:list"
+    "builds:list": "eas build:list",
+    "supabase:start": "npx supabase start",
+    "supabase:stop": "npx supabase stop",
+    "supabase:status": "npx supabase status",
+    "supabase:reset": "npx supabase db reset",
+    "supabase:migrate": "npx supabase db push",
+    "supabase:pull": "npx supabase db pull",
+    "supabase:diff": "npx supabase db diff",
+    "supabase:gen-types": "npx supabase gen types typescript --local > types/supabase-local.ts",
+    "supabase:functions:serve": "npx supabase functions serve",
+    "supabase:functions:deploy": "npx supabase functions deploy"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.0.1",

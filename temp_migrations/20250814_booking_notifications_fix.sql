@@ -23,7 +23,7 @@ BEGIN
       v_type := 'booking_confirmed';
     ELSIF (NEW.status = 'pending') THEN
       v_title := 'Booking Request Submitted';
-      v_msg := 'Your booking request has been submitted. We will notify you when it\'s confirmed.';
+      v_msg := 'Your booking request has been submitted. We will notify you when it''s confirmed.';
       v_type := 'booking_request_submitted';
     END IF;
 
