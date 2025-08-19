@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { ActivityIndicator, View, Alert } from "react-native";
 import * as z from "zod";
 import { useState } from "react";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ export default function PasswordReset() {
       email: "",
     },
   });
+  const { from } = useLocalSearchParams<{ from?: string }>();
 
   async function onSubmit(data: z.infer<typeof formSchema>) {
     try {
@@ -48,7 +49,7 @@ export default function PasswordReset() {
                 params: { email: data.email },
               }),
           },
-        ],
+        ]
       );
     } catch (error: any) {
       let errorMessage = "An error occurred. Please try again.";
@@ -62,7 +63,7 @@ export default function PasswordReset() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background p-4 mt-8" edges={["bottom"]}>
+    <SafeAreaView className="flex-1 bg-background p-4" edges={["top", "bottom"]}>
       <View className="flex-1 gap-4 web:m-4">
         <View>
           <H1 className="self-start">Reset Password</H1>
@@ -106,14 +107,16 @@ export default function PasswordReset() {
           )}
         </Button>
 
-        <View className="flex-row items-center gap-2 justify-center mt-2">
-          <Text
-            className="text-primary font-medium"
-            onPress={() => router.push("/sign-in")}
-          >
-            Back to Sign In
-          </Text>
-        </View>
+        {from === "sign-in" && (
+          <View className="flex-row items-center gap-2 justify-center mt-2">
+            <Text
+              className="text-primary font-medium"
+              onPress={() => router.replace("/sign-in")}
+            >
+              Back to Sign In
+            </Text>
+          </View>
+        )}
       </View>
     </SafeAreaView>
   );

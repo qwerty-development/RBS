@@ -219,7 +219,7 @@ export default function ProfileScreen() {
         if (updateError) throw updateError;
 
         await Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Success,
+          Haptics.NotificationFeedbackType.Success
         );
       } catch (error) {
         console.error("Error uploading avatar:", error);
@@ -267,7 +267,11 @@ export default function ProfileScreen() {
           title: "Reset Password",
           subtitle: "Update your password",
           icon: "KeyRound",
-          onPress: () => router.push("/password-reset"),
+          onPress: () =>
+            router.push({
+              pathname: "/password-reset",
+              params: { from: "profile" },
+            }),
         },
       ],
     },

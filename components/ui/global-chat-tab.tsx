@@ -9,7 +9,8 @@ import {
   PanResponderGestureState,
 } from "react-native";
 import { Text } from "@/components/ui/text";
-import ChatTestScreen from "@/app/(protected)/chat-test";
+// Switch to the backend-powered chat implementation
+import ChatTestScreen from "@/app/(protected)/chat_test_py";
 import { ChatMessage } from "@/ai/AI_Agent";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 

@@ -17,12 +17,13 @@ import { Send, X, Wifi, WifiOff } from "lucide-react-native";
 import { RestaurantCard } from "@/components/restaurant/RestaurantCard";
 import { router } from "expo-router";
 import { supabase } from "@/config/supabase";
+import { RESTO_AI_BASE_URL } from "@/config/ai";
 import { OptimizedList } from "@/components/ui/optimized-list";
 
 const { width: screenWidth } = Dimensions.get("window");
 
-// Flask API configuration
-const FLASK_API_BASE_URL = "http://localhost:5000"; // Change this to your Flask server URL
+// RestoAI backend configuration
+const AI_API_BASE_URL = RESTO_AI_BASE_URL; // Centralized base URL
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -88,19 +89,21 @@ const MessageBubble = memo(
         {hasRestaurants && (
           <View className="mt-3">
             <OptimizedList
-              data={message.restaurants}
+              data={message.restaurants ?? []}
               renderItem={renderRestaurantCard}
               keyExtractor={(restaurant, index) =>
                 restaurant.id || index.toString()
               }
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              pagingEnabled
-              snapToInterval={cardWidth + 12}
-              decelerationRate="fast"
-              contentContainerStyle={{
-                paddingLeft: 4,
-                paddingRight: 4,
+              listProps={{
+                horizontal: true,
+                showsHorizontalScrollIndicator: false,
+                pagingEnabled: true,
+                snapToInterval: cardWidth + 12,
+                decelerationRate: "fast",
+                contentContainerStyle: {
+                  paddingLeft: 4,
+                  paddingRight: 4,
+                },
               }}
             />
             {message.restaurants!.length > 1 && (
@@ -118,13 +121,14 @@ const MessageBubble = memo(
   },
 );
 
-// Function to communicate with Flask API
-async function sendMessageToFlaskAPI(
+// Function to communicate with RestoAI backend
+async function sendMessageToRestoAI(
   message: string,
   sessionId?: string,
+  userId?: string,
 ): Promise<ChatMessage> {
   try {
-    const response = await fetch(`${FLASK_API_BASE_URL}/api/chat`, {
+    const response = await fetch(`${AI_API_BASE_URL}/api/chat`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -132,6 +136,7 @@ async function sendMessageToFlaskAPI(
       body: JSON.stringify({
         message: message,
         session_id: sessionId || "default",
+        user_id: userId,
       }),
     });
 
@@ -179,26 +184,39 @@ async function sendMessageToFlaskAPI(
       restaurants: restaurants.length > 0 ? restaurants : undefined,
     };
   } catch (error) {
-    console.error("Error communicating with Flask API:", error);
+    console.error("Error communicating with RestoAI API:", error);
     throw error;
   }
 }
 
-// Function to check if Flask API is available
-async function checkFlaskAPIHealth(): Promise<boolean> {
-  try {
+// Function to check if RestoAI backend is available (with fallback to root)
+async function checkRestoAIHealth(timeoutMs: number = 8000): Promise<boolean> {
+  const tryFetch = async (path: string) => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(`${AI_API_BASE_URL}${path}`, {
+        method: "GET",
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      return response.ok;
+    } catch (e) {
+      clearTimeout(timeoutId);
+      throw e;
+    }
+  };
 
-    const response = await fetch(`${FLASK_API_BASE_URL}/api/health`, {
-      method: "GET",
-      signal: controller.signal,
-    });
+  try {
+    const ok = await tryFetch("/api/health");
+    if (ok) return true;
+  } catch (_) {}
 
-    clearTimeout(timeoutId);
-    return response.ok;
+  try {
+    const okRoot = await tryFetch("/");
+    return okRoot;
   } catch (error) {
-    console.error("Flask API health check failed:", error);
+    console.error("RestoAI API health check failed:", error);
     return false;
   }
 }
@@ -218,23 +236,35 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
   const [apiConnected, setApiConnected] = useState<boolean | null>(null);
   const [sessionId] = useState(() => `session_${Date.now()}`);
   const scrollViewRef = useRef<ScrollView>(null);
+  const [userId, setUserId] = useState<string | undefined>(undefined);
 
   // Check API health on component mount
   useEffect(() => {
     const checkHealth = async () => {
-      const isHealthy = await checkFlaskAPIHealth();
+      const isHealthy = await checkRestoAIHealth();
       setApiConnected(isHealthy);
 
       if (!isHealthy) {
         Alert.alert(
           "Connection Error",
-          `Cannot connect to Flask API at ${FLASK_API_BASE_URL}. Please make sure the Flask server is running.`,
+          `Cannot connect to RestoAI backend at ${AI_API_BASE_URL}. Please make sure the server is running.`,
           [{ text: "OK" }],
         );
       }
     };
 
     checkHealth();
+  }, []);
+
+  // Load user ID once from Supabase session
+  useEffect(() => {
+    const loadUserId = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        setUserId(data.session?.user?.id);
+      } catch {}
+    };
+    loadUserId();
   }, []);
 
   // Auto-scroll to bottom when messages change
@@ -251,11 +281,16 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
     if (!trimmedInput) return;
 
     if (apiConnected === false) {
-      Alert.alert(
-        "No Connection",
-        "Cannot send message - Flask API is not available. Please check if the server is running.",
-      );
-      return;
+      // Re-try health check just-in-time before blocking send
+      const nowHealthy = await checkRestoAIHealth(8000);
+      if (!nowHealthy) {
+        Alert.alert(
+          "No Connection",
+          "Cannot send message - RestoAI backend is not available. Please check if the server is running.",
+        );
+        return;
+      }
+      setApiConnected(true);
     }
 
     // Store current input and clear immediately for better UX
@@ -268,15 +303,20 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
     setIsLoading(true);
 
     try {
-      console.log("Sending message to Flask API:", trimmedInput);
+      console.log("Sending message to RestoAI API:", trimmedInput);
 
-      // Call Flask API
-      const response = await sendMessageToFlaskAPI(trimmedInput, sessionId);
-      console.log("Flask API response received:", response);
+      // Call RestoAI API
+      const response = await sendMessageToRestoAI(
+        trimmedInput,
+        sessionId,
+        userId,
+      );
+      console.log("RestoAI API response received:", response);
 
       // Single atomic update: add response and clear loading
       setMessages((prev) => [...prev, response]);
       setIsLoading(false);
+      setApiConnected(true);
     } catch (error) {
       console.error("Error in chat:", error);
       setIsLoading(false);
@@ -294,7 +334,7 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
         {
           role: "assistant",
           content: isConnectionError
-            ? "Sorry, I'm having trouble connecting to the server. Please check if the Flask API is running and try again."
+            ? "Sorry, I'm having trouble connecting to the server. Please check if the RestoAI backend is running and try again."
             : "Sorry, I encountered an error. Please try again.",
         },
       ]);
@@ -316,14 +356,15 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
 
   const resetChat = useCallback(async () => {
     try {
-      // Call Flask API to reset chat
-      await fetch(`${FLASK_API_BASE_URL}/api/chat/reset`, {
+      // Call RestoAI API to reset chat
+      await fetch(`${AI_API_BASE_URL}/api/chat/reset`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           session_id: sessionId,
+          user_id: userId,
         }),
       });
 
@@ -347,7 +388,7 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
           <View className="flex-row items-center justify-between">
             <View className="flex-1">
               <View className="flex-row items-center gap-2">
-                <H3>DineMate AI Assistant (Python)</H3>
+                <H3>DineMate AI Assistant</H3>
                 <View className="flex-row items-center">
                   {apiConnected === true ? (
                     <Wifi size={16} color="#22c55e" />
@@ -361,12 +402,12 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
                 </View>
               </View>
               <Text className="text-muted-foreground">
-                Flask API-powered chat assistant for restaurant recommendations
+                RestoAI-powered chat assistant for restaurant recommendations
               </Text>
-              {apiConnected === false && (
+                {apiConnected === false && (
                 <Text className="text-xs text-red-500 mt-1">
-                  API Disconnected - Check if Flask server is running at{" "}
-                  {FLASK_API_BASE_URL}
+                  API Disconnected - Check if RestoAI server is running at {" "}
+                  {AI_API_BASE_URL}
                 </Text>
               )}
             </View>
@@ -418,8 +459,7 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
               {apiConnected === false && (
                 <View className="bg-red-100 p-3 rounded-lg mt-4">
                   <Text className="text-sm text-red-700 text-center">
-                    ⚠️ Flask API is not connected. Start the server with: python
-                    flask_api.py
+                    ⚠️ RestoAI backend is not connected.
                   </Text>
                 </View>
               )}
