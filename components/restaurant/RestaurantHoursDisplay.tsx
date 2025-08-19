@@ -7,7 +7,6 @@ import {
   ChevronUp,
   AlertTriangle,
   Calendar,
-  Info,
 } from "lucide-react-native";
 import { format, isToday, isTomorrow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -83,23 +82,41 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
           <Clock size={20} color="#666" />
           <Text className="text-base font-medium">Hours</Text>
         </View>
-        <View className="flex-row items-center gap-2">
-          <View
-            className={cn(
-              "w-2 h-2 rounded-full",
-              todayStatus.isOpen ? "bg-green-500" : "bg-red-500",
-            )}
-          />
-          <Text
-            className={cn(
-              "text-sm font-medium",
-              todayStatus.isOpen ? "text-green-600" : "text-red-600",
-            )}
-          >
-            {todayStatus.isOpen
-              ? `Open • ${currentHours}`
-              : `Closed • ${todayStatus.reason}`}
-          </Text>
+        <View className="flex-1 items-end">
+          <View className="flex-row items-center gap-2 mb-1">
+            <View
+              className={cn(
+                "w-2 h-2 rounded-full",
+                todayStatus.isOpen ? "bg-green-500" : "bg-red-500",
+              )}
+            />
+            <Text
+              className={cn(
+                "text-sm font-medium",
+                todayStatus.isOpen ? "text-green-600" : "text-red-600",
+              )}
+            >
+              {todayStatus.isOpen ? "Open now" : "Closed"}
+            </Text>
+          </View>
+          {todayStatus.isOpen && currentHours && (
+            <View className="items-end">
+              {currentHours.split(', ').map((timeRange, index) => (
+                <Text
+                  key={index}
+                  className="text-xs text-muted-foreground"
+                  numberOfLines={1}
+                >
+                  {timeRange.trim()}
+                </Text>
+              ))}
+            </View>
+          )}
+          {!todayStatus.isOpen && todayStatus.reason && (
+            <Text className="text-xs text-muted-foreground">
+              {todayStatus.reason}
+            </Text>
+          )}
         </View>
       </View>
 
@@ -199,17 +216,22 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
                 </Text>
                 <View className="flex-1 items-end">
                   {isOpen && Array.isArray(hours) && hours.length > 0 ? (
-                    hours.map((shift, index) => (
-                      <Text
-                        key={index}
-                        className={cn(
-                          "text-sm text-foreground",
-                          index > 0 && "mt-1",
-                        )}
-                      >
-                        {formatTime(shift.open)} - {formatTime(shift.close)}
-                      </Text>
-                    ))
+                    <View className="items-end flex-shrink">
+                      {hours.map((shift, index) => (
+                        <Text
+                          key={index}
+                          className={cn(
+                            "text-sm text-foreground text-right flex-shrink",
+                            index > 0 && "mt-0.5",
+                          )}
+                          numberOfLines={1}
+                          adjustsFontSizeToFit
+                          minimumFontScale={0.8}
+                        >
+                          {formatTime(shift.open)} - {formatTime(shift.close)}
+                        </Text>
+                      ))}
+                    </View>
                   ) : (
                     <Text className="text-sm text-muted-foreground">
                       Closed

@@ -299,27 +299,29 @@ export function RestaurantPosts({
       </View>
 
       {posts.length === 0 ? (
-        <View className="items-center py-12 px-8">
+        <View className="items-center py-12 px-8 mb-40">
           <Camera size={48} color="#666" />
           <Text className="mt-4 text-center">
             No posts yet. Be the first to share your experience!
           </Text>
         </View>
       ) : (
-        <OptimizedList
-          data={posts}
-          renderItem={({ item }) => (
-            <View className="px-4">
-              <PostCard
-                post={item}
-                onLike={handleLike}
-                onComment={handleComment}
-              />
-            </View>
-          )}
-          keyExtractor={(item) => item.id}
-          scrollEnabled={false}
-        />
+        <View className="mb-40">
+          <OptimizedList
+            data={posts}
+            renderItem={({ item }) => (
+              <View className="px-4">
+                <PostCard
+                  post={item}
+                  onLike={handleLike}
+                  onComment={handleComment}
+                />
+              </View>
+            )}
+            keyExtractor={(item) => item.id}
+            scrollEnabled={false}
+          />
+        </View>
       )}
     </View>
   );
