@@ -16,7 +16,7 @@ export const unstable_settings = {
 export default function ProtectedLayout() {
   const { initialized, session, isGuest } = useAuth();
   const { colorScheme } = useColorScheme();
-  const themedColors = getThemedColors();
+  const themedColors = getThemedColors(colorScheme);
 
   // Show loading while auth is initializing
   if (!initialized) {
@@ -32,7 +32,7 @@ export default function ProtectedLayout() {
       >
         <ActivityIndicator
           size="large"
-          color={getActivityIndicatorColor()}
+          color={getActivityIndicatorColor(colorScheme)}
         />
         <Text
           style={{ color: themedColors.foreground, marginTop: 16 }}
@@ -58,7 +58,7 @@ export default function ProtectedLayout() {
       >
         <ActivityIndicator
           size="large"
-          color={getActivityIndicatorColor()}
+          color={getActivityIndicatorColor(colorScheme)}
         />
         <Text
           style={{ color: themedColors.foreground, marginTop: 16 }}

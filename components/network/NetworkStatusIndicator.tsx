@@ -42,7 +42,7 @@ export function NetworkStatusIndicator({
     if (isSlowConnection) {
       return {
         icon: Signal,
-        color: "#F2B25F", // Golden Crust
+        color: "#792339", // Mulberry Velvet
         text: `Slow (${connectionQuality})`,
         bgColor: "bg-primary/10",
         textColor: "text-primary",
@@ -51,7 +51,7 @@ export function NetworkStatusIndicator({
 
     return {
       icon: Wifi,
-      color: "#F2B25F", // Golden Crust
+      color: "#792339", // Mulberry Velvet
       text: `Online (${connectionQuality})`,
       bgColor: "bg-primary/10",
       textColor: "text-primary",

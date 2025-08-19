@@ -1,10 +1,9 @@
 // app/(protected)/(tabs)/_layout.tsx
 import React, { useRef } from "react";
 import { Tabs } from "expo-router";
-import { Home, Search, Heart, Calendar, User, Bell } from "lucide-react-native";
+import { Home, Search, Heart, Calendar, User } from "lucide-react-native";
 import { ScrollView, View, Text } from "react-native";
 import { useColorScheme } from "@/lib/useColorScheme";
-import { colors } from "@/constants/colors";
 import { getThemedColors } from "@/lib/utils";
 import { useNotificationsBadge } from "@/hooks/useNotificationsBadge";
 
@@ -12,7 +11,7 @@ export const homeScrollRef = useRef<ScrollView>(null);
 
 export default function TabsLayout() {
   const { colorScheme } = useColorScheme();
-  const themedColors = getThemedColors();
+  const themedColors = getThemedColors(colorScheme);
   const { unreadCount } = useNotificationsBadge();
 
   return (

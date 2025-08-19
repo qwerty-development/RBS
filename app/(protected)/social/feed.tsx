@@ -389,8 +389,8 @@ export default function SocialFeedScreen() {
             posts.map((p) =>
               p.id === postId
                 ? { ...p, liked_by_user: false, likes_count: p.likes_count - 1 }
-                : p
-            )
+                : p,
+            ),
           );
         } else {
           await supabase
@@ -400,8 +400,8 @@ export default function SocialFeedScreen() {
             posts.map((p) =>
               p.id === postId
                 ? { ...p, liked_by_user: true, likes_count: p.likes_count + 1 }
-                : p
-            )
+                : p,
+            ),
           );
         }
       } catch (error) {

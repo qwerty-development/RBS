@@ -7,33 +7,27 @@ import {
   Heart,
   Star,
   MapPin,
-  Clock,
   Phone,
   Globe,
   Calendar,
   ChevronRight,
-  Camera,
-  ExternalLink,
-  Navigation,
   Edit3,
   Car,
-  Utensils,
   Leaf,
   TreePine,
   CheckCircle,
   Send,
   Timer,
+  X,
 } from "lucide-react-native";
 import {
   ScrollView,
   View,
   Pressable,
-  ActivityIndicator,
   Alert,
   Dimensions,
   StatusBar,
   Modal,
-  Platform,
   Linking,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -47,7 +41,7 @@ import { RestaurantHoursDisplay } from "@/components/restaurant/RestaurantHoursD
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { H1, H2, H3, P, Muted } from "@/components/ui/typography";
+import { H1, H3, P, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 import { LocationService } from "@/lib/locationService";
 import { RestaurantLoyaltyRules } from "@/components/booking/LoyaltyPointsDisplay";
@@ -57,7 +51,7 @@ import { useRestaurant } from "@/hooks/useRestaurant";
 import { useRestaurantReviews } from "@/hooks/useRestaurantReviews";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
-import { RestaurantPlaylistIndicator } from "@/components/restaurant/RestaurantPlaylistIndicator";
+
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 import RestaurantDetailsScreenSkeleton from "@/components/skeletons/RestaurantDetailsScreenSkeleton";
 import { Database } from "@/types/supabase";
@@ -128,6 +122,135 @@ const useRestaurantLocation = (location: any) => {
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 const IMAGE_HEIGHT = Math.min(SCREEN_HEIGHT * 0.6, 400);
 
+// Image Gallery Modal Component
+const ImageGalleryModal: React.FC<{
+  visible: boolean;
+  images: string[];
+  initialIndex: number;
+  onClose: () => void;
+}> = ({ visible, images, initialIndex, onClose }) => {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+
+  useEffect(() => {
+    setCurrentIndex(initialIndex);
+  }, [initialIndex]);
+
+  const goToPrevious = () => {
+    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const goToNext = () => {
+    setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  };
+
+  const handleClose = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    onClose();
+  };
+
+  if (!visible || images.length === 0) return null;
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="fade"
+      presentationStyle="fullScreen"
+      onRequestClose={handleClose}
+    >
+      <View className="flex-1 bg-black">
+        <StatusBar barStyle="light-content" backgroundColor="black" />
+
+        {/* Header with close button */}
+        <View className="absolute top-0 left-0 right-0 z-50 pt-12">
+          <View className="flex-row items-center justify-between p-4">
+            <Pressable
+              onPress={handleClose}
+              className="w-12 h-12 bg-black/70 rounded-full items-center justify-center"
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <X size={24} color="white" />
+            </Pressable>
+            <Text className="text-white font-medium">
+              {currentIndex + 1} of {images.length}
+            </Text>
+            <View className="w-12" />
+          </View>
+        </View>
+
+        {/* Image Display */}
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          contentOffset={{ x: currentIndex * SCREEN_WIDTH, y: 0 }}
+          onMomentumScrollEnd={(event) => {
+            const index = Math.round(
+              event.nativeEvent.contentOffset.x / SCREEN_WIDTH,
+            );
+            setCurrentIndex(index);
+          }}
+        >
+          {images.map((image, index) => (
+            <View
+              key={index}
+              style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
+              className="items-center justify-center"
+            >
+              <Image
+                source={{ uri: image }}
+                style={{ width: SCREEN_WIDTH, height: SCREEN_HEIGHT }}
+                contentFit="contain"
+              />
+            </View>
+          ))}
+        </ScrollView>
+
+        {/* Navigation Controls */}
+        {images.length > 1 && (
+          <>
+            <Pressable
+              onPress={goToPrevious}
+              className="absolute left-4 top-1/2 w-12 h-12 bg-black/50 rounded-full items-center justify-center"
+              style={{ marginTop: -24 }}
+            >
+              <ChevronLeft size={24} color="white" />
+            </Pressable>
+            <Pressable
+              onPress={goToNext}
+              className="absolute right-4 top-1/2 w-12 h-12 bg-black/50 rounded-full items-center justify-center"
+              style={{ marginTop: -24 }}
+            >
+              <ChevronRight size={24} color="white" />
+            </Pressable>
+          </>
+        )}
+
+        {/* Image Indicators */}
+        {images.length > 1 && (
+          <View className="absolute bottom-0 left-0 right-0">
+            <SafeAreaView edges={["bottom"]}>
+              <View className="flex-row justify-center py-4">
+                <View className="flex-row bg-black/50 rounded-full px-3 py-2 gap-1">
+                  {images.map((_, index) => (
+                    <View
+                      key={index}
+                      className={`w-2 h-2 rounded-full ${
+                        index === currentIndex ? "bg-white" : "bg-white/40"
+                      }`}
+                    />
+                  ))}
+                </View>
+              </View>
+            </SafeAreaView>
+          </View>
+        )}
+      </View>
+    </Modal>
+  );
+};
+
 // Image Gallery Component
 const ImageGallery: React.FC<{
   images: string[];
@@ -140,11 +263,9 @@ const ImageGallery: React.FC<{
 }> = ({
   images,
   onImagePress,
-  restaurant,
   isFavorite,
   onToggleFavorite,
   onAddToPlaylist,
-  colorScheme
 }) => {
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -178,11 +299,12 @@ const ImageGallery: React.FC<{
         ))}
       </ScrollView>
 
-      {/* Overlay Action Buttons */}
-      <View className="absolute top-16 right-4 flex-col gap-2">
+      {/* Overlay Action Buttons - Horizontal Layout */}
+      <View className="absolute top-16 right-4 flex-row gap-2">
         <Pressable
           onPress={onToggleFavorite}
-          className="w-10 h-10 bg-black/30 rounded-full items-center justify-center"
+          className="w-10 h-10 bg-black/50 rounded-full items-center justify-center"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Heart
             size={20}
@@ -192,12 +314,10 @@ const ImageGallery: React.FC<{
         </Pressable>
         <Pressable
           onPress={onAddToPlaylist}
-          className="w-10 h-10 bg-black/30 rounded-full items-center justify-center"
+          className="w-10 h-10 bg-black/50 rounded-full items-center justify-center"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
-          <FolderPlus
-            size={20}
-            color="white"
-          />
+          <FolderPlus size={20} color="white" />
         </Pressable>
       </View>
 
@@ -220,16 +340,13 @@ const ImageGallery: React.FC<{
   );
 };
 
-
-
 // Restaurant Header Info - Updated to use new hours system
 const RestaurantHeaderInfo: React.FC<{
   restaurant: Restaurant;
   restaurantId: string;
 }> = ({ restaurant, restaurantId }) => {
   const { address, isLoading } = useRestaurantLocation(restaurant.location);
-  const { checkAvailability, formatOperatingHours } =
-    useRestaurantAvailability(restaurantId);
+  const { checkAvailability } = useRestaurantAvailability(restaurantId);
 
   // Use the new availability check
   const availabilityStatus = useMemo(() => {
@@ -238,7 +355,6 @@ const RestaurantHeaderInfo: React.FC<{
   }, [checkAvailability]);
 
   const isOpen = availabilityStatus.isOpen;
-  const todayHours = formatOperatingHours();
 
   return (
     <View className="p-4 bg-background">
@@ -372,84 +488,72 @@ const FeaturesSection: React.FC<{ restaurant: Restaurant }> = ({
   );
 };
 
-// Menu Section
-const MenuSection: React.FC<{ onViewMenu: () => void }> = ({ onViewMenu }) => {
-  return (
-    <View className="px-4 py-3 border-b border-border/50">
-      <Text className="text-base font-semibold mb-3 text-foreground">Menu</Text>
-      <Pressable
-        onPress={onViewMenu}
-        className="flex-row items-center justify-between p-3 border border-border rounded-xl"
-      >
-        <View className="flex-row items-center gap-3">
-          <View className="w-10 h-10 bg-primary/10 rounded-full items-center justify-center">
-            <BookOpen size={18} color="#3b82f6" />
-          </View>
-          <View>
-            <Text className="text-sm font-medium text-foreground">
-              Browse Menu
-            </Text>
-            <Text className="text-xs text-muted-foreground">
-              View dishes & prices
-            </Text>
-          </View>
-        </View>
-        <ChevronRight size={18} color="#666" />
-      </Pressable>
-    </View>
-  );
-};
 
-// Contact Info
-const ContactInfo: React.FC<{
+
+// Quick Actions Section - Combined Contact, Website, and Menu
+const QuickActionsSection: React.FC<{
   restaurant: Restaurant;
   onCall: () => void;
   onWebsite: () => void;
-}> = ({ restaurant, onCall, onWebsite }) => {
+  onViewMenu: () => void;
+}> = ({ restaurant, onCall, onWebsite, onViewMenu }) => {
+  const actions = [];
+
+  // Add call action if phone number exists
+  if (restaurant.phone_number) {
+    actions.push({
+      id: 'call',
+      icon: Phone,
+      label: 'Call',
+      onPress: onCall,
+      color: '#3b82f6',
+    });
+  }
+
+  // Add website action if website exists
+  if (restaurant.website_url) {
+    actions.push({
+      id: 'website',
+      icon: Globe,
+      label: 'Website',
+      onPress: onWebsite,
+      color: '#3b82f6',
+    });
+  }
+
+  // Always add menu action
+  actions.push({
+    id: 'menu',
+    icon: BookOpen,
+    label: 'Menu',
+    onPress: onViewMenu,
+    color: '#3b82f6',
+  });
+
   return (
     <View className="px-4 py-3 border-b border-border/50">
       <Text className="text-base font-semibold mb-3 text-foreground">
-        Contact
+        Quick Actions
       </Text>
 
-      <View className="gap-2">
-        {restaurant.phone_number && (
-          <Pressable
-            onPress={onCall}
-            className="flex-row items-center gap-3 p-3 rounded-xl border border-border"
-          >
-            <View className="w-8 h-8 bg-blue-50 rounded-full items-center justify-center">
-              <Phone size={16} color="#3b82f6" />
-            </View>
-            <View className="flex-1">
-              <Text className="text-sm font-medium text-foreground">Call</Text>
-              <Text className="text-xs text-muted-foreground">
-                {restaurant.phone_number}
-              </Text>
-            </View>
-            <ChevronRight size={16} color="#666" />
-          </Pressable>
-        )}
-
-        {restaurant.website_url && (
-          <Pressable
-            onPress={onWebsite}
-            className="flex-row items-center gap-3 p-3 rounded-xl border border-border"
-          >
-            <View className="w-8 h-8 bg-blue-50 rounded-full items-center justify-center">
-              <Globe size={16} color="#3b82f6" />
-            </View>
-            <View className="flex-1">
+      <View className="flex-row gap-3">
+        {actions.map((action) => {
+          const IconComponent = action.icon;
+          return (
+            <Pressable
+              key={action.id}
+              onPress={action.onPress}
+              className="flex-1 flex-row items-center justify-center gap-2 p-3 rounded-xl border border-border bg-background"
+            >
+              <View className="w-6 h-6 items-center justify-center">
+                <IconComponent size={16} color={action.color} />
+              </View>
               <Text className="text-sm font-medium text-foreground">
-                Website
+                {action.label}
               </Text>
-              <Text className="text-xs text-muted-foreground">
-                View online menu
-              </Text>
-            </View>
-            <ExternalLink size={14} color="#666" />
-          </Pressable>
-        )}
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );
@@ -462,7 +566,7 @@ const LocationMap: React.FC<{
   const { address, coordinates, isLoading } = useRestaurantLocation(
     restaurant.location,
   );
-  const [mapReady, setMapReady] = useState(false);
+
 
   // Default coordinates for Beirut
   const defaultCoordinates: Coordinates = {
@@ -505,7 +609,7 @@ const LocationMap: React.FC<{
           zoomEnabled={false}
           rotateEnabled={false}
           pitchEnabled={false}
-          onMapReady={() => setMapReady(true)}
+          onMapReady={() => {}}
         >
           <Marker
             coordinate={mapCoordinates}
@@ -650,11 +754,6 @@ const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
 
 // Main Component
 export default function RestaurantDetailsScreen() {
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
 
   const { colorScheme } = useColorScheme();
   const router = useRouter();
@@ -663,6 +762,8 @@ export default function RestaurantDetailsScreen() {
 
   // State for non-protected UI elements
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
+  const [showImageGallery, setShowImageGallery] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
   // Guest Guard Hook
   const {
@@ -759,6 +860,12 @@ export default function RestaurantDetailsScreen() {
     router.push(`/restaurant/menu/${restaurant.id}`);
   }, [router, restaurant?.id]);
 
+  const handleImagePress = useCallback((index: number) => {
+    setSelectedImageIndex(index);
+    setShowImageGallery(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
+
   // Loading and Error States
   if (loading) {
     return <RestaurantDetailsScreenSkeleton />;
@@ -812,7 +919,7 @@ export default function RestaurantDetailsScreen() {
       >
         <ImageGallery
           images={allImages}
-          onImagePress={() => {}}
+          onImagePress={handleImagePress}
           restaurant={restaurant}
           isFavorite={isFavorite}
           onToggleFavorite={handleToggleFavorite}
@@ -823,32 +930,28 @@ export default function RestaurantDetailsScreen() {
         {/* 1. Name, cuisine, etc. */}
         <RestaurantHeaderInfo restaurant={restaurant} restaurantId={id!} />
 
-        {!isGuest && (
-          <RestaurantPlaylistIndicator restaurantId={restaurant.id} />
-        )}
-
-        {/* 2. Contact */}
-        <ContactInfo
+        {/* 2. Quick Actions - Contact, Website, Menu */}
+        <QuickActionsSection
           restaurant={restaurant}
           onCall={() => handleCall(restaurant)}
           onWebsite={handleWebsite}
+          onViewMenu={handleViewMenu}
         />
 
-        {/* 3. Menu */}
-        <MenuSection onViewMenu={handleViewMenu} />
+        {/* 3. Hours */}
+        <View className="px-4 py-3 border-b border-border/50">
+          <RestaurantHoursDisplay restaurantId={restaurant.id} />
+        </View>
 
-        {/* 4. Hours */}
-        <RestaurantHoursDisplay restaurantId={restaurant.id} className="mb-6" />
-
-        {/* 5. Location */}
+        {/* 4. Location */}
         <LocationMap restaurant={restaurant} />
 
-        {/* 6. About and Features */}
+        {/* 5. About and Features */}
         <AboutSection restaurant={restaurant} />
         <FeaturesSection restaurant={restaurant} />
         <RestaurantLoyaltyRules restaurantId={id as string} />
 
-        {/* 7. Reviews */}
+        {/* 6. Reviews */}
         <ReviewsSummary
           restaurant={restaurant}
           reviews={reviews}
@@ -860,8 +963,6 @@ export default function RestaurantDetailsScreen() {
           restaurantId={restaurant.id}
           restaurantName={restaurant.name}
         />
-
-        <View className="h-24" />
       </ScrollView>
 
       {/* Floating Book Button - No BookingWidget */}
@@ -934,6 +1035,14 @@ export default function RestaurantDetailsScreen() {
         onClose={handleClosePrompt}
         onSignUp={handleSignUpFromPrompt}
         featureName={promptedFeature}
+      />
+
+      {/* Image Gallery Modal */}
+      <ImageGalleryModal
+        visible={showImageGallery}
+        images={allImages}
+        initialIndex={selectedImageIndex}
+        onClose={() => setShowImageGallery(false)}
       />
     </View>
   );

@@ -37,12 +37,12 @@ SwitchWeb.displayName = "SwitchWeb";
 
 const RGB_COLORS = {
   light: {
-    primary: "rgb(242, 178, 95)", // Golden Crust
+    primary: "rgb(121, 35, 57)", // Mulberry Velvet
     input: "rgb(248, 230, 215)", // Subtle Blushed Linen
   },
   dark: {
-    primary: "rgb(242, 178, 95)", // Golden Crust (same for light mode only)
-    input: "rgb(248, 230, 215)", // Subtle Blushed Linen (same for light mode only)
+    primary: "rgb(121, 35, 57)", // Mulberry Velvet
+    input: "rgb(46, 32, 37)", // Dark input background
   },
 } as const;
 

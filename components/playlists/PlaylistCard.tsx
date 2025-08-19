@@ -76,14 +76,14 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
         <Pressable
           onPress={onPress}
           className={cn(
-            "flex-row items-center p-4 bg-white dark:bg-gray-800",
-            "border-b border-gray-200 dark:border-gray-700",
-            "active:bg-gray-50 dark:active:bg-gray-700",
+            "flex-row items-center p-4 bg-card",
+            "border-b border-border",
+            "active:bg-muted",
             className || "",
           )}
         >
           {/* Emoji Icon */}
-          <View className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-700 items-center justify-center mr-3">
+          <View className="w-12 h-12 rounded-xl bg-muted items-center justify-center mr-3">
             <Text className="text-2xl">{safeEmoji}</Text>
           </View>
 
@@ -94,9 +94,9 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
                 {safeName}
               </H4>
               {playlist.is_public ? (
-                <Globe size={14} color="#6b7280" />
+                <Globe size={14} className="text-muted-foreground" />
               ) : (
-                <Lock size={14} color="#6b7280" />
+                <Lock size={14} className="text-muted-foreground" />
               )}
             </View>
 
@@ -115,7 +115,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
               </Text>
               {safeCollaboratorCount > 0 && (
                 <View className="flex-row items-center gap-1">
-                  <Users size={12} color="#6b7280" />
+                  <Users size={12} className="text-muted-foreground" />
                   <Text className="text-xs text-muted-foreground">
                     {safeCollaboratorCount}
                   </Text>
@@ -148,7 +148,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
                 )}
               </Pressable>
             )}
-            <ChevronRight size={20} color="#6b7280" />
+            <ChevronRight size={20} className="text-muted-foreground" />
           </View>
         </Pressable>
       );
@@ -198,11 +198,11 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
           {/* Badges */}
           <View className="absolute top-2 right-2 flex-row gap-2">
             {playlist.is_public ? (
-              <View className="bg-white/90 dark:bg-gray-800/90 rounded-full p-1.5">
+              <View className="bg-card/90 rounded-full p-1.5">
                 <Globe size={14} color={isDark ? "#fff" : "#000"} />
               </View>
             ) : (
-              <View className="bg-white/90 dark:bg-gray-800/90 rounded-full p-1.5">
+              <View className="bg-card/90 rounded-full p-1.5">
                 <Lock size={14} color={isDark ? "#fff" : "#000"} />
               </View>
             )}
@@ -262,7 +262,7 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
           </View>
 
           {playlist.owner && !playlist.is_collaborative && (
-            <View className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+            <View className="mt-2 pt-2 border-t border-border">
               <Text className="text-xs text-muted-foreground">
                 by {String(playlist.owner.full_name || "Unknown")}
               </Text>

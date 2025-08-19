@@ -22,20 +22,20 @@ export function PageHeader({
   const hasActions = !!actions;
 
   return (
-    <View className={`px-4 pt-4 pb-2 ${className}`}>
+    <View className={`px-4 pt-4 pb-3 ${className}`}>
       {hasActions ? (
         // Layout for headers with actions (Social, Favorites)
         <View className="flex-row items-center justify-between mb-4">
           <View className="flex-1">
-            <H2 className="text-2xl">{title}</H2>
-            {subtitle && <Muted className="text-sm">{subtitle}</Muted>}
+            <H2 className="text-2xl font-bold tracking-tight">{title}</H2>
+            {subtitle && <Muted className="text-sm mt-0.5">{subtitle}</Muted>}
           </View>
           <View className="ml-4">{actions}</View>
         </View>
       ) : (
         // Simple layout for headers without actions (Bookings)
         <>
-          <H2 className="text-2xl">{title}</H2>
+          <H2 className="text-2xl font-bold tracking-tight">{title}</H2>
           {subtitle && <Muted className="text-sm mt-1">{subtitle}</Muted>}
         </>
       )}

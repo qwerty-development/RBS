@@ -57,14 +57,16 @@ const TimeSlotItem = memo<{
   // Then divide by 4 for 4 slots per row
   const containerPadding = 32; // 16px on each side
   const gapTotal = 36; // 3 gaps of 12px each
-  const slotWidth = Math.floor((SCREEN_WIDTH - containerPadding - gapTotal) / 4);
+  const slotWidth = Math.floor(
+    (SCREEN_WIDTH - containerPadding - gapTotal) / 4,
+  );
 
   return (
     <Pressable
       onPress={handlePress}
       style={{
         width: slotWidth,
-        marginBottom: 12
+        marginBottom: 12,
       }}
       className={`py-3 rounded-lg items-center border-2 ${
         isSelected ? "bg-primary border-primary" : "bg-muted border-border"
