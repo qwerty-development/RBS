@@ -30,7 +30,7 @@
 
 	.dark:root {
 		/* Dark Mode Brand Color Palette */
-		--background: 345 25% 8%; /* Deep Mulberry background */
+		--background: 345 27% 6%; /* Deep Mulberry background */
 		--foreground: 25 40% 92%; /* Light warm foreground */
 		--card: 345 20% 12%; /* Dark card background */
 		--card-foreground: 25 40% 92%; /* Light warm foreground */
