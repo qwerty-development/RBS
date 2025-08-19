@@ -179,10 +179,10 @@ export function RestaurantCard({
               marginRight: 12,
               width: 240,
               shadowColor: "#000000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.1,
-              shadowRadius: 4,
-              elevation: 5,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.35,
+              shadowRadius: 8,
+              elevation: 10,
               backgroundColor: "white",
             }}
             className={cn(getCardOpacity(), "shadow-sm", className)}
@@ -252,10 +252,10 @@ export function RestaurantCard({
               marginRight: 16,
               width: 288,
               shadowColor: "#000000",
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.15,
-              shadowRadius: 6,
-              elevation: 8,
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.45,
+              shadowRadius: 12,
+              elevation: 15,
               backgroundColor: "white",
             }}
             className={cn(getCardOpacity(), "shadow-md", className)}
@@ -351,10 +351,10 @@ export function RestaurantCard({
             noPadding={true}
             style={{
               shadowColor: "#000000",
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.08,
-              shadowRadius: 3,
-              elevation: 3,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.28,
+              shadowRadius: 7,
+              elevation: 8,
               backgroundColor: "white",
             }}
             className={cn(getCardOpacity(), "shadow-sm", className)}
