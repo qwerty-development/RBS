@@ -9,8 +9,8 @@
 		--foreground: 345 55% 31%; /* Mulberry Velvet */
 		--card: 25 50% 96%; /* Light Blushed Linen */
 		--card-foreground: 345 55% 31%; /* Mulberry Velvet */
-		--card-gradient-from: 25 60% 85%; /* Lighter gradient start */
-		--card-gradient-to: 25 40% 75%; /* Slightly deeper gradient end */
+		--card-gradient-from: 25 65% 96%; /* Lighter gradient start */
+		--card-gradient-to: 25 50% 91%; /* Slightly deeper gradient end */
 		--popover: 0 0% 100%;
 		--popover-foreground: 345 55% 31%; /* Mulberry Velvet */
 		--primary: 345 55% 31%; /* Mulbery Velvet */
