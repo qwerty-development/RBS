@@ -481,6 +481,9 @@ export default function FriendsScreen() {
         if (activeTab === "friends" || item.is_friend) {
           router.push(`/(protected)/friends/${item.id}` as any);
         }
+        else if (activeTab === "discover" || !item.is_friend) {
+          router.push(`/(protected)/social/profile/${item.id}` as any);
+        }
       }}
       className="flex-row items-center justify-between p-4 mb-2 bg-white dark:bg-gray-800 rounded-2xl"
       style={{
