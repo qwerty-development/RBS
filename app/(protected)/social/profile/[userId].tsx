@@ -14,6 +14,7 @@ import {
   Users,
   Star,
   MessageCircle,
+  Check,
 } from "lucide-react-native";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -38,6 +39,13 @@ interface UserProfile {
   avg_rating: number | null;
 }
 
+interface FriendRequest {
+  id: string;
+  from_user_id: string;
+  to_user_id: string;
+  status: "pending" | "accepted" | "rejected";
+}
+
 export default function UserProfileScreen() {
   const router = useRouter();
   const { userId } = useLocalSearchParams();
@@ -48,19 +56,21 @@ export default function UserProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [isFriend, setIsFriend] = useState(false);
   const [isCurrentUser, setIsCurrentUser] = useState(false);
+  const [pendingRequest, setPendingRequest] = useState<FriendRequest | null>(
+    null
+  );
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
   const fetchUserProfile = useCallback(async () => {
     if (!userId || !currentUser?.id) return;
 
     try {
-      // Check if viewing own profile
       if (userId === currentUser.id) {
         setIsCurrentUser(true);
         router.replace("/profile");
         return;
       }
 
-      // Fetch user profile data
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
         .select("*")
@@ -69,8 +79,6 @@ export default function UserProfileScreen() {
 
       if (profileError) throw profileError;
 
-      // Get user stats (this would require proper database views/functions)
-      // For now, using placeholder data
       const userProfileData: UserProfile = {
         ...profileData,
         posts_count: 0,
@@ -81,17 +89,27 @@ export default function UserProfileScreen() {
 
       setUserProfile(userProfileData);
 
-      // Check friendship status
       const { data: friendshipData } = await supabase
         .from("friends")
         .select("id")
         .or(
-          `and(user_id.eq.${currentUser.id},friend_id.eq.${userId}),and(user_id.eq.${userId},friend_id.eq.${currentUser.id})`,
+          `and(user_id.eq.${currentUser.id},friend_id.eq.${userId}),and(user_id.eq.${userId},friend_id.eq.${currentUser.id})`
         )
         .eq("status", "accepted")
         .single();
 
       setIsFriend(!!friendshipData);
+
+      // Check pending friend request FROM this user TO current user
+      const { data: requestData } = await supabase
+        .from("friend_requests")
+        .select("*")
+        .eq("from_user_id", userId)
+        .eq("to_user_id", currentUser.id)
+        .eq("status", "pending")
+        .single();
+
+      setPendingRequest(requestData || null);
     } catch (error) {
       console.error("Error fetching user profile:", error);
       Alert.alert("Error", "Failed to load user profile");
@@ -100,27 +118,85 @@ export default function UserProfileScreen() {
     }
   }, [userId, currentUser?.id, router]);
 
-  const handleSendFriendRequest = async () => {
+  const sendFriendRequest = async () => {
     if (!currentUser?.id || !userId) return;
 
-    try {
-      const { error } = await supabase.from("friends").insert({
-        user_id: currentUser.id,
-        friend_id: userId,
-        status: "pending",
-      });
+    setProcessingIds((prev) => new Set(prev).add(userId));
 
-      if (error) throw error;
+    try {
+      // Check if a request already exists in either direction
+      const { data: existing, error: checkError } = await supabase
+        .from("friend_requests")
+        .select("*")
+        .or(
+          `and(from_user_id.eq.${currentUser.id},to_user_id.eq.${userId}),and(from_user_id.eq.${userId},to_user_id.eq.${currentUser.id})`
+        )
+        .maybeSingle();
+
+      if (checkError) throw checkError;
+
+      if (existing) {
+        // If a row exists, update it to pending
+        const { error: updateError } = await supabase
+          .from("friend_requests")
+          .update({
+            status: "pending",
+            from_user_id: currentUser.id,
+            to_user_id: userId,
+          })
+          .eq("id", existing.id);
+
+        if (updateError) throw updateError;
+      } else {
+        // Otherwise create a new one
+        const { error: insertError } = await supabase
+          .from("friend_requests")
+          .insert({
+            from_user_id: currentUser.id,
+            to_user_id: userId,
+            status: "pending",
+          });
+
+        if (insertError) throw insertError;
+      }
 
       Alert.alert("Success", "Friend request sent!");
     } catch (error) {
       console.error("Error sending friend request:", error);
       Alert.alert("Error", "Failed to send friend request");
+
+      setProcessingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(userId);
+        return newSet;
+      });
     }
   };
 
-  const handleSendMessage = () => {
-    Alert.alert("Coming Soon", "Direct messaging feature coming soon!");
+  const handleFriendRequest = async (requestId: string, action: "accept") => {
+    setProcessingIds((prev) => new Set(prev).add(requestId));
+
+    try {
+      const { error } = await supabase
+        .from("friend_requests")
+        .update({ status: "accepted" })
+        .eq("id", requestId);
+
+      if (error) throw error;
+
+      Alert.alert("Success", "Friend request accepted!");
+      setPendingRequest(null);
+      setIsFriend(true);
+    } catch (error) {
+      console.error("Error accepting friend request:", error);
+      Alert.alert("Error", "Failed to accept friend request");
+    } finally {
+      setProcessingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(requestId);
+        return newSet;
+      });
+    }
   };
 
   useEffect(() => {
@@ -170,7 +246,7 @@ export default function UserProfileScreen() {
       </View>
 
       <ScrollView className="flex-1">
-        {/* Profile Section */}
+        {/* Profile Info */}
         <View className="p-6 items-center">
           <Image
             source={{
@@ -234,12 +310,33 @@ export default function UserProfileScreen() {
         {/* Action Buttons */}
         {!isCurrentUser && (
           <View className="p-6 gap-3">
-            {!isFriend ? (
-              <Button onPress={handleSendFriendRequest}>
-                <View className="flex-row items-center justify-center gap-2">
-                  <Users size={20} color="white" />
-                  <Text>Add Friend</Text>
-                </View>
+            {pendingRequest ? (
+              <Button
+                onPress={() => handleFriendRequest(pendingRequest.id, "accept")}
+                disabled={processingIds.has(pendingRequest.id)}
+              >
+                {processingIds.has(pendingRequest.id) ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <View className="flex-row items-center justify-center gap-2">
+                    <Check size={16} color="white" />
+                    <Text className="text-white">Accept Friend Request</Text>
+                  </View>
+                )}
+              </Button>
+            ) : !isFriend ? (
+              <Button
+                onPress={sendFriendRequest}
+                disabled={processingIds.has(userId!)}
+              >
+                {processingIds.has(userId!) ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <View className="flex-row items-center justify-center gap-2">
+                    <Users size={20} color="white" />
+                    <Text>Add Friend</Text>
+                  </View>
+                )}
               </Button>
             ) : (
               <Button variant="outline">
@@ -249,7 +346,11 @@ export default function UserProfileScreen() {
                 </View>
               </Button>
             )}
-            <Button variant="outline" onPress={handleSendMessage}>
+
+            <Button
+              variant="outline"
+              onPress={() => Alert.alert("Coming Soon")}
+            >
               <View className="flex-row items-center justify-center gap-2">
                 <MessageCircle size={20} color="#666" />
                 <Text>Message</Text>
@@ -257,16 +358,6 @@ export default function UserProfileScreen() {
             </Button>
           </View>
         )}
-
-        {/* Recent Activity Placeholder */}
-        <View className="p-6">
-          <H3 className="mb-4">Recent Activity</H3>
-          <View className="bg-card rounded-lg p-6 items-center">
-            <Muted className="text-center">
-              This user's recent posts and reviews will appear here
-            </Muted>
-          </View>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );

@@ -126,6 +126,7 @@ export default function FriendProfileScreen() {
         .or(
           `and(user_id.eq.${profile?.id},friend_id.eq.${id}),and(user_id.eq.${id},friend_id.eq.${profile?.id})`,
         )
+        .limit(1)
         .single();
 
       // Get mutual friends count (simplified - would need proper RPC function)
@@ -156,14 +157,23 @@ export default function FriendProfileScreen() {
           onPress: async () => {
             try {
               setRemovingFriend(true);
-              const { error } = await supabase
+              const { error: friendError } = await supabase
                 .from("friends")
                 .delete()
                 .or(
                   `and(user_id.eq.${profile?.id},friend_id.eq.${id}),and(user_id.eq.${id},friend_id.eq.${profile?.id})`,
                 );
 
-              if (error) throw error;
+              if (friendError) throw friendError;
+
+              const { error: requestError } = await supabase
+                .from("friend_requests")
+                .delete()
+                .or(
+                  `and(from_user_id.eq.${profile?.id},to_user_id.eq.${id}),and(from_user_id.eq.${id},to_user_id.eq.${profile?.id})`,
+                );
+
+              if (requestError) throw requestError;
 
               Alert.alert("Success", "Friend removed successfully");
               router.back();
