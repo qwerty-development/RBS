@@ -80,7 +80,7 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
       <View className="flex-row items-center justify-between mb-3">
         <View className="flex-row items-center gap-2">
           <Clock size={20} color="#666" />
-          <Text className="text-base font-medium">Hours</Text>
+          <Text className="text-base font-medium dark:text-white">Hours</Text>
         </View>
         <View className="flex-1 items-end">
           <View className="flex-row items-center gap-2 mb-1">
