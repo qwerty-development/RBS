@@ -413,7 +413,7 @@ export default function FriendsScreen() {
   const renderFriend = ({ item }: { item: Friend }) => (
     <Pressable
       onPress={() => router.push(`/(protected)/friends/${item.id}` as any)}
-      className="flex-row items-center justify-between p-4 mb-2 bg-white dark:bg-gray-800 rounded-2xl"
+      className="flex-row items-center justify-between p-4 mb-2 bg-card rounded-2xl"
       style={{
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 1 },
@@ -709,9 +709,9 @@ export default function FriendsScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
+    <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
-      <View className="px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+      <View className="px-4 py-3 bg-background border-b border-border">
         <View className="flex-row items-center justify-between">
           <Pressable onPress={() => router.back()} className="p-2">
             <ArrowLeft
@@ -727,7 +727,7 @@ export default function FriendsScreen() {
       </View>
 
       {/* Tabs */}
-      <View className="flex-row bg-white dark:bg-gray-800 px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+      <View className="flex-row bg-background px-4 py-2 border-b border-border">
         {[
           { id: "friends", label: "My Friends", icon: Users },
           { id: "requests", label: "Requests", icon: UserPlus },
@@ -737,7 +737,7 @@ export default function FriendsScreen() {
             key={tab.id}
             onPress={() => setActiveTab(tab.id as TabType)}
             className={`flex-1 flex-row items-center justify-center py-3 rounded-lg ${
-              activeTab === tab.id ? "bg-gray-100 dark:bg-gray-700" : ""
+              activeTab === tab.id ? "bg-secondary" : ""
             }`}
           >
             <tab.icon
@@ -752,9 +752,7 @@ export default function FriendsScreen() {
             />
             <Text
               className={`ml-2 font-medium ${
-                activeTab === tab.id
-                  ? "text-red-600"
-                  : "text-gray-600 dark:text-gray-400"
+                activeTab === tab.id ? "text-red-600" : "text-muted-foreground"
               }`}
             >
               {tab.label}
@@ -772,8 +770,8 @@ export default function FriendsScreen() {
 
       {/* Search Bar (for friends and discover tabs) */}
       {(activeTab === "friends" || activeTab === "discover") && (
-        <View className="px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-          <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-4 py-2">
+        <View className="px-4 py-3 bg-background border-b border-border">
+          <View className="flex-row items-center bg-input rounded-xl px-4 py-2">
             <Search size={20} color="#6b7280" />
             <TextInput
               placeholder={
@@ -820,7 +818,7 @@ export default function FriendsScreen() {
                 {activeTab === "friends" && !searchQuery && (
                   <>
                     <Users size={48} color="#9ca3af" />
-                    <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
+                    <Text className="text-muted-foreground mt-4 text-center">
                       No friends yet. Start connecting!
                     </Text>
                     <Button
@@ -834,7 +832,7 @@ export default function FriendsScreen() {
                 {activeTab === "requests" && (
                   <>
                     <UserPlus size={48} color="#9ca3af" />
-                    <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
+                    <Text className="text-muted-foreground mt-4 text-center">
                       No pending friend requests
                     </Text>
                   </>
@@ -842,7 +840,7 @@ export default function FriendsScreen() {
                 {activeTab === "discover" && !searchQuery && (
                   <>
                     <Search size={48} color="#9ca3af" />
-                    <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
+                    <Text className="text-muted-foreground mt-4 text-center">
                       No suggestions available right now
                     </Text>
                   </>
@@ -850,7 +848,7 @@ export default function FriendsScreen() {
                 {searchQuery && listData.length === 0 && (
                   <>
                     <Search size={48} color="#9ca3af" />
-                    <Text className="text-gray-500 dark:text-gray-400 mt-4 text-center">
+                    <Text className="text-muted-foreground mt-4 text-center">
                       No results found for "{searchQuery}"
                     </Text>
                   </>
