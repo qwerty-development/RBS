@@ -25,6 +25,7 @@ import {
   Heart,
   Utensils,
   ChevronRight,
+  UserMinus,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
@@ -74,6 +75,11 @@ interface SearchResult {
   avatar_url: string | null;
   is_friend: boolean;
   hasPendingRequest?: boolean;
+  pendingRequest?: {
+    id: string;
+    from_user_id: string;
+    to_user_id: string;
+  } | null;
 }
 
 interface FriendSuggestion {
@@ -224,7 +230,7 @@ export default function FriendsScreen() {
           data.map(async (user: any) => {
             const { data: requestData } = await supabase
               .from("friend_requests")
-              .select("id")
+              .select("id, from_user_id, to_user_id")
               .or(
                 `and(from_user_id.eq.${profile?.id},to_user_id.eq.${user.id}),and(from_user_id.eq.${user.id},to_user_id.eq.${profile?.id})`
               )
@@ -234,6 +240,13 @@ export default function FriendsScreen() {
             return {
               ...user,
               hasPendingRequest: !!requestData,
+              pendingRequest: requestData
+                ? {
+                    id: requestData.id,
+                    from_user_id: requestData.from_user_id,
+                    to_user_id: requestData.to_user_id,
+                  }
+                : null,
             };
           })
         );
@@ -284,7 +297,7 @@ export default function FriendsScreen() {
 
   const handleFriendRequest = async (
     requestId: string,
-    action: "accept" | "reject",
+    action: "accept" | "reject"
   ) => {
     setProcessingIds((prev) => new Set(prev).add(requestId));
 
@@ -318,6 +331,36 @@ export default function FriendsScreen() {
       }
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to process friend request");
+    } finally {
+      setProcessingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(requestId);
+        return newSet;
+      });
+    }
+  };
+
+  const removeFriendRequest = async (requestId: string) => {
+    setProcessingIds((prev) => new Set(prev).add(requestId));
+
+    try {
+      const { error } = await supabase
+        .from("friend_requests")
+        .delete()
+        .eq("id", requestId);
+
+      if (error) throw error;
+
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      Alert.alert("Success", "Friend request removed.");
+
+      // Refresh requests + search
+      await loadFriendRequests();
+      if (searchQuery) {
+        await handleSearch(searchQuery);
+      }
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "Failed to remove friend request");
     } finally {
       setProcessingIds((prev) => {
         const newSet = new Set(prev);
@@ -405,6 +448,7 @@ export default function FriendsScreen() {
 
   const renderFriendRequest = ({ item }: { item: FriendRequest }) => {
     const isReceived = item.to_user_id === profile?.id;
+    const isSent = item.from_user_id === profile?.id;
     const otherUser = isReceived ? item.from_user : item.to_user;
 
     return (
@@ -444,12 +488,49 @@ export default function FriendsScreen() {
           </View>
         </View>
 
-        {isReceived && (
-          <View className="flex-row mt-3 gap-2">
+        {/* Buttons */}
+        <View className="flex-row mt-3 gap-2">
+          {isReceived && (
+            <>
+              <Button
+                variant="default"
+                size="sm"
+                onPress={() => handleFriendRequest(item.id, "accept")}
+                disabled={processingIds.has(item.id)}
+                className="flex-1"
+              >
+                {processingIds.has(item.id) ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <View className="flex-row items-center justify-center gap-2">
+                    <Check size={16} color="white" />
+                    <Text className="text-white">Accept</Text>
+                  </View>
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onPress={() => handleFriendRequest(item.id, "reject")}
+                disabled={processingIds.has(item.id)}
+                className="flex-1"
+              >
+                <View className="flex-row items-center justify-center gap-2">
+                  <X
+                    size={16}
+                    color={colorScheme === "dark" ? "white" : "black"}
+                  />
+                  <Text>Decline</Text>
+                </View>
+              </Button>
+            </>
+          )}
+
+          {isSent && (
             <Button
-              variant="default"
               size="sm"
-              onPress={() => handleFriendRequest(item.id, "accept")}
+              onPress={() => removeFriendRequest(item.id)}
               disabled={processingIds.has(item.id)}
               className="flex-1"
             >
@@ -457,29 +538,13 @@ export default function FriendsScreen() {
                 <ActivityIndicator size="small" color="white" />
               ) : (
                 <View className="flex-row items-center justify-center gap-2">
-                  <Check size={16} color="white" />
-                  <Text className="text-white">Accept</Text>
+                  <UserMinus size={16} color="white" />
+                  <Text className="text-white">Remove Friend Request</Text>
                 </View>
               )}
             </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onPress={() => handleFriendRequest(item.id, "reject")}
-              disabled={processingIds.has(item.id)}
-              className="flex-1"
-            >
-              <View className="flex-row items-center justify-center gap-2">
-                <X
-                  size={16}
-                  color={colorScheme === "dark" ? "white" : "black"}
-                />
-                <Text>Decline</Text>
-              </View>
-            </Button>
-          </View>
-        )}
+          )}
+        </View>
       </View>
     );
   };
@@ -541,12 +606,45 @@ export default function FriendsScreen() {
           </Button>
         )}
 
-      {activeTab === "discover" && item.hasPendingRequest && (
-        <View className="flex-row items-center">
-          <Clock size={16} color="#f59e0b" />
-          <Muted className="ml-1">Pending</Muted>
-        </View>
-      )}
+      {activeTab === "discover" &&
+        item.hasPendingRequest &&
+        item.pendingRequest?.to_user_id === profile?.id && (
+          <Button
+            size="sm"
+            onPress={() =>
+              handleFriendRequest(item.pendingRequest!.id, "accept")
+            }
+            disabled={processingIds.has(item.pendingRequest!.id)}
+          >
+            {processingIds.has(item.pendingRequest!.id) ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <View className="flex-row items-center justify-center gap-2">
+                <UserCheck size={16} color="white" />
+                <Text className="text-white">Accept friend request</Text>
+              </View>
+            )}
+          </Button>
+        )}
+
+      {activeTab === "discover" &&
+        item.hasPendingRequest &&
+        item.pendingRequest?.from_user_id === profile?.id && (
+          <Button
+            size="sm"
+            onPress={() => removeFriendRequest(item.pendingRequest!.id)}
+            disabled={processingIds.has(item.pendingRequest!.id)}
+          >
+            {processingIds.has(item.pendingRequest!.id) ? (
+              <ActivityIndicator size="small" color="white" />
+            ) : (
+              <View className="flex-row items-center justify-center gap-2">
+                <UserMinus size={16} color="white" />
+                <Text className="text-white">Remove friend request</Text>
+              </View>
+            )}
+          </Button>
+        )}
     </Pressable>
   );
 
