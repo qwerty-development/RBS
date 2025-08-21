@@ -49,21 +49,15 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 
 // Memoized image item at module scope to avoid remounts across PostCard renders
 const PostImage = memo(
-  ({
-    imageUrl,
-    onSingleTap,
-  }: {
-    imageUrl: string;
-    onSingleTap: () => void;
-  }) => {
+  ({ imageUrl }: { imageUrl: string }) => {
+    // Render image only — tap handling is done by the parent GestureDetector so
+    // single-tap (navigate) and double-tap (like) are mutually exclusive.
     return (
-      <Pressable onPress={onSingleTap}>
-        <Image
-          source={{ uri: imageUrl }}
-          className="w-screen h-80"
-          contentFit="cover"
-        />
-      </Pressable>
+      <Image
+        source={{ uri: imageUrl }}
+        className="w-screen h-80"
+        contentFit="cover"
+      />
     );
   },
   (prev, next) => prev.imageUrl === next.imageUrl
@@ -180,20 +174,19 @@ const PostCard: React.FC<{
       if (success) runOnJS(handleDoubleTap)();
     });
 
-  // singleTap does nothing here; we want underlying Pressables to handle single taps
-  const singleTapGesture = Gesture.Tap().numberOfTaps(1);
+  // singleTap will navigate to the restaurant — runOnJS will call router.push
+  const singleTapGesture = Gesture.Tap()
+    .numberOfTaps(1)
+    .onEnd((_: unknown, success: boolean) => {
+      if (success) runOnJS(() => router.push(`/(protected)/restaurant/${post.restaurant_id}`))();
+    });
 
   const contentGesture = Gesture.Exclusive(doubleTapGesture, singleTapGesture);
 
   // Use module-scoped PostImage; prepare a stable renderItem
   const renderImage = useCallback(
     ({ item }: { item: { id: string; image_url: string } }) => (
-      <PostImage
-        imageUrl={item.image_url}
-        onSingleTap={() =>
-          router.push(`/(protected)/restaurant/${post.restaurant_id}`)
-        }
-      />
+      <PostImage imageUrl={item.image_url} />
     ),
     [post.liked_by_user, onLike, post.id, router, post.restaurant_id]
   );
