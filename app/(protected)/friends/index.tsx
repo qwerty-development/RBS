@@ -462,7 +462,12 @@ export default function FriendsScreen() {
           elevation: 2,
         }}
       >
-        <View className="flex-row items-center justify-between">
+        <Pressable
+          onPress={() => {
+            router.push(`/(protected)/social/profile/${otherUser?.id}` as any);
+          }}
+          className="flex-row items-center justify-between"
+        >
           <View className="flex-row items-center flex-1">
             <Image
               source={{
@@ -486,7 +491,7 @@ export default function FriendsScreen() {
               )}
             </View>
           </View>
-        </View>
+        </Pressable>
 
         {/* Buttons */}
         <View className="flex-row mt-3 gap-2">
@@ -649,7 +654,10 @@ export default function FriendsScreen() {
   );
 
   const renderSuggestion = ({ item }: { item: FriendSuggestion }) => (
-    <View
+    <Pressable
+      onPress={() => {
+        router.push(`/(protected)/social/profile/${item.id}` as any);
+      }}
       className="p-4 mb-2 bg-white dark:bg-gray-800 rounded-2xl"
       style={{
         shadowColor: "#000",
@@ -705,7 +713,7 @@ export default function FriendsScreen() {
           )}
         </Button>
       </View>
-    </View>
+    </Pressable>
   );
 
   return (
