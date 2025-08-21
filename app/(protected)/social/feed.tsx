@@ -1,5 +1,5 @@
 // app/(protected)/social/feed.tsx
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, memo } from "react";
 import {
   View,
   FlatList,
@@ -9,6 +9,7 @@ import {
   Alert,
   Modal,
   ScrollView,
+  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
@@ -43,6 +44,85 @@ import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { getRefreshControlColor } from "@/lib/utils";
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
+
+// Memoized image item at module scope to avoid remounts across PostCard renders
+const PostImage = memo(
+  ({
+    imageUrl,
+    liked,
+    onLike,
+    onSingleTap,
+  }: {
+    imageUrl: string;
+    liked: boolean;
+    onLike: () => void;
+    onSingleTap: () => void;
+  }) => {
+    const likeScale = useSharedValue(0);
+    const likeOpacity = useSharedValue(0);
+
+    const animateHeart = () => {
+      likeOpacity.value = 1;
+      likeScale.value = 0;
+      likeScale.value = withSequence(
+        withTiming(1.2, { duration: 160 }),
+        withTiming(1, { duration: 120 })
+      );
+      likeOpacity.value = withDelay(400, withTiming(0, { duration: 300 }));
+    };
+
+    const heartStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: likeScale.value }],
+      opacity: likeOpacity.value,
+    }));
+
+    const handleDoubleTap = () => {
+      animateHeart();
+      if (!liked) onLike();
+    };
+
+    const doubleTapGesture = Gesture.Tap()
+      .numberOfTaps(2)
+      .onEnd((_: unknown, success: boolean) => {
+        if (success) runOnJS(handleDoubleTap)();
+      });
+
+    const singleTapGesture = Gesture.Tap()
+      .numberOfTaps(1)
+      .requireExternalGestureToFail(doubleTapGesture)
+      .onEnd((_: unknown, success: boolean) => {
+        if (success) runOnJS(onSingleTap)();
+      });
+
+    const imageTapGesture = Gesture.Exclusive(
+      doubleTapGesture,
+      singleTapGesture
+    );
+
+    return (
+      <GestureDetector gesture={imageTapGesture}>
+        <View>
+          <Image
+            source={{ uri: imageUrl }}
+            className="w-screen h-80"
+            contentFit="cover"
+          />
+          <Animated.View
+            pointerEvents="none"
+            className="absolute inset-0 items-center justify-center"
+            style={heartStyle}
+          >
+            <Heart size={96} color="#ef4444" fill="#ef4444" />
+          </Animated.View>
+        </View>
+      </GestureDetector>
+    );
+  },
+  (prev, next) => prev.imageUrl === next.imageUrl && prev.liked === next.liked
+);
+PostImage.displayName = "PostImage";
 
 // --- New Guest Prompt Modal ---
 const GuestPromptModal = ({
@@ -124,74 +204,20 @@ const PostCard: React.FC<{
   const router = useRouter();
   const [imageIndex, setImageIndex] = useState(0);
 
-  // Per-image component to avoid sharing gesture instances across list items
-  const PostImage: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
-    const likeScale = useSharedValue(0);
-    const likeOpacity = useSharedValue(0);
-
-    const animateHeart = () => {
-      likeOpacity.value = 1;
-      likeScale.value = 0;
-      likeScale.value = withSequence(
-        withTiming(1.2, { duration: 160 }),
-        withTiming(1, { duration: 120 })
-      );
-      likeOpacity.value = withDelay(400, withTiming(0, { duration: 300 }));
-    };
-
-    const heartStyle = useAnimatedStyle(() => ({
-      transform: [{ scale: likeScale.value }],
-      opacity: likeOpacity.value,
-    }));
-
-    const handleSingleTap = () => {
-      router.push(`/(protected)/restaurant/${post.restaurant_id}`);
-    };
-
-    const handleDoubleTap = () => {
-      animateHeart();
-      if (!post.liked_by_user) {
-        onLike(post.id);
-      }
-    };
-
-    const doubleTapGesture = Gesture.Tap()
-      .numberOfTaps(2)
-      .onEnd((_: unknown, success: boolean) => {
-        if (success) runOnJS(handleDoubleTap)();
-      });
-
-    const singleTapGesture = Gesture.Tap()
-      .numberOfTaps(1)
-      .requireExternalGestureToFail(doubleTapGesture)
-      .onEnd((_: unknown, success: boolean) => {
-        if (success) runOnJS(handleSingleTap)();
-      });
-
-    const imageTapGesture = Gesture.Exclusive(
-      doubleTapGesture,
-      singleTapGesture
-    );
-
-    return (
-      <GestureDetector gesture={imageTapGesture}>
-        <View>
-          <Image
-            source={{ uri: imageUrl }}
-            className="w-screen h-80"
-            contentFit="cover"
-          />
-          <Animated.View
-            pointerEvents="none"
-            className="absolute inset-0 items-center justify-center"
-            style={heartStyle}
-          >
-            <Heart size={96} color="#ef4444" fill="#ef4444" />
-          </Animated.View>
-        </View>
-      </GestureDetector>
-    );
-  };
+  // Use module-scoped PostImage; prepare a stable renderItem
+  const renderImage = useCallback(
+    ({ item }: { item: { id: string; image_url: string } }) => (
+      <PostImage
+        imageUrl={item.image_url}
+        liked={!!post.liked_by_user}
+        onLike={() => onLike(post.id)}
+        onSingleTap={() =>
+          router.push(`/(protected)/restaurant/${post.restaurant_id}`)
+        }
+      />
+    ),
+    [post.liked_by_user, onLike, post.id, router, post.restaurant_id]
+  );
 
   return (
     <View className="bg-card mb-2 border-b border-border">
@@ -285,6 +311,16 @@ const PostCard: React.FC<{
             horizontal
             pagingEnabled
             showsHorizontalScrollIndicator={false}
+            // Keep a couple of items mounted around the viewport to prevent re-mount flicker
+            windowSize={3}
+            initialNumToRender={2}
+            maxToRenderPerBatch={3}
+            removeClippedSubviews={false}
+            getItemLayout={(_, index) => ({
+              length: SCREEN_WIDTH,
+              offset: SCREEN_WIDTH * index,
+              index,
+            })}
             onMomentumScrollEnd={(e) => {
               const index = Math.round(
                 e.nativeEvent.contentOffset.x /
@@ -292,7 +328,7 @@ const PostCard: React.FC<{
               );
               setImageIndex(index);
             }}
-            renderItem={({ item }) => <PostImage imageUrl={item.image_url} />}
+            renderItem={renderImage}
             keyExtractor={(item) => item.id}
           />
           {post.images.length > 1 && (
