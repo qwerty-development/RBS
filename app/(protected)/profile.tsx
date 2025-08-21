@@ -391,9 +391,9 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* Spacer to avoid overlap with floating back button */}
-      <View className="h-14" />
+      
       {/* Floating Back Button (consistent with other pages) */}
       <View className="absolute top-0 left-0 right-0 z-50">
         <SafeAreaView edges={["top"]}>
@@ -467,7 +467,6 @@ export default function ProfileScreen() {
             </View>
           </View>
         ))}
-        <View className="h-8" />
       </ScrollView>
     </SafeAreaView>
   );
