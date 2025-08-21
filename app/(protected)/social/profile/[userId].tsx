@@ -104,8 +104,9 @@ export default function UserProfileScreen() {
       const { data: requestData } = await supabase
         .from("friend_requests")
         .select("*")
-        .eq("from_user_id", userId)
-        .eq("to_user_id", currentUser.id)
+        .or(
+          `and(from_user_id.eq.${currentUser.id},to_user_id.eq.${userId}),and(from_user_id.eq.${userId},to_user_id.eq.${currentUser.id})`
+        )
         .eq("status", "pending")
         .single();
 
@@ -194,6 +195,33 @@ export default function UserProfileScreen() {
       setProcessingIds((prev) => {
         const newSet = new Set(prev);
         newSet.delete(requestId);
+        return newSet;
+      });
+    }
+  };
+
+  const removeFriendRequest = async () => {
+    if (!pendingRequest) return;
+
+    setProcessingIds((prev) => new Set(prev).add(pendingRequest.id));
+
+    try {
+      const { error } = await supabase
+        .from("friend_requests")
+        .delete()
+        .eq("id", pendingRequest.id);
+
+      if (error) throw error;
+
+      Alert.alert("Success", "Friend request removed");
+      setPendingRequest(null); // Remove pending request from state
+    } catch (error: any) {
+      console.error("Error removing friend request:", error);
+      Alert.alert("Error", error.message || "Failed to remove friend request");
+    } finally {
+      setProcessingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(pendingRequest.id);
         return newSet;
       });
     }
@@ -311,19 +339,38 @@ export default function UserProfileScreen() {
         {!isCurrentUser && (
           <View className="p-6 gap-3">
             {pendingRequest ? (
-              <Button
-                onPress={() => handleFriendRequest(pendingRequest.id, "accept")}
-                disabled={processingIds.has(pendingRequest.id)}
-              >
-                {processingIds.has(pendingRequest.id) ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <View className="flex-row items-center justify-center gap-2">
-                    <Check size={16} color="white" />
-                    <Text className="text-white">Accept Friend Request</Text>
-                  </View>
-                )}
-              </Button>
+              currentUser?.id === pendingRequest.from_user_id ? (
+                // If current user sent the request → show remove button
+                <Button
+                  onPress={removeFriendRequest}
+                  disabled={processingIds.has(pendingRequest.id)}
+                >
+                  {processingIds.has(pendingRequest.id) ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <View className="flex-row items-center justify-center gap-2">
+                      <Users size={20} color="white" />
+                      <Text>Remove Friend Request</Text>
+                    </View>
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  onPress={() =>
+                    handleFriendRequest(pendingRequest.id, "accept")
+                  }
+                  disabled={processingIds.has(pendingRequest.id)}
+                >
+                  {processingIds.has(pendingRequest.id) ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <View className="flex-row items-center justify-center gap-2">
+                      <Check size={16} color="white" />
+                      <Text className="text-white">Accept Friend Request</Text>
+                    </View>
+                  )}
+                </Button>
+              )
             ) : !isFriend ? (
               <Button
                 onPress={sendFriendRequest}
