@@ -51,76 +51,22 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 const PostImage = memo(
   ({
     imageUrl,
-    liked,
-    onLike,
     onSingleTap,
   }: {
     imageUrl: string;
-    liked: boolean;
-    onLike: () => void;
     onSingleTap: () => void;
   }) => {
-    const likeScale = useSharedValue(0);
-    const likeOpacity = useSharedValue(0);
-
-    const animateHeart = () => {
-      likeOpacity.value = 1;
-      likeScale.value = 0;
-      likeScale.value = withSequence(
-        withTiming(1.2, { duration: 160 }),
-        withTiming(1, { duration: 120 })
-      );
-      likeOpacity.value = withDelay(400, withTiming(0, { duration: 300 }));
-    };
-
-    const heartStyle = useAnimatedStyle(() => ({
-      transform: [{ scale: likeScale.value }],
-      opacity: likeOpacity.value,
-    }));
-
-    const handleDoubleTap = () => {
-      animateHeart();
-      if (!liked) onLike();
-    };
-
-    const doubleTapGesture = Gesture.Tap()
-      .numberOfTaps(2)
-      .onEnd((_: unknown, success: boolean) => {
-        if (success) runOnJS(handleDoubleTap)();
-      });
-
-    const singleTapGesture = Gesture.Tap()
-      .numberOfTaps(1)
-      .requireExternalGestureToFail(doubleTapGesture)
-      .onEnd((_: unknown, success: boolean) => {
-        if (success) runOnJS(onSingleTap)();
-      });
-
-    const imageTapGesture = Gesture.Exclusive(
-      doubleTapGesture,
-      singleTapGesture
-    );
-
     return (
-      <GestureDetector gesture={imageTapGesture}>
-        <View>
-          <Image
-            source={{ uri: imageUrl }}
-            className="w-screen h-80"
-            contentFit="cover"
-          />
-          <Animated.View
-            pointerEvents="none"
-            className="absolute inset-0 items-center justify-center"
-            style={heartStyle}
-          >
-            <Heart size={96} color="#ef4444" fill="#ef4444" />
-          </Animated.View>
-        </View>
-      </GestureDetector>
+      <Pressable onPress={onSingleTap}>
+        <Image
+          source={{ uri: imageUrl }}
+          className="w-screen h-80"
+          contentFit="cover"
+        />
+      </Pressable>
     );
   },
-  (prev, next) => prev.imageUrl === next.imageUrl && prev.liked === next.liked
+  (prev, next) => prev.imageUrl === next.imageUrl
 );
 PostImage.displayName = "PostImage";
 
@@ -204,13 +150,46 @@ const PostCard: React.FC<{
   const router = useRouter();
   const [imageIndex, setImageIndex] = useState(0);
 
+  // Heart animation for whole-post double-tap
+  const likeScale = useSharedValue(0);
+  const likeOpacity = useSharedValue(0);
+
+  const animateHeart = () => {
+    likeOpacity.value = 1;
+    likeScale.value = 0;
+    likeScale.value = withSequence(
+      withTiming(1.2, { duration: 160 }),
+      withTiming(1, { duration: 120 })
+    );
+    likeOpacity.value = withDelay(400, withTiming(0, { duration: 300 }));
+  };
+
+  const heartStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: likeScale.value }],
+    opacity: likeOpacity.value,
+  }));
+
+  const handleDoubleTap = () => {
+    animateHeart();
+    if (!post.liked_by_user) onLike(post.id);
+  };
+
+  const doubleTapGesture = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd((_: unknown, success: boolean) => {
+      if (success) runOnJS(handleDoubleTap)();
+    });
+
+  // singleTap does nothing here; we want underlying Pressables to handle single taps
+  const singleTapGesture = Gesture.Tap().numberOfTaps(1);
+
+  const contentGesture = Gesture.Exclusive(doubleTapGesture, singleTapGesture);
+
   // Use module-scoped PostImage; prepare a stable renderItem
   const renderImage = useCallback(
     ({ item }: { item: { id: string; image_url: string } }) => (
       <PostImage
         imageUrl={item.image_url}
-        liked={!!post.liked_by_user}
-        onLike={() => onLike(post.id)}
         onSingleTap={() =>
           router.push(`/(protected)/restaurant/${post.restaurant_id}`)
         }
@@ -221,24 +200,36 @@ const PostCard: React.FC<{
 
   return (
     <View className="bg-card mb-2 border-b border-border">
-      {/* Header */}
-      <Pressable
-        // Guests cannot navigate to user profiles
-        onPress={() => {
-          if (isGuest) return;
-          if (friendIdSet.has(post.user_id)) {
-            router.push(`/(protected)/friends/${post.user_id}`);
-          } else {
-            router.push(`/social/profile/${post.user_id}`);
-          }
-        }}
-        className="flex-row items-center p-4"
-        disabled={isGuest}
+      {/* animated heart overlay for double-tap */}
+      <Animated.View
+        pointerEvents="none"
+        className="absolute inset-0 items-center justify-center z-10"
+        style={heartStyle}
       >
-        <Image
-          source={{ uri: post.user_avatar || "https://via.placeholder.com/50" }}
-          className="w-10 h-10 rounded-full mr-3"
-        />
+        <Heart size={96} color="#ef4444" fill="#ef4444" />
+      </Animated.View>
+      {/* Header */}
+      <View className="flex-row items-center p-4 w-fit">
+        <Pressable
+          // Guests cannot navigate to user profiles
+          onPress={() => {
+            if (isGuest) return;
+            if (friendIdSet.has(post.user_id)) {
+              router.push(`/(protected)/friends/${post.user_id}`);
+            } else {
+              router.push(`/social/profile/${post.user_id}`);
+            }
+          }}
+          className=""
+          disabled={isGuest}
+        >
+          <Image
+            source={{
+              uri: post.user_avatar || "https://via.placeholder.com/50",
+            }}
+            className="w-10 h-10 rounded-full mr-3"
+          />
+        </Pressable>
         <View className="flex-1">
           <Text className="font-semibold">{post.user_name}</Text>
           <View className="flex-row items-center mt-0.5">
@@ -264,82 +255,86 @@ const PostCard: React.FC<{
         <Pressable className="p-2">
           <MoreVertical size={20} color="#666" />
         </Pressable>
-      </Pressable>
+      </View>
 
-      {/* Content, Images, etc. (Unchanged) */}
-      {post.content && (
-        <View className="px-4 pb-3">
-          <P>{post.content}</P>
-        </View>
-      )}
+      {/* Content + images wrapped with gesture detector for double-tap */}
+      <GestureDetector gesture={contentGesture}>
+        <View>
+          {post.content && (
+            <View className="px-4 pb-3">
+              <P>{post.content}</P>
+            </View>
+          )}
 
-      {post.tagged_friends.length > 0 && (
-        <View className="px-4 pb-3">
-          <View className="flex-row items-center flex-wrap">
-            <Users size={16} color="#666" />
-            <Muted className="text-sm ml-2">with </Muted>
-            {post.tagged_friends.map((friend, index) => (
-              <React.Fragment key={friend.id}>
-                <Pressable
-                  onPress={() => {
-                    if (isGuest) return;
-                    if (friendIdSet.has(friend.id)) {
-                      router.push(`/(protected)/friends/${friend.id}`);
-                    } else {
-                      router.push(`/social/profile/${friend.id}`);
-                    }
-                  }}
-                  disabled={isGuest}
-                >
-                  <Text className="text-sm text-primary">
-                    {friend.full_name}
+          {post.tagged_friends.length > 0 && (
+            <View className="px-4 pb-3">
+              <View className="flex-row items-center flex-wrap">
+                <Users size={16} color="#666" />
+                <Muted className="text-sm ml-2">with </Muted>
+                {post.tagged_friends.map((friend, index) => (
+                  <React.Fragment key={friend.id}>
+                    <Pressable
+                      onPress={() => {
+                        if (isGuest) return;
+                        if (friendIdSet.has(friend.id)) {
+                          router.push(`/(protected)/friends/${friend.id}`);
+                        } else {
+                          router.push(`/social/profile/${friend.id}`);
+                        }
+                      }}
+                      disabled={isGuest}
+                    >
+                      <Text className="text-sm text-primary">
+                        {friend.full_name}
+                      </Text>
+                    </Pressable>
+                    {index < post.tagged_friends.length - 1 && (
+                      <Muted className="text-sm">, </Muted>
+                    )}
+                  </React.Fragment>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {post.images.length > 0 && (
+            <View className="mb-3">
+              <FlatList
+                data={post.images}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                // Keep a couple of items mounted around the viewport to prevent re-mount flicker
+                windowSize={3}
+                initialNumToRender={2}
+                maxToRenderPerBatch={3}
+                removeClippedSubviews={false}
+                getItemLayout={(_, index) => ({
+                  length: SCREEN_WIDTH,
+                  offset: SCREEN_WIDTH * index,
+                  index,
+                })}
+                onMomentumScrollEnd={(e) => {
+                  const index = Math.round(
+                    e.nativeEvent.contentOffset.x /
+                      e.nativeEvent.layoutMeasurement.width
+                  );
+                  setImageIndex(index);
+                }}
+                renderItem={renderImage}
+                keyExtractor={(item) => item.id}
+              />
+              {post.images.length > 1 && (
+                <View className="absolute bottom-3 right-3 bg-black/60 px-2 py-1 rounded">
+                  <Text className="text-white text-xs">
+                    {imageIndex + 1}/{post.images.length}
                   </Text>
-                </Pressable>
-                {index < post.tagged_friends.length - 1 && (
-                  <Muted className="text-sm">, </Muted>
-                )}
-              </React.Fragment>
-            ))}
-          </View>
-        </View>
-      )}
-
-      {post.images.length > 0 && (
-        <View className="mb-3">
-          <FlatList
-            data={post.images}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            // Keep a couple of items mounted around the viewport to prevent re-mount flicker
-            windowSize={3}
-            initialNumToRender={2}
-            maxToRenderPerBatch={3}
-            removeClippedSubviews={false}
-            getItemLayout={(_, index) => ({
-              length: SCREEN_WIDTH,
-              offset: SCREEN_WIDTH * index,
-              index,
-            })}
-            onMomentumScrollEnd={(e) => {
-              const index = Math.round(
-                e.nativeEvent.contentOffset.x /
-                  e.nativeEvent.layoutMeasurement.width
-              );
-              setImageIndex(index);
-            }}
-            renderItem={renderImage}
-            keyExtractor={(item) => item.id}
-          />
-          {post.images.length > 1 && (
-            <View className="absolute bottom-3 right-3 bg-black/60 px-2 py-1 rounded">
-              <Text className="text-white text-xs">
-                {imageIndex + 1}/{post.images.length}
-              </Text>
+                </View>
+              )}
             </View>
           )}
         </View>
-      )}
+      </GestureDetector>
 
       {/* Actions */}
       <View className="flex-row items-center justify-between px-4 py-3 border-t border-border">
