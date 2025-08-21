@@ -11,6 +11,15 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 import {
   Heart,
   MessageCircle,
@@ -115,6 +124,75 @@ const PostCard: React.FC<{
   const router = useRouter();
   const [imageIndex, setImageIndex] = useState(0);
 
+  // Per-image component to avoid sharing gesture instances across list items
+  const PostImage: React.FC<{ imageUrl: string }> = ({ imageUrl }) => {
+    const likeScale = useSharedValue(0);
+    const likeOpacity = useSharedValue(0);
+
+    const animateHeart = () => {
+      likeOpacity.value = 1;
+      likeScale.value = 0;
+      likeScale.value = withSequence(
+        withTiming(1.2, { duration: 160 }),
+        withTiming(1, { duration: 120 })
+      );
+      likeOpacity.value = withDelay(400, withTiming(0, { duration: 300 }));
+    };
+
+    const heartStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: likeScale.value }],
+      opacity: likeOpacity.value,
+    }));
+
+    const handleSingleTap = () => {
+      router.push(`/(protected)/restaurant/${post.restaurant_id}`);
+    };
+
+    const handleDoubleTap = () => {
+      animateHeart();
+      if (!post.liked_by_user) {
+        onLike(post.id);
+      }
+    };
+
+    const doubleTapGesture = Gesture.Tap()
+      .numberOfTaps(2)
+      .onEnd((_: unknown, success: boolean) => {
+        if (success) runOnJS(handleDoubleTap)();
+      });
+
+    const singleTapGesture = Gesture.Tap()
+      .numberOfTaps(1)
+      .requireExternalGestureToFail(doubleTapGesture)
+      .onEnd((_: unknown, success: boolean) => {
+        if (success) runOnJS(handleSingleTap)();
+      });
+
+    const imageTapGesture = Gesture.Exclusive(
+      doubleTapGesture,
+      singleTapGesture
+    );
+
+    return (
+      <GestureDetector gesture={imageTapGesture}>
+        <View>
+          <Image
+            source={{ uri: imageUrl }}
+            className="w-screen h-80"
+            contentFit="cover"
+          />
+          <Animated.View
+            pointerEvents="none"
+            className="absolute inset-0 items-center justify-center"
+            style={heartStyle}
+          >
+            <Heart size={96} color="#ef4444" fill="#ef4444" />
+          </Animated.View>
+        </View>
+      </GestureDetector>
+    );
+  };
+
   return (
     <View className="bg-card mb-2 border-b border-border">
       {/* Header */}
@@ -210,23 +288,11 @@ const PostCard: React.FC<{
             onMomentumScrollEnd={(e) => {
               const index = Math.round(
                 e.nativeEvent.contentOffset.x /
-                  e.nativeEvent.layoutMeasurement.width,
+                  e.nativeEvent.layoutMeasurement.width
               );
               setImageIndex(index);
             }}
-            renderItem={({ item }) => (
-              <Pressable
-                onPress={() =>
-                  router.push(`/(protected)/restaurant/${post.restaurant_id}`)
-                }
-              >
-                <Image
-                  source={{ uri: item.image_url }}
-                  className="w-screen h-80"
-                  contentFit="cover"
-                />
-              </Pressable>
-            )}
+            renderItem={({ item }) => <PostImage imageUrl={item.image_url} />}
             keyExtractor={(item) => item.id}
           />
           {post.images.length > 1 && (
@@ -389,8 +455,8 @@ export default function SocialFeedScreen() {
             posts.map((p) =>
               p.id === postId
                 ? { ...p, liked_by_user: false, likes_count: p.likes_count - 1 }
-                : p,
-            ),
+                : p
+            )
           );
         } else {
           await supabase
@@ -400,8 +466,8 @@ export default function SocialFeedScreen() {
             posts.map((p) =>
               p.id === postId
                 ? { ...p, liked_by_user: true, likes_count: p.likes_count + 1 }
-                : p,
-            ),
+                : p
+            )
           );
         }
       } catch (error) {
