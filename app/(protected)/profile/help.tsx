@@ -783,7 +783,56 @@ export default function HelpScreen() {
           </>
         )}
 
-        {/* 11.6 Additional Resources */}
+        {/* 11.6 Legal Documents */}
+        <View className="mt-6">
+          <Text className="text-sm font-semibold text-muted-foreground uppercase px-4 mb-3">
+            Legal Documents
+          </Text>
+
+          {[
+            {
+              title: "Privacy Policy",
+              subtitle: "How we protect your personal information",
+              icon: Shield,
+              onPress: () => router.push("/legal/PRIVACY_POLICY"),
+            },
+            {
+              title: "Terms of Service",
+              subtitle: "Rules and guidelines for using our service",
+              icon: Book,
+              onPress: () => router.push("/legal/TERMS_OF_SERVICE"),
+            },
+            {
+              title: "Community Guidelines",
+              subtitle: "Standards for respectful community interaction",
+              icon: Users,
+              onPress: () => router.push("/legal/COMMUNITY_GUIDELINES"),
+            },
+            {
+              title: "All Legal Documents",
+              subtitle: "View all policies and legal information",
+              icon: ExternalLink,
+              onPress: () => router.push("/legal"),
+            },
+          ].map((resource, index) => (
+            <Pressable
+              key={index}
+              onPress={resource.onPress}
+              className="bg-card mx-4 mb-3 rounded-xl p-4 flex-row items-center"
+            >
+              <View className="w-10 h-10 bg-muted rounded-full items-center justify-center">
+                <resource.icon size={20} color="#666" />
+              </View>
+              <View className="flex-1 ml-3">
+                <Text className="font-medium">{resource.title}</Text>
+                <Muted className="text-sm">{resource.subtitle}</Muted>
+              </View>
+              <ChevronRight size={20} color="#666" />
+            </Pressable>
+          ))}
+        </View>
+
+        {/* 11.7 Additional Resources */}
         <View className="mt-6">
           <Text className="text-sm font-semibold text-muted-foreground uppercase px-4 mb-3">
             Additional Resources
@@ -795,13 +844,6 @@ export default function HelpScreen() {
               subtitle: "Complete app walkthrough",
               icon: Book,
               onPress: () => Alert.alert("User Guide", "Opening user guide..."),
-            },
-            {
-              title: "Community Guidelines",
-              subtitle: "Rules and best practices",
-              icon: Users,
-              onPress: () =>
-                Alert.alert("Guidelines", "Opening community guidelines..."),
             },
             {
               title: "App Status",
@@ -827,7 +869,7 @@ export default function HelpScreen() {
           ))}
         </View>
 
-        {/* 11.7 Footer */}
+        {/* 11.8 Footer */}
         <View className="items-center py-8">
           <Muted className="text-xs text-center">
             Still need help? Our support team is here 24/7

@@ -96,6 +96,8 @@ export default function ProtectedLayout() {
         <Stack.Screen name="profile/loyalty" />
         <Stack.Screen name="profile/insights" />
         <Stack.Screen name="profile/notifications" />
+        <Stack.Screen name="legal/index" />
+        <Stack.Screen name="legal/[documentType]" />
       </Stack>
       {!isGuest && <GlobalChatTab />}
     </View>

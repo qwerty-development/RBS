@@ -236,7 +236,7 @@ export default function SignUp() {
                         <Text
                           className="text-primary underline"
                           onPress={() => {
-                            // Open terms and conditions
+                            router.push("/legal/TERMS_OF_SERVICE");
                           }}
                         >
                           Terms and Conditions
@@ -245,7 +245,7 @@ export default function SignUp() {
                         <Text
                           className="text-primary underline"
                           onPress={() => {
-                            // Open privacy policy
+                            router.push("/legal/PRIVACY_POLICY");
                           }}
                         >
                           Privacy Policy

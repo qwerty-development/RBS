@@ -600,21 +600,57 @@ export default function PrivacyScreen() {
           })}
         </View>
 
-        {/* 11.7 Footer */}
+        {/* 11.7 Legal Documents Section */}
+        <View className="pt-6">
+          <Text className="text-sm font-semibold text-muted-foreground uppercase px-4 mb-3">
+            Legal Documents
+          </Text>
+
+          <Pressable
+            onPress={() => router.push("/legal/PRIVACY_POLICY")}
+            className="bg-card mx-4 mb-3 rounded-xl p-4 flex-row items-center"
+          >
+            <View className="w-10 h-10 bg-blue-100 rounded-full items-center justify-center dark:bg-blue-900">
+              <FileText size={20} color="#3b82f6" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="font-medium">Full Privacy Policy</Text>
+              <Muted className="text-sm">
+                Complete details about our privacy practices
+              </Muted>
+            </View>
+            <ExternalLink size={20} color="#666" />
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push("/legal")}
+            className="bg-card mx-4 mb-3 rounded-xl p-4 flex-row items-center"
+          >
+            <View className="w-10 h-10 bg-green-100 rounded-full items-center justify-center dark:bg-green-900">
+              <Database size={20} color="#059669" />
+            </View>
+            <View className="flex-1 ml-3">
+              <Text className="font-medium">All Legal Documents</Text>
+              <Muted className="text-sm">
+                Terms, policies, and community guidelines
+              </Muted>
+            </View>
+            <ExternalLink size={20} color="#666" />
+          </Pressable>
+        </View>
+
+        {/* 11.8 Footer */}
         <View className="items-center py-8 px-4">
           <Muted className="text-xs text-center">
             Your privacy is important to us. We follow industry best practices
             to protect your data.
           </Muted>
           <Pressable
-            onPress={() => {
-              // Open full privacy policy in browser or modal
-              Alert.alert("Privacy Policy", "Opening full privacy policy...");
-            }}
+            onPress={() => router.push("/legal/DATA_PROTECTION_POLICY")}
             className="mt-2"
           >
             <Text className="text-primary text-sm">
-              Read Full Privacy Policy
+              Read Data Protection Policy
             </Text>
           </Pressable>
         </View>
