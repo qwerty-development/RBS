@@ -57,7 +57,7 @@ export default function UserProfileScreen() {
   const [isFriend, setIsFriend] = useState(false);
   const [isCurrentUser, setIsCurrentUser] = useState(false);
   const [pendingRequest, setPendingRequest] = useState<FriendRequest | null>(
-    null
+    null,
   );
   const [processingIds, setProcessingIds] = useState<Set<string>>(new Set());
 
@@ -93,7 +93,7 @@ export default function UserProfileScreen() {
         .from("friends")
         .select("id")
         .or(
-          `and(user_id.eq.${currentUser.id},friend_id.eq.${userId}),and(user_id.eq.${userId},friend_id.eq.${currentUser.id})`
+          `and(user_id.eq.${currentUser.id},friend_id.eq.${userId}),and(user_id.eq.${userId},friend_id.eq.${currentUser.id})`,
         )
         .eq("status", "accepted")
         .single();
@@ -105,7 +105,7 @@ export default function UserProfileScreen() {
         .from("friend_requests")
         .select("*")
         .or(
-          `and(from_user_id.eq.${currentUser.id},to_user_id.eq.${userId}),and(from_user_id.eq.${userId},to_user_id.eq.${currentUser.id})`
+          `and(from_user_id.eq.${currentUser.id},to_user_id.eq.${userId}),and(from_user_id.eq.${userId},to_user_id.eq.${currentUser.id})`,
         )
         .eq("status", "pending")
         .single();
@@ -130,7 +130,7 @@ export default function UserProfileScreen() {
         .from("friend_requests")
         .select("*")
         .or(
-          `and(from_user_id.eq.${currentUser.id},to_user_id.eq.${userId}),and(from_user_id.eq.${userId},to_user_id.eq.${currentUser.id})`
+          `and(from_user_id.eq.${currentUser.id},to_user_id.eq.${userId}),and(from_user_id.eq.${userId},to_user_id.eq.${currentUser.id})`,
         )
         .maybeSingle();
 

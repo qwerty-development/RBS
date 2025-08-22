@@ -42,21 +42,21 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
   const { profile } = useAuth();
   const { playlists, createPlaylist, handleRefresh } = usePlaylists();
   const [selectedPlaylists, setSelectedPlaylists] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [addingToPlaylists, setAddingToPlaylists] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [playlistStates, setPlaylistStates] = useState<Map<string, boolean>>(
-    new Map()
+    new Map(),
   );
 
   // NEW: show inline create screen instead of opening a second RN Modal
   const [showCreatePlaylist, setShowCreatePlaylist] = useState(false);
 
   const filteredPlaylists = playlists.filter((playlist) =>
-    playlist.name.toLowerCase().includes(searchQuery.toLowerCase())
+    playlist.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
-  
+
   // Check which playlists already contain this restaurant
   useEffect(() => {
     if (!visible || playlists.length === 0) return;
@@ -165,7 +165,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
 
       if (successCount > 0) {
         await Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Success
+          Haptics.NotificationFeedbackType.Success,
         );
 
         const newStates = new Map(playlistStates);
@@ -180,7 +180,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
         });
 
         onSuccess?.(
-          successCount > 1 ? `${successCount} playlists` : addedPlaylistName
+          successCount > 1 ? `${successCount} playlists` : addedPlaylistName,
         );
         onClose();
       }
@@ -213,7 +213,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
         await handleRefresh();
       }
     },
-    [createPlaylist, handleRefresh]
+    [createPlaylist, handleRefresh],
   );
 
   // Reset state when modal closes

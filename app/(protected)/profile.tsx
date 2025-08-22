@@ -219,7 +219,7 @@ export default function ProfileScreen() {
         if (updateError) throw updateError;
 
         await Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Success
+          Haptics.NotificationFeedbackType.Success,
         );
       } catch (error) {
         console.error("Error uploading avatar:", error);
@@ -393,7 +393,7 @@ export default function ProfileScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* Spacer to avoid overlap with floating back button */}
-      
+
       {/* Floating Back Button (consistent with other pages) */}
       <View className="absolute top-0 left-0 right-0 z-50">
         <SafeAreaView edges={["top"]}>

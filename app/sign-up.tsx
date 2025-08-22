@@ -278,7 +278,9 @@ export default function SignUp() {
               </Text>
               <Text
                 className="text-primary font-medium"
-                onPress={() => {router.replace("/sign-in")}}
+                onPress={() => {
+                  router.replace("/sign-in");
+                }}
               >
                 Sign In
               </Text>

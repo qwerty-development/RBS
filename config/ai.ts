@@ -2,5 +2,3 @@
 // Update this value to point to a different deployment when needed.
 
 export const RESTO_AI_BASE_URL = "https://restoai-sigma.vercel.app";
-
-

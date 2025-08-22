@@ -101,7 +101,7 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
           </View>
           {todayStatus.isOpen && currentHours && (
             <View className="items-end">
-              {currentHours.split(', ').map((timeRange, index) => (
+              {currentHours.split(", ").map((timeRange, index) => (
                 <Text
                   key={index}
                   className="text-xs text-muted-foreground"

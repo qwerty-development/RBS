@@ -28,14 +28,8 @@ import {
   TableType,
 } from "./TimeRangeSelector";
 
-export interface WaitlistEntry {
-  restaurantId: string;
-  userId: string;
-  desiredDate: string;
-  desiredTimeRange: string;
-  partySize: number;
-  table_type: TableType;
-}
+// Re-export the WaitlistEntry from the hook for compatibility
+export { type WaitlistEntry } from "@/hooks/useWaitlist";
 
 interface WaitlistConfirmationModalProps {
   visible: boolean;

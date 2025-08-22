@@ -550,7 +550,6 @@ export default function FavoritesScreen() {
         </View>
       </View>
 
-
       <PlaylistErrorBoundary
         fallback={
           <View className="flex-1 items-center justify-center px-8">

@@ -404,9 +404,9 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
               <Text className="text-muted-foreground">
                 RestoAI-powered chat assistant for restaurant recommendations
               </Text>
-                {apiConnected === false && (
+              {apiConnected === false && (
                 <Text className="text-xs text-red-500 mt-1">
-                  API Disconnected - Check if RestoAI server is running at {" "}
+                  API Disconnected - Check if RestoAI server is running at{" "}
                   {AI_API_BASE_URL}
                 </Text>
               )}

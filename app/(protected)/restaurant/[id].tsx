@@ -488,8 +488,6 @@ const FeaturesSection: React.FC<{ restaurant: Restaurant }> = ({
   );
 };
 
-
-
 // Quick Actions Section - Combined Contact, Website, and Menu
 const QuickActionsSection: React.FC<{
   restaurant: Restaurant;
@@ -502,32 +500,32 @@ const QuickActionsSection: React.FC<{
   // Add call action if phone number exists
   if (restaurant.phone_number) {
     actions.push({
-      id: 'call',
+      id: "call",
       icon: Phone,
-      label: 'Call',
+      label: "Call",
       onPress: onCall,
-      color: '#3b82f6',
+      color: "#3b82f6",
     });
   }
 
   // Add website action if website exists
   if (restaurant.website_url) {
     actions.push({
-      id: 'website',
+      id: "website",
       icon: Globe,
-      label: 'Website',
+      label: "Website",
       onPress: onWebsite,
-      color: '#3b82f6',
+      color: "#3b82f6",
     });
   }
 
   // Always add menu action
   actions.push({
-    id: 'menu',
+    id: "menu",
     icon: BookOpen,
-    label: 'Menu',
+    label: "Menu",
     onPress: onViewMenu,
-    color: '#3b82f6',
+    color: "#3b82f6",
   });
 
   return (
@@ -566,7 +564,6 @@ const LocationMap: React.FC<{
   const { address, coordinates, isLoading } = useRestaurantLocation(
     restaurant.location,
   );
-
 
   // Default coordinates for Beirut
   const defaultCoordinates: Coordinates = {
@@ -754,7 +751,6 @@ const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
 
 // Main Component
 export default function RestaurantDetailsScreen() {
-
   const { colorScheme } = useColorScheme();
   const router = useRouter();
   const params = useLocalSearchParams<{ id: string }>();

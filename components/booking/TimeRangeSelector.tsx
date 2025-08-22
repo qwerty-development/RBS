@@ -35,27 +35,18 @@ import { useAuth } from "@/context/supabase-provider";
 // Table type definitions with user-friendly labels
 export const TABLE_TYPES = {
   any: { label: "Any", icon: "🍽️", description: "No preference" },
-  booth: { label: "Booth", icon: "🛋️", description: "Cozy enclosed seating" },
-  window: { label: "Window", icon: "🪟", description: "Tables with a view" },
-  patio: { label: "Patio", icon: "🌿", description: "Outdoor dining" },
-  standard: {
-    label: "Standard",
-    icon: "🪑",
-    description: "Regular table seating",
+  indoor: { label: "Indoor", icon: "🏠", description: "Indoor dining area" },
+  outdoor: {
+    label: "Outdoor",
+    icon: "🌿",
+    description: "Outdoor/patio dining",
   },
   bar: { label: "Bar", icon: "🍷", description: "Bar counter seating" },
   private: { label: "Private", icon: "🔒", description: "Private dining room" },
 } as const;
 
 // Database table_type enum values
-export type TableType =
-  | "any"
-  | "booth"
-  | "window"
-  | "patio"
-  | "standard"
-  | "bar"
-  | "private";
+export type TableType = "any" | "indoor" | "outdoor" | "bar" | "private";
 
 export interface TimeRange {
   startTime: string;

@@ -60,7 +60,7 @@ const PostImage = memo(
       />
     );
   },
-  (prev, next) => prev.imageUrl === next.imageUrl
+  (prev, next) => prev.imageUrl === next.imageUrl,
 );
 PostImage.displayName = "PostImage";
 
@@ -153,7 +153,7 @@ const PostCard: React.FC<{
     likeScale.value = 0;
     likeScale.value = withSequence(
       withTiming(1.2, { duration: 160 }),
-      withTiming(1, { duration: 120 })
+      withTiming(1, { duration: 120 }),
     );
     likeOpacity.value = withDelay(400, withTiming(0, { duration: 300 }));
   };
@@ -178,7 +178,10 @@ const PostCard: React.FC<{
   const singleTapGesture = Gesture.Tap()
     .numberOfTaps(1)
     .onEnd((_: unknown, success: boolean) => {
-      if (success) runOnJS(() => router.push(`/(protected)/restaurant/${post.restaurant_id}`))();
+      if (success)
+        runOnJS(() =>
+          router.push(`/(protected)/restaurant/${post.restaurant_id}`),
+        )();
     });
 
   const contentGesture = Gesture.Exclusive(doubleTapGesture, singleTapGesture);
@@ -188,7 +191,7 @@ const PostCard: React.FC<{
     ({ item }: { item: { id: string; image_url: string } }) => (
       <PostImage imageUrl={item.image_url} />
     ),
-    [post.liked_by_user, onLike, post.id, router, post.restaurant_id]
+    [post.liked_by_user, onLike, post.id, router, post.restaurant_id],
   );
 
   return (
@@ -310,7 +313,7 @@ const PostCard: React.FC<{
                 onMomentumScrollEnd={(e) => {
                   const index = Math.round(
                     e.nativeEvent.contentOffset.x /
-                      e.nativeEvent.layoutMeasurement.width
+                      e.nativeEvent.layoutMeasurement.width,
                   );
                   setImageIndex(index);
                 }}
@@ -479,8 +482,8 @@ export default function SocialFeedScreen() {
             posts.map((p) =>
               p.id === postId
                 ? { ...p, liked_by_user: false, likes_count: p.likes_count - 1 }
-                : p
-            )
+                : p,
+            ),
           );
         } else {
           await supabase
@@ -490,8 +493,8 @@ export default function SocialFeedScreen() {
             posts.map((p) =>
               p.id === postId
                 ? { ...p, liked_by_user: true, likes_count: p.likes_count + 1 }
-                : p
-            )
+                : p,
+            ),
           );
         }
       } catch (error) {

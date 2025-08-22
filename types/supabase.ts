@@ -504,57 +504,63 @@ export interface Database {
       waitlist: {
         Row: {
           id: string;
-          user_id: string;
+          user_id: string | null;
           restaurant_id: string;
           desired_date: string;
           desired_time_range: string;
           party_size: number;
-          table_type:
-            | "any"
-            | "booth"
-            | "window"
-            | "patio"
-            | "standard"
-            | "bar"
-            | "private";
-          status: "active" | "notified" | "booked" | "expired";
+          table_type: "any" | "indoor" | "outdoor" | "bar" | "private";
+          status: "active" | "notified" | "booked" | "expired" | "cancelled";
+          guest_name: string | null;
+          guest_email: string | null;
+          guest_phone: string | null;
+          special_requests: string | null;
+          notified_at: string | null;
+          notification_expires_at: string | null;
+          expires_at: string | null;
+          converted_booking_id: string | null;
           created_at: string;
+          updated_at: string;
         };
         Insert: {
           id?: string;
-          user_id: string;
+          user_id?: string | null;
           restaurant_id: string;
           desired_date: string;
           desired_time_range: string;
           party_size: number;
-          table_type?:
-            | "any"
-            | "booth"
-            | "window"
-            | "patio"
-            | "standard"
-            | "bar"
-            | "private";
-          status?: "active" | "notified" | "booked" | "expired";
+          table_type?: "any" | "indoor" | "outdoor" | "bar" | "private";
+          status?: "active" | "notified" | "booked" | "expired" | "cancelled";
+          guest_name?: string | null;
+          guest_email?: string | null;
+          guest_phone?: string | null;
+          special_requests?: string | null;
+          notified_at?: string | null;
+          notification_expires_at?: string | null;
+          expires_at?: string | null;
+          converted_booking_id?: string | null;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
           id?: string;
-          user_id?: string;
+          user_id?: string | null;
           restaurant_id?: string;
           desired_date?: string;
           desired_time_range?: string;
           party_size?: number;
-          table_type?:
-            | "any"
-            | "booth"
-            | "window"
-            | "patio"
-            | "standard"
-            | "bar"
-            | "private";
-          status?: "active" | "notified" | "booked" | "expired";
+          table_type?: "any" | "indoor" | "outdoor" | "bar" | "private";
+          status?: "active" | "notified" | "booked" | "expired" | "cancelled";
+          guest_name?: string | null;
+          guest_email?: string | null;
+          guest_phone?: string | null;
+          special_requests?: string | null;
+          notified_at?: string | null;
+          notification_expires_at?: string | null;
+          expires_at?: string | null;
+          converted_booking_id?: string | null;
           created_at?: string;
+          updated_at?: string;
         };
       };
       social_connections: {

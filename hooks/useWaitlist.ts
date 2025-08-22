@@ -1,136 +1,238 @@
-import { useCallback } from "react";
+// hooks/useWaitlist.ts
+// Updated hook for your mobile app
+
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
-import { WaitlistEntry } from "@/components/booking/WaitlistConfirmationModal";
+import { Alert } from "react-native";
 import type { Database } from "@/types/supabase";
 
 type WaitlistRow = Database["public"]["Tables"]["waitlist"]["Row"];
-type WaitlistInsert = Database["public"]["Tables"]["waitlist"]["Insert"];
+
+interface WaitlistEntry {
+  restaurantId: string;
+  userId: string;
+  desiredDate: string;
+  desiredTimeRange: string;
+  partySize: number;
+  table_type: "any" | "indoor" | "outdoor" | "bar" | "private";
+  special_requests?: string;
+}
+
+interface WaitlistItem extends WaitlistRow {
+  restaurant?: {
+    id: string;
+    name: string;
+    address?: string;
+    main_image_url?: string;
+  };
+}
 
 export const useWaitlist = () => {
   const { user } = useAuth();
+  const [myWaitlist, setMyWaitlist] = useState<WaitlistItem[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const joinWaitlist = useCallback(
-    async (entry: WaitlistEntry): Promise<WaitlistRow> => {
-      if (!user) {
-        throw new Error("Authentication required to join waitlist");
-      }
+  // Get user's waitlist entries
+  const getMyWaitlist = useCallback(async () => {
+    if (!user) return;
 
-      // Parse the desired date to ensure it's a valid date
-      const desiredDate = new Date(entry.desiredDate)
-        .toISOString()
-        .split("T")[0];
+    try {
+      setLoading(true);
 
-      // Parse the time range and create a PostgreSQL tstzrange
-      // Expected format: [HH:MM,HH:MM) or HH:MM-HH:MM
-      let timeRange: string;
+      // First run automation to update expired entries
+      await supabase.rpc("process_waitlist_automation");
 
-      if (
-        entry.desiredTimeRange.startsWith("[") &&
-        entry.desiredTimeRange.endsWith(")")
-      ) {
-        // Format: [14:30,15:30) - extract times and convert to full timestamps
-        const rangeContent = entry.desiredTimeRange.slice(1, -1); // Remove [ and )
-        const [startTime, endTime] = rangeContent.split(",");
-        const startDateTime = `${desiredDate}T${startTime.trim()}:00.000Z`;
-        const endDateTime = `${desiredDate}T${endTime.trim()}:00.000Z`;
-        timeRange = `["${startDateTime}","${endDateTime}")`;
-      } else if (entry.desiredTimeRange.includes("-")) {
-        // Format: 14:30-15:30
-        const [startTime, endTime] = entry.desiredTimeRange.split("-");
-        const startDateTime = `${desiredDate}T${startTime.trim()}:00.000Z`;
-        const endDateTime = `${desiredDate}T${endTime.trim()}:00.000Z`;
-        timeRange = `["${startDateTime}","${endDateTime}")`;
-      } else {
-        // If it's just a single time, create a 1-hour range
-        const time = entry.desiredTimeRange.trim();
-        const startDateTime = `${desiredDate}T${time}:00.000Z`;
-        const endDate = new Date(`${desiredDate}T${time}:00.000Z`);
-        endDate.setHours(endDate.getHours() + 1);
-        const endDateTime = endDate.toISOString();
-        timeRange = `["${startDateTime}","${endDateTime}")`;
-      }
-
-      const waitlistData: WaitlistInsert = {
-        user_id: entry.userId,
-        restaurant_id: entry.restaurantId,
-        desired_date: desiredDate,
-        desired_time_range: timeRange,
-        party_size: entry.partySize,
-        table_type: entry.table_type,
-        status: "active",
-      };
-
-      const { data, error } = await supabase
-        .from("waitlist")
-        .insert(waitlistData)
-        .select()
-        .single();
-
-      if (error) {
-        console.error("Failed to join waitlist:", error);
-        throw new Error(error.message || "Failed to join waitlist");
-      }
-
-      return data;
-    },
-    [user],
-  );
-
-  const getUserWaitlistEntries = useCallback(
-    async (userId?: string): Promise<WaitlistRow[]> => {
-      const targetUserId = userId || user?.id;
-
-      if (!targetUserId) {
-        throw new Error("User ID required to fetch waitlist entries");
-      }
-
+      // Get active entries
       const { data, error } = await supabase
         .from("waitlist")
         .select(
           `
-        *,
-        restaurant:restaurants(id, name, address, image_url)
-      `,
+          *,
+          restaurant:restaurants(id, name, address, main_image_url)
+        `,
         )
-        .eq("user_id", targetUserId)
-        .eq("status", "active")
+        .eq("user_id", user.id)
+        .in("status", ["active", "notified"])
         .order("created_at", { ascending: false });
 
       if (error) {
-        console.error("Failed to fetch waitlist entries:", error);
-        throw new Error(error.message || "Failed to fetch waitlist entries");
+        console.error("Failed to fetch waitlist:", error);
+        return;
       }
 
-      return data || [];
+      setMyWaitlist(data || []);
+    } catch (error) {
+      console.error("Error fetching waitlist:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
+
+  // Join waitlist
+  const joinWaitlist = useCallback(
+    async (entry: WaitlistEntry): Promise<WaitlistItem | null> => {
+      if (!user) {
+        Alert.alert("Error", "Please sign in to join the waitlist");
+        return null;
+      }
+
+      try {
+        setLoading(true);
+
+        // Check if already on waitlist for this restaurant/date
+        const { data: existing } = await supabase
+          .from("waitlist")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("restaurant_id", entry.restaurantId)
+          .eq("desired_date", entry.desiredDate)
+          .eq("status", "active")
+          .single();
+
+        if (existing) {
+          Alert.alert(
+            "Already on Waitlist",
+            "You're already on the waitlist for this restaurant on this date",
+          );
+          return null;
+        }
+
+        // Convert time range format from [HH:MM,HH:MM) to HH:MM-HH:MM
+        let timeRange = entry.desiredTimeRange;
+        if (
+          entry.desiredTimeRange.startsWith("[") &&
+          entry.desiredTimeRange.endsWith(")")
+        ) {
+          const rangeContent = entry.desiredTimeRange.slice(1, -1);
+          const [startTime, endTime] = rangeContent.split(",");
+          timeRange = `${startTime.trim()}-${endTime.trim()}`;
+        }
+
+        // Add to waitlist
+        const { data, error } = await supabase
+          .from("waitlist")
+          .insert({
+            user_id: user.id,
+            restaurant_id: entry.restaurantId,
+            desired_date: entry.desiredDate,
+            desired_time_range: timeRange,
+            party_size: entry.partySize,
+            table_type: entry.table_type,
+            special_requests: entry.special_requests,
+            status: "active",
+          })
+          .select(
+            `
+            *,
+            restaurant:restaurants(id, name, address, main_image_url)
+          `,
+          )
+          .single();
+
+        if (error) {
+          console.error("Failed to join waitlist:", error);
+          Alert.alert("Error", "Failed to join waitlist. Please try again.");
+          return null;
+        }
+
+        Alert.alert(
+          "Added to Waitlist!",
+          "We'll notify you when a table becomes available.",
+        );
+
+        // Refresh my waitlist
+        await getMyWaitlist();
+
+        return data;
+      } catch (error) {
+        console.error("Error joining waitlist:", error);
+        Alert.alert("Error", "Something went wrong. Please try again.");
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user, getMyWaitlist],
+  );
+
+
+  // Leave waitlist
+  const leaveWaitlist = useCallback(
+    async (waitlistId: string): Promise<boolean> => {
+      if (!user) {
+        Alert.alert("Error", "Please sign in to manage your waitlist");
+        return false;
+      }
+
+      try {
+        const { error } = await supabase
+          .from("waitlist")
+          .update({ status: "cancelled" })
+          .eq("id", waitlistId)
+          .eq("user_id", user.id);
+
+        if (error) {
+          console.error("Failed to leave waitlist:", error);
+          Alert.alert("Error", "Failed to leave waitlist");
+          return false;
+        }
+
+        Alert.alert("Success", "You've been removed from the waitlist");
+
+        // Refresh list
+        await getMyWaitlist();
+
+        return true;
+      } catch (error) {
+        console.error("Error leaving waitlist:", error);
+        Alert.alert("Error", "Something went wrong");
+        return false;
+      }
+    },
+    [user, getMyWaitlist],
+  );
+
+  // Check if user can join waitlist for a specific restaurant/date
+  const canJoinWaitlist = useCallback(
+    async (restaurantId: string, date: string): Promise<boolean> => {
+      if (!user) return false;
+
+      try {
+        const { data } = await supabase
+          .from("waitlist")
+          .select("id")
+          .eq("user_id", user.id)
+          .eq("restaurant_id", restaurantId)
+          .eq("desired_date", date)
+          .in("status", ["active", "notified"])
+          .single();
+
+        return !data; // Can join if no active entry exists
+      } catch {
+        return true; // If error (no rows), user can join
+      }
     },
     [user],
   );
 
+  // Legacy methods for backward compatibility
+  const getUserWaitlistEntries = useCallback(async () => {
+    await getMyWaitlist();
+    return myWaitlist;
+  }, [getMyWaitlist, myWaitlist]);
+
   const removeFromWaitlist = useCallback(
     async (waitlistId: string): Promise<void> => {
-      if (!user) {
-        throw new Error("Authentication required to remove from waitlist");
-      }
-
-      const { error } = await supabase
-        .from("waitlist")
-        .update({ status: "expired" })
-        .eq("id", waitlistId)
-        .eq("user_id", user.id); // Ensure user can only remove their own entries
-
-      if (error) {
-        console.error("Failed to remove from waitlist:", error);
-        throw new Error(error.message || "Failed to remove from waitlist");
-      }
+      await leaveWaitlist(waitlistId);
     },
-    [user],
+    [leaveWaitlist],
   );
 
   const updateWaitlistStatus = useCallback(
     async (
       waitlistId: string,
-      status: "active" | "notified" | "booked" | "expired",
+      status: "active" | "notified" | "booked" | "expired" | "cancelled",
     ): Promise<void> => {
       if (!user) {
         throw new Error("Authentication required to update waitlist");
@@ -146,15 +248,89 @@ export const useWaitlist = () => {
         console.error("Failed to update waitlist status:", error);
         throw new Error(error.message || "Failed to update waitlist status");
       }
+
+      // Refresh list after status update
+      await getMyWaitlist();
     },
-    [user],
+    [user, getMyWaitlist],
   );
 
+  // Auto-refresh waitlist
+  useEffect(() => {
+    if (user) {
+      getMyWaitlist();
+
+      // Refresh every 30 seconds
+      const interval = setInterval(getMyWaitlist, 30000);
+
+      return () => clearInterval(interval);
+    }
+  }, [user, getMyWaitlist]);
+
+  // Listen for real-time updates
+  useEffect(() => {
+    if (!user) return;
+
+    const subscription = supabase
+      .channel(`waitlist:${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "waitlist",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log("Waitlist update:", payload);
+
+          // Handle different events
+          if (payload.eventType === "UPDATE") {
+            const newStatus = payload.new.status;
+            const oldStatus = payload.old?.status;
+
+            if (oldStatus === "active" && newStatus === "notified") {
+              Alert.alert(
+                "🎉 Table Available!",
+                "A table is now available! You have 15 minutes to confirm.",
+                [
+                  { text: "View Details", onPress: () => getMyWaitlist() },
+                  { text: "OK" },
+                ],
+              );
+            } else if (newStatus === "expired") {
+              Alert.alert(
+                "Waitlist Expired",
+                "Your waitlist entry has expired.",
+                [{ text: "OK" }],
+              );
+            }
+          }
+
+          // Refresh the list
+          getMyWaitlist();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [user, getMyWaitlist]);
+
   return {
+    // New API
     joinWaitlist,
+    getMyWaitlist,
+    leaveWaitlist,
+    canJoinWaitlist,
+    myWaitlist,
+    loading,
+    isAuthenticated: !!user,
+
+    // Legacy API for backward compatibility
     getUserWaitlistEntries,
     removeFromWaitlist,
     updateWaitlistStatus,
-    canJoinWaitlist: !!user,
   };
 };

@@ -147,7 +147,7 @@ export default function FriendsScreen() {
         `
         *,
         friend:friend_id(id, full_name, avatar_url)
-      `
+      `,
       )
       .eq("user_id", profile?.id)
       .order("friendship_date", { ascending: false });
@@ -171,7 +171,7 @@ export default function FriendsScreen() {
         *,
         from_user:from_user_id(id, full_name, avatar_url),
         to_user:to_user_id(id, full_name, avatar_url)
-      `
+      `,
       )
       .or(`to_user_id.eq.${profile?.id},from_user_id.eq.${profile?.id}`)
       .eq("status", "pending")
@@ -203,7 +203,7 @@ export default function FriendsScreen() {
       const loweredQuery = query.toLowerCase();
       const filteredFriends = friends
         .filter((friend) =>
-          friend.full_name.toLowerCase().includes(loweredQuery)
+          friend.full_name.toLowerCase().includes(loweredQuery),
         )
         .map((friend) => ({
           id: friend.id,
@@ -232,7 +232,7 @@ export default function FriendsScreen() {
               .from("friend_requests")
               .select("id, from_user_id, to_user_id")
               .or(
-                `and(from_user_id.eq.${profile?.id},to_user_id.eq.${user.id}),and(from_user_id.eq.${user.id},to_user_id.eq.${profile?.id})`
+                `and(from_user_id.eq.${profile?.id},to_user_id.eq.${user.id}),and(from_user_id.eq.${user.id},to_user_id.eq.${profile?.id})`,
               )
               .eq("status", "pending")
               .single();
@@ -248,7 +248,7 @@ export default function FriendsScreen() {
                   }
                 : null,
             };
-          })
+          }),
         );
 
         setSearchResults(enrichedResults);
@@ -297,7 +297,7 @@ export default function FriendsScreen() {
 
   const handleFriendRequest = async (
     requestId: string,
-    action: "accept" | "reject"
+    action: "accept" | "reject",
   ) => {
     setProcessingIds((prev) => new Set(prev).add(requestId));
 
@@ -385,13 +385,13 @@ export default function FriendsScreen() {
                 .from("friends")
                 .delete()
                 .or(
-                  `and(user_id.eq.${profile?.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${profile?.id})`
+                  `and(user_id.eq.${profile?.id},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${profile?.id})`,
                 );
 
               if (error) throw error;
 
               await Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success
+                Haptics.NotificationFeedbackType.Success,
               );
               await loadFriends();
             } catch (error: any) {
@@ -399,7 +399,7 @@ export default function FriendsScreen() {
             }
           },
         },
-      ]
+      ],
     );
   };
 

@@ -49,7 +49,7 @@ export default function PasswordReset() {
                 params: { email: data.email },
               }),
           },
-        ]
+        ],
       );
     } catch (error: any) {
       let errorMessage = "An error occurred. Please try again.";
@@ -63,7 +63,10 @@ export default function PasswordReset() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background p-4" edges={["top", "bottom"]}>
+    <SafeAreaView
+      className="flex-1 bg-background p-4"
+      edges={["top", "bottom"]}
+    >
       <View className="flex-1 gap-4 web:m-4">
         <View>
           <H1 className="self-start">Reset Password</H1>

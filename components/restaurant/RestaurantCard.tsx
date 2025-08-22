@@ -207,8 +207,6 @@ export function RestaurantCard({
                   />
                 </Pressable>
               )}
-
-
             </View>
 
             <View className="p-3">
@@ -309,8 +307,6 @@ export function RestaurantCard({
                   </Text>
                 </View>
               )}
-
-
             </View>
             <View className="p-4">
               {/* Name and Cuisine in a row */}
@@ -380,8 +376,6 @@ export function RestaurantCard({
                     />
                   </Pressable>
                 )}
-
-
               </View>
 
               <View className="flex-1 p-3">
