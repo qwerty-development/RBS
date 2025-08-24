@@ -160,7 +160,11 @@ function RootLayoutContent() {
             backgroundColor: themedColors.background,
           },
         }}
-      />
+      >
+        <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+        <Stack.Screen name="auth/google/callback" options={{ headerShown: false }} />
+        <Stack.Screen name="oauth-callback" options={{ headerShown: false }} />
+      </Stack>
     </>
   );
 }

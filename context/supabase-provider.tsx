@@ -600,23 +600,30 @@ function AuthContent({ children }: PropsWithChildren) {
               return { error: sessionError };
             }
 
-            if (sessionData?.session) {
-              console.log("🎉 Session established via code exchange");
-              // Process OAuth user profile
-              const userProfile = await processOAuthUser(sessionData.session);
-              if (userProfile) {
-                setProfile(userProfile);
-                // Check if profile needs additional info
-                const needsUpdate = !userProfile.phone_number;
-                return { needsProfileUpdate: needsUpdate };
-              }
-              return {};
+                      if (sessionData?.session) {
+            console.log("🎉 Session established via code exchange");
+            
+            // Add a small delay to ensure state is properly updated
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Process OAuth user profile
+            const userProfile = await processOAuthUser(sessionData.session);
+            if (userProfile) {
+              setProfile(userProfile);
+              // Check if profile needs additional info
+              const needsUpdate = !userProfile.phone_number;
+              return { needsProfileUpdate: needsUpdate };
             }
+            return {};
+          }
           }
 
           // Step 7: Handle direct token
           if (access_token) {
             console.log("✅ Access token found, setting session");
+
+            // Add a small delay to ensure proper state handling
+            await new Promise(resolve => setTimeout(resolve, 300));
 
             const { data: sessionData, error: sessionError } =
               await supabase.auth.setSession({
@@ -865,6 +872,17 @@ function AuthContent({ children }: PropsWithChildren) {
           console.log("✅ Splash screen hidden");
         }
 
+        // Add extra delay for OAuth scenarios to prevent race conditions
+        const isOAuthFlow = typeof window !== "undefined" && 
+                           (window.location?.href?.includes("google") ||
+                            window.location?.href?.includes("access_token") ||
+                            window.location?.href?.includes("code="));
+
+        if (isOAuthFlow) {
+          console.log("🔄 OAuth flow detected, adding extra delay");
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
         // Simple navigation based on session or guest mode
         if (session || isGuest) {
           console.log(
@@ -877,17 +895,19 @@ function AuthContent({ children }: PropsWithChildren) {
         }
       } catch (error) {
         console.error("❌ Navigation error:", error);
-        // Fallback navigation
-        if (session || isGuest) {
-          router.replace("/(protected)/(tabs)");
-        } else {
-          router.replace("/welcome");
-        }
+        // Fallback navigation with additional delay
+        setTimeout(() => {
+          if (session || isGuest) {
+            router.replace("/(protected)/(tabs)");
+          } else {
+            router.replace("/welcome");
+          }
+        }, 500);
       }
     };
 
-    // Small delay to ensure router is ready
-    const timeout = setTimeout(navigate, 200);
+    // Increased delay to ensure router is ready, especially for OAuth callbacks
+    const timeout = setTimeout(navigate, 500);
 
     return () => clearTimeout(timeout);
   }, [initialized, session, isGuest, router]);
