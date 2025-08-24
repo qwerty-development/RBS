@@ -1,7 +1,7 @@
 # Complete Notifications System Implementation
 
 ## Overview
-This document contains the complete implementation of a server-driven notifications system for the RBS (Restaurant Booking System) app. The system supports push notifications, in-app notifications, and real-time badge updates.
+This document contains the complete implementation of a server-driven notifications system for the Plate app. The system supports push notifications, in-app notifications, and real-time badge updates.
 
 ## Architecture
 

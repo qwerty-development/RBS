@@ -91,7 +91,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
   global: {
     headers: {
-      "X-Client-Info": "booklet-app",
+      "X-Client-Info": "plate-app",
       "X-Client-Version": "1.0.0",
     },
   },

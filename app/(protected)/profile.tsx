@@ -319,8 +319,8 @@ export default function ProfileScreen() {
         },
         {
           id: "privacy",
-          title: "Privacy Policy",
-          subtitle: "Learn how we protect your data",
+          title: "Privacy & Security",
+          subtitle: "Privacy settings, data management & account deletion",
           icon: "Shield",
           onPress: () => router.push("/profile/privacy"),
         },

@@ -121,7 +121,7 @@ export default function WelcomeScreen() {
     <SafeAreaView className="flex flex-1 bg-background p-4">
       <View className="flex flex-1 items-center justify-center gap-y-4 web:m-4">
         <Image source={appIcon} className="w-20 h-20 rounded-xl" />
-        <H1 className="text-center">Welcome to Booklet</H1>
+        <H1 className="text-center">Welcome to Plate</H1>
         <Muted className="text-center max-w-sm">
           Discover and book the best restaurants in Lebanon. Join thousands of
           food lovers.

@@ -1,4 +1,4 @@
-# TableReserve (RBS) - AI Coding Agent Instructions
+# TableReserve (Plate) - AI Coding Agent Instructions
 
 ## 🏗️ Architecture Overview
 

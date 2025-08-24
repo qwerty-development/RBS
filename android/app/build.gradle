@@ -89,9 +89,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.notqwerty.booklet'
+    namespace 'com.notqwerty.plate'
     defaultConfig {
-        applicationId 'com.notqwerty.booklet'
+        applicationId 'com.notqwerty.plate'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

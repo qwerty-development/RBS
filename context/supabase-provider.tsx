@@ -99,7 +99,7 @@ function AuthContent({ children }: PropsWithChildren) {
 
   // Create redirect URI for OAuth
   const redirectUri = makeRedirectUri({
-    scheme: "qwerty-booklet", // From your app.json
+    scheme: "qwerty-plate", // From your app.json
     preferLocalhost: false,
     isTripleSlashed: true,
   });
@@ -491,10 +491,10 @@ function AuthContent({ children }: PropsWithChildren) {
 
       // Create the redirect URI - use expo-auth-session format
       const redirectUrl = makeRedirectUri({
-        scheme: "qwerty-booklet",
+        scheme: "qwerty-plate",
         preferLocalhost: false,
         isTripleSlashed: true,
-        native: "qwerty-booklet://google",
+        native: "qwerty-plate://google",
       });
 
       console.log("🎯 Using redirect URL:", redirectUrl);

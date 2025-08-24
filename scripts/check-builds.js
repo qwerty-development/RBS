@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * Quick build status checker for RBS app
+ * Quick build status checker for Plate app
  * Run with: node scripts/check-builds.js
  */
 
 const { execSync } = require('child_process');
 
-console.log('🔍 Checking recent EAS builds for RBS...\n');
+console.log('🔍 Checking recent EAS builds for Plate...\n');
 
 try {
   // Get recent builds
@@ -48,7 +48,7 @@ try {
     if (build.artifacts?.buildUrl) {
       console.log(`   Download: ${build.artifacts.buildUrl}`);
     }
-    console.log(`   View: https://expo.dev/accounts/qwerty-app/projects/Booklet/builds/${build.id}`);
+    console.log(`   View: https://expo.dev/accounts/qwerty-app/projects/Plate/builds/${build.id}`);
     console.log('');
   });
   

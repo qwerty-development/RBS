@@ -1,6 +1,6 @@
 # Android APK Build Guide
 
-This guide explains how to build APK files for your TableReserve (RBS) app using EAS Build.
+This guide explains how to build APK files for your Plate app using EAS Build.
 
 ## 📋 Prerequisites
 
@@ -87,7 +87,7 @@ eas build:view [BUILD_ID] --logs
 ```
 
 ### Monitor Builds
-- Visit [EAS Build Dashboard](https://expo.dev/accounts/qwerty-app/projects/Booklet/builds)
+- Visit [EAS Build Dashboard](https://expo.dev/accounts/qwerty-app/projects/Plate/builds)
 - Get real-time notifications via CLI
 - Check build artifacts and logs
 

@@ -1,7 +1,7 @@
-# TableReserve (RBS) Database Schema
+# Plate Database Schema
 
 ## Overview
-This document contains the complete database schema for the TableReserve restaurant booking application, built with PostgreSQL and Supabase.
+This document contains the complete database schema for the Plate restaurant booking application, built with PostgreSQL and Supabase.
 
 ## Core Tables
 

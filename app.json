@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Booklet",
-    "slug": "Booklet",
-    "scheme": "qwerty-booklet",
+    "name": "Plate",
+    "slug": "Plate",
+    "scheme": "qwerty-plate",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -24,12 +24,12 @@
         "googleMapsApiKey": "AIzaSyDvW1iMajBuW0mqJHIyNFtDm8A7VkgkAdg",
         "usesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.notqwerty.booklet",
+      "bundleIdentifier": "com.notqwerty.plate",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Booklet uses your location to find nearby restaurants and provide personalized recommendations.",
-        "NSLocationAlwaysAndWhenInUseUsageDescription": "Booklet uses your location to find nearby restaurants and provide personalized recommendations.",
-        "NSContactsUsageDescription": "Booklet needs optional access to your contacts only when you ask it to import guests or share a reservation.",
-        "NSCalendarsUsageDescription": "Booklet needs access to your calendar to add restaurant reservations with reminder notifications.",
+        "NSLocationWhenInUseUsageDescription": "Plate uses your location to find nearby restaurants and provide personalized recommendations.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Plate uses your location to find nearby restaurants and provide personalized recommendations.",
+        "NSContactsUsageDescription": "Plate needs optional access to your contacts only when you ask it to import guests or share a reservation.",
+        "NSCalendarsUsageDescription": "Plate needs access to your calendar to add restaurant reservations with reminder notifications.",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false,
           "NSExceptionDomains": {
@@ -42,7 +42,7 @@
         },
         "CFBundleURLTypes": [
           {
-            "CFBundleURLSchemes": ["qwerty-booklet", "com.notqwerty.booklet"]
+            "CFBundleURLSchemes": ["qwerty-plate", "com.notqwerty.plate"]
           }
         ],
         "LSApplicationQueriesSchemes": ["mailto", "tel", "sms", "https", "http"]
@@ -97,19 +97,19 @@
           "autoVerify": true,
           "data": [
             {
-              "scheme": "qwerty-booklet",
+              "scheme": "qwerty-plate",
               "host": "auth",
               "pathPrefix": "/callback"
             },
             {
-              "scheme": "com.notqwerty.booklet"
+              "scheme": "com.notqwerty.plate"
             }
           ],
           "category": ["BROWSABLE", "DEFAULT"]
         }
       ],
 
-      "package": "com.notqwerty.booklet"
+      "package": "com.notqwerty.plate"
     },
     "newArchEnabled": false,
     "experiments": {
@@ -122,7 +122,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Booklet uses your location to find nearby restaurants and provide personalized recommendations.",
+          "locationAlwaysAndWhenInUsePermission": "Plate uses your location to find nearby restaurants and provide personalized recommendations.",
           "isIosBackgroundLocationEnabled": false,
           "isAndroidBackgroundLocationEnabled": false
         }
@@ -140,7 +140,7 @@
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io/",
-          "project": "booklet",
+          "project": "plate",
           "organization": "qwerty-5v"
         }
       ]

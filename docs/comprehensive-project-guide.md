@@ -1,4 +1,4 @@
-# 📱 Restaurant Booking System (RBS) - Comprehensive Developer Guide
+# 📱 Plate - Comprehensive Developer Guide
 
 _A complete guide for developers joining the project_
 
@@ -21,9 +21,9 @@ _A complete guide for developers joining the project_
 
 ## 🎯 Project Overview
 
-### What is RBS?
+### What is Plate?
 
-The Restaurant Booking System (RBS) is a mobile application built with React Native and Expo that allows users to discover, book, and manage restaurant reservations. Think of it as a combination of OpenTable and Resy.
+Plate is a mobile application built with React Native and Expo that allows users to discover, book, and manage restaurant reservations. Think of it as a combination of OpenTable and Resy.
 
 ### Core Functionality
 
@@ -94,7 +94,7 @@ The Restaurant Booking System (RBS) is a mobile application built with React Nat
 ### Project Structure
 
 ```
-RBS/
+Plate/
 ├── app/                          # File-based routing (Expo Router)
 │   ├── _layout.tsx              # Root layout with auth provider
 │   ├── welcome.tsx              # Landing page for unauthenticated users
@@ -996,7 +996,7 @@ function ThemedComponent() {
 ```bash
 # Clone the repository
 git clone <repository-url>
-cd RBS
+cd Plate
 
 # Install dependencies
 npm install

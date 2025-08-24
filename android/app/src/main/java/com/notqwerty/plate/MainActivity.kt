@@ -1,4 +1,4 @@
-package com.notqwerty.booklet
+package com.notqwerty.plate
 
 import android.os.Build
 import android.os.Bundle

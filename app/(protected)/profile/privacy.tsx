@@ -37,6 +37,7 @@ import { H2, H3, P, Muted } from "@/components/ui/typography";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
+import { useAccountDeletion, UserDataSummary } from "@/lib/accountDeletionService";
 
 // 1. Type Definitions for Privacy Settings
 interface PrivacySettings {
@@ -110,9 +111,16 @@ const DEFAULT_PRIVACY_SETTINGS: PrivacySettings = {
 
 export default function PrivacyScreen() {
   // 3. State Management Architecture
-  const { profile, user } = useAuth();
+  const { profile, user, signOut } = useAuth();
   const { colorScheme } = useColorScheme();
   const router = useRouter();
+  const { 
+    getUserDataSummary, 
+    deleteAccount, 
+    softDeleteAccount, 
+    validateDeletion, 
+    requestDataExport: requestDataExportService 
+  } = useAccountDeletion();
 
   // 3.1 Privacy Settings State
   const [settings, setSettings] = useState<PrivacySettings>(
@@ -128,6 +136,8 @@ export default function PrivacyScreen() {
   );
   const [requestingExport, setRequestingExport] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
+  const [userDataSummary, setUserDataSummary] = useState<UserDataSummary | null>(null);
+  const [showDeletionDetails, setShowDeletionDetails] = useState(false);
 
   // 3.3 UI State
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
@@ -214,68 +224,172 @@ export default function PrivacyScreen() {
 
   // 6. Data Export Request Handler
   const requestDataExport = useCallback(async () => {
-    if (!profile?.id) return;
-
     setRequestingExport(true);
     try {
-      const { data, error } = await supabase
-        .from("data_export_requests")
-        .insert({
-          user_id: profile.id,
-          status: "pending",
-          requested_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      setExportRequest(data);
-      Alert.alert(
-        "Export Requested",
-        "Your data export has been requested. You'll receive an email when it's ready for download.",
-      );
+      const result = await requestDataExportService();
+      
+      if (result.success) {
+        Alert.alert("Export Requested", result.message);
+        // Optionally fetch existing export request to update UI
+      } else {
+        Alert.alert("Error", result.message);
+      }
     } catch (error) {
       console.error("Error requesting data export:", error);
       Alert.alert("Error", "Failed to request data export");
     } finally {
       setRequestingExport(false);
     }
-  }, [profile?.id]);
+  }, [requestDataExportService]);
 
-  // 7. Account Deletion Handler
+  // 7. Load User Data Summary
+  const loadUserDataSummary = useCallback(async () => {
+    try {
+      const summary = await getUserDataSummary();
+      setUserDataSummary(summary);
+      return summary;
+    } catch (error) {
+      console.error("Error loading user data summary:", error);
+      return null;
+    }
+  }, [getUserDataSummary]);
+
+  // 8. Account Deletion Handler
   const handleAccountDeletion = useCallback(async () => {
+    // First, validate if user can delete account
+    const validation = await validateDeletion();
+    
+    if (!validation.canDelete) {
+      Alert.alert(
+        "Cannot Delete Account",
+        `Account deletion is not possible:\n\n${validation.restrictions.join('\n')}`,
+        [{ text: "OK" }]
+      );
+      return;
+    }
+
+    // Load user data summary
+    const summary = await loadUserDataSummary();
+    
+    // Show initial confirmation with data preview
     Alert.alert(
       "Delete Account",
-      "This action cannot be undone. All your data, bookings, and reviews will be permanently deleted.",
+      `This will permanently delete your account and all associated data:\n\n${
+        summary 
+          ? `• ${summary.bookings_count} bookings\n• ${summary.reviews_count} reviews\n• ${summary.favorites_count} favorites\n• ${summary.friends_count} friend connections\n• ${summary.playlists_count} playlists\n• ${summary.posts_count} posts`
+          : 'All your data including bookings, reviews, and favorites'
+      }\n\n${validation.warnings.length > 0 ? '\nWarnings:\n' + validation.warnings.join('\n') : ''}\n\nThis action cannot be undone.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Export Data First", 
+          onPress: () => requestDataExport() 
+        },
+        {
+          text: "Continue",
+          style: "destructive",
+          onPress: () => showFinalConfirmation(),
+        },
+      ],
+    );
+  }, [validateDeletion, loadUserDataSummary, requestDataExport]);
+
+  // 9. Final Confirmation Step
+  const showFinalConfirmation = useCallback(() => {
+    Alert.alert(
+      "Final Confirmation",
+      "Are you absolutely sure you want to delete your account? Type 'DELETE' to confirm.",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Delete Account",
+          text: "I understand",
           style: "destructive",
-          onPress: async () => {
-            setDeletingAccount(true);
-            try {
-              // In a real app, this would trigger a backend process
-              // For now, we'll just sign out and show a message
-              Alert.alert(
-                "Account Deletion Initiated",
-                "Your account deletion request has been submitted. You'll receive a confirmation email within 24 hours.",
-              );
-              // await signOut();
-            } catch (error) {
-              console.error("Error deleting account:", error);
-              Alert.alert("Error", "Failed to delete account");
-            } finally {
-              setDeletingAccount(false);
-            }
-          },
+          onPress: () => showDeletionOptions(),
         },
       ],
     );
   }, []);
 
-  // 8. Section Toggle Handler
+  // 10. Show Deletion Options (Hard vs Soft Delete)
+  const showDeletionOptions = useCallback(() => {
+    Alert.alert(
+      "Deletion Type",
+      "Choose how you want to delete your account:",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Deactivate (Recoverable)",
+          onPress: () => performSoftDeletion(),
+        },
+        {
+          text: "Delete Permanently",
+          style: "destructive",
+          onPress: () => performHardDeletion(),
+        },
+      ],
+    );
+  }, []);
+
+  // 11. Perform Soft Deletion
+  const performSoftDeletion = useCallback(async () => {
+    setDeletingAccount(true);
+    try {
+      const result = await softDeleteAccount();
+      
+      if (result.success) {
+        Alert.alert(
+          "Account Deactivated",
+          "Your account has been deactivated. Contact support if you want to reactivate it.",
+          [
+            {
+              text: "OK",
+              onPress: () => signOut(),
+            },
+          ]
+        );
+      } else {
+        Alert.alert("Error", result.message);
+      }
+    } catch (error) {
+      console.error("Error deactivating account:", error);
+      Alert.alert("Error", "Failed to deactivate account");
+    } finally {
+      setDeletingAccount(false);
+    }
+  }, [softDeleteAccount, signOut]);
+
+  // 12. Perform Hard Deletion
+  const performHardDeletion = useCallback(async () => {
+    setDeletingAccount(true);
+    try {
+      const result = await deleteAccount();
+      
+      if (result.success) {
+        Alert.alert(
+          "Account Deleted",
+          "Your account and all associated data have been permanently deleted.",
+          [
+            {
+              text: "OK",
+              onPress: () => {
+                // Navigate to goodbye screen or sign out
+                signOut();
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert("Error", result.message);
+      }
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      Alert.alert("Error", "Failed to delete account");
+    } finally {
+      setDeletingAccount(false);
+    }
+  }, [deleteAccount, signOut]);
+
+  // 13. Section Toggle Handler
   const toggleSection = useCallback((sectionId: string) => {
     setExpandedSections((prev) => {
       const newSet = new Set(prev);
@@ -288,7 +402,7 @@ export default function PrivacyScreen() {
     });
   }, []);
 
-  // 9. Lifecycle Management
+  // 14. Lifecycle Management
   useEffect(() => {
     if (profile) {
       fetchPrivacySettings();
@@ -300,7 +414,7 @@ export default function PrivacyScreen() {
     fetchPrivacySettings();
   }, [fetchPrivacySettings]);
 
-  // 10. Render Privacy Setting Item
+  // 15. Render Privacy Setting Item
   const renderPrivacySetting = ({
     key,
     title,
@@ -373,14 +487,14 @@ export default function PrivacyScreen() {
     );
   };
 
-  // 11. Main Render
+  // 16. Main Render
   if (loading) {
     return <PrivacyScreenSkeleton />;
   }
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      {/* 11.1 Header */}
+      {/* 16.1 Header */}
       <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
         <Pressable onPress={() => router.back()} className="p-2 -ml-2">
           <ArrowLeft
@@ -402,7 +516,7 @@ export default function PrivacyScreen() {
           />
         }
       >
-        {/* 11.2 Privacy Settings Section */}
+        {/* 16.2 Privacy Settings Section */}
         <View className="pt-6">
           <Text className="text-sm font-semibold text-muted-foreground uppercase px-4 mb-3">
             Privacy Controls
@@ -445,7 +559,7 @@ export default function PrivacyScreen() {
           })}
         </View>
 
-        {/* 11.3 Communication Preferences */}
+        {/* 16.3 Communication Preferences */}
         <View className="pt-6">
           <Text className="text-sm font-semibold text-muted-foreground uppercase px-4 mb-3">
             Communication
@@ -468,7 +582,7 @@ export default function PrivacyScreen() {
           })}
         </View>
 
-        {/* 11.4 Data Usage */}
+        {/* 16.4 Data Usage */}
         <View className="pt-6">
           <Text className="text-sm font-semibold text-muted-foreground uppercase px-4 mb-3">
             Data Usage
@@ -491,7 +605,7 @@ export default function PrivacyScreen() {
           })}
         </View>
 
-        {/* 11.5 Data Management Section */}
+        {/* 16.5 Data Management Section */}
         <View className="pt-6">
           <Text className="text-sm font-semibold text-muted-foreground uppercase px-4 mb-3">
             Data Management
@@ -554,7 +668,7 @@ export default function PrivacyScreen() {
           </View>
         </View>
 
-        {/* 11.6 Privacy Policy Sections */}
+        {/* 16.6 Privacy Policy Sections */}
         <View className="pt-6">
           <Text className="text-sm font-semibold text-muted-foreground uppercase px-4 mb-3">
             Privacy Policy
@@ -600,7 +714,7 @@ export default function PrivacyScreen() {
           })}
         </View>
 
-        {/* 11.7 Legal Documents Section */}
+        {/* 16.7 Legal Documents Section */}
         <View className="pt-6">
           <Text className="text-sm font-semibold text-muted-foreground uppercase px-4 mb-3">
             Legal Documents
@@ -639,7 +753,7 @@ export default function PrivacyScreen() {
           </Pressable>
         </View>
 
-        {/* 11.8 Footer */}
+        {/* 16.8 Footer */}
         <View className="items-center py-8 px-4">
           <Muted className="text-xs text-center">
             Your privacy is important to us. We follow industry best practices

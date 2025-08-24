@@ -120,7 +120,7 @@ if (comment.length < REVIEW_VALIDATION.MIN_COMMENT_LENGTH) { ... }
 
 ```bash
 # Navigate to review creation
-cd /Users/karlaboujaoude/Documents/GitHub/RBS
+cd /Users/karlaboujaoude/Documents/GitHub/Plate
 yarn test components/rating/ReviewRatingStep.test.tsx
 ```
 

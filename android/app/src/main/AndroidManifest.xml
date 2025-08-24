@@ -41,13 +41,13 @@
         <action android:name="android.intent.action.VIEW"/>
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
-        <data android:scheme="qwerty-booklet"/>
-        <data android:scheme="exp+booklet"/>
+        <data android:scheme="qwerty-plate"/>
+        <data android:scheme="exp+plate"/>
       </intent-filter>
       <intent-filter android:autoVerify="true" data-generated="true">
         <action android:name="android.intent.action.VIEW"/>
-        <data android:scheme="qwerty-booklet" android:host="auth" android:pathPrefix="/callback"/>
-        <data android:scheme="com.notqwerty.booklet"/>
+        <data android:scheme="qwerty-plate" android:host="auth" android:pathPrefix="/callback"/>
+        <data android:scheme="com.notqwerty.plate"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <category android:name="android.intent.category.DEFAULT"/>
       </intent-filter>

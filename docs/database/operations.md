@@ -273,12 +273,12 @@ LIMIT 10;
 ### Backup Strategy
 ```sql
 -- Full database backup
-pg_dump -h localhost -U postgres -d rbs_production > backup_$(date +%Y%m%d_%H%M%S).sql
+pg_dump -h localhost -U postgres -d plate_production > backup_$(date +%Y%m%d_%H%M%S).sql
 
 -- Table-specific backups for critical data
-pg_dump -h localhost -U postgres -d rbs_production -t bookings > bookings_backup.sql
-pg_dump -h localhost -U postgres -d rbs_production -t profiles > profiles_backup.sql
-pg_dump -h localhost -U postgres -d rbs_production -t restaurants > restaurants_backup.sql
+pg_dump -h localhost -U postgres -d plate_production -t bookings > bookings_backup.sql
+pg_dump -h localhost -U postgres -d plate_production -t profiles > profiles_backup.sql
+pg_dump -h localhost -U postgres -d plate_production -t restaurants > restaurants_backup.sql
 ```
 
 ### Recovery Procedures
@@ -322,7 +322,7 @@ SELECT
   tup_returned,
   tup_fetched
 FROM pg_stat_database
-WHERE datname = 'rbs_production';
+WHERE datname = 'plate_production';
 ```
 
 ### Performance Metrics

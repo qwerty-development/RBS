@@ -138,7 +138,7 @@ export default function HomeScreen() {
             <View className="flex-row items-center justify-between">
               <View className="flex-1">
                 <Text className="font-semibold text-primary">
-                  Welcome to Booklet!
+                  Welcome to Plate!
                 </Text>
                 <Text className="text-sm text-muted-foreground mt-1">
                   Sign up to unlock exclusive features
