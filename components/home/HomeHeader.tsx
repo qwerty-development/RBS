@@ -70,7 +70,7 @@ export function HomeHeader({
         >
           <View className="flex-1" pointerEvents="none">
             <Text className="text-2xl font-bold text-foreground">
-              Hello {profile?.full_name?.split(" ")[0] || "there"}{" "}
+              Helloooo {profile?.full_name?.split(" ")[0] || "there"}{" "}
               <Text className="text-2xl">👋</Text>
             </Text>
           </View>
