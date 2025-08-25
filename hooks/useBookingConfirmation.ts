@@ -165,7 +165,7 @@ export const useBookingConfirmation = () => {
   );
 
   /**
-   * Main booking confirmation function with duplicate prevention
+   * Main booking confirmation function with improved error handling
    */
   const confirmBooking = useCallback(
     async (props: BookingConfirmationProps) => {
@@ -241,32 +241,60 @@ export const useBookingConfirmation = () => {
         );
 
         if (rpcError) {
-          // Check if it's a DUPLICATE_BOOKING error that should be shown to user
-          if (
-            rpcError.code === "P0002" &&
-            rpcError.message?.includes("DUPLICATE_BOOKING")
-          ) {
-            // This is an intentional duplicate booking prevention - show error to user
-            console.log("Duplicate booking detected, showing error to user");
-            throw rpcError;
+          // Improved error handling for different error types
+          const errorMessage = rpcError.message?.toLowerCase() || "";
+          const errorCode = rpcError.code;
+
+          // Check for DUPLICATE_BOOKING errors
+          if (errorCode === "P0002" || errorMessage.includes("duplicate_booking")) {
+            // Extract the user-friendly message
+            const userMessage = rpcError.message?.split("DUPLICATE_BOOKING: ")[1] || 
+                              "You already have a booking for this time. Please choose a different time slot.";
+            
+            console.log("Duplicate booking detected:", userMessage);
+            Alert.alert("Booking Conflict", userMessage, [{ text: "OK" }]);
+            return false;
           }
-          // Check if it's a benign duplicate attempt from race conditions (exact same booking created seconds ago)
-          else if (
-            rpcError.message?.includes("already have a booking") &&
-            !rpcError.message?.includes("DUPLICATE_BOOKING")
-          ) {
-            console.log(
-              "Race condition duplicate detected, treating as success",
-            );
+          
+          // Check for RLS policy violations
+          if (errorCode === "42501") {
+            console.error("RLS Policy violation:", rpcError);
+            
+            // More specific error messages based on table
+            if (errorMessage.includes("booking_tables")) {
+              Alert.alert(
+                "System Error",
+                "Unable to assign tables. Please try again or contact support if the issue persists.",
+                [{ text: "OK" }]
+              );
+            } else if (errorMessage.includes("restaurant_customers")) {
+              Alert.alert(
+                "System Error",
+                "Unable to update customer records. Please try again or contact support if the issue persists.",
+                [{ text: "OK" }]
+              );
+            } else {
+              Alert.alert(
+                "Permission Error",
+                "You don't have permission to complete this booking. Please try again or contact support.",
+                [{ text: "OK" }]
+              );
+            }
+            return false;
+          }
+          
+          // Check for race condition duplicates
+          if (errorMessage.includes("already have a booking") && 
+              !errorMessage.includes("duplicate_booking")) {
+            console.log("Race condition duplicate detected, treating as success");
+            
             // Try to fetch the existing booking
             const { data: existingBooking } = await supabase
               .from("bookings")
-              .select(
-                `
+              .select(`
                 *,
                 restaurant:restaurants(name, id)
-              `,
-              )
+              `)
               .eq("user_id", profile.id)
               .eq("restaurant_id", restaurantId)
               .eq("booking_time", bookingTime.toISOString())
@@ -303,9 +331,7 @@ export const useBookingConfirmation = () => {
 
         // Check if this was a duplicate attempt that returned existing booking
         if (bookingResult.is_duplicate_attempt) {
-          console.log(
-            "This was a duplicate attempt, existing booking returned",
-          );
+          console.log("This was a duplicate attempt, existing booking returned");
         } else {
           // Handle loyalty points and offers for new bookings
           if (bookingPolicy === "instant") {
@@ -370,33 +396,18 @@ export const useBookingConfirmation = () => {
         console.error("Booking confirmation error:", error);
 
         // Handle specific error types
-        if (
-          error.code === "P0002" &&
-          error.message?.includes("DUPLICATE_BOOKING")
-        ) {
-          // Extract the user-friendly message from the database error
-          const message =
-            error.message.split("DUPLICATE_BOOKING: ")[1] ||
-            "You already have a booking for this time. Please choose a different time slot.";
+        const errorCode = error?.code;
+        const errorMessage = error?.message?.toLowerCase() || "";
 
-          Alert.alert("Duplicate Booking", message, [{ text: "OK" }]);
-        } else if (
-          error.code === "P0001" &&
-          error.message?.includes("no longer available")
-        ) {
+        if (errorCode === "P0001" && errorMessage.includes("no longer available")) {
           Alert.alert(
             "Table No Longer Available",
             "This time slot was just booked. Please select another time.",
             [{ text: "OK" }],
           );
-        } else if (
-          error.code === "23505" ||
-          error.message?.includes("duplicate key")
-        ) {
+        } else if (errorCode === "23505" || errorMessage.includes("duplicate key")) {
           // This shouldn't happen anymore, but if it does, handle gracefully
-          console.warn(
-            "Unexpected duplicate key error, attempting to recover...",
-          );
+          console.warn("Unexpected duplicate key error, attempting to recover...");
 
           // Try to fetch the existing booking
           const { data: existingBooking } = await supabase
