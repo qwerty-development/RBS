@@ -1,4 +1,4 @@
-import { Alert } from "react-native";
+import { Alert, Share } from "react-native";
 
 // Date and Time Validation Utilities
 export const isValidDate = (dateString: string | undefined): boolean => {
@@ -266,7 +266,6 @@ export const shareBookingDetails = async (booking: {
   confirmationCode?: string;
 }) => {
   try {
-    const { Share } = await import("react-native");
     const message = `🍽️ Booking Confirmation\n\nRestaurant: ${booking.restaurantName}\nDate: ${formatBookingDate(new Date(booking.date))}\nTime: ${formatBookingTime(booking.time)}\nParty Size: ${booking.partySize} guests${booking.confirmationCode ? `\nConfirmation: ${booking.confirmationCode}` : ""}`;
 
     await Share.share({

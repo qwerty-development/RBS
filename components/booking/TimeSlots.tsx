@@ -17,6 +17,7 @@ import * as Haptics from "expo-haptics";
 
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
+import { AvailabilityService } from "@/lib/AvailabilityService";
 import {
   TimeSlotBasic,
   SlotTableOptions,
@@ -585,9 +586,7 @@ export const ExperienceSelector = memo<{
     const loadOptions = async () => {
       setLoading(true);
       try {
-        const availabilityService = (
-          await import("@/lib/AvailabilityService")
-        ).AvailabilityService.getInstance();
+        const availabilityService = AvailabilityService.getInstance();
         const options = await availabilityService.getTableOptionsForSlot(
           restaurantId,
           date,
