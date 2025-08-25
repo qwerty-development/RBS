@@ -48,12 +48,14 @@ interface BookingResult {
     table_type: string;
   }[];
   is_duplicate_attempt?: boolean;
+  debug_info?: any;
 }
 
 export const useBookingConfirmation = () => {
   const { profile } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [debugMode] = useState(process.env.NODE_ENV === 'development');
 
   // Add refs to prevent double submission
   const isSubmittingRef = useRef(false);
@@ -82,7 +84,7 @@ export const useBookingConfirmation = () => {
   }, []);
 
   /**
-   * Check if this is a duplicate submission attempt
+   * Check if this is a duplicate submission attempt (double-click prevention)
    */
   const isDuplicateSubmission = useCallback(
     (restaurantId: string, bookingTime: Date, partySize: number): boolean => {
@@ -93,14 +95,14 @@ export const useBookingConfirmation = () => {
         const last = lastSubmissionRef.current;
         const timeSinceLastSubmission = now - last.timestamp;
 
-        // If same booking details submitted within 5 seconds, it's likely a duplicate
+        // If same booking details submitted within 3 seconds, it's likely a duplicate
         if (
           last.restaurantId === restaurantId &&
           last.bookingTime === bookingTimeStr &&
           last.partySize === partySize &&
-          timeSinceLastSubmission < 5000
+          timeSinceLastSubmission < 3000
         ) {
-          console.log("Duplicate submission detected, ignoring...");
+          console.log("Duplicate submission detected (double-click), ignoring...");
           return true;
         }
       }
@@ -196,14 +198,11 @@ export const useBookingConfirmation = () => {
         requiresCombination,
         turnTime = 120,
         isGroupBooking = false,
-        guestName,
-        guestEmail,
-        guestPhone,
       } = props;
 
-      // Check for duplicate submission
+      // Check for duplicate submission (double-click)
       if (isDuplicateSubmission(restaurantId, bookingTime, partySize)) {
-        console.log("Duplicate submission detected, ignoring");
+        console.log("Double-click detected, ignoring");
         return false;
       }
 
@@ -214,11 +213,18 @@ export const useBookingConfirmation = () => {
       try {
         // Parse table IDs
         const parsedTableIds = parseTableIds(tableIds);
-        console.log("Booking confirmation - Parsed Table IDs:", parsedTableIds);
+        
+        if (debugMode) {
+          console.log("Booking confirmation - Details:", {
+            restaurantId,
+            bookingTime: bookingTime.toISOString(),
+            partySize,
+            tableIds: parsedTableIds,
+            bookingPolicy,
+          });
+        }
 
-        let bookingResult: BookingResult;
-
-        // Always use RPC function for consistency
+        // Call the improved RPC function
         const { data: rpcResult, error: rpcError } = await supabase.rpc(
           "create_booking_with_tables",
           {
@@ -241,59 +247,72 @@ export const useBookingConfirmation = () => {
         );
 
         if (rpcError) {
-          // Improved error handling for different error types
-          const errorMessage = rpcError.message?.toLowerCase() || "";
+          // Log debug info if available
+          if (debugMode) {
+            console.error("RPC Error Details:", {
+              code: rpcError.code,
+              message: rpcError.message,
+              details: rpcError.details,
+              hint: rpcError.hint,
+            });
+          }
+
+          // Improved error handling
+          const errorMessage = rpcError.message || "";
           const errorCode = rpcError.code;
 
-          // Check for DUPLICATE_BOOKING errors
-          if (errorCode === "P0002" || errorMessage.includes("duplicate_booking")) {
-            // Extract the user-friendly message
-            const userMessage = rpcError.message?.split("DUPLICATE_BOOKING: ")[1] || 
-                              "You already have a booking for this time. Please choose a different time slot.";
-            
-            console.log("Duplicate booking detected:", userMessage);
-            Alert.alert("Booking Conflict", userMessage, [{ text: "OK" }]);
-            return false;
-          }
-          
-          // Check for RLS policy violations
-          if (errorCode === "42501") {
-            console.error("RLS Policy violation:", rpcError);
-            
-            // More specific error messages based on table
-            if (errorMessage.includes("booking_tables")) {
+          // Handle specific error cases
+          if (errorCode === "P0001") {
+            // Custom error from our RPC
+            if (errorMessage.includes("no longer available") || 
+                errorMessage.includes("selected tables are no longer available")) {
               Alert.alert(
-                "System Error",
-                "Unable to assign tables. Please try again or contact support if the issue persists.",
+                "Tables Unavailable",
+                "The selected tables were just booked by another user. Please select a different time or table combination.",
                 [{ text: "OK" }]
               );
-            } else if (errorMessage.includes("restaurant_customers")) {
+            } else if (errorMessage.includes("not all selected tables can be combined")) {
               Alert.alert(
-                "System Error",
-                "Unable to update customer records. Please try again or contact support if the issue persists.",
+                "Invalid Table Combination",
+                "The selected tables cannot be combined. Please choose different tables or contact the restaurant.",
+                [{ text: "OK" }]
+              );
+            } else if (errorMessage.includes("do not have enough capacity")) {
+              Alert.alert(
+                "Insufficient Capacity",
+                `The selected tables don't have enough seats for ${partySize} guests. Please select different tables or reduce party size.`,
+                [{ text: "OK" }]
+              );
+            } else if (errorMessage.includes("not available")) {
+              Alert.alert(
+                "Table Unavailable",
+                "One or more selected tables are not available. Please try a different selection.",
                 [{ text: "OK" }]
               );
             } else {
+              // Generic P0001 error
               Alert.alert(
-                "Permission Error",
-                "You don't have permission to complete this booking. Please try again or contact support.",
+                "Booking Error",
+                errorMessage || "Unable to complete your booking. Please try again.",
                 [{ text: "OK" }]
               );
             }
             return false;
           }
-          
-          // Check for race condition duplicates
-          if (errorMessage.includes("already have a booking") && 
-              !errorMessage.includes("duplicate_booking")) {
-            console.log("Race condition duplicate detected, treating as success");
+
+          // Handle duplicate key errors
+          if (errorCode === "23505") {
+            // This shouldn't happen with our improved RPC, but handle it gracefully
+            console.warn("Unexpected duplicate key error");
             
             // Try to fetch the existing booking
             const { data: existingBooking } = await supabase
               .from("bookings")
               .select(`
-                *,
-                restaurant:restaurants(name, id)
+                id, 
+                confirmation_code, 
+                status,
+                restaurant:restaurants(name)
               `)
               .eq("user_id", profile.id)
               .eq("restaurant_id", restaurantId)
@@ -303,45 +322,102 @@ export const useBookingConfirmation = () => {
               .single();
 
             if (existingBooking) {
-              bookingResult = {
-                booking: {
-                  id: existingBooking.id,
-                  confirmation_code: existingBooking.confirmation_code,
-                  restaurant_name: existingBooking.restaurant?.name,
-                  status: existingBooking.status,
-                  booking_time: existingBooking.booking_time,
-                  party_size: existingBooking.party_size,
-                  loyalty_points_earned: existingBooking.loyalty_points_earned,
-                  restaurant: existingBooking.restaurant,
-                },
-                is_duplicate_attempt: true,
-              };
+              Alert.alert(
+                "Booking Already Exists",
+                `You already have a booking for this time.\nConfirmation code: ${existingBooking.confirmation_code}`,
+                [
+                  {
+                    text: "View Booking",
+                    onPress: () => router.replace(`/booking/${existingBooking.id}`),
+                  },
+                ],
+              );
             } else {
-              throw rpcError;
+              Alert.alert(
+                "Booking Error",
+                "Unable to create booking. Please try selecting a different time.",
+                [{ text: "OK" }],
+              );
             }
-          } else {
-            throw rpcError;
+            return false;
           }
-        } else {
-          if (!rpcResult?.booking) {
-            throw new Error("No booking data returned from RPC");
+
+          // Handle permission errors
+          if (errorCode === "42501") {
+            Alert.alert(
+              "Permission Error",
+              "You don't have permission to complete this booking. Please try logging out and back in.",
+              [{ text: "OK" }]
+            );
+            return false;
           }
-          bookingResult = rpcResult;
+
+          // Handle other errors
+          Alert.alert(
+            "Booking Failed",
+            errorMessage || "Unable to create booking. Please try again.",
+            [{ text: "OK" }]
+          );
+          return false;
+        }
+
+        // Check if we got a valid result
+        if (!rpcResult?.booking) {
+          throw new Error("No booking data returned from server");
+        }
+
+        const bookingResult: BookingResult = rpcResult;
+
+        // Log debug info if available
+        if (debugMode && bookingResult.debug_info) {
+          console.log("Booking Debug Info:", bookingResult.debug_info);
         }
 
         // Check if this was a duplicate attempt that returned existing booking
         if (bookingResult.is_duplicate_attempt) {
-          console.log("This was a duplicate attempt, existing booking returned");
-        } else {
-          // Handle loyalty points and offers for new bookings
+          console.log("Duplicate booking returned (user already has this booking)");
+          
+          // Still navigate to success page with existing booking
+          await Haptics.notificationAsync(
+            Haptics.NotificationFeedbackType.Success,
+          );
+
           if (bookingPolicy === "instant") {
-            await handleLoyaltyAndOffers(
-              bookingResult.booking.id,
-              loyaltyRuleId,
-              appliedOfferId,
-              profile.id,
-            );
+            router.replace({
+              pathname: "/booking/success",
+              params: {
+                bookingId: bookingResult.booking.id,
+                restaurantName: bookingResult.booking.restaurant?.name || "Restaurant",
+                bookingTime: bookingTime.toISOString(),
+                partySize: partySize.toString(),
+                confirmationCode: bookingResult.booking.confirmation_code,
+                loyaltyPoints: (expectedLoyaltyPoints || 0).toString(),
+                tableInfo: requiresCombination ? "combined" : "single",
+                earnedPoints: (expectedLoyaltyPoints || 0).toString(),
+              },
+            });
+          } else {
+            router.replace({
+              pathname: "/booking/request-sent",
+              params: {
+                bookingId: bookingResult.booking.id,
+                restaurantName: bookingResult.booking.restaurant?.name || "Restaurant",
+                bookingTime: bookingTime.toISOString(),
+                partySize: partySize.toString(),
+              },
+            });
           }
+          return true;
+        }
+
+        // Handle loyalty points and offers for new bookings
+        if (bookingPolicy === "instant" && !bookingResult.is_duplicate_attempt) {
+          await handleLoyaltyAndOffers(
+            bookingResult.booking.id,
+            loyaltyRuleId,
+            appliedOfferId,
+            profile.id,
+          );
         }
 
         // Success feedback
@@ -367,24 +443,21 @@ export const useBookingConfirmation = () => {
             pathname: "/booking/success",
             params: {
               bookingId: bookingResult.booking.id,
-              restaurantName:
-                bookingResult.booking.restaurant_name || "Restaurant",
+              restaurantName: bookingResult.booking.restaurant?.name || "Restaurant",
               bookingTime: bookingTime.toISOString(),
               partySize: partySize.toString(),
               confirmationCode: bookingResult.booking.confirmation_code,
               loyaltyPoints: (expectedLoyaltyPoints || 0).toString(),
               tableInfo: requiresCombination ? "combined" : "single",
-              earnedPoints: (expectedLoyaltyPoints || 0).toString(),
+              earnedPoints: (bookingResult.booking.loyalty_points_earned || expectedLoyaltyPoints || 0).toString(),
             },
           });
         } else {
-          // For request bookings
           router.replace({
             pathname: "/booking/request-sent",
             params: {
               bookingId: bookingResult.booking.id,
-              restaurantName:
-                bookingResult.booking.restaurant_name || "Restaurant",
+              restaurantName: bookingResult.booking.restaurant?.name || "Restaurant",
               bookingTime: bookingTime.toISOString(),
               partySize: partySize.toString(),
             },
@@ -395,57 +468,12 @@ export const useBookingConfirmation = () => {
       } catch (error: any) {
         console.error("Booking confirmation error:", error);
 
-        // Handle specific error types
-        const errorCode = error?.code;
-        const errorMessage = error?.message?.toLowerCase() || "";
-
-        if (errorCode === "P0001" && errorMessage.includes("no longer available")) {
-          Alert.alert(
-            "Table No Longer Available",
-            "This time slot was just booked. Please select another time.",
-            [{ text: "OK" }],
-          );
-        } else if (errorCode === "23505" || errorMessage.includes("duplicate key")) {
-          // This shouldn't happen anymore, but if it does, handle gracefully
-          console.warn("Unexpected duplicate key error, attempting to recover...");
-
-          // Try to fetch the existing booking
-          const { data: existingBooking } = await supabase
-            .from("bookings")
-            .select("id, confirmation_code, status")
-            .eq("user_id", profile.id)
-            .eq("restaurant_id", restaurantId)
-            .eq("booking_time", bookingTime.toISOString())
-            .eq("party_size", partySize)
-            .in("status", ["pending", "confirmed"])
-            .single();
-
-          if (existingBooking) {
-            Alert.alert(
-              "Booking Already Exists",
-              `You already have a booking for this time. Confirmation code: ${existingBooking.confirmation_code}`,
-              [
-                {
-                  text: "View Booking",
-                  onPress: () =>
-                    router.replace(`/booking/${existingBooking.id}`),
-                },
-              ],
-            );
-          } else {
-            Alert.alert(
-              "Booking Error",
-              "Unable to create booking. Please try selecting a different time.",
-              [{ text: "OK" }],
-            );
-          }
-        } else {
-          Alert.alert(
-            "Booking Failed",
-            error.message || "Unable to create booking. Please try again.",
-            [{ text: "OK" }],
-          );
-        }
+        // Generic error handling
+        Alert.alert(
+          "Booking Failed",
+          "An unexpected error occurred. Please try again or contact support if the issue persists.",
+          [{ text: "OK" }],
+        );
 
         return false;
       } finally {
@@ -462,6 +490,7 @@ export const useBookingConfirmation = () => {
       parseTableIds,
       handleLoyaltyAndOffers,
       isDuplicateSubmission,
+      debugMode,
     ],
   );
 
@@ -528,7 +557,7 @@ export const useBookingConfirmation = () => {
       const { data: booking, error: fetchError } = await supabase
         .from("bookings")
         .select(
-          "status, applied_loyalty_rule_id, loyalty_points_earned, user_id, booking_time",
+          "status, applied_loyalty_rule_id, loyalty_points_earned, user_id, booking_time, restaurant_id",
         )
         .eq("id", bookingId)
         .single();
@@ -560,6 +589,17 @@ export const useBookingConfirmation = () => {
         .eq("id", bookingId);
 
       if (cancelError) throw cancelError;
+
+      // Clear availability cache for this restaurant and time
+      try {
+        const availabilityService = AvailabilityService.getInstance();
+        availabilityService.clearRestaurantCacheForDate(
+          booking.restaurant_id,
+          new Date(booking.booking_time),
+        );
+      } catch (cacheError) {
+        console.warn("Failed to clear availability cache:", cacheError);
+      }
 
       // If points were awarded, refund them
       if (
