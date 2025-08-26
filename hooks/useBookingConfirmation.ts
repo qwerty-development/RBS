@@ -137,7 +137,45 @@ export const useBookingConfirmation = () => {
           });
         }
 
-        // Call the RPC function
+        // PRE-FLIGHT CHECK: Simple availability verification
+        if (parsedTableIds.length > 0) {
+          console.log("Pre-flight availability check for tables:", parsedTableIds);
+          
+          const { data: bookedTables, error: conflictError } = await supabase.rpc(
+            "get_booked_tables_for_slot",
+            {
+              p_restaurant_id: restaurantId,
+              p_start_time: bookingTime.toISOString(),
+              p_end_time: new Date(bookingTime.getTime() + turnTime * 60000).toISOString(),
+            }
+          );
+
+          if (!conflictError && bookedTables) {
+            const bookedTableIds = bookedTables.map((bt: any) => bt.table_id);
+            const hasConflict = parsedTableIds.some(tableId => bookedTableIds.includes(tableId));
+            
+            if (hasConflict) {
+              console.log("Pre-flight check detected table conflict");
+              Alert.alert(
+                "Tables No Longer Available",
+                "The selected tables have just been booked by someone else. Please choose different tables or time.",
+                [{ text: "OK", style: "default" }]
+              );
+              return false;
+            }
+          }
+        }
+
+        // Call the RPC function with detailed error logging
+        console.log("Calling RPC with params:", {
+          p_user_id: profile.id,
+          p_restaurant_id: restaurantId,
+          p_booking_time: bookingTime.toISOString(),
+          p_party_size: partySize,
+          p_table_ids: parsedTableIds.length > 0 ? parsedTableIds : null,
+          p_turn_time: turnTime,
+        });
+
         const { data: rpcResult, error: rpcError } = await supabase.rpc(
           "create_booking_with_tables",
           {
@@ -196,24 +234,60 @@ export const useBookingConfirmation = () => {
               return false;
             }
             
-            // Table no longer available
+            // Table no longer available - Enhanced conflict resolution
             if (errorMessage.includes("tables are no longer available")) {
-              Alert.alert(
-                "Tables Unavailable",
-                "The selected tables were just booked by another customer. Please select a different time or table.",
-                [
-                  {
-                    text: "Refresh Availability",
-                    onPress: () => {
-                      // Clear cache and go back
-                      const availabilityService = AvailabilityService.getInstance();
-                      availabilityService.clearRestaurantCacheForDate(restaurantId, bookingTime);
-                      router.back();
-                    }
-                  },
-                  { text: "OK", style: "cancel" }
-                ]
-              );
+              // Clear cache immediately
+              const availabilityService = AvailabilityService.getInstance();
+              availabilityService.clearRestaurantCacheForDate(restaurantId, bookingTime);
+              
+              // Check if there are alternative tables for the same time
+              try {
+                const { data: alternativeTables } = await supabase.rpc("get_available_tables", {
+                  p_restaurant_id: restaurantId,
+                  p_start_time: bookingTime.toISOString(),
+                  p_end_time: new Date(bookingTime.getTime() + turnTime * 60000).toISOString(),
+                  p_party_size: partySize,
+                });
+                
+                if (alternativeTables && alternativeTables.length > 0) {
+                  Alert.alert(
+                    "Tables Just Taken",
+                    `The selected tables were just booked by another customer. However, we found ${alternativeTables.length} other table${alternativeTables.length === 1 ? '' : 's'} available for the same time.`,
+                    [
+                      {
+                        text: "See Alternatives",
+                        onPress: () => router.back(),
+                      },
+                      { text: "Choose Different Time", style: "cancel" }
+                    ]
+                  );
+                } else {
+                  Alert.alert(
+                    "Time Slot Full",
+                    "The selected tables were just booked and no other tables are available for this time. Please select a different time.",
+                    [
+                      {
+                        text: "Choose Different Time",
+                        onPress: () => router.back(),
+                      },
+                      { text: "OK", style: "cancel" }
+                    ]
+                  );
+                }
+              } catch (checkError) {
+                console.error("Error checking alternatives:", checkError);
+                Alert.alert(
+                  "Tables Unavailable",
+                  "The selected tables were just booked by another customer. Please select a different time or table.",
+                  [
+                    {
+                      text: "Try Again",
+                      onPress: () => router.back(),
+                    },
+                    { text: "OK", style: "cancel" }
+                  ]
+                );
+              }
               return false;
             }
             
@@ -269,7 +343,7 @@ export const useBookingConfirmation = () => {
                   text: "Sign In",
                   onPress: () => {
                     supabase.auth.signOut();
-                    router.replace("/auth/login");
+                    router.replace("/sign-in");
                   }
                 },
                 { text: "Cancel", style: "cancel" }

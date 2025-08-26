@@ -5,7 +5,7 @@ import {
   TimeSlotBasic,
   SlotTableOptions,
 } from "@/lib/AvailabilityService";
-import { realtimeAvailability } from "@/lib/RealtimeAvailability";
+import { useRealtimeAvailability } from "@/hooks/useRealtimeAvailability";
 import { useAuth } from "@/context/supabase-provider";
 
 interface UseAvailabilityOptions {
@@ -247,67 +247,15 @@ export function useAvailability({
     };
   }, [mode, paramsKey]); // Use paramsKey instead of individual params
 
-  // Real-time updates with throttling
-  const realtimeUpdateRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (!enableRealtime || !restaurantId) return;
-
-    let isMounted = true;
-    let unsubscribeRealtime: (() => void) | null = null;
-
-    const throttledUpdate = () => {
-      // Check if component is still mounted
-      if (!isMounted) return;
-
-      // Clear existing timeout
-      if (realtimeUpdateRef.current) {
-        clearTimeout(realtimeUpdateRef.current);
-        realtimeUpdateRef.current = null;
-      }
-
-      // Throttle updates to avoid excessive calls
-      realtimeUpdateRef.current = setTimeout(() => {
-        if (isMounted) {
-          console.log(
-            "Availability update received, refreshing experiences...",
-          );
-          refresh();
-        }
-      }, 1000); // Reduced to 1 second for faster updates
-    };
-
-    const subscribeToRealtime = async () => {
-      try {
-        unsubscribeRealtime = realtimeAvailability.subscribeToRestaurant(
-          restaurantId,
-          throttledUpdate,
-        );
-      } catch (error) {
-        console.error("Failed to subscribe to realtime updates:", error);
-      }
-    };
-
-    subscribeToRealtime();
-
-    return () => {
-      isMounted = false;
-
-      // Clean up realtime subscription
-      if (unsubscribeRealtime) {
-        unsubscribeRealtime();
-        unsubscribeRealtime = null;
-      }
-
-      // Clean up timeout
-      if (realtimeUpdateRef.current) {
-        clearTimeout(realtimeUpdateRef.current);
-        realtimeUpdateRef.current = null;
-      }
-
-      console.log("🧹 Availability realtime subscription cleaned up");
-    };
-  }, [restaurantId, enableRealtime, refresh]);
+  // Use the new real-time availability hook
+  useRealtimeAvailability(restaurantId, {
+    enabled: enableRealtime,
+    onUpdate: () => {
+      console.log("Availability update received, refreshing experiences...");
+      refresh();
+    },
+    debounceMs: 1000,
+  });
 
   // Auto-clear selected slot when dependencies change
   useEffect(() => {
@@ -321,9 +269,6 @@ export function useAvailability({
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
-      }
-      if (realtimeUpdateRef.current) {
-        clearTimeout(realtimeUpdateRef.current);
       }
     };
   }, []);
@@ -478,34 +423,15 @@ export function useAvailabilityLegacy({
     };
   }, [fetchAvailability]);
 
-  // Optimized real-time updates
-  useEffect(() => {
-    if (!enableRealtime || !restaurantId) return;
-
-    const updateRef = { current: null as number | null };
-
-    const throttledRefresh = () => {
-      if (updateRef.current) {
-        clearTimeout(updateRef.current);
-      }
-      updateRef.current = setTimeout(() => {
-        console.log("Availability update received, refreshing...");
-        fetchAvailability();
-      }, 1000); // Reduced to 1 second for faster updates
-    };
-
-    const unsubscribe = realtimeAvailability.subscribeToRestaurant(
-      restaurantId,
-      throttledRefresh,
-    );
-
-    return () => {
-      unsubscribe();
-      if (updateRef.current) {
-        clearTimeout(updateRef.current);
-      }
-    };
-  }, [restaurantId, enableRealtime, fetchAvailability]);
+  // Use real-time availability updates
+  useRealtimeAvailability(restaurantId, {
+    enabled: enableRealtime,
+    onUpdate: () => {
+      console.log("Availability update received, refreshing...");
+      fetchAvailability();
+    },
+    debounceMs: 1000,
+  });
 
   return {
     slots,

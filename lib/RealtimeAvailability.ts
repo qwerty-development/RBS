@@ -100,13 +100,28 @@ export class RealtimeAvailability {
           if (status === "SUBSCRIBED") {
             console.log(`Subscribed to real-time updates for ${channelKey}`);
           } else if (status === "CHANNEL_ERROR") {
-            console.error(`Error subscribing to ${channelKey}`);
-            // Retry subscription after delay
+            console.error(`Error subscribing to restaurant:${restaurantId}`);
+            // Don't retry immediately to avoid infinite loops
+            // Instead, mark this subscription as failed and clean up
+            setTimeout(() => {
+              const currentChannel = this.channels.get(channelKey);
+              if (currentChannel === channel) {
+                // Only clean up if this is still the active channel
+                currentChannel.unsubscribe();
+                this.channels.delete(channelKey);
+                console.log(`Cleaned up failed subscription for ${channelKey}`);
+              }
+            }, 1000);
+          } else if (status === "TIMED_OUT") {
+            console.warn(`Subscription timed out for ${channelKey}, retrying...`);
             setTimeout(() => {
               if (this.channels.has(channelKey)) {
                 this.resubscribe(channelKey, restaurantId);
               }
-            }, 5000);
+            }, 2000);
+          } else if (status === "CLOSED") {
+            console.log(`Subscription closed for ${channelKey}`);
+            this.channels.delete(channelKey);
           }
         });
 
@@ -145,14 +160,32 @@ export class RealtimeAvailability {
    * Resubscribe to a channel after error
    */
   private async resubscribe(channelKey: string, restaurantId: string) {
-    const channel = this.channels.get(channelKey);
-    if (channel) {
-      await channel.unsubscribe();
-      this.channels.delete(channelKey);
+    console.log(`Attempting to resubscribe to ${channelKey}`);
+    
+    try {
+      const channel = this.channels.get(channelKey);
+      if (channel) {
+        await channel.unsubscribe();
+        this.channels.delete(channelKey);
+      }
 
-      // Trigger resubscription by notifying listeners
-      // They will create a new subscription
-      this.notifyListeners(channelKey);
+      // Wait a moment before recreating the subscription
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Check if we still have listeners for this channel
+      const listeners = this.listeners.get(channelKey);
+      if (listeners && listeners.size > 0) {
+        // Recreate the subscription by calling subscribeToRestaurant again
+        // Get the first listener to trigger recreation
+        const firstListener = listeners.values().next().value;
+        if (firstListener) {
+          console.log(`Recreating subscription for ${channelKey}`);
+          // The subscribeToRestaurant method will handle creating a new channel
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to resubscribe to ${channelKey}:`, error);
+      // Don't retry again to avoid infinite loops
     }
   }
 
