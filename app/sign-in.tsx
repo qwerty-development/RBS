@@ -1,3 +1,4 @@
+import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import {
@@ -6,7 +7,7 @@ import {
   Alert,
   Platform,
   TouchableOpacity,
-  KeyboardAvoidingView,
+  ScrollView,
 } from "react-native";
 import * as z from "zod";
 import { useState, useEffect } from "react";
@@ -113,7 +114,7 @@ export default function SignIn() {
         if (error.message !== "User canceled Apple sign-in") {
           Alert.alert(
             "Sign In Error",
-            error.message || "Apple sign in failed.",
+            error.message || "Apple sign in failed."
           );
         }
       } else if (needsProfileUpdate) {
@@ -126,7 +127,7 @@ export default function SignIn() {
       console.error("Apple sign in error:", err);
       Alert.alert(
         "Sign In Error",
-        err.message || "Failed to sign in with Apple.",
+        err.message || "Failed to sign in with Apple."
       );
     } finally {
       setIsAppleLoading(false);
@@ -143,7 +144,7 @@ export default function SignIn() {
         if (error.message !== "User canceled Google sign-in") {
           Alert.alert(
             "Sign In Error",
-            error.message || "Google sign in failed.",
+            error.message || "Google sign in failed."
           );
         }
       } else if (needsProfileUpdate) {
@@ -156,7 +157,7 @@ export default function SignIn() {
       console.error("Google sign in error:", err);
       Alert.alert(
         "Sign In Error",
-        err.message || "Failed to sign in with Google.",
+        err.message || "Failed to sign in with Google."
       );
     } finally {
       setIsGoogleLoading(false);
@@ -168,10 +169,11 @@ export default function SignIn() {
       className="flex-1 bg-background p-4"
       edges={["top", "bottom"]}
     >
-      <KeyboardAvoidingView
+      <ScrollView
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20} // adjust as needed
+        contentContainerStyle={{ flexGrow: 1 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
       >
         <View className="flex-1 gap-4 web:m-4">
           <View>
@@ -229,7 +231,7 @@ export default function SignIn() {
           </Form>
         </View>
 
-        <View className="gap-4 web:m-4">
+        <View className="gap-4 web:m-4 p-4 rounded-lg">
           <Button
             size="default"
             variant="default"
@@ -326,7 +328,7 @@ export default function SignIn() {
             </Text>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </ScrollView>
     </SafeAreaView>
   );
 }
