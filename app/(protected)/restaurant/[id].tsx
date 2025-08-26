@@ -718,11 +718,11 @@ const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
             <View className="flex-row items-center gap-2 mb-2">
               <View className="w-7 h-7 rounded-full bg-primary/20 items-center justify-center">
                 <Text className="text-xs font-medium text-primary">
-                  {review.user.full_name.charAt(0)}
+                  {review?.user?.full_name?.charAt(0)}
                 </Text>
               </View>
               <Text className="text-sm font-medium text-foreground">
-                {review.user.full_name}
+                {review?.user?.full_name}
               </Text>
               <View className="flex-row ml-auto">
                 {[1, 2, 3, 4, 5].map((star) => (

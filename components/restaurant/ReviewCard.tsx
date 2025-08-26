@@ -107,14 +107,14 @@ export const ReviewCard = ({
               />
             ) : (
               <Text className="text-primary font-semibold">
-                {review.user.full_name.charAt(0).toUpperCase()}
+                {review?.user?.full_name?.charAt(0)?.toUpperCase()}
               </Text>
             )}
           </View>
 
           <View className="flex-1">
             <Text className="font-semibold text-sm">
-              {review.user.full_name}
+              {review?.user?.full_name}
             </Text>
             <View className="flex-row items-center gap-2 mt-1">
               {renderStars(review.rating)}
