@@ -59,11 +59,11 @@
         ]
       },
       "splash": {
-        "image": "./assets/splash.png",
+        "image": "./assets/icon.png",
         "resizeMode": "cover",
         "backgroundColor": "#ffffff",
         "dark": {
-          "image": "./assets/splash-dark.png",
+          "image": "./assets/icon.png",
           "resizeMode": "cover",
           "backgroundColor": "#000000"
         }
@@ -93,11 +93,11 @@
         "android.permission.WRITE_CALENDAR"
       ],
       "splash": {
-        "image": "./assets/splash.png",
+        "image": "./assets/icon.png",
         "resizeMode": "cover",
         "backgroundColor": "#ffffff",
         "dark": {
-          "image": "./assets/splash-dark.png",
+          "image": "./assets/icon.png",
           "resizeMode": "cover",
           "backgroundColor": "#000000"
         }
