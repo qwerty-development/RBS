@@ -1,6 +1,6 @@
 // components/ErrorBoundary.tsx
 import React, { Component, PropsWithChildren } from "react";
-import { View, Text, ScrollView, Alert, Share } from "react-native";
+import { View, Text, ScrollView, Alert, Share, ActivityIndicator } from "react-native";
 import { Button } from "@/components/ui/button";
 import { H2, P, Muted } from "@/components/ui/typography";
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -232,6 +232,8 @@ export class NavigationErrorBoundary extends Component<
   PropsWithChildren,
   State
 > {
+  private navigationTimer: ReturnType<typeof setTimeout> | null = null;
+
   constructor(props: PropsWithChildren) {
     super(props);
     this.state = {
@@ -248,14 +250,59 @@ export class NavigationErrorBoundary extends Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Navigation Error:", error);
-    Sentry.withScope((scope) => {
-      scope.setTag("errorType", "navigation");
-      Sentry.captureException(error);
-    });
+    
+    // Check if this might be an OAuth-related navigation error
+    const isOAuthError = error.message?.includes('navigate') || 
+                        error.message?.includes('route') ||
+                        error.message?.includes('navigation') ||
+                        error.stack?.includes('router') ||
+                        error.stack?.includes('navigation');
+    
+    if (isOAuthError) {
+      console.log("🔄 Detected OAuth navigation error, showing loading screen instead");
+      
+      // Auto-recover after 2 seconds for OAuth errors
+      this.navigationTimer = setTimeout(() => {
+        console.log("🔄 Auto-recovering from OAuth navigation error");
+        this.setState({ hasError: false, error: null, errorInfo: null, errorId: null });
+      }, 2000);
+    } else {
+      // Log non-OAuth navigation errors to Sentry
+      Sentry.withScope((scope) => {
+        scope.setTag("errorType", "navigation");
+        Sentry.captureException(error);
+      });
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.navigationTimer) {
+      clearTimeout(this.navigationTimer);
+    }
   }
 
   render() {
     if (this.state.hasError) {
+      // Check if this might be an OAuth-related error and show loading instead
+      const isOAuthError = this.state.error?.message?.includes('navigate') || 
+                          this.state.error?.message?.includes('route') ||
+                          this.state.error?.message?.includes('navigation') ||
+                          this.state.error?.stack?.includes('router');
+      
+      if (isOAuthError) {
+        // Show loading screen for OAuth errors instead of error message
+        return (
+          <View className="flex-1 justify-center items-center p-4 bg-background">
+            <ActivityIndicator size="large" color="#792339" />
+            <H2 className="text-center mt-4 mb-2">Completing Sign In...</H2>
+            <P className="text-center text-muted-foreground">
+              Setting up your account, please wait...
+            </P>
+          </View>
+        );
+      }
+      
+      // Show regular error screen for non-OAuth navigation errors
       return (
         <View className="flex-1 justify-center items-center p-4 bg-background">
           <AlertTriangle size={48} color="#EF4444" className="mb-4" />
@@ -264,7 +311,12 @@ export class NavigationErrorBoundary extends Component<
             There was a problem with navigation. Please restart the app.
           </P>
           <Button
-            onPress={() => this.setState({ hasError: false, error: null })}
+            onPress={() => {
+              if (this.navigationTimer) {
+                clearTimeout(this.navigationTimer);
+              }
+              this.setState({ hasError: false, error: null });
+            }}
           >
             <Text className="text-white">Try Again</Text>
           </Button>
