@@ -36,16 +36,21 @@ export function SpecialOfferBanner({ offer }: SpecialOfferBannerProps) {
     >
       <Card
         variant="elevated"
+        noPadding={true}
         style={{
           width: bannerWidth,
           height: bannerHeight,
-          padding: 0,
+          overflow: "hidden",
         }}
       >
-        {/* Banner Image Only */}
+        {/* Banner Image - Fill entire card space */}
         <Image
           source={{ uri: offer.img_url }}
-          style={{ width: bannerWidth, height: bannerHeight }}
+          style={{
+            width: "100%",
+            height: "100%",
+            borderRadius: 12, // Match card border radius
+          }}
           contentFit="cover"
         />
       </Card>
