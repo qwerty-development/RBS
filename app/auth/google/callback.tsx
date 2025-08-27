@@ -11,8 +11,8 @@ export default function GoogleOAuthCallback() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { colorScheme } = useColorScheme();
-  const { session, initialized, clearOAuthInProgress } = useAuth();
-  const [countdown, setCountdown] = useState(8);
+  const { session, initialized } = useAuth();
+  const [countdown, setCountdown] = useState(6);
   const [processing, setProcessing] = useState(true);
 
   useEffect(() => {
@@ -24,17 +24,14 @@ export default function GoogleOAuthCallback() {
       return;
     }
 
-    // If we have a session, redirect immediately
+    // If we have a session, redirect with a small delay for smooth transition
     if (session) {
       console.log("✅ Session found in Google callback, redirecting to app");
       
-      // Clear OAuth in progress flag before navigation
-      clearOAuthInProgress();
-      
-      // Add a small delay to ensure state is updated
+      // Add a longer delay to ensure completely smooth transition and mask any brief errors
       setTimeout(() => {
         router.replace("/(protected)/(tabs)");
-      }, 100);
+      }, 1000);
       return;
     }
 
@@ -44,10 +41,6 @@ export default function GoogleOAuthCallback() {
         if (prev <= 1) {
           clearInterval(timer);
           console.log("⏰ Google OAuth callback timeout, redirecting to welcome");
-          
-          // Clear OAuth in progress flag before navigation
-          clearOAuthInProgress();
-          
           router.replace("/welcome");
           return 0;
         }
@@ -58,7 +51,7 @@ export default function GoogleOAuthCallback() {
     // Stop processing after a delay
     const processingTimer = setTimeout(() => {
       setProcessing(false);
-    }, 3000);
+    }, 1500);
 
     return () => {
       clearInterval(timer);
@@ -75,13 +68,13 @@ export default function GoogleOAuthCallback() {
         />
         
         <H1 className="text-center text-2xl">
-          {processing ? "Signing you in with Google..." : "Almost done!"}
+          {processing ? "Completing Google Sign In..." : "Almost Ready!"}
         </H1>
         
-        <Muted className="text-center">
+        <Muted className="text-center text-lg">
           {processing 
-            ? "Please wait while we complete your Google authentication."
-            : "Finalizing your authentication process."
+            ? "Setting up your account and preferences..."
+            : "Finalizing your authentication."
           }
         </Muted>
         

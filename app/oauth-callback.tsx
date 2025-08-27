@@ -11,7 +11,7 @@ export default function OAuthCallback() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { colorScheme } = useColorScheme();
-  const { session, initialized, clearOAuthInProgress } = useAuth();
+  const { session, initialized } = useAuth();
   const [countdown, setCountdown] = useState(5);
   const [processing, setProcessing] = useState(true);
 
@@ -23,17 +23,14 @@ export default function OAuthCallback() {
       return;
     }
 
-    // If we have a session, redirect immediately
+    // If we have a session, redirect with a small delay for smooth transition
     if (session) {
       console.log("✅ Session found, redirecting to app");
       
-      // Clear OAuth in progress flag before navigation
-      clearOAuthInProgress();
-      
-      // Add a small delay to ensure state is updated
+      // Add a longer delay to ensure completely smooth transition and mask any brief errors
       setTimeout(() => {
         router.replace("/(protected)/(tabs)");
-      }, 100);
+      }, 1000);
       return;
     }
 
@@ -43,10 +40,6 @@ export default function OAuthCallback() {
         if (prev <= 1) {
           clearInterval(timer);
           console.log("⏰ OAuth callback timeout, redirecting to welcome");
-          
-          // Clear OAuth in progress flag before navigation
-          clearOAuthInProgress();
-          
           router.replace("/welcome");
           return 0;
         }
