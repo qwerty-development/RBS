@@ -124,10 +124,21 @@ const MessageBubble = memo(
 // Function to communicate with RestoAI backend
 async function sendMessageToRestoAI(
   message: string,
+  conversationHistory: ChatMessage[] = [],
   sessionId?: string,
   userId?: string,
 ): Promise<ChatMessage> {
   try {
+    // Get last 10 message pairs (20 messages total) for context
+    const recentHistory = conversationHistory.slice(-20);
+    
+    // Format conversation history for the AI backend
+    const formattedHistory = recentHistory.map(msg => ({
+      role: msg.role,
+      content: msg.content,
+      // Don't send restaurant data in history to keep payload lean
+    }));
+
     const response = await fetch(`${AI_API_BASE_URL}/api/chat`, {
       method: "POST",
       headers: {
@@ -135,6 +146,7 @@ async function sendMessageToRestoAI(
       },
       body: JSON.stringify({
         message: message,
+        conversation_history: formattedHistory,
         session_id: sessionId || "default",
         user_id: userId,
       }),
@@ -304,10 +316,17 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
 
     try {
       console.log("Sending message to RestoAI API:", trimmedInput);
+      console.log("Conversation history length:", messages.length);
+      
+      // Sliding window: Keep last 20 messages (10 user + 10 AI pairs) for context
+      // This ensures the AI remembers recent conversation without overwhelming the API
+      const historyToSend = messages.slice(-20);
+      console.log("Sending history size:", historyToSend.length, "messages");
 
-      // Call RestoAI API
+      // Call RestoAI API with conversation history
       const response = await sendMessageToRestoAI(
         trimmedInput,
+        messages, // Pass current conversation history
         sessionId,
         userId,
       );
@@ -356,7 +375,7 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
 
   const resetChat = useCallback(async () => {
     try {
-      // Call RestoAI API to reset chat
+      // Call RestoAI API to reset chat with conversation history cleared
       await fetch(`${AI_API_BASE_URL}/api/chat/reset`, {
         method: "POST",
         headers: {
@@ -365,17 +384,19 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
         body: JSON.stringify({
           session_id: sessionId,
           user_id: userId,
+          clear_history: true, // Signal to clear conversation history
         }),
       });
 
       // Clear local messages
       setMessages([]);
+      console.log("Chat conversation reset - history cleared");
     } catch (error) {
       console.error("Error resetting chat:", error);
       // Still clear local messages even if API call fails
       setMessages([]);
     }
-  }, [sessionId, setMessages]);
+  }, [sessionId, setMessages, userId]);
 
   return (
     <KeyboardAvoidingView

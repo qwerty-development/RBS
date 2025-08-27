@@ -13,12 +13,17 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { H3 } from "@/components/ui/typography";
 import { Send, X } from "lucide-react-native";
-import { ourAgent, ChatMessage } from "@/ai/AI_Agent";
 import { RestaurantCard } from "@/components/restaurant/RestaurantCard";
 import { router } from "expo-router";
 import { OptimizedList } from "@/components/ui/optimized-list";
 
 const { width: screenWidth } = Dimensions.get("window");
+
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  restaurants?: any[];
+}
 
 interface ChatTestScreenProps {
   onClose?: () => void;
@@ -148,10 +153,13 @@ const ChatTestScreen = memo(function ChatTestScreen({
     try {
       console.log("Sending message:", trimmedInput);
 
-      // Call AI agent with current message context
-      console.log("Calling AI agent...");
-      const response = await ourAgent(currentMessages);
-      console.log("AI response received:", response);
+      // Legacy chat test - simple echo response
+      console.log("Generating test response...");
+      const response: ChatMessage = {
+        role: "assistant",
+        content: `You said: "${trimmedInput}". This is a test chat interface. Use chat_test_py.tsx for the actual AI-powered chat.`,
+      };
+      console.log("Test response generated:", response);
 
       // Single atomic update: add response and clear loading
       setMessages((prev) => [...prev, response]);

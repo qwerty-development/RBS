@@ -2,97 +2,101 @@
 
 ## 🏗️ Architecture Overview
 
-This is a **React Native + Expo restaurant booking app** built with:
-- **Expo Router** (file-based routing in `/app`)
-- **Supabase** (auth + database) 
-- **Zustand** (state management with persistence)
-- **NativeWind** (Tailwind CSS for React Native)
-- **TypeScript** throughout
+React Native + Expo restaurant booking app with sophisticated business logic:
 
-**Key Pattern**: This follows an opinionated Expo+Supabase starter architecture with custom booking/restaurant business logic layered on top.
+**Core Stack:**
+- **Expo Router** - File-based routing (`/app` directory)
+- **Supabase** - Auth + PostgreSQL with PostGIS
+- **Zustand** - State management with persistence + subscriptions
+- **NativeWind** - Tailwind CSS for React Native
+- **TypeScript** - Full type safety throughout
 
-## 🎯 Core Business Domain
-
-**Restaurant Booking Platform** with:
-- User auth (guest mode supported)
-- Restaurant discovery with filters
-- Table reservations with confirmation codes
-- Loyalty points system per restaurant
-- Reviews and ratings
+**Key Business Features:**
+- Real-time table reservation system with availability tracking
+- Loyalty points per restaurant with configurable rules
 - AI chat assistant for restaurant recommendations
-- Calendar integration for bookings
+- Social features (playlists, reviews, friend invitations)
+- Calendar integration for booking management
 
-## 🗂️ Critical File Structure
+## 🔧 Essential Development Commands
+
+```bash
+# Development
+npm start                    # Expo dev server
+npm run android             # Run on Android  
+npm run ios                 # Run on iOS
+
+# Code Quality & Testing
+npm run lint                # ESLint with auto-fix
+npm run type-check          # TypeScript checking
+npm run test                # Jest tests (70% coverage threshold)
+npm run test:watch          # Jest in watch mode
+npm run test:coverage       # Coverage reports
+
+# Supabase Integration  
+npm run supabase:start      # Start local Supabase (requires Docker)
+npm run supabase:status     # Check service status
+npm run supabase:migrate    # Push migrations to remote
+npm run supabase:gen-types  # Generate TypeScript types
+```
+
+## 🗂️ File Structure Patterns
 
 ```
-app/                    # Expo Router screens (file-based routing)
-├── (protected)/        # Authenticated routes
-├── auth-*.tsx         # Auth flows
-└── _layout.tsx        # Root layout with providers
+app/(protected)/            # Authenticated routes only
+├── (tabs)/                # Tab-based navigation
+├── booking/               # Booking flow screens
+└── restaurant/            # Restaurant details
 
 components/
-├── ui/                # Base UI components (Button, Text, etc.)
-├── booking/           # BookingCard, booking-specific components
-├── restaurant/        # Restaurant display components
-└── [feature]/         # Feature-specific components
+├── ui/                    # Base components (Button, Text, Card)
+├── booking/               # Booking-specific components  
+├── restaurant/            # Restaurant display components
+└── skeletons/             # Loading state components
 
-stores/index.ts        # Zustand stores (auth, ui, network state)
-config/supabase.ts     # Supabase client with SecureStore
-types/supabase.ts      # Generated DB types (700+ lines)
-hooks/                 # Custom hooks (useBookings, useLocation, etc.)
+hooks/                     # Custom hooks (40+ hooks)
+stores/index.ts           # Zustand stores with persistence
+types/supabase.ts         # Generated database types
+db/schema.sql             # Source of truth for database schema
 ```
+## 🎨 UI Component Patterns
 
-## 🔧 Development Workflows
-
-### Essential Commands
-```bash
-npm start              # Expo dev server
-npm run android        # Run on Android
-npm run ios           # Run on iOS  
-npm run lint          # ESLint with auto-fix
-npm run test          # Jest tests
-npm run test:watch     # Jest in watch mode
-npm run test:coverage  # Jest with coverage reports
-npm run type-check    # TypeScript checking
-npm run generate-colors # Generate color constants from Tailwind
-```
-
-### Testing Strategy
-- **Jest + React Native Testing Library**
-- Coverage thresholds: 70% across all metrics
-- Test files: `**/__tests__/**/*.(ts|tsx|js)` or `**/*.(test|spec).(ts|tsx|js)`
-- Setup: Custom jest.setup.js with extended matchers
-
-## 🎨 UI & Styling Patterns
-
-### Component Architecture
-- **Compound variants pattern** using `class-variance-authority`
-- **Polymorphic components** with TypeScript discrimination
-- **NativeWind classes** instead of StyleSheet
-- **Expo Image** instead of React Native Image
-
-### Example Button Pattern:
+### NativeWind + CVA Pattern
 ```tsx
-// Define variants with cva
-const buttonVariants = cva("base-classes", {
-  variants: { variant: { default: "...", destructive: "..." } }
-});
+// Define variants with class-variance-authority
+const buttonVariants = cva(
+  "group flex items-center justify-center rounded-3xl", 
+  {
+    variants: {
+      variant: {
+        default: "bg-primary shadow-md active:shadow-sm",
+        outline: "border border-input bg-background"
+      },
+      size: {
+        default: "h-10 px-4 py-2",
+        sm: "h-9 rounded-lg px-3"
+      }
+    }
+  }
+);
 
-// Use in component with proper TypeScript
+// Use with proper TypeScript
 interface ButtonProps extends VariantProps<typeof buttonVariants> {
-  // other props
+  children: React.ReactNode;
 }
 ```
 
-### State Management Pattern
+### Zustand Store Architecture
 ```tsx
-// Zustand with immer, persist, and subscriptions
 export const useAuthStore = create<AuthState>()(
   devtools(
     subscribeWithSelector(
       persist(
         immer((set, get) => ({
-          // state and actions
+          // state mutations with Immer
+          setSession: (session) => set((state) => {
+            state.session = session;
+          })
         }))
       )
     )
@@ -100,9 +104,15 @@ export const useAuthStore = create<AuthState>()(
 );
 ```
 
-## �️ Database Schema & Patterns
+**Key Stores:**
+- `useAuthStore` - Authentication + user profile
+- `useAppStore` - Network status, location, notifications  
+- `useRestaurantStore` - Favorites, cache, recently viewed
+- `useBookingStore` - Current booking flow + history
 
-- **Schema Verification**: Always use the `db/schema.sql` file as the source of truth for the database schema. Reference it to validate table definitions, columns, types, constraints, and relationships before writing queries or defining types.
+## 🗄️ Database Schema & Business Logic
+
+**Always reference `db/schema.sql` as source of truth for table definitions**
 
 ### Core Entity Relationships
 ```
@@ -111,41 +121,18 @@ profiles (auth.users) ← bookings → restaurants
                  reviews, favorites, loyalty_activities
                     ↓
             restaurant_playlists → playlist_items
-                    ↓
-              friends, friend_requests
 ```
 
-### Key Tables & Business Logic
+### Critical Business Tables
+- **`bookings`** - Core reservation data with status tracking (`pending`, `confirmed`, `completed`, etc.)
+- **`restaurant_tables`** - Table layout with x/y positioning for floor plans
+- **`table_availability`** - Real-time availability with PostGIS time ranges
+- **`loyalty_activities`** - Point earning events with configurable rules per restaurant
+- **`booking_attendees`** - Group booking participants for social dining
 
-**Bookings Flow:**
-- `bookings` - Core reservation data with status tracking
-- `booking_attendees` - Group booking participants  
-- `booking_invites` - Social sharing invitations
-- `booking_status_history` - Audit trail for status changes
-- `booking_archive` - Completed/cancelled booking history
-
-**Restaurant Management:**
-- `restaurants` - Core restaurant data with PostGIS location
-- `restaurant_tables` - Table layout with x/y positioning
-- `table_availability` - Real-time availability tracking
-- `restaurant_availability` - Capacity management by time slot
-- `menu_categories` + `menu_items` - Full menu system
-
-**Loyalty & Rewards:**
-- `loyalty_activities` - Point earning events
-- `restaurant_loyalty_rules` - Configurable point rules per restaurant
-- `loyalty_rewards` - Redeemable rewards catalog
-- `loyalty_redemptions` - Redemption tracking with codes
-
-**Social Features:**
-- `restaurant_playlists` - User-created restaurant lists
-- `playlist_collaborators` - Shared playlist permissions
-- `posts` - Social sharing of dining experiences
-- `friends` + `friend_requests` - Social connections
-
-### Database Access Patterns
+### Database Query Patterns
 ```tsx
-// Always use typed queries with joins
+// Always use typed queries with proper joins
 const { data, error } = await supabase
   .from('bookings')
   .select(`
@@ -156,87 +143,114 @@ const { data, error } = await supabase
   `)
   .eq('user_id', userId);
 
-// Use RLS-aware queries 
-const { data } = await supabase
-  .from('favorites')
-  .select('*, restaurant:restaurants(*)')
-  .eq('user_id', userId); // RLS auto-enforces this
+// PostGIS proximity queries for restaurant discovery
+const { data } = await supabase.rpc('restaurants_within_radius', {
+  lat: userLocation.latitude,
+  lng: userLocation.longitude, 
+  radius_km: 5
+});
 ```
 
-## 🔐 Authentication & Data Patterns
+## 🔐 Authentication & Network Patterns
 
-### Supabase Integration
-- **Custom SecureStorage class** with memory fallback
-- **Row Level Security** enforced on all tables
-- **Guest mode support** (useGuestGuard hook)
-- **Auto-refresh tokens** with PKCE flow
+### Supabase Configuration
+- **Custom SecureStorage** with memory fallback for auth tokens
+- **PKCE flow** with auto-refresh tokens
+- **Row Level Security** enforced on all user data tables
+- **Guest mode support** via `useGuestGuard` hook
 
-### Error Handling
-- **Network-aware requests** (useNetworkAwareRequest)
-- **Error boundaries** at route level
-- **Graceful degradation** for offline scenarios
-- **Toast notifications** for user feedback
-
-## 📱 Platform-Specific Considerations
-
-### Expo APIs Used
-- `expo-calendar` for calendar integration
-- `expo-location` for restaurant directions  
-- `expo-haptics` for feedback
-- `expo-secure-store` for auth tokens with memory fallback
-- `expo-notifications` for booking updates
-- `@react-native-community/netinfo` for network monitoring
-- `@sentry/react-native` for error tracking
-
-### Navigation Pattern
+### Network-Aware Development
 ```tsx
-// File-based routing with protection
-app/(protected)/bookings.tsx  # Requires auth
-app/sign-in.tsx              # Public route
-app/(protected)/(tabs)/      # Tab-based protected routes
+// Use network-aware requests for offline scenarios
+const { isOnline, connectionQuality } = useNetworkMonitor({
+  showOfflineAlert: true,
+  alertDelay: 5000
+});
+
+// Custom hook for offline-aware data fetching
+const result = useNetworkAwareRequest(async () => {
+  return await supabase.from('restaurants').select('*');
+});
+```
+
+## 🧪 Testing Strategy
+
+### Jest Configuration
+- **Coverage threshold**: 70% across branches, functions, lines, statements
+- **Test files**: `**/__tests__/**/*.(ts|tsx|js)` or `**/*.(test|spec).(ts|tsx|js)`
+- **Custom setup**: `jest.setup.js` with mocked Expo modules and Supabase
+
+### Testing Patterns
+```tsx
+// Component testing with React Native Testing Library
+import { render, fireEvent } from '@testing-library/react-native';
+
+describe('RestaurantCard', () => {
+  it('handles booking press correctly', () => {
+    const { getByText } = render(<RestaurantCard {...props} />);
+    fireEvent.press(getByText('Book Now'));
+    expect(mockOnPress).toHaveBeenCalledWith(restaurant);
+  });
+});
+
+// Hook testing with renderHook
+import { renderHook, waitFor } from '@testing-library/react-native';
+
+describe('useAvailability', () => {
+  it('fetches time slots correctly', async () => {
+    const { result } = renderHook(() => useAvailability({
+      restaurantId: 'test-id',
+      date: new Date(),
+      partySize: 2
+    }));
+    
+    await waitFor(() => {
+      expect(result.current.timeSlots).toHaveLength(8);
+    });
+  });
+});
+```
+
+## 📱 Platform Integration Patterns
+
+### Expo APIs
+- **`expo-calendar`** - Always check permissions first, let user choose calendar app
+- **`expo-location`** - PostGIS integration for restaurant directions
+- **`expo-secure-store`** - Auth token storage with memory fallback
+- **`expo-notifications`** - Booking confirmations and reminders
+
+### Navigation with Protection
+```tsx
+// File-based routing with authentication guards
+app/(protected)/bookings.tsx  // Requires auth
+app/sign-in.tsx              // Public route
+app/(protected)/(tabs)/      // Tab-based protected routes
 ```
 
 ## 🤖 AI Integration
 
-**Restaurant assistant** at `/ai/AI_Agent.py`:
-- LangChain + Google Generative AI with LangGraph state management
-- Specialized for restaurant recommendations with Supabase integration
-- Custom response format: `RESTAURANTS_TO_SHOW: id1,id2,id3`
-- Direct Supabase integration for real-time restaurant data
-- TypeScript interface available at `/ai/AI_Agent.ts` for frontend integration
+- **LangChain + Google Generative AI** at `/ai/AI_Agent.py`
+- **Custom response format**: `RESTAURANTS_TO_SHOW: id1,id2,id3`
+- **Direct Supabase integration** for real-time restaurant data
+- **TypeScript interface** at `/ai/AI_Agent.ts` for frontend integration
 
-## ⚠️ Common Patterns & Gotchas
+## ⚠️ Critical Development Rules
 
 ### Type Safety
-- **Generate types** from Supabase schema regularly
-- **Database type**: Use `Database["public"]["Tables"]["table_name"]["Row"]`
-- **Compound types**: Restaurant + booking joins are common
-- **Key relationships**: `bookings` → `restaurants` + `profiles`, `reviews` → `bookings`
+- **Always generate types** from Supabase schema: `npm run supabase:gen-types`
+- **Use database types**: `Database["public"]["Tables"]["table_name"]["Row"]`
+- **Reference `db/schema.sql`** before writing queries or defining relationships
 
-### Performance
-- **Network-aware requests** with `useNetworkAwareRequest` hook for offline handling
-- **Image optimization** with expo-image's `contentFit`
+### Performance & Patterns
+- **Use NativeWind classes**, not StyleSheet.create
+- **Network-aware requests** with `useNetworkAwareRequest` for offline handling
 - **Debounced search** for restaurant filtering
-- **Background network monitoring** with state persistence and quality detection
-- **PostGIS location queries** for restaurant proximity searches
+- **PostGIS location queries** for proximity searches
+- **Image optimization** with expo-image's `contentFit`
 
-### Calendar Integration
-- **Always check permissions first** (Calendar.requestCalendarPermissionsAsync)
-- **User choice for calendar apps** instead of auto-selecting default
-- **Event creation** with reminders and proper duration
-
-When working on this codebase:
-1. **Follow the existing Zustand + Supabase patterns**
-2. **Use NativeWind classes, not StyleSheet**
-3. **Maintain type safety with generated Supabase types** 
-4. **Test permission flows for native APIs**
-5. **Handle network states and offline scenarios**
-
-## 🛡️ Critical Rules - DO NOT VIOLATE
-
+### Absolute Rules - DO NOT VIOLATE
 - **NEVER create mock/simplified components** - fix existing code
-- **NEVER replace complex components** - debug and fix root cause
+- **NEVER replace complex components** - debug and fix root cause  
 - **ALWAYS work with existing codebase** - no new simplified alternatives
 - **ALWAYS add explicit TypeScript types** to all parameters and return values
 - **Fix all linter/TypeScript errors immediately**
-- **When in doubt, always ask first**

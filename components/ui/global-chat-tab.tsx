@@ -11,8 +11,14 @@ import {
 import { Text } from "@/components/ui/text";
 // Switch to the backend-powered chat implementation
 import ChatTestScreen from "@/app/(protected)/chat_test_py";
-import { ChatMessage } from "@/ai/AI_Agent";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+// Define ChatMessage interface locally since /ai folder was removed
+interface ChatMessage {
+  role: "user" | "assistant";
+  content: string;
+  restaurants?: any[];
+}
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
