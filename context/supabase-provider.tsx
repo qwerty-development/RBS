@@ -1,4 +1,4 @@
-import {
+import React, {
   createContext,
   PropsWithChildren,
   useContext,
@@ -51,6 +51,7 @@ type AuthState = {
   user: User | null;
   profile: Profile | null;
   isGuest: boolean; // NEW: Guest state
+  isOAuthInProgress: boolean; // NEW: OAuth flow tracking
   signUp: (
     email: string,
     password: string,
@@ -65,6 +66,7 @@ type AuthState = {
   googleSignIn: () => Promise<{ error?: Error; needsProfileUpdate?: boolean }>;
   continueAsGuest: () => void; // NEW: Guest function
   convertGuestToUser: () => void; // NEW: Convert guest to user function
+  clearOAuthInProgress: () => void; // NEW: Clear OAuth flag
 };
 
 export const AuthContext = createContext<AuthState>({
@@ -73,6 +75,7 @@ export const AuthContext = createContext<AuthState>({
   user: null,
   profile: null,
   isGuest: false,
+  isOAuthInProgress: false,
   signUp: async () => {},
   signIn: async () => {},
   signOut: async () => {},
@@ -82,6 +85,7 @@ export const AuthContext = createContext<AuthState>({
   googleSignIn: async () => ({}),
   continueAsGuest: () => {},
   convertGuestToUser: () => {},
+  clearOAuthInProgress: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -92,6 +96,7 @@ function AuthContent({ children }: PropsWithChildren) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isGuest, setIsGuest] = useState(false); // NEW: Guest state
+  const [isOAuthInProgress, setIsOAuthInProgress] = useState(false); // NEW: OAuth flow tracking
 
   const router = useRouter();
   const initializationAttempted = useRef(false);
@@ -133,6 +138,12 @@ function AuthContent({ children }: PropsWithChildren) {
       console.error("Failed to clear guest mode status", error);
     }
   }, [router]);
+
+  // NEW: Clear OAuth in progress flag
+  const clearOAuthInProgress = useCallback(() => {
+    console.log("🔄 Clearing OAuth in progress flag");
+    setIsOAuthInProgress(false);
+  }, []);
 
   // Fetch user profile with enhanced error handling
   const fetchProfile = useCallback(
@@ -194,7 +205,7 @@ function AuthContent({ children }: PropsWithChildren) {
           const newProfile: Partial<Profile> = {
             id: session.user.id,
             full_name: userName,
-            phone_number: null,
+            phone_number: undefined,
             avatar_url: session.user.user_metadata.avatar_url || null,
             loyalty_points: 0,
             membership_tier: "bronze",
@@ -410,11 +421,15 @@ function AuthContent({ children }: PropsWithChildren) {
   // Apple Sign In implementation
   const appleSignIn = useCallback(async () => {
     try {
+      // Set OAuth in progress flag
+      setIsOAuthInProgress(true);
+      
       // Clear guest mode
       setIsGuest(false);
 
       // Check if Apple Authentication is available on this device
       if (Platform.OS !== "ios") {
+        setIsOAuthInProgress(false);
         return {
           error: new Error(
             "Apple authentication is only available on iOS devices",
@@ -424,6 +439,7 @@ function AuthContent({ children }: PropsWithChildren) {
 
       const isAvailable = await AppleAuthentication.isAvailableAsync();
       if (!isAvailable) {
+        setIsOAuthInProgress(false);
         return {
           error: new Error(
             "Apple authentication is not available on this device",
@@ -462,15 +478,20 @@ function AuthContent({ children }: PropsWithChildren) {
             setProfile(userProfile);
             // Check if profile needs additional info (like phone number)
             const needsUpdate = !userProfile.phone_number;
+            // OAuth will be cleared by callback screen or by navigation logic
             return { needsProfileUpdate: needsUpdate };
           }
         }
       } else {
+        setIsOAuthInProgress(false);
         return { error: new Error("No identity token received from Apple") };
       }
 
       return {};
     } catch (error: any) {
+      // Clear OAuth in progress flag on error
+      setIsOAuthInProgress(false);
+      
       if (error.code === "ERR_REQUEST_CANCELED") {
         console.log("User canceled Apple sign-in");
         return {}; // Not an error, just a cancellation
@@ -484,6 +505,9 @@ function AuthContent({ children }: PropsWithChildren) {
   // Google Sign In implementation (keeping your existing implementation)
   const googleSignIn = useCallback(async () => {
     try {
+      // Set OAuth in progress flag
+      setIsOAuthInProgress(true);
+      
       // Clear guest mode
       setIsGuest(false);
 
@@ -708,6 +732,8 @@ function AuthContent({ children }: PropsWithChildren) {
       }
     } catch (error) {
       console.error("💥 Google sign in error:", error);
+      // Clear OAuth in progress flag on error
+      setIsOAuthInProgress(false);
       return { error: error as Error };
     }
   }, [processOAuthUser]);
@@ -858,11 +884,18 @@ function AuthContent({ children }: PropsWithChildren) {
   useEffect(() => {
     if (!initialized) return;
 
+    // Skip navigation if OAuth is in progress - let callback screens handle it
+    if (isOAuthInProgress) {
+      console.log("🔄 OAuth in progress, skipping auto-navigation");
+      return;
+    }
+
     const navigate = async () => {
       try {
         console.log("🔄 Handling navigation...", {
           hasSession: !!session,
           isGuest,
+          isOAuthInProgress,
         });
 
         // Hide splash screen only once
@@ -910,7 +943,7 @@ function AuthContent({ children }: PropsWithChildren) {
     const timeout = setTimeout(navigate, 500);
 
     return () => clearTimeout(timeout);
-  }, [initialized, session, isGuest, router]);
+  }, [initialized, session, isGuest, isOAuthInProgress, router]);
 
   // Show loading screen while initializing
   if (!initialized) {
@@ -937,6 +970,7 @@ function AuthContent({ children }: PropsWithChildren) {
         user,
         profile,
         isGuest,
+        isOAuthInProgress,
         signUp,
         signIn,
         signOut,
@@ -946,6 +980,7 @@ function AuthContent({ children }: PropsWithChildren) {
         googleSignIn,
         continueAsGuest,
         convertGuestToUser,
+        clearOAuthInProgress,
       }}
     >
       {children}

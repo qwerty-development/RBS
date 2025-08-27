@@ -119,54 +119,9 @@ export function NetworkStatusBanner({
 
   return (
     <Animated.View
-      style={{
-        transform: [{ translateY }],
-        zIndex: 1000,
-        position: "absolute",
-        [position]: 0,
-        left: 0,
-        right: 0,
-      }}
+     
     >
-      <View
-        className={`${config.bgColor} px-4 py-3 mx-4 mt-2 rounded-lg shadow-lg`}
-      >
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center flex-1">
-            <Icon size={20} color={getIconColor(colorScheme)} />
-            <View className="ml-3 flex-1">
-              <Text className={`font-semibold ${config.textColor}`}>
-                {config.message}
-              </Text>
-              <Text className={`text-sm ${config.textColor} opacity-90`}>
-                {config.submessage}
-              </Text>
-            </View>
-          </View>
-
-          <View className="flex-row items-center ml-2">
-            {config.showRefresh && (
-              <Pressable
-                onPress={handleRefresh}
-                className="p-2 mr-1"
-                disabled={refreshing}
-              >
-                <RefreshCw
-                  size={18}
-                  color={getIconColor(colorScheme)}
-                  style={{
-                    transform: [{ rotate: refreshing ? "360deg" : "0deg" }],
-                  }}
-                />
-              </Pressable>
-            )}
-
-            <Pressable onPress={handleDismiss} className="p-2">
-              <X size={18} color={getIconColor(colorScheme)} />
-            </Pressable>
-          </View>
-        </View>
-      </View>
+     
     </Animated.View>
   );
 }

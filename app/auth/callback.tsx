@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, ActivityIndicator } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { H1, Muted } from "@/components/ui/typography";
@@ -11,7 +11,7 @@ export default function AuthCallback() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { colorScheme } = useColorScheme();
-  const { session, initialized } = useAuth();
+  const { session, initialized, clearOAuthInProgress } = useAuth();
   const [countdown, setCountdown] = useState(6);
   const [processing, setProcessing] = useState(true);
 
@@ -31,7 +31,14 @@ export default function AuthCallback() {
     // If we have a session, redirect immediately
     if (session) {
       console.log(`✅ Session found in ${provider} callback, redirecting to app`);
-      router.replace("/(protected)/(tabs)");
+      
+      // Clear OAuth in progress flag before navigation
+      clearOAuthInProgress();
+      
+      // Add a small delay to ensure state is updated
+      setTimeout(() => {
+        router.replace("/(protected)/(tabs)");
+      }, 100);
       return;
     }
 
@@ -41,6 +48,10 @@ export default function AuthCallback() {
         if (prev <= 1) {
           clearInterval(timer);
           console.log(`⏰ ${provider} auth callback timeout, redirecting to welcome`);
+          
+          // Clear OAuth in progress flag before navigation
+          clearOAuthInProgress();
+          
           router.replace("/welcome");
           return 0;
         }

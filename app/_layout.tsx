@@ -55,9 +55,7 @@ function NetworkStatusBar() {
   }
 
   const backgroundColor = !isOnline ? "#F44336" : "#FF9800";
-  const message = !isOnline
-    ? "No internet connection"
-    : "Slow connection detected";
+
 
   return (
     <View
@@ -68,12 +66,7 @@ function NetworkStatusBar() {
       }}
       className="bg-warning"
     >
-      <Text
-        style={{ color: "white", textAlign: "center", fontWeight: "500" }}
-        className="text-warning-foreground text-center font-medium"
-      >
-        {message}
-      </Text>
+
     </View>
   );
 }
@@ -84,10 +77,10 @@ function RootLayoutContent() {
   const { profile } = useAuth();
 
   useEffect(() => {
-    initializeNotificationHandlers((deeplink) => {
+    initializeNotificationHandlers((deeplink:any) => {
       try {
         if (deeplink.startsWith("app://")) {
-          const path = deeplink.replace("app://", "/");
+          const path:any = deeplink.replace("app://", "/");
           router.push(path);
         } else {
           router.push(deeplink);

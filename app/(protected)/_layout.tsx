@@ -78,7 +78,7 @@ export default function ProtectedLayout() {
       }}
       className="bg-background"
     >
-      <NetworkStatusBanner position="top" autoDismiss={5000} />
+     
       <Stack
         screenOptions={{
           headerShown: false,
