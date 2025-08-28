@@ -55,10 +55,17 @@ export function useMenu({ restaurantId }: UseMenuParams): UseMenuReturn {
 
       if (itemsError) throw itemsError;
 
+      // Normalize menu items to ensure arrays are never null
+      const normalizedItems = (itemsData || []).map((item) => ({
+        ...item,
+        dietary_tags: item.dietary_tags || [],
+        allergens: item.allergens || [],
+      }));
+
       // Group items by category
       const categoriesWithItems = (categoriesData || []).map((category) => ({
         ...category,
-        items: (itemsData || []).filter(
+        items: normalizedItems.filter(
           (item) =>
             item.category_id === category.id &&
             (filters.showUnavailable || item.is_available),
@@ -107,8 +114,9 @@ export function useMenu({ restaurantId }: UseMenuParams): UseMenuReturn {
 
       // Dietary tags filter
       if (filters.dietary_tags.length > 0) {
+        const itemDietaryTags = item.dietary_tags || [];
         const hasAllTags = filters.dietary_tags.every((tag) =>
-          item.dietary_tags.includes(tag),
+          itemDietaryTags.includes(tag),
         );
         if (!hasAllTags) return false;
       }

@@ -143,7 +143,7 @@ export default function MenuScreen() {
             )}
 
             <View className="flex-row flex-wrap gap-2">
-              {item.dietary_tags.map((tag) => {
+              {(item.dietary_tags || []).map((tag) => {
                 const Icon = DIETARY_ICONS[tag];
                 return (
                   <View
@@ -466,14 +466,14 @@ function ItemDetailModal({ item, visible, onClose }: ItemDetailModalProps) {
           )}
 
           {/* Allergens */}
-          {item.allergens.length > 0 && (
+          {(item.allergens || []).length > 0 && (
             <View className="mb-6">
               <H3 className="mb-2 flex-row items-center">
                 <Info size={20} className="mr-2 text-warning" />
                 Allergen Information
               </H3>
               <View className="flex-row flex-wrap gap-2">
-                {item.allergens.map((allergen) => (
+                {(item.allergens || []).map((allergen) => (
                   <View
                     key={allergen}
                     className="bg-warning/10 px-3 py-1 rounded-full"

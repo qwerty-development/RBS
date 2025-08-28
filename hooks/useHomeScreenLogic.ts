@@ -175,6 +175,7 @@ export function useHomeScreenLogic() {
         .from("restaurants")
         .select("*")
         .eq("featured", true)
+        .eq('status','active')
         .gte("average_rating", 4.0)
         .order("average_rating", { ascending: false })
         .limit(8);
