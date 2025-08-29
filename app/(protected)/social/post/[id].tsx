@@ -10,6 +10,7 @@ import {
   Platform,
   FlatList,
   Alert,
+  Dimensions,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import {
@@ -24,6 +25,15 @@ import {
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { format } from "date-fns";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withDelay,
+  withSequence,
+  withTiming,
+} from "react-native-reanimated";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
@@ -33,6 +43,8 @@ import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
+
+const SCREEN_WIDTH = Dimensions.get("window").width;
 
 interface Comment {
   id: string;
@@ -83,7 +95,39 @@ export default function PostDetailScreen() {
   const [posting, setPosting] = useState(false);
   const [imageIndex, setImageIndex] = useState(0);
 
+  // Heart animation for double-tap on images
+  const likeScale = useSharedValue(0);
+  const likeOpacity = useSharedValue(0);
+
   const scrollViewRef = useRef<ScrollView>(null);
+
+  const animateHeart = () => {
+    likeOpacity.value = 1;
+    likeScale.value = 0;
+    likeScale.value = withSequence(
+      withTiming(1.2, { duration: 160 }),
+      withTiming(1, { duration: 120 }),
+    );
+    likeOpacity.value = withDelay(400, withTiming(0, { duration: 300 }));
+  };
+
+  const heartStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: likeScale.value }],
+    opacity: likeOpacity.value,
+  }));
+
+  const handleDoubleTapLike = () => {
+    animateHeart();
+    if (!post?.liked_by_user) {
+      handleLike();
+    }
+  };
+
+  const doubleTapGesture = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd(() => {
+      runOnJS(handleDoubleTapLike)();
+    });
 
   const fetchPostDetails = useCallback(async () => {
     if (!postId || !profile?.id) return;
@@ -172,8 +216,13 @@ export default function PostDetailScreen() {
     }
   };
 
+  const handleShare = async () => {
+    // Add haptic feedback
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    Alert.alert("Share", "Share functionality coming soon!");
+  };
+
   const handleComment = async () => {
-    if (!profile?.id || !newComment.trim()) return;
 
     setPosting(true);
     try {
@@ -227,7 +276,7 @@ export default function PostDetailScreen() {
       return;
     }
 
-    router.push(`/restaurant/${post.restaurant_id}`);
+    router.push(`/(protected)/restaurant/${post.restaurant_id}`);
   }, [post?.restaurant_id, router]);
 
   useEffect(() => {
@@ -274,7 +323,7 @@ export default function PostDetailScreen() {
         <ScrollView ref={scrollViewRef} className="flex-1">
           {/* Post Header */}
           <Pressable
-            onPress={() => router.push(`/profile/${post.user_id}`)}
+            onPress={() => router.push(`/(protected)/profile`)}
             className="flex-row items-center p-4"
           >
             <Image
@@ -320,7 +369,7 @@ export default function PostDetailScreen() {
                 {post.tagged_friends.map((friend, index) => (
                   <React.Fragment key={friend.id}>
                     <Pressable
-                      onPress={() => router.push(`/profile/${friend.id}`)}
+                      onPress={() => router.push("/(protected)/profile")}
                     >
                       <Text className="text-sm text-primary">
                         {friend.full_name}
@@ -337,28 +386,47 @@ export default function PostDetailScreen() {
 
           {/* Images */}
           {post.images.length > 0 && (
-            <View className="mb-3">
-              <FlatList
-                data={post.images}
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onMomentumScrollEnd={(e) => {
-                  const index = Math.round(
-                    e.nativeEvent.contentOffset.x /
-                      e.nativeEvent.layoutMeasurement.width,
-                  );
-                  setImageIndex(index);
-                }}
-                renderItem={({ item }) => (
-                  <Image
-                    source={{ uri: item.image_url }}
-                    className="w-screen h-80"
-                    contentFit="cover"
+            <View className="mb-3 relative">
+              {/* Animated heart overlay */}
+              <Animated.View
+                pointerEvents="none"
+                className="absolute inset-0 items-center justify-center z-10"
+                style={heartStyle}
+              >
+                <Heart size={96} color="#ef4444" fill="#ef4444" />
+              </Animated.View>
+              
+              <GestureDetector gesture={doubleTapGesture}>
+                <View>
+                  <FlatList
+                    data={post.images}
+                    horizontal
+                    pagingEnabled
+                    showsHorizontalScrollIndicator={false}
+                    getItemLayout={(_, index) => ({
+                      length: SCREEN_WIDTH,
+                      offset: SCREEN_WIDTH * index,
+                      index,
+                    })}
+                    onMomentumScrollEnd={(e) => {
+                      const index = Math.round(
+                        e.nativeEvent.contentOffset.x /
+                          e.nativeEvent.layoutMeasurement.width,
+                      );
+                      setImageIndex(index);
+                    }}
+                    renderItem={({ item }) => (
+                      <Image
+                        source={{ uri: item.image_url }}
+                        className="w-screen h-80"
+                        contentFit="cover"
+                      />
+                    )}
+                    keyExtractor={(item) => item.id}
                   />
-                )}
-                keyExtractor={(item) => item.id}
-              />
+                </View>
+              </GestureDetector>
+              
               {post.images.length > 1 && (
                 <View className="absolute bottom-3 right-3 bg-black/60 px-2 py-1 rounded">
                   <Text className="text-white text-xs">
@@ -384,38 +452,58 @@ export default function PostDetailScreen() {
               <MessageCircle size={22} color="#666" />
               <Text className="ml-1.5">{post.comments_count} comments</Text>
             </View>
+
+            <Pressable onPress={handleShare} className="flex-row items-center">
+              <Share2 size={22} color="#666" />
+            </Pressable>
           </View>
 
           {/* Comments */}
           <View className="px-4 py-3">
             <H3 className="mb-4">Comments</H3>
-            {comments.map((comment) => (
-              <View key={comment.id} className="flex-row mb-4">
-                <Pressable
-                  onPress={() => router.push(`/profile/${comment.user_id}`)}
-                >
-                  <Image
-                    source={{
-                      uri:
-                        comment.user.avatar_url ||
-                        "https://via.placeholder.com/40",
-                    }}
-                    className="w-10 h-10 rounded-full mr-3"
-                  />
-                </Pressable>
-                <View className="flex-1">
-                  <View className="bg-muted rounded-lg p-3">
-                    <Text className="font-semibold mb-1">
-                      {comment.user.full_name}
-                    </Text>
-                    <Text>{comment.comment}</Text>
-                  </View>
-                  <Muted className="text-xs mt-1">
-                    {format(new Date(comment.created_at), "MMM d, h:mm a")}
-                  </Muted>
-                </View>
+            {comments.length === 0 ? (
+              <View className="py-8 items-center">
+                <MessageCircle size={48} color="#ccc" />
+                <Muted className="mt-2">No comments yet</Muted>
+                <Muted className="text-xs mt-1">Be the first to comment!</Muted>
               </View>
-            ))}
+            ) : (
+              comments.map((comment) => (
+                <View key={comment.id} className="flex-row mb-4">
+                  <Pressable
+                    onPress={() => router.push("/(protected)/profile")}
+                  >
+                    <Image
+                      source={{
+                        uri:
+                          comment.user.avatar_url ||
+                          "https://via.placeholder.com/40",
+                      }}
+                      className="w-10 h-10 rounded-full mr-3"
+                    />
+                  </Pressable>
+                  <View className="flex-1">
+                    <View className="bg-muted rounded-2xl px-4 py-3">
+                      <Text className="font-semibold mb-1 text-sm">
+                        {comment.user.full_name}
+                      </Text>
+                      <Text className="text-sm leading-5">{comment.comment}</Text>
+                    </View>
+                    <View className="flex-row items-center mt-2 px-2">
+                      <Muted className="text-xs">
+                        {format(new Date(comment.created_at), "MMM d, h:mm a")}
+                      </Muted>
+                      <Pressable className="ml-4">
+                        <Muted className="text-xs font-medium">Reply</Muted>
+                      </Pressable>
+                      <Pressable className="ml-4">
+                        <Muted className="text-xs font-medium">Like</Muted>
+                      </Pressable>
+                    </View>
+                  </View>
+                </View>
+              ))
+            )}
           </View>
         </ScrollView>
 

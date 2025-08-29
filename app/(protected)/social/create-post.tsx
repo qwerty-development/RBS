@@ -66,17 +66,24 @@ export default function CreatePostScreen() {
   const [uploadingImages, setUploadingImages] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Fetch booking details if bookingId is provided
+  // Initialize data loading
   useEffect(() => {
-    if (bookingId) {
-      fetchBookingDetails();
-    }
-  }, [bookingId]);
-
-  // Fetch friends list
-  useEffect(() => {
-    fetchFriends();
-  }, [profile?.id]);
+    const initializeData = async () => {
+      setLoading(true);
+      
+      // Fetch friends first
+      await fetchFriends();
+      
+      // Fetch booking details if bookingId is provided
+      if (bookingId) {
+        await fetchBookingDetails();
+      }
+      
+      setLoading(false);
+    };
+    
+    initializeData();
+  }, [bookingId, profile?.id]);
 
   const fetchBookingDetails = async () => {
     try {
@@ -100,8 +107,6 @@ export default function CreatePostScreen() {
       setBookingDetails(data);
     } catch (error) {
       console.error("Error fetching booking:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -109,40 +114,38 @@ export default function CreatePostScreen() {
     if (!profile?.id) return;
 
     try {
-      // Get accepted friendships
+      // Get accepted friendships with a simpler query
       const { data: friendships, error } = await supabase
         .from("friends")
-        .select(
-          `
+        .select(`
           user_id,
-          friend_id,
-          user:profiles!friends_user_id_fkey (
-            id,
-            full_name,
-            avatar_url
-          ),
-          friend:profiles!friends_friend_id_fkey (
-            id,
-            full_name,
-            avatar_url
-          )
-        `,
-        )
+          friend_id
+        `)
         .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`);
 
       if (error) throw error;
 
-      // Format friends list
-      const friendsList =
-        friendships?.map((friendship) => {
-          if (friendship.user_id === profile.id) {
-            return friendship.friend;
-          } else {
-            return friendship.user;
-          }
-        }) || [];
+      // Get friend IDs
+      const friendIds = friendships?.map((friendship) => {
+        return friendship.user_id === profile.id 
+          ? friendship.friend_id 
+          : friendship.user_id;
+      }) || [];
 
-      setFriends(friendsList);
+      if (friendIds.length === 0) {
+        setFriends([]);
+        return;
+      }
+
+      // Get friend profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url")
+        .in("id", friendIds);
+
+      if (profilesError) throw profilesError;
+
+      setFriends(profiles || []);
     } catch (error) {
       console.error("Error fetching friends:", error);
     }
@@ -164,9 +167,9 @@ export default function CreatePostScreen() {
     });
 
     if (!result.canceled) {
-      const newImages = result.assets.map((asset) => ({
+      const newImages: SelectedImage[] = result.assets.map((asset) => ({
         uri: asset.uri,
-        base64: asset.base64,
+        base64: asset.base64 || undefined,
       }));
       setSelectedImages([...selectedImages, ...newImages].slice(0, 5)); // Max 5 images
     }
@@ -186,15 +189,11 @@ export default function CreatePostScreen() {
     });
 
     if (!result.canceled) {
-      setSelectedImages(
-        [
-          ...selectedImages,
-          {
-            uri: result.assets[0].uri,
-            base64: result.assets[0].base64,
-          },
-        ].slice(0, 5),
-      );
+      const newImage: SelectedImage = {
+        uri: result.assets[0].uri,
+        base64: result.assets[0].base64 || undefined,
+      };
+      setSelectedImages([...selectedImages, newImage].slice(0, 5));
     }
   };
 

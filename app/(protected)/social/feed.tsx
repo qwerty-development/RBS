@@ -168,30 +168,23 @@ const PostCard: React.FC<{
     if (!post.liked_by_user) onLike(post.id);
   };
 
+  const handleSingleTap = () => {
+    router.push(`/(protected)/social/post/${post.id}`);
+  };
+
+  // Simplified gesture handling to prevent crashes
   const doubleTapGesture = Gesture.Tap()
     .numberOfTaps(2)
-    .onEnd((_: unknown, success: boolean) => {
-      if (success) runOnJS(handleDoubleTap)();
+    .onEnd(() => {
+      runOnJS(handleDoubleTap)();
     });
-
-  // singleTap will navigate to the restaurant — runOnJS will call router.push
-  const singleTapGesture = Gesture.Tap()
-    .numberOfTaps(1)
-    .onEnd((_: unknown, success: boolean) => {
-      if (success)
-        runOnJS(() =>
-          router.push(`/(protected)/restaurant/${post.restaurant_id}`),
-        )();
-    });
-
-  const contentGesture = Gesture.Exclusive(doubleTapGesture, singleTapGesture);
 
   // Use module-scoped PostImage; prepare a stable renderItem
   const renderImage = useCallback(
     ({ item }: { item: { id: string; image_url: string } }) => (
       <PostImage imageUrl={item.image_url} />
     ),
-    [post.liked_by_user, onLike, post.id, router, post.restaurant_id],
+    [],
   );
 
   return (
@@ -254,8 +247,8 @@ const PostCard: React.FC<{
       </View>
 
       {/* Content + images wrapped with gesture detector for double-tap */}
-      <GestureDetector gesture={contentGesture}>
-        <View>
+      <GestureDetector gesture={doubleTapGesture}>
+        <Pressable onPress={handleSingleTap}>
           {post.content && (
             <View className="px-4 pb-3">
               <P>{post.content}</P>
@@ -329,7 +322,7 @@ const PostCard: React.FC<{
               )}
             </View>
           )}
-        </View>
+        </Pressable>
       </GestureDetector>
 
       {/* Actions */}
@@ -517,7 +510,7 @@ export default function SocialFeedScreen() {
 
   const handleCreatePost = () => {
     runProtectedAction(() => {
-      router.push("/social/create-post");
+      router.push("/(protected)/social/create-post");
     }, "create posts");
   };
 
