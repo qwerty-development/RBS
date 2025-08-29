@@ -1,6 +1,6 @@
 // hooks/useRealtimeAvailability.ts
-import { useEffect, useRef, useCallback } from 'react';
-import { realtimeAvailability } from '@/lib/RealtimeAvailability';
+import { useEffect, useRef, useCallback } from "react";
+import { realtimeAvailability } from "@/lib/RealtimeAvailability";
 
 interface UseRealtimeAvailabilityOptions {
   enabled?: boolean;
@@ -13,10 +13,10 @@ interface UseRealtimeAvailabilityOptions {
  */
 export function useRealtimeAvailability(
   restaurantId: string,
-  options: UseRealtimeAvailabilityOptions = {}
+  options: UseRealtimeAvailabilityOptions = {},
 ) {
   const { enabled = true, onUpdate, debounceMs = 1000 } = options;
-  
+
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
@@ -25,7 +25,7 @@ export function useRealtimeAvailability(
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
-    
+
     debounceTimeoutRef.current = setTimeout(() => {
       if (isMountedRef.current && onUpdate) {
         onUpdate();
@@ -35,13 +35,15 @@ export function useRealtimeAvailability(
 
   useEffect(() => {
     isMountedRef.current = true;
-    
+
     if (!enabled || !restaurantId || !onUpdate) {
       return;
     }
 
-    console.log(`Setting up real-time subscription for restaurant: ${restaurantId}`);
-    
+    console.log(
+      `Setting up real-time subscription for restaurant: ${restaurantId}`,
+    );
+
     // Clean up any existing subscription
     if (unsubscribeRef.current) {
       unsubscribeRef.current();
@@ -51,10 +53,10 @@ export function useRealtimeAvailability(
     try {
       unsubscribeRef.current = realtimeAvailability.subscribeToRestaurant(
         restaurantId,
-        debouncedUpdate
+        debouncedUpdate,
       );
     } catch (error) {
-      console.error('Failed to create real-time subscription:', error);
+      console.error("Failed to create real-time subscription:", error);
     }
 
     return () => {
@@ -82,6 +84,7 @@ export function useRealtimeAvailability(
   }, []);
 
   return {
-    subscriptionStatus: realtimeAvailability.getSubscriptionStatus(restaurantId),
+    subscriptionStatus:
+      realtimeAvailability.getSubscriptionStatus(restaurantId),
   };
 }

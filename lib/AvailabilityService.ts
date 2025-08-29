@@ -182,7 +182,7 @@ export class AvailabilityService {
   private async getMaxTurnTime(restaurantId: string): Promise<number> {
     const cacheKey = `turn-time:${restaurantId}`;
     let cached = this.restaurantConfigCache.get(cacheKey);
-    
+
     if (cached) return cached;
 
     try {
@@ -1353,9 +1353,12 @@ export class AvailabilityService {
     }
 
     let closeTimeInMinutes = closeHour * 60 + closeMin;
-    
+
     // Handle overnight hours (when closeTime is 00:00:00, it means midnight of next day)
-    if (closeTimeInMinutes === 0 || closeTimeInMinutes < openHour * 60 + openMin) {
+    if (
+      closeTimeInMinutes === 0 ||
+      closeTimeInMinutes < openHour * 60 + openMin
+    ) {
       closeTimeInMinutes = 24 * 60; // midnight = 1440 minutes
     }
 
@@ -1379,7 +1382,7 @@ export class AvailabilityService {
         currentMin = 0;
         currentHour++;
       }
-      
+
       // Break if we've gone past 23:59 (can't go to next day)
       if (currentHour >= 24) {
         break;

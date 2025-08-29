@@ -1,12 +1,6 @@
 // app/(protected)/legal/index.tsx
 import React, { useCallback } from "react";
-import {
-  View,
-  ScrollView,
-  Pressable,
-  Alert,
-  Linking,
-} from "react-native";
+import { View, ScrollView, Pressable, Alert, Linking } from "react-native";
 import { useRouter } from "expo-router";
 import {
   ArrowLeft,
@@ -89,7 +83,8 @@ const LEGAL_DOCUMENT_ITEMS: LegalDocumentItem[] = [
   {
     type: "DATA_PROCESSING_AGREEMENT",
     title: "Data Processing Agreement",
-    description: "Agreement between Plate and restaurant partners for data processing",
+    description:
+      "Agreement between Plate and restaurant partners for data processing",
     icon: FileText,
     color: "#f59e0b",
     importance: "low",
@@ -120,21 +115,21 @@ const ADDITIONAL_RESOURCES = [
       );
     },
   },
-      {
-      title: "Contact Legal Team",
-      description: "Get in touch with our legal department",
-      icon: ExternalLink,
-      action: async () => {
-        try {
-          await Linking.openURL("mailto:legal@plate-app.com");
-        } catch (error) {
-          Alert.alert(
-            "Contact Legal Team",
-            "You can reach our legal team at:\n\nEmail: legal@plate-app.com\nPhone: +961 1 234 567",
-          );
-        }
-      },
+  {
+    title: "Contact Legal Team",
+    description: "Get in touch with our legal department",
+    icon: ExternalLink,
+    action: async () => {
+      try {
+        await Linking.openURL("mailto:legal@plate-app.com");
+      } catch (error) {
+        Alert.alert(
+          "Contact Legal Team",
+          "You can reach our legal team at:\n\nEmail: legal@plate-app.com\nPhone: +961 1 234 567",
+        );
+      }
     },
+  },
   {
     title: "Compliance Information",
     description: "Industry standards and compliance certifications",
@@ -213,7 +208,7 @@ export default function LegalIndexScreen() {
                 </Text>
                 <ChevronRight size={20} color="#666" />
               </View>
-              
+
               <Text className="text-sm text-muted-foreground mb-3 leading-5">
                 {item.description}
               </Text>
@@ -235,7 +230,7 @@ export default function LegalIndexScreen() {
                       </Text>
                     </View>
                   )}
-                  
+
                   {/* Recently updated badge */}
                   {isRecentlyUpdated && (
                     <View className="px-2 py-1 rounded-full bg-green-100 dark:bg-green-900">
@@ -343,17 +338,17 @@ export default function LegalIndexScreen() {
         {/* Essential Documents */}
         <View className="mb-6">
           <H3 className="mb-4">Essential Documents</H3>
-          {LEGAL_DOCUMENT_ITEMS.filter((item) => item.importance === "high").map(
-            renderLegalDocumentItem,
-          )}
+          {LEGAL_DOCUMENT_ITEMS.filter(
+            (item) => item.importance === "high",
+          ).map(renderLegalDocumentItem)}
         </View>
 
         {/* Additional Policies */}
         <View className="mb-6">
           <H3 className="mb-4">Additional Policies</H3>
-          {LEGAL_DOCUMENT_ITEMS.filter((item) => item.importance !== "high").map(
-            renderLegalDocumentItem,
-          )}
+          {LEGAL_DOCUMENT_ITEMS.filter(
+            (item) => item.importance !== "high",
+          ).map(renderLegalDocumentItem)}
         </View>
 
         {/* Additional Resources */}
@@ -365,7 +360,7 @@ export default function LegalIndexScreen() {
         {/* Quick Links */}
         <View className="mb-6">
           <H3 className="mb-4">Quick Actions</H3>
-          
+
           <View className="flex-row gap-3">
             <Button
               variant="outline"
@@ -379,7 +374,7 @@ export default function LegalIndexScreen() {
             >
               <Text className="text-sm">Download All</Text>
             </Button>
-            
+
             <Button
               variant="outline"
               className="flex-1"

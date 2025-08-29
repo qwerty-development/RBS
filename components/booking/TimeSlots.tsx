@@ -17,8 +17,8 @@ import * as Haptics from "expo-haptics";
 
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
-import { AvailabilityService } from "@/lib/AvailabilityService";
 import {
+  AvailabilityService,
   TimeSlotBasic,
   SlotTableOptions,
   TableOption,

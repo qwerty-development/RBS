@@ -55,11 +55,13 @@ export const useBookingConfirmation = () => {
   const { profile } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [debugMode] = useState(process.env.NODE_ENV === 'development');
+  const [debugMode] = useState(process.env.NODE_ENV === "development");
 
   // Prevent double submission
   const isSubmittingRef = useRef(false);
-  const submissionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const submissionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   /**
    * Parse table IDs from JSON string safely
@@ -139,27 +141,32 @@ export const useBookingConfirmation = () => {
 
         // PRE-FLIGHT CHECK: Simple availability verification
         if (parsedTableIds.length > 0) {
-          console.log("Pre-flight availability check for tables:", parsedTableIds);
-          
-          const { data: bookedTables, error: conflictError } = await supabase.rpc(
-            "get_booked_tables_for_slot",
-            {
+          console.log(
+            "Pre-flight availability check for tables:",
+            parsedTableIds,
+          );
+
+          const { data: bookedTables, error: conflictError } =
+            await supabase.rpc("get_booked_tables_for_slot", {
               p_restaurant_id: restaurantId,
               p_start_time: bookingTime.toISOString(),
-              p_end_time: new Date(bookingTime.getTime() + turnTime * 60000).toISOString(),
-            }
-          );
+              p_end_time: new Date(
+                bookingTime.getTime() + turnTime * 60000,
+              ).toISOString(),
+            });
 
           if (!conflictError && bookedTables) {
             const bookedTableIds = bookedTables.map((bt: any) => bt.table_id);
-            const hasConflict = parsedTableIds.some(tableId => bookedTableIds.includes(tableId));
-            
+            const hasConflict = parsedTableIds.some((tableId) =>
+              bookedTableIds.includes(tableId),
+            );
+
             if (hasConflict) {
               console.log("Pre-flight check detected table conflict");
               Alert.alert(
                 "Tables No Longer Available",
                 "The selected tables have just been booked by someone else. Please choose different tables or time.",
-                [{ text: "OK", style: "default" }]
+                [{ text: "OK", style: "default" }],
               );
               return false;
             }
@@ -212,14 +219,19 @@ export const useBookingConfirmation = () => {
 
           // Handle specific error cases
           if (errorCode === "P0001") {
-            
             // Time conflicts with other bookings (1 hour gap rule)
-            if (errorMessage.includes("leave at least 1 hour between reservations")) {
+            if (
+              errorMessage.includes(
+                "leave at least 1 hour between reservations",
+              )
+            ) {
               const restaurantMatch = errorMessage.match(/booking at (.*?) at/);
               const timeMatch = errorMessage.match(/at (\d{2}:\d{2})/);
-              const restaurantName = restaurantMatch ? restaurantMatch[1] : "another restaurant";
+              const restaurantName = restaurantMatch
+                ? restaurantMatch[1]
+                : "another restaurant";
               const conflictTime = timeMatch ? timeMatch[1] : "";
-              
+
               Alert.alert(
                 "Booking Too Close",
                 `You have another booking at ${restaurantName} at ${conflictTime}.\n\nPlease leave at least 1 hour between reservations to allow for travel and dining time.`,
@@ -228,38 +240,46 @@ export const useBookingConfirmation = () => {
                     text: "View My Bookings",
                     onPress: () => router.push("/bookings"),
                   },
-                  { text: "Choose Different Time", style: "cancel" }
-                ]
+                  { text: "Choose Different Time", style: "cancel" },
+                ],
               );
               return false;
             }
-            
+
             // Table no longer available - Enhanced conflict resolution
             if (errorMessage.includes("tables are no longer available")) {
               // Clear cache immediately
               const availabilityService = AvailabilityService.getInstance();
-              availabilityService.clearRestaurantCacheForDate(restaurantId, bookingTime);
-              
+              availabilityService.clearRestaurantCacheForDate(
+                restaurantId,
+                bookingTime,
+              );
+
               // Check if there are alternative tables for the same time
               try {
-                const { data: alternativeTables } = await supabase.rpc("get_available_tables", {
-                  p_restaurant_id: restaurantId,
-                  p_start_time: bookingTime.toISOString(),
-                  p_end_time: new Date(bookingTime.getTime() + turnTime * 60000).toISOString(),
-                  p_party_size: partySize,
-                });
-                
+                const { data: alternativeTables } = await supabase.rpc(
+                  "get_available_tables",
+                  {
+                    p_restaurant_id: restaurantId,
+                    p_start_time: bookingTime.toISOString(),
+                    p_end_time: new Date(
+                      bookingTime.getTime() + turnTime * 60000,
+                    ).toISOString(),
+                    p_party_size: partySize,
+                  },
+                );
+
                 if (alternativeTables && alternativeTables.length > 0) {
                   Alert.alert(
                     "Tables Just Taken",
-                    `The selected tables were just booked by another customer. However, we found ${alternativeTables.length} other table${alternativeTables.length === 1 ? '' : 's'} available for the same time.`,
+                    `The selected tables were just booked by another customer. However, we found ${alternativeTables.length} other table${alternativeTables.length === 1 ? "" : "s"} available for the same time.`,
                     [
                       {
                         text: "See Alternatives",
                         onPress: () => router.back(),
                       },
-                      { text: "Choose Different Time", style: "cancel" }
-                    ]
+                      { text: "Choose Different Time", style: "cancel" },
+                    ],
                   );
                 } else {
                   Alert.alert(
@@ -270,8 +290,8 @@ export const useBookingConfirmation = () => {
                         text: "Choose Different Time",
                         onPress: () => router.back(),
                       },
-                      { text: "OK", style: "cancel" }
-                    ]
+                      { text: "OK", style: "cancel" },
+                    ],
                   );
                 }
               } catch (checkError) {
@@ -284,13 +304,13 @@ export const useBookingConfirmation = () => {
                       text: "Try Again",
                       onPress: () => router.back(),
                     },
-                    { text: "OK", style: "cancel" }
-                  ]
+                    { text: "OK", style: "cancel" },
+                  ],
                 );
               }
               return false;
             }
-            
+
             // Booking window issues
             if (errorMessage.includes("beyond allowed window")) {
               const daysMatch = errorMessage.match(/(\d+) days/);
@@ -298,37 +318,40 @@ export const useBookingConfirmation = () => {
               Alert.alert(
                 "Booking Too Far Ahead",
                 `Bookings can only be made up to ${days} days in advance.`,
-                [{ text: "OK" }]
+                [{ text: "OK" }],
               );
               return false;
             }
-            
+
             // Timing issues
             if (errorMessage.includes("at least 15 minutes in the future")) {
               Alert.alert(
                 "Invalid Booking Time",
                 "Bookings must be made at least 15 minutes in advance.",
-                [{ text: "OK" }]
+                [{ text: "OK" }],
               );
               return false;
             }
-            
+
             // Restaurant issues
-            if (errorMessage.includes("not currently accepting bookings") || 
-                errorMessage.includes("Restaurant not found")) {
+            if (
+              errorMessage.includes("not currently accepting bookings") ||
+              errorMessage.includes("Restaurant not found")
+            ) {
               Alert.alert(
                 "Restaurant Unavailable",
                 "This restaurant is not currently accepting bookings. Please try again later.",
-                [{ text: "OK", onPress: () => router.back() }]
+                [{ text: "OK", onPress: () => router.back() }],
               );
               return false;
             }
-            
+
             // Generic P0001 error
             Alert.alert(
               "Booking Error",
-              errorMessage || "Unable to complete your booking. Please try again.",
-              [{ text: "OK" }]
+              errorMessage ||
+                "Unable to complete your booking. Please try again.",
+              [{ text: "OK" }],
             );
             return false;
           }
@@ -344,10 +367,10 @@ export const useBookingConfirmation = () => {
                   onPress: () => {
                     supabase.auth.signOut();
                     router.replace("/sign-in");
-                  }
+                  },
                 },
-                { text: "Cancel", style: "cancel" }
-              ]
+                { text: "Cancel", style: "cancel" },
+              ],
             );
             return false;
           }
@@ -357,7 +380,7 @@ export const useBookingConfirmation = () => {
             Alert.alert(
               "Connection Error",
               "Unable to connect to the server. Please check your internet connection and try again.",
-              [{ text: "OK" }]
+              [{ text: "OK" }],
             );
             return false;
           }
@@ -366,7 +389,7 @@ export const useBookingConfirmation = () => {
           Alert.alert(
             "Booking Failed",
             "An unexpected error occurred. Please try again.",
-            [{ text: "OK" }]
+            [{ text: "OK" }],
           );
           return false;
         }
@@ -404,13 +427,18 @@ export const useBookingConfirmation = () => {
             pathname: "/booking/success",
             params: {
               bookingId: bookingResult.booking.id,
-              restaurantName: bookingResult.booking.restaurant?.name || "Restaurant",
+              restaurantName:
+                bookingResult.booking.restaurant?.name || "Restaurant",
               bookingTime: bookingTime.toISOString(),
               partySize: partySize.toString(),
               confirmationCode: bookingResult.booking.confirmation_code,
               loyaltyPoints: (expectedLoyaltyPoints || 0).toString(),
               tableInfo: requiresCombination ? "combined" : "single",
-              earnedPoints: (bookingResult.booking.loyalty_points_earned || expectedLoyaltyPoints || 0).toString(),
+              earnedPoints: (
+                bookingResult.booking.loyalty_points_earned ||
+                expectedLoyaltyPoints ||
+                0
+              ).toString(),
             },
           });
         } else {
@@ -418,7 +446,8 @@ export const useBookingConfirmation = () => {
             pathname: "/booking/request-sent",
             params: {
               bookingId: bookingResult.booking.id,
-              restaurantName: bookingResult.booking.restaurant?.name || "Restaurant",
+              restaurantName:
+                bookingResult.booking.restaurant?.name || "Restaurant",
               bookingTime: bookingTime.toISOString(),
               partySize: partySize.toString(),
             },
@@ -430,19 +459,21 @@ export const useBookingConfirmation = () => {
         console.error("Booking confirmation error:", error);
 
         // Check for network errors
-        if (error.message?.includes("NetworkError") || 
-            error.message?.includes("fetch") ||
-            error.code === "NetworkError") {
+        if (
+          error.message?.includes("NetworkError") ||
+          error.message?.includes("fetch") ||
+          error.code === "NetworkError"
+        ) {
           Alert.alert(
             "Connection Error",
             "Unable to connect to the server. Please check your internet connection and try again.",
-            [{ text: "OK" }]
+            [{ text: "OK" }],
           );
         } else {
           Alert.alert(
             "Booking Failed",
             "An unexpected error occurred. Please try again or contact support.",
-            [{ text: "OK" }]
+            [{ text: "OK" }],
           );
         }
 
@@ -477,24 +508,23 @@ export const useBookingConfirmation = () => {
         throw new Error(data?.error || "Failed to cancel booking");
       }
 
-      await Haptics.notificationAsync(
-        Haptics.NotificationFeedbackType.Success
-      );
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
       Alert.alert(
         "Booking Cancelled",
         "Your booking has been successfully cancelled.",
-        [{ text: "OK" }]
+        [{ text: "OK" }],
       );
 
       return true;
     } catch (error: any) {
       console.error("Error cancelling booking:", error);
-      
+
       let errorMessage = "Unable to cancel booking. ";
-      
+
       if (error.message?.includes("less than 2 hours")) {
-        errorMessage = "Cannot cancel bookings less than 2 hours before the reservation time.";
+        errorMessage =
+          "Cannot cancel bookings less than 2 hours before the reservation time.";
       } else if (error.message?.includes("not found")) {
         errorMessage = "Booking not found or already cancelled.";
       } else if (error.message?.includes("current status")) {
@@ -502,7 +532,7 @@ export const useBookingConfirmation = () => {
       } else {
         errorMessage += "Please try again or contact support.";
       }
-      
+
       Alert.alert("Cancellation Failed", errorMessage);
       return false;
     }

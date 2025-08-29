@@ -56,7 +56,6 @@ function NetworkStatusBar() {
 
   const backgroundColor = !isOnline ? "#F44336" : "#FF9800";
 
-
   return (
     <View
       style={{
@@ -65,9 +64,7 @@ function NetworkStatusBar() {
         paddingHorizontal: 16,
       }}
       className="bg-warning"
-    >
-
-    </View>
+    ></View>
   );
 }
 
@@ -77,10 +74,10 @@ function RootLayoutContent() {
   const { profile } = useAuth();
 
   useEffect(() => {
-    initializeNotificationHandlers((deeplink:any) => {
+    initializeNotificationHandlers((deeplink: any) => {
       try {
         if (deeplink.startsWith("app://")) {
-          const path:any = deeplink.replace("app://", "/");
+          const path: any = deeplink.replace("app://", "/");
           router.push(path);
         } else {
           router.push(deeplink);
@@ -155,7 +152,10 @@ function RootLayoutContent() {
         }}
       >
         <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/google/callback" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="auth/google/callback"
+          options={{ headerShown: false }}
+        />
         <Stack.Screen name="oauth-callback" options={{ headerShown: false }} />
       </Stack>
     </>

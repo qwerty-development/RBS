@@ -92,10 +92,12 @@ function AuthContent({ children }: PropsWithChildren) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isGuest, setIsGuest] = useState(false); // NEW: Guest state
+  const [isOAuthFlow, setIsOAuthFlow] = useState(false); // NEW: OAuth flow tracker
 
   const router = useRouter();
   const initializationAttempted = useRef(false);
   const splashHidden = useRef(false);
+  const oAuthFlowTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Create redirect URI for OAuth
   const redirectUri = makeRedirectUri({
@@ -484,8 +486,20 @@ function AuthContent({ children }: PropsWithChildren) {
   // Google Sign In implementation (keeping your existing implementation)
   const googleSignIn = useCallback(async () => {
     try {
-      // Clear guest mode
+      // Clear guest mode and set OAuth flow state
       setIsGuest(false);
+      setIsOAuthFlow(true);
+
+      // Clear any existing OAuth timeout
+      if (oAuthFlowTimeout.current) {
+        clearTimeout(oAuthFlowTimeout.current);
+      }
+
+      // Set timeout to clear OAuth flow state if it takes too long
+      oAuthFlowTimeout.current = setTimeout(() => {
+        console.log("⏰ OAuth flow timeout, clearing state");
+        setIsOAuthFlow(false);
+      }, 60000); // 1 minute timeout
 
       console.log("🚀 Starting Google sign in");
 
@@ -600,22 +614,22 @@ function AuthContent({ children }: PropsWithChildren) {
               return { error: sessionError };
             }
 
-                      if (sessionData?.session) {
-            console.log("🎉 Session established via code exchange");
-            
-            // Add a small delay to ensure state is properly updated
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Process OAuth user profile
-            const userProfile = await processOAuthUser(sessionData.session);
-            if (userProfile) {
-              setProfile(userProfile);
-              // Check if profile needs additional info
-              const needsUpdate = !userProfile.phone_number;
-              return { needsProfileUpdate: needsUpdate };
+            if (sessionData?.session) {
+              console.log("🎉 Session established via code exchange");
+
+              // Add a small delay to ensure state is properly updated
+              await new Promise((resolve) => setTimeout(resolve, 500));
+
+              // Process OAuth user profile
+              const userProfile = await processOAuthUser(sessionData.session);
+              if (userProfile) {
+                setProfile(userProfile);
+                // Check if profile needs additional info
+                const needsUpdate = !userProfile.phone_number;
+                return { needsProfileUpdate: needsUpdate };
+              }
+              return {};
             }
-            return {};
-          }
           }
 
           // Step 7: Handle direct token
@@ -623,7 +637,7 @@ function AuthContent({ children }: PropsWithChildren) {
             console.log("✅ Access token found, setting session");
 
             // Add a small delay to ensure proper state handling
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise((resolve) => setTimeout(resolve, 300));
 
             const { data: sessionData, error: sessionError } =
               await supabase.auth.setSession({
@@ -709,6 +723,13 @@ function AuthContent({ children }: PropsWithChildren) {
     } catch (error) {
       console.error("💥 Google sign in error:", error);
       return { error: error as Error };
+    } finally {
+      // Clear OAuth flow state after completion
+      setIsOAuthFlow(false);
+      if (oAuthFlowTimeout.current) {
+        clearTimeout(oAuthFlowTimeout.current);
+        oAuthFlowTimeout.current = null;
+      }
     }
   }, [processOAuthUser]);
 
@@ -873,14 +894,24 @@ function AuthContent({ children }: PropsWithChildren) {
         }
 
         // Add extra delay for OAuth scenarios to prevent race conditions
-        const isOAuthFlow = typeof window !== "undefined" && 
-                           (window.location?.href?.includes("google") ||
-                            window.location?.href?.includes("access_token") ||
-                            window.location?.href?.includes("code="));
+        // Check if this is an OAuth flow by looking at recent auth events
+        const recentAuthTime = session?.expires_at
+          ? Date.now() -
+            new Date(session.expires_at).getTime() +
+            (session.expires_in || 3600) * 1000
+          : Date.now();
+        const isRecentAuth = recentAuthTime < 30000; // Less than 30 seconds ago
+
+        const isOAuthFlow =
+          isRecentAuth &&
+          session?.user?.app_metadata?.provider &&
+          ["google", "apple"].includes(session.user.app_metadata.provider);
 
         if (isOAuthFlow) {
-          console.log("🔄 OAuth flow detected, adding extra delay");
-          await new Promise(resolve => setTimeout(resolve, 1500));
+          console.log(
+            "🔄 OAuth flow detected, adding extra delay to prevent race conditions",
+          );
+          await new Promise((resolve) => setTimeout(resolve, 2000));
         }
 
         // Simple navigation based on session or guest mode
@@ -897,17 +928,21 @@ function AuthContent({ children }: PropsWithChildren) {
         console.error("❌ Navigation error:", error);
         // Fallback navigation with additional delay
         setTimeout(() => {
-          if (session || isGuest) {
-            router.replace("/(protected)/(tabs)");
-          } else {
-            router.replace("/welcome");
+          try {
+            if (session || isGuest) {
+              router.replace("/(protected)/(tabs)");
+            } else {
+              router.replace("/welcome");
+            }
+          } catch (fallbackError) {
+            console.error("❌ Fallback navigation also failed:", fallbackError);
           }
-        }, 500);
+        }, 1000);
       }
     };
 
     // Increased delay to ensure router is ready, especially for OAuth callbacks
-    const timeout = setTimeout(navigate, 500);
+    const timeout = setTimeout(navigate, 300);
 
     return () => clearTimeout(timeout);
   }, [initialized, session, isGuest, router]);

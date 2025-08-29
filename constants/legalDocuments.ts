@@ -34,7 +34,8 @@ By using Plate, you consent to the data practices described in this policy. If y
     {
       id: "information_we_collect",
       title: "Information We Collect",
-      content: "We collect information you provide directly to us and information collected automatically when you use our App:",
+      content:
+        "We collect information you provide directly to us and information collected automatically when you use our App:",
       subsections: [
         {
           id: "information_you_provide",
@@ -345,7 +346,8 @@ Service Availability:
     {
       id: "user_accounts",
       title: "User Accounts and Registration",
-      content: "To use certain features of our Service, you must create an account:",
+      content:
+        "To use certain features of our Service, you must create an account:",
       subsections: [
         {
           id: "account_creation",
@@ -684,7 +686,8 @@ These technologies help us:
     {
       id: "types_of_tracking",
       title: "Types of Tracking We Use",
-      content: "We use different types of tracking technologies for various purposes:",
+      content:
+        "We use different types of tracking technologies for various purposes:",
       subsections: [
         {
           id: "essential_tracking",
@@ -987,7 +990,8 @@ export const COMMUNITY_GUIDELINES: LegalDocument = {
     {
       id: "prohibited_content",
       title: "Prohibited Content and Behavior",
-      content: "The following content and behaviors are not allowed on our platform:",
+      content:
+        "The following content and behaviors are not allowed on our platform:",
       subsections: [
         {
           id: "fake_content",
@@ -1073,7 +1077,8 @@ REPORTING GUIDELINES:
     {
       id: "consequences",
       title: "Consequences for Guideline Violations",
-      content: "Violations of these guidelines may result in various consequences:",
+      content:
+        "Violations of these guidelines may result in various consequences:",
       subsections: [
         {
           id: "content_actions",
@@ -1478,7 +1483,8 @@ We are committed to implementing appropriate technical and organizational measur
     {
       id: "data_sharing",
       title: "Data Sharing and Recipients",
-      content: "We share personal data with the following categories of recipients:",
+      content:
+        "We share personal data with the following categories of recipients:",
       subsections: [
         {
           id: "restaurant_partners",
@@ -1535,7 +1541,8 @@ SAFEGUARDS:
     {
       id: "data_security",
       title: "Data Security Measures",
-      content: "We implement comprehensive security measures to protect personal data:",
+      content:
+        "We implement comprehensive security measures to protect personal data:",
       subsections: [
         {
           id: "technical_safeguards",
@@ -1590,7 +1597,8 @@ BREACH RESPONSE:
     {
       id: "data_retention",
       title: "Data Retention and Deletion",
-      content: "We retain personal data only as long as necessary for legitimate purposes:",
+      content:
+        "We retain personal data only as long as necessary for legitimate purposes:",
       subsections: [
         {
           id: "retention_periods",
@@ -1634,7 +1642,8 @@ VERIFICATION:
     {
       id: "user_rights",
       title: "Individual Rights and Requests",
-      content: "We respect and facilitate the exercise of individual data protection rights:",
+      content:
+        "We respect and facilitate the exercise of individual data protection rights:",
       subsections: [
         {
           id: "access_rights",
@@ -1705,7 +1714,8 @@ DELIVERY METHODS:
     {
       id: "international_transfers",
       title: "International Data Transfers",
-      content: "When we transfer data internationally, we ensure adequate protection:",
+      content:
+        "When we transfer data internationally, we ensure adequate protection:",
       subsections: [
         {
           id: "transfer_mechanisms",

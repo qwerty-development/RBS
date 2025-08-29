@@ -2,34 +2,37 @@
 // This component is for testing account deletion functionality in development
 // Remove this from production builds
 
-import React, { useState } from 'react';
-import { View, ScrollView, Alert } from 'react-native';
-import { Button } from '@/components/ui/button';
-import { Text } from '@/components/ui/text';
-import { H3, P } from '@/components/ui/typography';
-import { useAccountDeletion, UserDataSummary } from '@/lib/accountDeletionService';
-import { useAuth } from '@/context/supabase-provider';
+import React, { useState } from "react";
+import { View, ScrollView, Alert } from "react-native";
+import { Button } from "@/components/ui/button";
+import { Text } from "@/components/ui/text";
+import { H3, P } from "@/components/ui/typography";
+import {
+  useAccountDeletion,
+  UserDataSummary,
+} from "@/lib/accountDeletionService";
+import { useAuth } from "@/context/supabase-provider";
 
 interface TestResult {
   title: string;
-  status: 'success' | 'error' | 'info';
+  status: "success" | "error" | "info";
   message: string;
   data?: any;
 }
 
 export default function AccountDeletionTest() {
   const { profile } = useAuth();
-  const { 
-    getUserDataSummary, 
-    validateDeletion, 
-    requestDataExport 
-  } = useAccountDeletion();
-  
+  const { getUserDataSummary, validateDeletion, requestDataExport } =
+    useAccountDeletion();
+
   const [results, setResults] = useState<TestResult[]>([]);
   const [loading, setLoading] = useState(false);
 
   const addResult = (result: TestResult) => {
-    setResults(prev => [...prev, { ...result, timestamp: new Date().toISOString() } as any]);
+    setResults((prev) => [
+      ...prev,
+      { ...result, timestamp: new Date().toISOString() } as any,
+    ]);
   };
 
   const clearResults = () => {
@@ -40,19 +43,19 @@ export default function AccountDeletionTest() {
     setLoading(true);
     try {
       const summary = await getUserDataSummary();
-      
+
       if (summary) {
         addResult({
-          title: 'User Data Summary',
-          status: 'success',
-          message: 'Successfully retrieved user data summary',
-          data: summary
+          title: "User Data Summary",
+          status: "success",
+          message: "Successfully retrieved user data summary",
+          data: summary,
         });
-        
+
         // Show summary in alert for easy viewing
         Alert.alert(
-          'User Data Summary',
-          `Profile: ${summary.profile_exists ? 'Yes' : 'No'}
+          "User Data Summary",
+          `Profile: ${summary.profile_exists ? "Yes" : "No"}
 Bookings: ${summary.bookings_count}
 Reviews: ${summary.reviews_count}
 Favorites: ${summary.favorites_count}
@@ -62,20 +65,20 @@ Posts: ${summary.posts_count}
 Notifications: ${summary.notifications_count}
 Waitlist: ${summary.waitlist_count}
 Loyalty Activities: ${summary.loyalty_activities_count}
-Staff Roles: ${summary.staff_roles_count}`
+Staff Roles: ${summary.staff_roles_count}`,
         );
       } else {
         addResult({
-          title: 'User Data Summary',
-          status: 'error',
-          message: 'Failed to retrieve user data summary'
+          title: "User Data Summary",
+          status: "error",
+          message: "Failed to retrieve user data summary",
         });
       }
     } catch (error: any) {
       addResult({
-        title: 'User Data Summary',
-        status: 'error',
-        message: error.message || 'Unknown error occurred'
+        title: "User Data Summary",
+        status: "error",
+        message: error.message || "Unknown error occurred",
       });
     } finally {
       setLoading(false);
@@ -86,34 +89,36 @@ Staff Roles: ${summary.staff_roles_count}`
     setLoading(true);
     try {
       const validation = await validateDeletion();
-      
+
       addResult({
-        title: 'Deletion Validation',
-        status: validation.canDelete ? 'success' : 'error',
-        message: validation.canDelete 
-          ? 'Account can be deleted' 
-          : 'Account cannot be deleted',
-        data: validation
+        title: "Deletion Validation",
+        status: validation.canDelete ? "success" : "error",
+        message: validation.canDelete
+          ? "Account can be deleted"
+          : "Account cannot be deleted",
+        data: validation,
       });
 
       // Show validation details
-      const restrictionsText = validation.restrictions.length > 0 
-        ? `\n\nRestrictions:\n${validation.restrictions.join('\n')}`
-        : '';
-      
-      const warningsText = validation.warnings.length > 0 
-        ? `\n\nWarnings:\n${validation.warnings.join('\n')}`
-        : '';
+      const restrictionsText =
+        validation.restrictions.length > 0
+          ? `\n\nRestrictions:\n${validation.restrictions.join("\n")}`
+          : "";
+
+      const warningsText =
+        validation.warnings.length > 0
+          ? `\n\nWarnings:\n${validation.warnings.join("\n")}`
+          : "";
 
       Alert.alert(
-        'Deletion Validation',
-        `Can Delete: ${validation.canDelete ? 'Yes' : 'No'}${restrictionsText}${warningsText}`
+        "Deletion Validation",
+        `Can Delete: ${validation.canDelete ? "Yes" : "No"}${restrictionsText}${warningsText}`,
       );
     } catch (error: any) {
       addResult({
-        title: 'Deletion Validation',
-        status: 'error',
-        message: error.message || 'Validation failed'
+        title: "Deletion Validation",
+        status: "error",
+        message: error.message || "Validation failed",
       });
     } finally {
       setLoading(false);
@@ -124,43 +129,51 @@ Staff Roles: ${summary.staff_roles_count}`
     setLoading(true);
     try {
       const result = await requestDataExport();
-      
+
       addResult({
-        title: 'Data Export Request',
-        status: result.success ? 'success' : 'error',
+        title: "Data Export Request",
+        status: result.success ? "success" : "error",
         message: result.message,
       });
 
       Alert.alert(
-        result.success ? 'Export Requested' : 'Export Failed',
-        result.message
+        result.success ? "Export Requested" : "Export Failed",
+        result.message,
       );
     } catch (error: any) {
       addResult({
-        title: 'Data Export Request',
-        status: 'error',
-        message: error.message || 'Export request failed'
+        title: "Data Export Request",
+        status: "error",
+        message: error.message || "Export request failed",
       });
     } finally {
       setLoading(false);
     }
   };
 
-  const getStatusColor = (status: TestResult['status']) => {
+  const getStatusColor = (status: TestResult["status"]) => {
     switch (status) {
-      case 'success': return 'text-green-600 dark:text-green-400';
-      case 'error': return 'text-red-600 dark:text-red-400';
-      case 'info': return 'text-blue-600 dark:text-blue-400';
-      default: return 'text-muted-foreground';
+      case "success":
+        return "text-green-600 dark:text-green-400";
+      case "error":
+        return "text-red-600 dark:text-red-400";
+      case "info":
+        return "text-blue-600 dark:text-blue-400";
+      default:
+        return "text-muted-foreground";
     }
   };
 
-  const getStatusIcon = (status: TestResult['status']) => {
+  const getStatusIcon = (status: TestResult["status"]) => {
     switch (status) {
-      case 'success': return '✅';
-      case 'error': return '❌';
-      case 'info': return 'ℹ️';
-      default: return '⚪';
+      case "success":
+        return "✅";
+      case "error":
+        return "❌";
+      case "info":
+        return "ℹ️";
+      default:
+        return "⚪";
     }
   };
 
@@ -177,42 +190,27 @@ Staff Roles: ${summary.staff_roles_count}`
   return (
     <ScrollView className="flex-1 bg-background p-4">
       <H3 className="mb-4">Account Deletion Test Panel</H3>
-      
+
       <P className="text-muted-foreground mb-6">
-        This panel allows you to test the account deletion functionality without actually deleting your account.
-        Only use this in development environments.
+        This panel allows you to test the account deletion functionality without
+        actually deleting your account. Only use this in development
+        environments.
       </P>
 
       <View className="gap-3 mb-6">
-        <Button 
-          onPress={testDataSummary}
-          disabled={loading}
-          variant="outline"
-        >
+        <Button onPress={testDataSummary} disabled={loading} variant="outline">
           <Text>Test Data Summary</Text>
         </Button>
 
-        <Button 
-          onPress={testValidation}
-          disabled={loading}
-          variant="outline"
-        >
+        <Button onPress={testValidation} disabled={loading} variant="outline">
           <Text>Test Deletion Validation</Text>
         </Button>
 
-        <Button 
-          onPress={testDataExport}
-          disabled={loading}
-          variant="outline"
-        >
+        <Button onPress={testDataExport} disabled={loading} variant="outline">
           <Text>Test Data Export Request</Text>
         </Button>
 
-        <Button 
-          onPress={clearResults}
-          disabled={loading}
-          variant="ghost"
-        >
+        <Button onPress={clearResults} disabled={loading} variant="ghost">
           <Text>Clear Results</Text>
         </Button>
       </View>
@@ -222,19 +220,23 @@ Staff Roles: ${summary.staff_roles_count}`
           <H3 className="mb-3">Test Results</H3>
           <View className="gap-3">
             {results.map((result, index) => (
-              <View 
+              <View
                 key={index}
                 className="bg-card p-4 rounded-lg border border-border"
               >
                 <View className="flex-row items-center gap-2 mb-2">
-                  <Text className="text-lg">{getStatusIcon(result.status)}</Text>
+                  <Text className="text-lg">
+                    {getStatusIcon(result.status)}
+                  </Text>
                   <Text className="font-medium">{result.title}</Text>
                 </View>
-                
-                <Text className={`text-sm mb-2 ${getStatusColor(result.status)}`}>
+
+                <Text
+                  className={`text-sm mb-2 ${getStatusColor(result.status)}`}
+                >
                   {result.message}
                 </Text>
-                
+
                 {result.data && (
                   <View className="bg-muted p-3 rounded mt-2">
                     <Text className="text-xs font-mono text-muted-foreground">
@@ -253,7 +255,8 @@ Staff Roles: ${summary.staff_roles_count}`
           ⚠️ Development Only
         </Text>
         <Text className="text-yellow-700 dark:text-yellow-300 text-xs">
-          This component should be removed from production builds. It's intended for testing the account deletion functionality during development.
+          This component should be removed from production builds. It's intended
+          for testing the account deletion functionality during development.
         </Text>
       </View>
     </ScrollView>

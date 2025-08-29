@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import {
@@ -10,7 +10,6 @@ import {
   ScrollView,
 } from "react-native";
 import * as z from "zod";
-import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
@@ -114,20 +113,21 @@ export default function SignIn() {
         if (error.message !== "User canceled Apple sign-in") {
           Alert.alert(
             "Sign In Error",
-            error.message || "Apple sign in failed."
+            error.message || "Apple sign in failed.",
           );
         }
-      } else if (needsProfileUpdate) {
-        // Navigate to profile completion if needed
       } else {
-        // Successful Apple sign-in, navigate to protected home
-        router.replace("/(protected)/(tabs)");
+        // Successful Apple sign-in - let auth provider handle navigation
+        console.log(
+          "✅ Apple sign-in successful, auth provider will handle navigation",
+        );
+        // Don't navigate here - auth provider will handle it to prevent race conditions
       }
     } catch (err: any) {
       console.error("Apple sign in error:", err);
       Alert.alert(
         "Sign In Error",
-        err.message || "Failed to sign in with Apple."
+        err.message || "Failed to sign in with Apple.",
       );
     } finally {
       setIsAppleLoading(false);
@@ -144,20 +144,21 @@ export default function SignIn() {
         if (error.message !== "User canceled Google sign-in") {
           Alert.alert(
             "Sign In Error",
-            error.message || "Google sign in failed."
+            error.message || "Google sign in failed.",
           );
         }
-      } else if (needsProfileUpdate) {
-        // Navigate to profile completion if needed
       } else {
-        // Successful Google sign-in, navigate to protected home
-        router.replace("/(protected)/(tabs)");
+        // Successful Google sign-in - let auth provider handle navigation
+        console.log(
+          "✅ Google sign-in successful, auth provider will handle navigation",
+        );
+        // Don't navigate here - auth provider will handle it to prevent race conditions
       }
     } catch (err: any) {
       console.error("Google sign in error:", err);
       Alert.alert(
         "Sign In Error",
-        err.message || "Failed to sign in with Google."
+        err.message || "Failed to sign in with Google.",
       );
     } finally {
       setIsGoogleLoading(false);

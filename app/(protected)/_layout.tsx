@@ -78,7 +78,6 @@ export default function ProtectedLayout() {
       }}
       className="bg-background"
     >
-     
       <Stack
         screenOptions={{
           headerShown: false,

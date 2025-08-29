@@ -32,13 +32,13 @@ export function SpecialOfferBannerCarousel({
   // --- State ---
   const [currentIndex, setCurrentIndex] = useState(0);
   const [processingOfferId, setProcessingOfferId] = useState<string | null>(
-    null
+    null,
   );
   const scrollViewRef = useRef<ScrollView>(null);
 
   // --- UI Logic ---
   const bannersWithImages = offers.filter(
-    (offer) => offer.img_url && offer.img_url.trim() !== ""
+    (offer) => offer.img_url && offer.img_url.trim() !== "",
   );
 
   if (bannersWithImages.length === 0) {
@@ -83,7 +83,7 @@ export function SpecialOfferBannerCarousel({
         } else {
           Alert.alert(
             "Unable to Claim",
-            "This offer could not be claimed. Please try again."
+            "This offer could not be claimed. Please try again.",
           );
         }
       } catch (error) {
@@ -92,7 +92,7 @@ export function SpecialOfferBannerCarousel({
         setProcessingOfferId(null);
       }
     },
-    [claimOffer, router]
+    [claimOffer, router],
   );
 
   const handleBannerPress = useCallback(
@@ -107,7 +107,7 @@ export function SpecialOfferBannerCarousel({
             "Offer Not Available",
             offer.used
               ? "This offer has already been used."
-              : "This offer has expired."
+              : "This offer has expired.",
           );
           return;
         }
@@ -121,11 +121,11 @@ export function SpecialOfferBannerCarousel({
               text: "Book Now",
               onPress: () => handleClaimAndBook(offer),
             },
-          ]
+          ],
         );
       }, "use special offers");
     },
-    [runProtectedAction, router, handleClaimAndBook]
+    [runProtectedAction, router, handleClaimAndBook],
   );
 
   return (
