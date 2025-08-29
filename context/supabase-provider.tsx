@@ -549,19 +549,28 @@ function AuthContent({ children }: PropsWithChildren) {
           }
         });
 
-        // Set a timeout
-        setTimeout(() => reject(new Error("OAuth timeout")), 120000); // 2 minutes
+        // Android devices need longer timeout due to slower OAuth processing
+        const timeoutDuration = Platform.OS === "android" ? 180000 : 120000; // 3 minutes for Android, 2 for iOS
+        setTimeout(() => reject(new Error("OAuth timeout")), timeoutDuration);
       });
 
-      // Step 3: Open the browser
+      // Step 3: Open the browser with platform-specific options
+      const browserOptions = {
+        showInRecents: false,
+        createTask: false,
+        preferEphemeralSession: false, // Allow account selection
+        ...(Platform.OS === "android" && {
+          // Android-specific optimizations
+          enableUrlBarHiding: true,
+          enableDefaultShare: false,
+          showTitle: false,
+        }),
+      };
+      
       const browserPromise = WebBrowser.openAuthSessionAsync(
         data.url,
         redirectUrl,
-        {
-          showInRecents: false,
-          createTask: false,
-          preferEphemeralSession: false, // Changed to false to allow account selection
-        },
+        browserOptions,
       );
 
       // Step 4: Wait for either the browser to close or URL to be received
@@ -617,8 +626,9 @@ function AuthContent({ children }: PropsWithChildren) {
             if (sessionData?.session) {
               console.log("🎉 Session established via code exchange");
 
-              // Add a small delay to ensure state is properly updated
-              await new Promise((resolve) => setTimeout(resolve, 500));
+              // Android needs more time to process OAuth state changes
+              const processingDelay = Platform.OS === "android" ? 1000 : 500;
+              await new Promise((resolve) => setTimeout(resolve, processingDelay));
 
               // Process OAuth user profile
               const userProfile = await processOAuthUser(sessionData.session);
@@ -636,8 +646,9 @@ function AuthContent({ children }: PropsWithChildren) {
           if (access_token) {
             console.log("✅ Access token found, setting session");
 
-            // Add a small delay to ensure proper state handling
-            await new Promise((resolve) => setTimeout(resolve, 300));
+            // Platform-specific delay for proper state handling
+            const stateDelay = Platform.OS === "android" ? 800 : 300;
+            await new Promise((resolve) => setTimeout(resolve, stateDelay));
 
             const { data: sessionData, error: sessionError } =
               await supabase.auth.setSession({
@@ -664,9 +675,10 @@ function AuthContent({ children }: PropsWithChildren) {
             }
           }
 
-          // Step 8: Final fallback check
+          // Step 8: Final fallback check with extended wait for Android
           console.log("🔄 Checking for session via getSession");
-          await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait a bit
+          const fallbackWait = Platform.OS === "android" ? 2000 : 1000;
+          await new Promise((resolve) => setTimeout(resolve, fallbackWait));
 
           const {
             data: { session: currentSession },
@@ -893,7 +905,7 @@ function AuthContent({ children }: PropsWithChildren) {
           console.log("✅ Splash screen hidden");
         }
 
-        // Add extra delay for OAuth scenarios to prevent race conditions
+        // Add platform-specific delays for OAuth scenarios to prevent race conditions
         // Check if this is an OAuth flow by looking at recent auth events
         const recentAuthTime = session?.expires_at
           ? Date.now() -
@@ -908,10 +920,21 @@ function AuthContent({ children }: PropsWithChildren) {
           ["google", "apple"].includes(session.user.app_metadata.provider);
 
         if (isOAuthFlow) {
+          // Android devices need more time for OAuth navigation
+          const oauthDelay = Platform.OS === "android" ? 3500 : 2000;
           console.log(
-            "🔄 OAuth flow detected, adding extra delay to prevent race conditions",
+            `🔄 OAuth flow detected on ${Platform.OS}, adding ${oauthDelay}ms delay to prevent race conditions`,
           );
-          await new Promise((resolve) => setTimeout(resolve, 2000));
+          await new Promise((resolve) => setTimeout(resolve, oauthDelay));
+        } else if (Platform.OS === "android") {
+          // Even non-OAuth Android navigation benefits from a small delay
+          await new Promise((resolve) => setTimeout(resolve, 500));
+        }
+
+        // Verify router is ready before navigation
+        if (!router || typeof router.replace !== "function") {
+          console.warn("⚠️ Router not ready, scheduling retry");
+          throw new Error("Router not ready");
         }
 
         // Simple navigation based on session or guest mode
@@ -926,23 +949,53 @@ function AuthContent({ children }: PropsWithChildren) {
         }
       } catch (error) {
         console.error("❌ Navigation error:", error);
-        // Fallback navigation with additional delay
-        setTimeout(() => {
-          try {
-            if (session || isGuest) {
-              router.replace("/(protected)/(tabs)");
-            } else {
-              router.replace("/welcome");
+        
+        // Enhanced fallback navigation with retry logic for Android
+        const attemptFallbackNavigation = (attempt = 1) => {
+          const maxAttempts = 3;
+          const delay = Platform.OS === "android" ? attempt * 1000 : 500;
+          
+          setTimeout(() => {
+            try {
+              console.log(`🔄 Fallback navigation attempt ${attempt}/${maxAttempts} on ${Platform.OS}`);
+              
+              if (!router || typeof router.replace !== "function") {
+                if (attempt < maxAttempts) {
+                  console.log("Router still not ready, retrying...");
+                  attemptFallbackNavigation(attempt + 1);
+                  return;
+                } else {
+                  console.error("❌ Router unavailable after all attempts");
+                  return;
+                }
+              }
+              
+              if (session || isGuest) {
+                router.replace("/(protected)/(tabs)");
+                console.log("✅ Fallback navigation to tabs successful");
+              } else {
+                router.replace("/welcome");
+                console.log("✅ Fallback navigation to welcome successful");
+              }
+            } catch (fallbackError) {
+              console.error(`❌ Fallback navigation attempt ${attempt} failed:`, fallbackError);
+              
+              if (attempt < maxAttempts) {
+                attemptFallbackNavigation(attempt + 1);
+              } else {
+                console.error("❌ All fallback navigation attempts failed");
+              }
             }
-          } catch (fallbackError) {
-            console.error("❌ Fallback navigation also failed:", fallbackError);
-          }
-        }, 1000);
+          }, delay);
+        };
+        
+        attemptFallbackNavigation();
       }
     };
 
-    // Increased delay to ensure router is ready, especially for OAuth callbacks
-    const timeout = setTimeout(navigate, 300);
+    // Platform-specific timeout - Android needs more time
+    const initialTimeout = Platform.OS === "android" ? 500 : 300;
+    const timeout = setTimeout(navigate, initialTimeout);
 
     return () => clearTimeout(timeout);
   }, [initialized, session, isGuest, router]);

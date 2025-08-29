@@ -6,9 +6,8 @@ import { AuthProvider, useAuth } from "@/context/supabase-provider";
 import { NetworkProvider } from "@/context/network-provider";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
-import { LogBox, Alert, View, Text } from "react-native";
+import { LogBox, View, Text } from "react-native";
 import React, { useEffect, useState } from "react";
-import * as Updates from "expo-updates";
 import {
   ErrorBoundary,
   NavigationErrorBoundary,
@@ -111,34 +110,6 @@ function RootLayoutContent() {
     ]);
   }, []);
 
-  // Handle over-the-air updates
-  useEffect(() => {
-    async function handleUpdates() {
-      try {
-        const update = await Updates.checkForUpdateAsync();
-        if (update.isAvailable) {
-          Alert.alert(
-            "Update Available",
-            "A new version of the app is available. Would you like to update now?",
-            [
-              { text: "Later", style: "cancel" },
-              {
-                text: "Update",
-                onPress: async () => {
-                  await Updates.fetchUpdateAsync();
-                  await Updates.reloadAsync();
-                },
-              },
-            ],
-          );
-        }
-      } catch (error) {}
-    }
-
-    if (!__DEV__) {
-      handleUpdates();
-    }
-  }, []);
 
   return (
     <>

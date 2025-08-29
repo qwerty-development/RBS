@@ -7,6 +7,7 @@ import {
   Alert,
   Share,
   ActivityIndicator,
+  Platform,
 } from "react-native";
 import { Button } from "@/components/ui/button";
 import { H2, P, Muted } from "@/components/ui/typography";
@@ -273,16 +274,19 @@ export class NavigationErrorBoundary extends Component<
         "🔄 Detected OAuth navigation error, auto-recovering with loading screen",
       );
 
-      // Auto-recover more quickly for OAuth errors (1 second instead of 2)
+      // Android needs more time for OAuth error recovery
+      const recoveryDelay = Platform.OS === "android" ? 2000 : 1000;
+      
+      // Auto-recover with platform-specific timing
       this.navigationTimer = setTimeout(() => {
-        console.log("🔄 Auto-recovering from OAuth navigation error");
+        console.log(`🔄 Auto-recovering from OAuth navigation error on ${Platform.OS}`);
         this.setState({
           hasError: false,
           error: null,
           errorInfo: null,
           errorId: null,
         });
-      }, 1000);
+      }, recoveryDelay);
     } else {
       // Log non-OAuth navigation errors to Sentry
       Sentry.withScope((scope) => {
@@ -319,9 +323,13 @@ export class NavigationErrorBoundary extends Component<
         return (
           <View className="flex-1 justify-center items-center p-4 bg-background">
             <ActivityIndicator size="large" color="#792339" />
-            <H2 className="text-center mt-4 mb-2">Completing Sign In...</H2>
+            <H2 className="text-center mt-4 mb-2">
+              {Platform.OS === "android" ? "Processing Sign In..." : "Completing Sign In..."}
+            </H2>
             <P className="text-center text-muted-foreground">
-              Finalizing your authentication, please wait...
+              {Platform.OS === "android" 
+                ? "Please wait, this may take a moment on Android devices..." 
+                : "Finalizing your authentication, please wait..."}
             </P>
           </View>
         );
