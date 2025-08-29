@@ -98,6 +98,7 @@ function AuthContent({ children }: PropsWithChildren) {
   const initializationAttempted = useRef(false);
   const splashHidden = useRef(false);
   const oAuthFlowTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const navigationInProgress = useRef(false); // Prevent multiple navigation attempts
 
   // Create redirect URI for OAuth
   const redirectUri = makeRedirectUri({
@@ -892,10 +893,18 @@ function AuthContent({ children }: PropsWithChildren) {
     if (!initialized) return;
 
     const navigate = async () => {
+      // Prevent multiple simultaneous navigation attempts
+      if (navigationInProgress.current) {
+        console.log("🔒 Navigation already in progress, skipping...");
+        return;
+      }
+
       try {
+        navigationInProgress.current = true;
         console.log("🔄 Handling navigation...", {
           hasSession: !!session,
           isGuest,
+          platform: Platform.OS,
         });
 
         // Hide splash screen only once
@@ -948,48 +957,53 @@ function AuthContent({ children }: PropsWithChildren) {
           router.replace("/welcome");
         }
       } catch (error) {
-        console.error("❌ Navigation error:", error);
+        console.error("❌ Navigation error (will auto-recover):", error);
         
-        // Enhanced fallback navigation with retry logic for Android
+        // SILENT fallback navigation - never throw errors to UI
         const attemptFallbackNavigation = (attempt = 1) => {
-          const maxAttempts = 3;
-          const delay = Platform.OS === "android" ? attempt * 1000 : 500;
+          const maxAttempts = 5; // Increased attempts for more reliability
+          const delay = Platform.OS === "android" ? attempt * 800 : 300;
           
           setTimeout(() => {
             try {
-              console.log(`🔄 Fallback navigation attempt ${attempt}/${maxAttempts} on ${Platform.OS}`);
+              console.log(`🔄 Silent fallback navigation attempt ${attempt}/${maxAttempts} on ${Platform.OS}`);
               
               if (!router || typeof router.replace !== "function") {
                 if (attempt < maxAttempts) {
-                  console.log("Router still not ready, retrying...");
+                  console.log("Router still not ready, retrying silently...");
                   attemptFallbackNavigation(attempt + 1);
                   return;
                 } else {
-                  console.error("❌ Router unavailable after all attempts");
+                  console.log("❌ Router unavailable after all attempts - user will see loading");
                   return;
                 }
               }
               
               if (session || isGuest) {
                 router.replace("/(protected)/(tabs)");
-                console.log("✅ Fallback navigation to tabs successful");
+                console.log("✅ Silent fallback navigation to tabs successful");
               } else {
                 router.replace("/welcome");
-                console.log("✅ Fallback navigation to welcome successful");
+                console.log("✅ Silent fallback navigation to welcome successful");
               }
             } catch (fallbackError) {
-              console.error(`❌ Fallback navigation attempt ${attempt} failed:`, fallbackError);
+              console.log(`❌ Silent fallback navigation attempt ${attempt} failed (continuing):`, fallbackError);
               
               if (attempt < maxAttempts) {
                 attemptFallbackNavigation(attempt + 1);
               } else {
-                console.error("❌ All fallback navigation attempts failed");
+                console.log("❌ All silent fallback attempts completed - user will see loading");
               }
             }
           }, delay);
         };
         
         attemptFallbackNavigation();
+      } finally {
+        // Always release the navigation lock after a delay
+        setTimeout(() => {
+          navigationInProgress.current = false;
+        }, 500);
       }
     };
 
@@ -997,7 +1011,11 @@ function AuthContent({ children }: PropsWithChildren) {
     const initialTimeout = Platform.OS === "android" ? 500 : 300;
     const timeout = setTimeout(navigate, initialTimeout);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+      // Release navigation lock on cleanup
+      navigationInProgress.current = false;
+    };
   }, [initialized, session, isGuest, router]);
 
   // Show loading screen while initializing

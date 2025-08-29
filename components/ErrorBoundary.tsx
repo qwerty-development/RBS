@@ -259,46 +259,34 @@ export class NavigationErrorBoundary extends Component<
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Navigation Error:", error);
 
-    // Check if this might be an OAuth-related navigation error
-    const isOAuthError =
-      error.message?.includes("navigate") ||
-      error.message?.includes("route") ||
-      error.message?.includes("navigation") ||
-      error.message?.includes("router") ||
-      error.stack?.includes("router") ||
-      error.stack?.includes("navigation") ||
-      error.stack?.includes("expo-router");
+    // ALL navigation errors are treated as recoverable - never show error UI
+    console.log("🔄 Navigation error detected, auto-recovering with loading screen");
 
-    if (isOAuthError) {
-      console.log(
-        "🔄 Detected OAuth navigation error, auto-recovering with loading screen",
-      );
-
-      // Android needs more time for OAuth error recovery
-      const recoveryDelay = Platform.OS === "android" ? 2000 : 1000;
-      
-      // Auto-recover with platform-specific timing
-      this.navigationTimer = setTimeout(() => {
-        console.log(`🔄 Auto-recovering from OAuth navigation error on ${Platform.OS}`);
-        this.setState({
-          hasError: false,
-          error: null,
-          errorInfo: null,
-          errorId: null,
-        });
-      }, recoveryDelay);
-    } else {
-      // Log non-OAuth navigation errors to Sentry
-      Sentry.withScope((scope) => {
-        scope.setTag("errorType", "navigation");
-        scope.setContext("errorInfo", {
-          componentStack: errorInfo.componentStack,
-          errorMessage: error.message,
-          errorStack: error.stack,
-        });
-        Sentry.captureException(error);
+    // Always auto-recover - platform-specific timing for best experience
+    const recoveryDelay = Platform.OS === "android" ? 2000 : 1000;
+    
+    this.navigationTimer = setTimeout(() => {
+      console.log(`🔄 Auto-recovering from navigation error on ${Platform.OS}`);
+      this.setState({
+        hasError: false,
+        error: null,
+        errorInfo: null,
+        errorId: null,
       });
-    }
+    }, recoveryDelay);
+
+    // Still log to Sentry for debugging, but don't show error to user
+    Sentry.withScope((scope) => {
+      scope.setTag("errorType", "navigation");
+      scope.setTag("autoRecovered", true);
+      scope.setLevel("warning"); // Downgrade to warning since we auto-recover
+      scope.setContext("errorInfo", {
+        componentStack: errorInfo.componentStack,
+        errorMessage: error.message,
+        errorStack: error.stack,
+      });
+      Sentry.captureException(error);
+    });
   }
 
   componentWillUnmount() {
@@ -309,50 +297,19 @@ export class NavigationErrorBoundary extends Component<
 
   render() {
     if (this.state.hasError) {
-      // Check if this might be an OAuth-related error and show loading instead
-      const isOAuthError =
-        this.state.error?.message?.includes("navigate") ||
-        this.state.error?.message?.includes("route") ||
-        this.state.error?.message?.includes("navigation") ||
-        this.state.error?.message?.includes("router") ||
-        this.state.error?.stack?.includes("router") ||
-        this.state.error?.stack?.includes("expo-router");
-
-      if (isOAuthError) {
-        // Show loading screen for OAuth errors instead of error message
-        return (
-          <View className="flex-1 justify-center items-center p-4 bg-background">
-            <ActivityIndicator size="large" color="#792339" />
-            <H2 className="text-center mt-4 mb-2">
-              {Platform.OS === "android" ? "Processing Sign In..." : "Completing Sign In..."}
-            </H2>
-            <P className="text-center text-muted-foreground">
-              {Platform.OS === "android" 
-                ? "Please wait, this may take a moment on Android devices..." 
-                : "Finalizing your authentication, please wait..."}
-            </P>
-          </View>
-        );
-      }
-
-      // Show regular error screen for non-OAuth navigation errors
+      // NEVER show navigation errors to users - always show loading screen
+      // This provides a smooth user experience and auto-recovery
       return (
         <View className="flex-1 justify-center items-center p-4 bg-background">
-          <AlertTriangle size={48} color="#EF4444" className="mb-4" />
-          <H2 className="text-center mb-2">Navigation Error</H2>
-          <P className="text-center text-muted-foreground mb-4">
-            There was a problem with navigation. Please restart the app.
+          <ActivityIndicator size="large" color="#792339" />
+          <H2 className="text-center mt-4 mb-2">
+            {Platform.OS === "android" ? "Processing..." : "Loading..."}
+          </H2>
+          <P className="text-center text-muted-foreground">
+            {Platform.OS === "android" 
+              ? "Please wait, this may take a moment..." 
+              : "Just a moment..."}
           </P>
-          <Button
-            onPress={() => {
-              if (this.navigationTimer) {
-                clearTimeout(this.navigationTimer);
-              }
-              this.setState({ hasError: false, error: null });
-            }}
-          >
-            <Text className="text-white">Try Again</Text>
-          </Button>
         </View>
       );
     }
