@@ -153,7 +153,8 @@ export class AppMonitor {
       delete this.currentSession.userId;
     }
 
-    Sentry.configureScope((scope) => scope.clear());
+    // Clear Sentry user context
+    Sentry.setUser(null);
     this.log("info", "User context cleared");
   }
 
@@ -460,7 +461,7 @@ export class AppMonitor {
   }, 5000);
 
   private debounce(func: Function, wait: number) {
-    let timeout: NodeJS.Timeout;
+    let timeout: any;
     return (...args: any[]) => {
       clearTimeout(timeout);
       timeout = setTimeout(() => func.apply(this, args), wait);

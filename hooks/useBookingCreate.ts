@@ -3,17 +3,22 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Alert } from "react-native";
 import * as Haptics from "expo-haptics";
-import { supabase } from "@/config/supabase";
-import { useAuth } from "@/context/supabase-provider";
-import { useBookingsStore } from "@/stores";
-import { Database, BookingEligibilityResult } from "@/types/supabase";
+import { supabase } from "../config/supabase";
+import { useAuth } from "../context/supabase-provider";
+import { useBookingsStore } from "../stores";
+import { Database, BookingEligibilityResult } from "../types/supabase";
 import {
   isValidDate,
   parseDate,
   isValidTime,
   TierType,
-} from "@/lib/bookingUtils";
-import { calculateBookingWindow } from "@/lib/tableManagementUtils";
+} from "../lib/bookingUtils";
+import { calculateBookingWindow } from "../lib/tableManagementUtils";
+import {
+  SecurityMonitor,
+  RateLimiter,
+  withSecurityMiddleware,
+} from "../lib/security";
 
 // Type Definitions
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
@@ -76,7 +81,8 @@ export function useBookingCreate() {
   const [loyaltyRuleId, setLoyaltyRuleId] = useState<string | null>(null);
 
   // --- Rating System State ---
-  const [ratingEligibility, setRatingEligibility] = useState<BookingEligibilityResult | null>(null);
+  const [ratingEligibility, setRatingEligibility] =
+    useState<BookingEligibilityResult | null>(null);
   const [ratingRestricted, setRatingRestricted] = useState<boolean>(false);
   const [ratingMessage, setRatingMessage] = useState<string>("");
 
@@ -199,22 +205,30 @@ export function useBookingCreate() {
   }, [restaurantId, bookingDate, bookingTime, totalPartySize, userTier]);
 
   /**
-   * Checks user's booking eligibility based on their rating and restaurant requirements.
-   * This prevents users with low ratings from attempting bookings they can't complete.
+   * Enhanced booking eligibility check with comprehensive security validation.
+   * This prevents users with security flags or suspicious patterns from attempting bookings.
    */
   const checkBookingEligibility = useCallback(async () => {
     if (!profile || !restaurantId) return;
 
     try {
-      const { data, error } = await supabase.rpc("check_booking_eligibility", {
-        user_id_param: profile.id,
-        restaurant_id_param: restaurantId,
-        party_size_param: totalPartySize,
-      });
+      // Use enhanced eligibility check
+      const { data, error } = await supabase.rpc(
+        "check_booking_eligibility_enhanced",
+        {
+          user_id_param: profile.id,
+          restaurant_id_param: restaurantId,
+          party_size_param: totalPartySize,
+          booking_date_param:
+            bookingDate && bookingTime
+              ? new Date(`${bookingDate}T${bookingTime}`).toISOString()
+              : null,
+        },
+      );
 
       if (error) {
         console.warn("Could not check booking eligibility:", error.message);
-        // Default to allow booking if check fails
+        // Default to allow booking if check fails to avoid blocking legitimate users
         setRatingEligibility(null);
         setRatingRestricted(false);
         setRatingMessage("");
@@ -224,29 +238,86 @@ export function useBookingCreate() {
       if (data && data.length > 0) {
         const eligibility = data[0];
         setRatingEligibility(eligibility);
-        
+
         if (!eligibility.can_book) {
           setRatingRestricted(true);
-          setRatingMessage(eligibility.restriction_reason || "Your current rating doesn't allow bookings at this restaurant.");
+          setRatingMessage(
+            eligibility.restriction_reason ||
+              "Your booking request cannot be completed.",
+          );
+
+          // Log security event if user is blocked due to security concerns
+          if (
+            eligibility.security_flags &&
+            eligibility.security_flags.length > 0
+          ) {
+            SecurityMonitor.monitorSuspiciousActivity({
+              type: "booking_fraud",
+              userId: profile.id,
+              metadata: {
+                restaurantId,
+                securityFlags: eligibility.security_flags,
+                riskScore: eligibility.risk_score,
+                attemptedBooking: true,
+              },
+            });
+          }
         } else {
           setRatingRestricted(false);
           setRatingMessage("");
-          
-          // Check if booking is forced to be request-only due to rating
-          if (eligibility.forced_policy === "request_only") {
+
+          // Check if booking should be forced to request-only due to security
+          if (eligibility.forced_policy === "request") {
             setIsRequestBooking(true);
-            setRatingMessage("Due to your current rating, this will be submitted as a request for restaurant approval.");
+            const reason =
+              eligibility.risk_score > 0.4
+                ? "Due to recent activity patterns, this booking will require restaurant approval."
+                : "Due to your current rating, this will be submitted as a request for restaurant approval.";
+            setRatingMessage(reason);
+          }
+
+          // Show security warnings if applicable
+          if (
+            eligibility.security_flags &&
+            eligibility.security_flags.length > 0
+          ) {
+            const warningMessages: Record<string, string> = {
+              high_cancellation_rate:
+                "We notice you've had several cancellations recently. Please ensure you can attend this booking.",
+              high_no_show_rate:
+                "To maintain your account in good standing, please ensure you attend all confirmed bookings.",
+              fraud_patterns_detected:
+                "Additional verification may be required for this booking.",
+            };
+
+            const warnings = eligibility.security_flags
+              .filter((flag: string) => warningMessages[flag])
+              .map((flag: string) => warningMessages[flag]);
+
+            if (warnings.length > 0) {
+              setRatingMessage(warnings[0]);
+            }
           }
         }
       }
     } catch (err) {
       console.error("Error checking booking eligibility:", err);
-      // Default to allow booking if check fails
+      // Allow booking if check fails, but log the error
       setRatingEligibility(null);
       setRatingRestricted(false);
       setRatingMessage("");
+
+      SecurityMonitor.monitorSuspiciousActivity({
+        type: "invalid_input",
+        userId: profile.id,
+        metadata: {
+          function: "checkBookingEligibility",
+          error: (err as Error).message,
+          restaurantId,
+        },
+      });
     }
-  }, [profile, restaurantId, totalPartySize]);
+  }, [profile, restaurantId, totalPartySize, bookingDate, bookingTime]);
 
   /**
    * Fetches all initial data required for the booking screen.
@@ -264,7 +335,7 @@ export function useBookingCreate() {
 
       if (restaurantError) throw restaurantError;
       setRestaurant(restaurantData);
-      
+
       // Initial booking policy check - will be overridden by rating restrictions if needed
       setIsRequestBooking(restaurantData.booking_policy === "request");
 
@@ -405,8 +476,9 @@ export function useBookingCreate() {
       if (ratingRestricted) {
         Alert.alert(
           "Booking Restricted",
-          ratingMessage || "Your current rating doesn't allow bookings at this restaurant.",
-          [{ text: "OK" }]
+          ratingMessage ||
+            "Your current rating doesn't allow bookings at this restaurant.",
+          [{ text: "OK" }],
         );
         return;
       }
@@ -566,48 +638,140 @@ export function useBookingCreate() {
 
   /**
    * Validates selections and shows a confirmation alert before submitting.
-   * This is the function called by the UI.
+   * This is the function called by the UI with enhanced security checks.
    */
-  const submitBooking = (formData: BookingFormData) => {
-    // Offer validation
-    if (selectedOffer) {
-      if (new Date(selectedOffer.expires_at) < new Date()) {
-        Alert.alert("Offer Expired", "This offer is no longer valid.");
-        return;
-      }
-      if (
-        selectedOffer.special_offer.minimum_party_size &&
-        totalPartySize < selectedOffer.special_offer.minimum_party_size
-      ) {
-        Alert.alert(
-          "Party Size Too Small",
-          `This offer requires a minimum of ${selectedOffer.special_offer.minimum_party_size} guests.`,
+  const submitBooking = useCallback(
+    withSecurityMiddleware(
+      async (formData: BookingFormData) => {
+        // Security pre-checks
+        if (!profile) {
+          throw new Error("Authentication required");
+        }
+
+        // Check rate limits for booking creation
+        const rateLimitResult = await RateLimiter.checkActionRateLimit(
+          profile.id,
+          "booking_creation",
         );
-        return;
-      }
-    }
 
-    // Tailor confirmation message based on booking type
-    const confirmationTitle = isRequestBooking
-      ? "Send Booking Request?"
-      : "Confirm Your Booking";
-    let confirmationMessage = `You are ${isRequestBooking ? "requesting" : "booking"} a table for ${totalPartySize} at ${restaurant?.name} on ${bookingDate.toLocaleDateString()} at ${bookingTime}.`;
-    if (isRequestBooking) {
-      confirmationMessage +=
-        "\n\nThe restaurant will review your request and confirm shortly.";
-    }
-    if (selectedOffer) {
-      confirmationMessage += `\n\nOffer Applied: ${selectedOffer.special_offer.title}`;
-    }
+        if (!rateLimitResult.allowed) {
+          Alert.alert(
+            "Too Many Booking Attempts",
+            "You're creating bookings too quickly. Please wait a moment before trying again.",
+            [{ text: "OK" }],
+          );
+          return;
+        }
 
-    Alert.alert(confirmationTitle, confirmationMessage, [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: isRequestBooking ? "Send Request" : "Confirm",
-        onPress: () => executeSubmit(formData),
+        // Run fraud detection
+        try {
+          const fraudCheck = await supabase.rpc("detect_booking_fraud", {
+            user_id_param: profile.id,
+            restaurant_id_param: restaurantId,
+          });
+
+          if (fraudCheck.data && fraudCheck.data.length > 0) {
+            const hasHighRiskPattern = fraudCheck.data.some(
+              (pattern: any) => pattern.risk_level === "high",
+            );
+
+            if (hasHighRiskPattern) {
+              Alert.alert(
+                "Booking Restricted",
+                "Your booking cannot be processed at this time. Please contact support if you believe this is an error.",
+                [{ text: "OK" }],
+              );
+              return;
+            }
+          }
+        } catch (error) {
+          console.warn("Fraud detection failed:", error);
+          // Continue with booking if fraud detection fails
+        }
+
+        // Offer validation
+        if (selectedOffer) {
+          if (new Date(selectedOffer.expires_at) < new Date()) {
+            Alert.alert("Offer Expired", "This offer is no longer valid.");
+            return;
+          }
+          if (
+            selectedOffer.special_offer.minimum_party_size &&
+            totalPartySize < selectedOffer.special_offer.minimum_party_size
+          ) {
+            Alert.alert(
+              "Party Size Too Small",
+              `This offer requires a minimum of ${selectedOffer.special_offer.minimum_party_size} guests.`,
+            );
+            return;
+          }
+        }
+
+        // Final eligibility check before proceeding
+        const finalEligibilityCheck = await supabase.rpc(
+          "check_booking_eligibility_enhanced",
+          {
+            user_id_param: profile.id,
+            restaurant_id_param: restaurantId,
+            party_size_param: totalPartySize,
+            booking_date_param:
+              bookingDate && bookingTime
+                ? new Date(`${bookingDate}T${bookingTime}`).toISOString()
+                : null,
+          },
+        );
+
+        if (finalEligibilityCheck.data?.[0]?.can_book === false) {
+          Alert.alert(
+            "Booking Not Allowed",
+            finalEligibilityCheck.data[0].restriction_reason ||
+              "This booking cannot be completed.",
+            [{ text: "OK" }],
+          );
+          return;
+        }
+
+        // Tailor confirmation message based on booking type
+        const confirmationTitle = isRequestBooking
+          ? "Send Booking Request?"
+          : "Confirm Your Booking";
+        let confirmationMessage = `You are ${isRequestBooking ? "requesting" : "booking"} a table for ${totalPartySize} at ${restaurant?.name} on ${bookingDate.toLocaleDateString()} at ${bookingTime}.`;
+        if (isRequestBooking) {
+          confirmationMessage +=
+            "\n\nThe restaurant will review your request and confirm shortly.";
+        }
+        if (selectedOffer) {
+          confirmationMessage += `\n\nOffer Applied: ${selectedOffer.special_offer.title}`;
+        }
+
+        // Show confirmation alert
+        Alert.alert(confirmationTitle, confirmationMessage, [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: isRequestBooking ? "Send Request" : "Confirm",
+            onPress: () => executeSubmit(formData),
+          },
+        ]);
       },
-    ]);
-  };
+      {
+        rateLimitKey: profile?.id,
+        actionType: "booking_creation",
+        requireAuth: true,
+        fraudCheck: true,
+        validateInput: true,
+      },
+    ),
+    [
+      profile,
+      restaurantId,
+      selectedOffer,
+      totalPartySize,
+      isRequestBooking,
+      restaurant,
+      bookingDate,
+      bookingTime,
+    ],
+  );
 
   // --- Callback Handlers ---
   const handleInvitesSent = useCallback((friendIds: string[]) => {

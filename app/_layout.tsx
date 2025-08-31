@@ -110,7 +110,6 @@ function RootLayoutContent() {
     ]);
   }, []);
 
-
   return (
     <>
       <NetworkStatusBar />

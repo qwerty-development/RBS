@@ -481,6 +481,7 @@ export class AvailabilityService {
   ): Promise<TimeSlotBasic[]> {
     const dateStr = date.toISOString().split("T")[0];
     const now = new Date();
+    const minimumBookingTime = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes from now
     const availableSlots: TimeSlotBasic[] = [];
 
     const batchSize = 10;
@@ -489,7 +490,8 @@ export class AvailabilityService {
       const batchPromises = batch.map(async (slot) => {
         const startTime = new Date(`${dateStr}T${slot.time}:00`);
 
-        if (startTime < now) return null;
+        // Filter out slots that are less than 15 minutes from now
+        if (startTime <= minimumBookingTime) return null;
 
         const cacheKey = `quick-check:${restaurantId}:${startTime.toISOString()}:${partySize}`;
         let hasAvailability = this.quickAvailabilityCache.get(cacheKey);

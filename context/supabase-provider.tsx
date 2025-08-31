@@ -9,13 +9,20 @@ import React, {
 } from "react";
 import { SplashScreen, useRouter } from "expo-router";
 import { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/config/supabase";
+import { supabase } from "../config/supabase";
 import { View, ActivityIndicator, Text, Alert, Platform } from "react-native";
 import * as AppleAuthentication from "expo-apple-authentication";
 import * as WebBrowser from "expo-web-browser";
 import { makeRedirectUri } from "expo-auth-session";
 import * as Linking from "expo-linking";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import {
+  SecurityMonitor,
+  RateLimiter,
+  DeviceSecurity,
+  withSecurityMiddleware,
+  InputValidator,
+} from "../lib/security";
 
 const GUEST_MODE_KEY = "guest-mode-active";
 
@@ -243,105 +250,279 @@ function AuthContent({ children }: PropsWithChildren) {
   );
 
   const signUp = useCallback(
-    async (
-      email: string,
-      password: string,
-      fullName: string,
-      phoneNumber?: string,
-    ) => {
-      try {
-        console.log("🔄 Starting sign-up process for:", email);
+    withSecurityMiddleware(
+      async (
+        email: string,
+        password: string,
+        fullName: string,
+        phoneNumber?: string,
+      ) => {
+        try {
+          console.log("🔄 Starting sign-up process for:", email);
 
-        // Clear guest mode when signing up
-        setIsGuest(false);
+          // Enhanced input validation
+          if (!InputValidator.isValidEmail(email)) {
+            throw new Error("Please enter a valid email address");
+          }
 
-        const { data: authData, error: authError } = await supabase.auth.signUp(
-          {
+          const passwordValidation = InputValidator.validatePassword(password);
+          if (!passwordValidation.isValid) {
+            throw new Error(
+              passwordValidation.errors[0] || "Password is not strong enough",
+            );
+          }
+
+          if (!fullName || fullName.trim().length < 2) {
+            throw new Error("Please enter your full name");
+          }
+
+          if (phoneNumber && !InputValidator.isValidPhoneNumber(phoneNumber)) {
+            throw new Error("Please enter a valid phone number");
+          }
+
+          // Check rate limits for registration attempts
+          const rateLimitResult = await RateLimiter.checkActionRateLimit(
             email,
-            password,
-            options: {
-              emailRedirectTo: Linking.createURL("/auth-confirm"),
-              data: {
-                full_name: fullName,
-                phone_number: phoneNumber,
-              },
-            },
-          },
-        );
-
-        if (authError) {
-          console.error("❌ Auth sign-up error:", authError);
-          throw authError;
-        }
-
-        console.log("✅ Auth sign-up successful");
-
-        // Create profile if user was created
-        if (authData.user && !authData.session) {
-          console.log("ℹ️ User created but needs email confirmation");
-          Alert.alert(
-            "Check Your Email",
-            "We've sent you a confirmation link. Please check your email and click the link to activate your account.",
-            [{ text: "OK" }],
+            "registration_attempts",
           );
-        } else if (authData.user && authData.session) {
-          console.log("🔄 Creating user profile...");
 
-          const { error: profileError } = await supabase
-            .from("profiles")
-            .insert({
-              id: authData.user.id,
-              full_name: fullName,
-              phone_number: phoneNumber,
-              loyalty_points: 0,
-              membership_tier: "bronze",
-              notification_preferences: {
-                email: true,
-                push: true,
-                sms: false,
+          if (!rateLimitResult.allowed) {
+            await SecurityMonitor.monitorSuspiciousActivity({
+              type: "account_abuse",
+              metadata: {
+                email,
+                reason: "registration_rate_limit",
+                timestamp: new Date().toISOString(),
               },
             });
 
-          if (profileError) {
-            console.error(
-              "⚠️ Profile creation error (non-critical):",
-              profileError,
+            throw new Error(
+              "Too many registration attempts. Please try again later.",
             );
-          } else {
-            console.log("✅ Profile created successfully");
           }
+
+          // Check device account limits
+          const deviceAllowed = await DeviceSecurity.checkDeviceAccountLimit();
+          if (!deviceAllowed) {
+            await SecurityMonitor.monitorSuspiciousActivity({
+              type: "account_abuse",
+              metadata: {
+                email,
+                reason: "device_account_limit_exceeded",
+                timestamp: new Date().toISOString(),
+              },
+            });
+
+            throw new Error(
+              "Maximum number of accounts reached for this device",
+            );
+          }
+
+          // Clear guest mode when signing up
+          setIsGuest(false);
+
+          const { data: authData, error: authError } =
+            await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                emailRedirectTo: Linking.createURL("/auth-confirm"),
+                data: {
+                  full_name: fullName,
+                  phone_number: phoneNumber,
+                },
+              },
+            });
+
+          if (authError) {
+            console.error("❌ Auth sign-up error:", authError);
+
+            // Monitor failed registration attempts
+            await SecurityMonitor.monitorSuspiciousActivity({
+              type: "account_abuse",
+              metadata: {
+                email,
+                error: authError.message,
+                reason: "registration_failed",
+                timestamp: new Date().toISOString(),
+              },
+            });
+
+            throw authError;
+          }
+
+          console.log("✅ Auth sign-up successful");
+
+          // Create profile if user was created
+          if (authData.user && !authData.session) {
+            console.log("ℹ️ User created but needs email confirmation");
+            Alert.alert(
+              "Check Your Email",
+              "We've sent you a confirmation link. Please check your email and click the link to activate your account.",
+              [{ text: "OK" }],
+            );
+          } else if (authData.user && authData.session) {
+            console.log("🔄 Creating user profile...");
+
+            // Register device for the new user
+            await DeviceSecurity.registerDeviceForUser(authData.user.id);
+
+            const { error: profileError } = await supabase
+              .from("profiles")
+              .insert({
+                id: authData.user.id,
+                full_name: fullName,
+                phone_number: phoneNumber,
+                loyalty_points: 0,
+                membership_tier: "bronze",
+                user_rating: 5.0, // New users start with excellent rating
+                notification_preferences: {
+                  email: true,
+                  push: true,
+                  sms: false,
+                },
+              });
+
+            if (profileError) {
+              console.error(
+                "⚠️ Profile creation error (non-critical):",
+                profileError,
+              );
+            } else {
+              console.log("✅ Profile created successfully");
+            }
+          }
+
+          // Log successful registration for monitoring
+          if (authData.user) {
+            await SecurityMonitor.monitorSuspiciousActivity({
+              type: "account_abuse",
+              userId: authData.user.id,
+              metadata: {
+                action: "successful_registration",
+                email,
+                timestamp: new Date().toISOString(),
+              },
+            });
+          }
+        } catch (error) {
+          console.error("❌ Sign-up error:", error);
+          throw error;
         }
-      } catch (error) {
-        console.error("❌ Sign-up error:", error);
-        throw error;
-      }
-    },
+      },
+      {
+        actionType: "registration_attempts",
+        validateInput: true,
+        monitorFailures: true,
+      },
+    ),
     [],
   );
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    try {
-      console.log("🔄 Starting sign-in process for:", email);
+  const signIn = useCallback(
+    withSecurityMiddleware(
+      async (email: string, password: string) => {
+        try {
+          console.log("🔄 Starting sign-in process for:", email);
 
-      // Clear guest mode when signing in
-      setIsGuest(false);
+          // Input validation
+          if (!InputValidator.isValidEmail(email)) {
+            throw new Error("Please enter a valid email address");
+          }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+          if (!password || password.length < 6) {
+            throw new Error("Password must be at least 6 characters");
+          }
 
-      if (error) {
-        console.error("❌ Sign-in error:", error);
-        throw error;
-      }
+          // Check rate limits for login attempts
+          const rateLimitResult = await RateLimiter.checkActionRateLimit(
+            email,
+            "login_attempts",
+          );
 
-      console.log("✅ Sign-in successful");
-    } catch (error) {
-      console.error("❌ Sign-in error:", error);
-      throw error;
-    }
-  }, []);
+          if (!rateLimitResult.allowed) {
+            await SecurityMonitor.monitorSuspiciousActivity({
+              type: "multiple_failed_logins",
+              metadata: { email, timestamp: new Date().toISOString() },
+            });
+
+            throw new Error("Too many login attempts. Please try again later.");
+          }
+
+          // Check device account limits
+          const deviceAllowed = await DeviceSecurity.checkDeviceAccountLimit();
+          if (!deviceAllowed) {
+            await SecurityMonitor.monitorSuspiciousActivity({
+              type: "account_abuse",
+              metadata: {
+                email,
+                reason: "device_account_limit_exceeded",
+                timestamp: new Date().toISOString(),
+              },
+            });
+
+            throw new Error(
+              "Maximum number of accounts reached for this device",
+            );
+          }
+
+          // Clear guest mode when signing in
+          setIsGuest(false);
+
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (error) {
+            console.error("❌ Sign-in error:", error);
+
+            // Monitor failed login attempts
+            await SecurityMonitor.monitorSuspiciousActivity({
+              type: "multiple_failed_logins",
+              metadata: {
+                email,
+                error: error.message,
+                timestamp: new Date().toISOString(),
+              },
+            });
+
+            throw error;
+          }
+
+          // Successful login - register device and check for security flags
+          if (data.user) {
+            await DeviceSecurity.registerDeviceForUser(data.user.id);
+
+            // Check if user is flagged for suspicious activity
+            const suspiciousFlags =
+              await SecurityMonitor.checkUserSuspiciousFlags(data.user.id);
+            if (
+              suspiciousFlags.isFlagged &&
+              suspiciousFlags.riskLevel === "high"
+            ) {
+              Alert.alert(
+                "Account Review",
+                "Your account has been flagged for review. Some features may be limited. Please contact support if you have questions.",
+                [{ text: "OK" }],
+              );
+            }
+          }
+
+          console.log("✅ Sign-in successful");
+        } catch (error) {
+          console.error("❌ Sign-in error:", error);
+          throw error;
+        }
+      },
+      {
+        actionType: "login_attempts",
+        validateInput: true,
+        monitorFailures: true,
+      },
+    ),
+    [],
+  );
 
   const signOut = useCallback(async () => {
     try {
@@ -567,7 +748,7 @@ function AuthContent({ children }: PropsWithChildren) {
           showTitle: false,
         }),
       };
-      
+
       const browserPromise = WebBrowser.openAuthSessionAsync(
         data.url,
         redirectUrl,
@@ -629,7 +810,9 @@ function AuthContent({ children }: PropsWithChildren) {
 
               // Android needs more time to process OAuth state changes
               const processingDelay = Platform.OS === "android" ? 1000 : 500;
-              await new Promise((resolve) => setTimeout(resolve, processingDelay));
+              await new Promise((resolve) =>
+                setTimeout(resolve, processingDelay),
+              );
 
               // Process OAuth user profile
               const userProfile = await processOAuthUser(sessionData.session);
@@ -958,46 +1141,57 @@ function AuthContent({ children }: PropsWithChildren) {
         }
       } catch (error) {
         console.error("❌ Navigation error (will auto-recover):", error);
-        
+
         // SILENT fallback navigation - never throw errors to UI
         const attemptFallbackNavigation = (attempt = 1) => {
           const maxAttempts = 5; // Increased attempts for more reliability
           const delay = Platform.OS === "android" ? attempt * 800 : 300;
-          
+
           setTimeout(() => {
             try {
-              console.log(`🔄 Silent fallback navigation attempt ${attempt}/${maxAttempts} on ${Platform.OS}`);
-              
+              console.log(
+                `🔄 Silent fallback navigation attempt ${attempt}/${maxAttempts} on ${Platform.OS}`,
+              );
+
               if (!router || typeof router.replace !== "function") {
                 if (attempt < maxAttempts) {
                   console.log("Router still not ready, retrying silently...");
                   attemptFallbackNavigation(attempt + 1);
                   return;
                 } else {
-                  console.log("❌ Router unavailable after all attempts - user will see loading");
+                  console.log(
+                    "❌ Router unavailable after all attempts - user will see loading",
+                  );
                   return;
                 }
               }
-              
+
               if (session || isGuest) {
                 router.replace("/(protected)/(tabs)");
                 console.log("✅ Silent fallback navigation to tabs successful");
               } else {
                 router.replace("/welcome");
-                console.log("✅ Silent fallback navigation to welcome successful");
+                console.log(
+                  "✅ Silent fallback navigation to welcome successful",
+                );
               }
             } catch (fallbackError) {
-              console.log(`❌ Silent fallback navigation attempt ${attempt} failed (continuing):`, fallbackError);
-              
+              console.log(
+                `❌ Silent fallback navigation attempt ${attempt} failed (continuing):`,
+                fallbackError,
+              );
+
               if (attempt < maxAttempts) {
                 attemptFallbackNavigation(attempt + 1);
               } else {
-                console.log("❌ All silent fallback attempts completed - user will see loading");
+                console.log(
+                  "❌ All silent fallback attempts completed - user will see loading",
+                );
               }
             }
           }, delay);
         };
-        
+
         attemptFallbackNavigation();
       } finally {
         // Always release the navigation lock after a delay

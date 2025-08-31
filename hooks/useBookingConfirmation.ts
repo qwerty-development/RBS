@@ -103,22 +103,28 @@ export const useBookingConfirmation = () => {
       let modifiedProps = props;
       try {
         const eligibility = await checkBookingEligibility(props.restaurantId);
-        
+
         if (eligibility && !eligibility.can_book) {
           Alert.alert(
-            "Booking Restricted", 
-            eligibility.restriction_reason || "You cannot book at this restaurant due to your current rating.",
-            [{ text: "OK" }]
+            "Booking Restricted",
+            eligibility.restriction_reason ||
+              "You cannot book at this restaurant due to your current rating.",
+            [{ text: "OK" }],
           );
           return false;
         }
 
         // Force request-only booking if user can't book instant
-        if (eligibility && eligibility.forced_policy === "request" && props.bookingPolicy === "instant") {
+        if (
+          eligibility &&
+          eligibility.forced_policy === "request" &&
+          props.bookingPolicy === "instant"
+        ) {
           // Show warning and convert to request booking
           Alert.alert(
             "Booking Policy Changed",
-            eligibility.restriction_reason || "Due to your current rating, this booking will be submitted as a request for restaurant approval."
+            eligibility.restriction_reason ||
+              "Due to your current rating, this booking will be submitted as a request for restaurant approval.",
           );
           modifiedProps = { ...props, bookingPolicy: "request" as const };
         }

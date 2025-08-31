@@ -223,7 +223,6 @@ export default function PostDetailScreen() {
   };
 
   const handleComment = async () => {
-
     setPosting(true);
     try {
       const { data, error } = await supabase
@@ -395,7 +394,7 @@ export default function PostDetailScreen() {
               >
                 <Heart size={96} color="#ef4444" fill="#ef4444" />
               </Animated.View>
-              
+
               <GestureDetector gesture={doubleTapGesture}>
                 <View>
                   <FlatList
@@ -426,7 +425,7 @@ export default function PostDetailScreen() {
                   />
                 </View>
               </GestureDetector>
-              
+
               {post.images.length > 1 && (
                 <View className="absolute bottom-3 right-3 bg-black/60 px-2 py-1 rounded">
                   <Text className="text-white text-xs">
@@ -487,7 +486,9 @@ export default function PostDetailScreen() {
                       <Text className="font-semibold mb-1 text-sm">
                         {comment.user.full_name}
                       </Text>
-                      <Text className="text-sm leading-5">{comment.comment}</Text>
+                      <Text className="text-sm leading-5">
+                        {comment.comment}
+                      </Text>
                     </View>
                     <View className="flex-row items-center mt-2 px-2">
                       <Muted className="text-xs">

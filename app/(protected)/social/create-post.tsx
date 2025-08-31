@@ -70,18 +70,18 @@ export default function CreatePostScreen() {
   useEffect(() => {
     const initializeData = async () => {
       setLoading(true);
-      
+
       // Fetch friends first
       await fetchFriends();
-      
+
       // Fetch booking details if bookingId is provided
       if (bookingId) {
         await fetchBookingDetails();
       }
-      
+
       setLoading(false);
     };
-    
+
     initializeData();
   }, [bookingId, profile?.id]);
 
@@ -117,20 +117,23 @@ export default function CreatePostScreen() {
       // Get accepted friendships with a simpler query
       const { data: friendships, error } = await supabase
         .from("friends")
-        .select(`
+        .select(
+          `
           user_id,
           friend_id
-        `)
+        `,
+        )
         .or(`user_id.eq.${profile.id},friend_id.eq.${profile.id}`);
 
       if (error) throw error;
 
       // Get friend IDs
-      const friendIds = friendships?.map((friendship) => {
-        return friendship.user_id === profile.id 
-          ? friendship.friend_id 
-          : friendship.user_id;
-      }) || [];
+      const friendIds =
+        friendships?.map((friendship) => {
+          return friendship.user_id === profile.id
+            ? friendship.friend_id
+            : friendship.user_id;
+        }) || [];
 
       if (friendIds.length === 0) {
         setFriends([]);
