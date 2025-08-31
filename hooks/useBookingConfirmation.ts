@@ -6,6 +6,8 @@ import { useAuth } from "@/context/supabase-provider";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { AvailabilityService } from "@/lib/AvailabilityService";
+import { useUserRating } from "@/hooks/useUserRating";
+import type { BookingEligibilityResult } from "@/types/supabase";
 
 interface BookingConfirmationProps {
   restaurantId: string;
@@ -54,6 +56,7 @@ interface BookingResult {
 export const useBookingConfirmation = () => {
   const { profile } = useAuth();
   const router = useRouter();
+  const { checkBookingEligibility } = useUserRating();
   const [loading, setLoading] = useState(false);
   const [debugMode] = useState(process.env.NODE_ENV === "development");
 
@@ -96,6 +99,34 @@ export const useBookingConfirmation = () => {
         return false;
       }
 
+      // Check rating-based booking eligibility
+      let modifiedProps = props;
+      try {
+        const eligibility = await checkBookingEligibility(props.restaurantId);
+        
+        if (eligibility && !eligibility.can_book) {
+          Alert.alert(
+            "Booking Restricted", 
+            eligibility.restriction_reason || "You cannot book at this restaurant due to your current rating.",
+            [{ text: "OK" }]
+          );
+          return false;
+        }
+
+        // Force request-only booking if user can't book instant
+        if (eligibility && eligibility.forced_policy === "request" && props.bookingPolicy === "instant") {
+          // Show warning and convert to request booking
+          Alert.alert(
+            "Booking Policy Changed",
+            eligibility.restriction_reason || "Due to your current rating, this booking will be submitted as a request for restaurant approval."
+          );
+          modifiedProps = { ...props, bookingPolicy: "request" as const };
+        }
+      } catch (error) {
+        console.error("Error checking booking eligibility:", error);
+        // Continue with booking if eligibility check fails to avoid blocking legitimate bookings
+      }
+
       const {
         restaurantId,
         bookingTime,
@@ -112,7 +143,7 @@ export const useBookingConfirmation = () => {
         requiresCombination,
         turnTime = 120,
         isGroupBooking = false,
-      } = props;
+      } = modifiedProps;
 
       // Parse table IDs
       const parsedTableIds = parseTableIds(tableIds);
@@ -541,6 +572,7 @@ export const useBookingConfirmation = () => {
   return {
     confirmBooking,
     cancelBooking,
+    checkBookingEligibility,
     loading,
     isSubmitting: isSubmittingRef.current,
   };

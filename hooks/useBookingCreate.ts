@@ -6,7 +6,7 @@ import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { useBookingsStore } from "@/stores";
-import { Database } from "@/types/supabase";
+import { Database, BookingEligibilityResult } from "@/types/supabase";
 import {
   isValidDate,
   parseDate,
@@ -74,6 +74,11 @@ export function useBookingCreate() {
   // --- Loyalty System State ---
   const [expectedLoyaltyPoints, setExpectedLoyaltyPoints] = useState<number>(0);
   const [loyaltyRuleId, setLoyaltyRuleId] = useState<string | null>(null);
+
+  // --- Rating System State ---
+  const [ratingEligibility, setRatingEligibility] = useState<BookingEligibilityResult | null>(null);
+  const [ratingRestricted, setRatingRestricted] = useState<boolean>(false);
+  const [ratingMessage, setRatingMessage] = useState<string>("");
 
   // --- Booking Type State ---
   const [isRequestBooking, setIsRequestBooking] = useState<boolean>(false);
@@ -194,6 +199,56 @@ export function useBookingCreate() {
   }, [restaurantId, bookingDate, bookingTime, totalPartySize, userTier]);
 
   /**
+   * Checks user's booking eligibility based on their rating and restaurant requirements.
+   * This prevents users with low ratings from attempting bookings they can't complete.
+   */
+  const checkBookingEligibility = useCallback(async () => {
+    if (!profile || !restaurantId) return;
+
+    try {
+      const { data, error } = await supabase.rpc("check_booking_eligibility", {
+        user_id_param: profile.id,
+        restaurant_id_param: restaurantId,
+        party_size_param: totalPartySize,
+      });
+
+      if (error) {
+        console.warn("Could not check booking eligibility:", error.message);
+        // Default to allow booking if check fails
+        setRatingEligibility(null);
+        setRatingRestricted(false);
+        setRatingMessage("");
+        return;
+      }
+
+      if (data && data.length > 0) {
+        const eligibility = data[0];
+        setRatingEligibility(eligibility);
+        
+        if (!eligibility.can_book) {
+          setRatingRestricted(true);
+          setRatingMessage(eligibility.restriction_reason || "Your current rating doesn't allow bookings at this restaurant.");
+        } else {
+          setRatingRestricted(false);
+          setRatingMessage("");
+          
+          // Check if booking is forced to be request-only due to rating
+          if (eligibility.forced_policy === "request_only") {
+            setIsRequestBooking(true);
+            setRatingMessage("Due to your current rating, this will be submitted as a request for restaurant approval.");
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Error checking booking eligibility:", err);
+      // Default to allow booking if check fails
+      setRatingEligibility(null);
+      setRatingRestricted(false);
+      setRatingMessage("");
+    }
+  }, [profile, restaurantId, totalPartySize]);
+
+  /**
    * Fetches all initial data required for the booking screen.
    */
   const fetchData = useCallback(async () => {
@@ -209,7 +264,12 @@ export function useBookingCreate() {
 
       if (restaurantError) throw restaurantError;
       setRestaurant(restaurantData);
+      
+      // Initial booking policy check - will be overridden by rating restrictions if needed
       setIsRequestBooking(restaurantData.booking_policy === "request");
+
+      // Check user's booking eligibility based on rating (this may force request-only booking)
+      await checkBookingEligibility();
 
       // Calculate turn time based on base party size
       const bookingWindow = await calculateBookingWindow(
@@ -258,6 +318,7 @@ export function useBookingCreate() {
     bookingDate,
     bookingTime,
     basePartySize,
+    checkBookingEligibility,
     preselectedOfferId,
   ]);
 
@@ -339,6 +400,16 @@ export function useBookingCreate() {
   const executeSubmit = useCallback(
     async (formData: BookingFormData) => {
       if (!profile || !restaurant) return;
+
+      // Check if user is blocked from booking at this restaurant
+      if (ratingRestricted) {
+        Alert.alert(
+          "Booking Restricted",
+          ratingMessage || "Your current rating doesn't allow bookings at this restaurant.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
 
       setSubmitting(true);
       setLastFormData(formData);
@@ -486,6 +557,8 @@ export function useBookingCreate() {
       selectedOffer,
       expectedLoyaltyPoints,
       loyaltyRuleId, // Added new loyalty state
+      ratingRestricted, // Added rating restriction state
+      ratingMessage, // Added rating message state
       handleBookingError,
       router,
     ],
@@ -551,6 +624,11 @@ export function useBookingCreate() {
     selectedOffer,
     selectedOfferUserId,
     isRequestBooking,
+
+    // Rating System State
+    ratingEligibility,
+    ratingRestricted,
+    ratingMessage,
 
     // User & Profile Data
     userPoints,

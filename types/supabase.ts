@@ -1,774 +1,889 @@
-// types/supabase.ts
 export type Json =
   | string
   | number
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
+  | Json[]
 
-export interface Database {
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "13.0.4"
+  }
   public: {
     Tables: {
-      restaurant_loyalty_balance: {
+      booking_invites: {
         Row: {
-          id: string;
-          restaurant_id: string;
-          total_purchased: number;
-          current_balance: number;
-          last_purchase_at: string | null;
-          created_at: string;
-          updated_at: string;
-        };
+          booking_id: string
+          created_at: string | null
+          from_user_id: string
+          id: string
+          message: string | null
+          responded_at: string | null
+          status: string
+          to_user_id: string
+        }
         Insert: {
-          id?: string;
-          restaurant_id: string;
-          total_purchased?: number;
-          current_balance?: number;
-          last_purchase_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
+          booking_id: string
+          created_at?: string | null
+          from_user_id: string
+          id?: string
+          message?: string | null
+          responded_at?: string | null
+          status?: string
+          to_user_id: string
+        }
         Update: {
-          id?: string;
-          restaurant_id?: string;
-          total_purchased?: number;
-          current_balance?: number;
-          last_purchase_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-
-      restaurant_loyalty_transactions: {
+          booking_id?: string
+          created_at?: string | null
+          from_user_id?: string
+          id?: string
+          message?: string | null
+          responded_at?: string | null
+          status?: string
+          to_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_invites_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "active_dining_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_invites_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_invites_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "v_bookings_with_tables"
+            referencedColumns: ["booking_id"]
+          },
+          {
+            foreignKeyName: "booking_invites_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "friends_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_invites_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_invites_to_user_id_fkey"
+            columns: ["to_user_id"]
+            isOneToOne: false
+            referencedRelation: "friends_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_invites_to_user_id_fkey"
+            columns: ["to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      booking_status_history: {
         Row: {
-          id: string;
-          restaurant_id: string;
-          transaction_type: "purchase" | "deduction" | "refund" | "adjustment";
-          points: number;
-          balance_before: number;
-          balance_after: number;
-          description: string | null;
-          booking_id: string | null;
-          user_id: string | null;
-          created_at: string;
-          metadata: any;
-        };
+          booking_id: string
+          changed_at: string | null
+          changed_by: string | null
+          id: string
+          metadata: Json | null
+          new_status: string
+          old_status: string | null
+          reason: string | null
+        }
         Insert: {
-          id?: string;
-          restaurant_id: string;
-          transaction_type: "purchase" | "deduction" | "refund" | "adjustment";
-          points: number;
-          balance_before: number;
-          balance_after: number;
-          description?: string | null;
-          booking_id?: string | null;
-          user_id?: string | null;
-          created_at?: string;
-          metadata?: any;
-        };
+          booking_id: string
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          metadata?: Json | null
+          new_status: string
+          old_status?: string | null
+          reason?: string | null
+        }
         Update: {
-          id?: string;
-          restaurant_id?: string;
-          transaction_type?: "purchase" | "deduction" | "refund" | "adjustment";
-          points?: number;
-          balance_before?: number;
-          balance_after?: number;
-          description?: string | null;
-          booking_id?: string | null;
-          user_id?: string | null;
-          created_at?: string;
-          metadata?: any;
-        };
-      };
-
-      restaurant_loyalty_rules: {
+          booking_id?: string
+          changed_at?: string | null
+          changed_by?: string | null
+          id?: string
+          metadata?: Json | null
+          new_status?: string
+          old_status?: string | null
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_status_history_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "active_dining_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_status_history_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_status_history_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "v_bookings_with_tables"
+            referencedColumns: ["booking_id"]
+          },
+          {
+            foreignKeyName: "booking_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "friends_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_status_history_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_rating_config: {
         Row: {
-          id: string;
-          restaurant_id: string;
-          rule_name: string;
-          points_to_award: number;
-          is_active: boolean;
-          valid_from: string;
-          valid_until: string | null;
-          applicable_days: number[];
-          start_time_minutes: number | null;
-          end_time_minutes: number | null;
-          minimum_party_size: number;
-          maximum_party_size: number | null;
-          max_uses_total: number | null;
-          current_uses: number;
-          max_uses_per_user: number | null;
-          priority: number;
-          created_at: string;
-          updated_at: string;
-        };
+          booking_policy: string
+          created_at: string | null
+          description: string
+          id: string
+          max_party_size: number | null
+          max_rating: number
+          min_rating: number
+          rating_tier: string
+        }
         Insert: {
-          id?: string;
-          restaurant_id: string;
-          rule_name: string;
-          points_to_award: number;
-          is_active?: boolean;
-          valid_from?: string;
-          valid_until?: string | null;
-          applicable_days?: number[];
-          start_time_minutes?: number | null;
-          end_time_minutes?: number | null;
-          minimum_party_size?: number;
-          maximum_party_size?: number | null;
-          max_uses_total?: number | null;
-          current_uses?: number;
-          max_uses_per_user?: number | null;
-          priority?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
+          booking_policy: string
+          created_at?: string | null
+          description: string
+          id?: string
+          max_party_size?: number | null
+          max_rating: number
+          min_rating: number
+          rating_tier: string
+        }
         Update: {
-          id?: string;
-          restaurant_id?: string;
-          rule_name?: string;
-          points_to_award?: number;
-          is_active?: boolean;
-          valid_from?: string;
-          valid_until?: string | null;
-          applicable_days?: number[];
-          start_time_minutes?: number | null;
-          end_time_minutes?: number | null;
-          minimum_party_size?: number;
-          maximum_party_size?: number | null;
-          max_uses_total?: number | null;
-          current_uses?: number;
-          max_uses_per_user?: number | null;
-          priority?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-
-      user_loyalty_rule_usage: {
+          booking_policy?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          max_party_size?: number | null
+          max_rating?: number
+          min_rating?: number
+          rating_tier?: string
+        }
+        Relationships: []
+      }
+      user_rating_history: {
         Row: {
-          id: string;
-          user_id: string;
-          rule_id: string;
-          booking_id: string;
-          used_at: string;
-        };
+          booking_id: string | null
+          change_reason: string
+          created_at: string | null
+          id: string
+          new_rating: number
+          old_rating: number | null
+          user_id: string
+        }
         Insert: {
-          id?: string;
-          user_id: string;
-          rule_id: string;
-          booking_id: string;
-          used_at?: string;
-        };
+          booking_id?: string | null
+          change_reason: string
+          created_at?: string | null
+          id?: string
+          new_rating: number
+          old_rating?: number | null
+          user_id: string
+        }
         Update: {
-          id?: string;
-          user_id?: string;
-          rule_id?: string;
-          booking_id?: string;
-          used_at?: string;
-        };
-      };
-      profiles: {
+          booking_id?: string | null
+          change_reason?: string
+          created_at?: string | null
+          id?: string
+          new_rating?: number
+          old_rating?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_rating_history_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "active_dining_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_rating_history_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_rating_history_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "v_bookings_with_tables"
+            referencedColumns: ["booking_id"]
+          },
+          {
+            foreignKeyName: "user_rating_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "friends_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_rating_history_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_restaurant_blacklist: {
         Row: {
-          id: string;
-          full_name: string;
-          phone_number: string | null;
-          avatar_url: string | null;
-          allergies: string[] | null;
-          favorite_cuisines: string[] | null;
-          dietary_restrictions: string[] | null;
-          preferred_party_size: number | null;
-          notification_preferences?: {
-            email: boolean;
-            push: boolean;
-            sms: boolean;
-          } | null;
-          loyalty_points: number;
-          membership_tier: "bronze" | "silver" | "gold" | "platinum";
-          push_token: string | null;
-          created_at: string;
-          updated_at: string;
-        };
+          blacklisted_at: string | null
+          blacklisted_by: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          reason: string
+          restaurant_id: string
+          user_id: string
+        }
         Insert: {
-          id: string;
-          full_name: string;
-          phone_number?: string | null;
-          avatar_url?: string | null;
-          allergies?: string[] | null;
-          favorite_cuisines?: string[] | null;
-          dietary_restrictions?: string[] | null;
-          preferred_party_size?: number | null;
-          notification_preferences?: {
-            email: boolean;
-            push: boolean;
-            sms: boolean;
-          } | null;
-          loyalty_points?: number;
-          membership_tier?: "bronze" | "silver" | "gold" | "platinum";
-          push_token?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
+          blacklisted_at?: string | null
+          blacklisted_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          reason: string
+          restaurant_id: string
+          user_id: string
+        }
         Update: {
-          id?: string;
-          full_name?: string;
-          phone_number?: string | null;
-          avatar_url?: string | null;
-          allergies?: string[] | null;
-          favorite_cuisines?: string[] | null;
-          dietary_restrictions?: string[] | null;
-          preferred_party_size?: number | null;
-          notification_preferences?: {
-            email: boolean;
-            push: boolean;
-            sms: boolean;
-          } | null;
-          loyalty_points?: number;
-          membership_tier?: "bronze" | "silver" | "gold" | "platinum";
-          push_token?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      restaurants: {
-        Row: {
-          id: string;
-          name: string;
-          description: string;
-          address: string;
-          location: {
-            type: "Point";
-            coordinates: [number, number]; // [longitude, latitude]
-          };
-          main_image_url: string;
-          image_urls: string[] | null;
-          cuisine_type: string;
-          tags: string[] | null;
-          opening_time?: string; // Legacy field - use restaurant_hours table instead
-          closing_time?: string; // Legacy field - use restaurant_hours table instead
-          booking_policy: "instant" | "request";
-          price_range: number; // 1-4
-          average_rating: number;
-          total_reviews: number;
-          phone_number: string | null;
-          whatsapp_number: string | null;
-          instagram_handle: string | null;
-          website_url: string | null;
-          menu_url: string | null;
-          dietary_options: string[] | null;
-          ambiance_tags: string[] | null;
-          parking_available: boolean;
-          valet_parking: boolean;
-          outdoor_seating: boolean;
-          shisha_available: boolean;
-          live_music_schedule: Record<string, boolean> | null;
-          happy_hour_times: { start: string; end: string } | null;
-          booking_window_days: number;
-          cancellation_window_hours: number;
-          table_turnover_minutes: number;
-          featured: boolean;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          name: string;
-          description: string;
-          address: string;
-          location: {
-            type: "Point";
-            coordinates: [number, number];
-          };
-          main_image_url: string;
-          image_urls?: string[] | null;
-          cuisine_type: string;
-          tags?: string[] | null;
-          opening_time?: string; // Legacy field - use restaurant_hours table instead
-          closing_time?: string; // Legacy field - use restaurant_hours table instead
-          booking_policy: "instant" | "request";
-          price_range: number;
-          average_rating?: number;
-          total_reviews?: number;
-          phone_number?: string | null;
-          whatsapp_number?: string | null;
-          instagram_handle?: string | null;
-          website_url?: string | null;
-          menu_url?: string | null;
-          dietary_options?: string[] | null;
-          ambiance_tags?: string[] | null;
-          parking_available?: boolean;
-          valet_parking?: boolean;
-          outdoor_seating?: boolean;
-          shisha_available?: boolean;
-          live_music_schedule?: Record<string, boolean> | null;
-          happy_hour_times?: { start: string; end: string } | null;
-          booking_window_days?: number;
-          cancellation_window_hours?: number;
-          table_turnover_minutes?: number;
-          featured?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          name?: string;
-          description?: string;
-          address?: string;
-          applied_loyalty_rule_id?: string | null;
-          location?: {
-            type: "Point";
-            coordinates: [number, number];
-          };
-          main_image_url?: string;
-          image_urls?: string[] | null;
-          cuisine_type?: string;
-          tags?: string[] | null;
-          opening_time?: string;
-          closing_time?: string;
-          booking_policy?: "instant" | "request";
-          price_range?: number;
-          average_rating?: number;
-          total_reviews?: number;
-          phone_number?: string | null;
-          whatsapp_number?: string | null;
-          instagram_handle?: string | null;
-          website_url?: string | null;
-          menu_url?: string | null;
-          dietary_options?: string[] | null;
-          ambiance_tags?: string[] | null;
-          parking_available?: boolean;
-          valet_parking?: boolean;
-          outdoor_seating?: boolean;
-          shisha_available?: boolean;
-          live_music_schedule?: Record<string, boolean> | null;
-          happy_hour_times?: { start: string; end: string } | null;
-          booking_window_days?: number;
-          cancellation_window_hours?: number;
-          table_turnover_minutes?: number;
-          featured?: boolean;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
+          blacklisted_at?: string | null
+          blacklisted_by?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          reason?: string
+          restaurant_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_restaurant_blacklist_blacklisted_by_fkey"
+            columns: ["blacklisted_by"]
+            isOneToOne: false
+            referencedRelation: "friends_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_restaurant_blacklist_blacklisted_by_fkey"
+            columns: ["blacklisted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_restaurant_blacklist_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_hours_summary"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "user_restaurant_blacklist_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_loyalty_analytics"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "user_restaurant_blacklist_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_restaurant_blacklist_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "v_bookings_with_tables"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "user_restaurant_blacklist_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "friends_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_restaurant_blacklist_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
-          id: string;
-          user_id: string;
-          applied_loyalty_rule_id: string | null;
-          restaurant_id: string;
-          booking_time: string;
-          party_size: number;
-          status:
-            | "pending"
-            | "confirmed"
-            | "cancelled_by_user"
-            | "declined_by_restaurant"
-            | "completed"
-            | "no_show";
-          special_requests: string | null;
-          occasion: string | null;
-          dietary_notes: string[] | null;
-          table_preferences: string[] | null;
-          confirmation_code: string;
-          reminder_sent: boolean;
-          checked_in_at: string | null;
-          loyalty_points_earned: number;
-          created_at: string;
-          updated_at: string;
-        };
+          acceptance_attempted_at: string | null
+          acceptance_failed_reason: string | null
+          actual_end_time: string | null
+          applied_loyalty_rule_id: string | null
+          applied_offer_id: string | null
+          attendees: number | null
+          auto_declined: boolean | null
+          booking_time: string
+          checked_in_at: string | null
+          confirmation_code: string | null
+          created_at: string | null
+          dietary_notes: string[] | null
+          expected_loyalty_points: number | null
+          guest_email: string | null
+          guest_name: string | null
+          guest_phone: string | null
+          id: string
+          is_group_booking: boolean | null
+          loyalty_points_earned: number | null
+          meal_progress: Json | null
+          occasion: string | null
+          organizer_id: string | null
+          party_size: number
+          reminder_sent: boolean | null
+          request_expires_at: string | null
+          restaurant_id: string
+          seated_at: string | null
+          source: string
+          special_requests: string | null
+          status: string
+          suggested_alternative_tables: string[] | null
+          suggested_alternative_time: string | null
+          table_preferences: string[] | null
+          turn_time_minutes: number
+          updated_at: string | null
+          user_id: string
+        }
         Insert: {
-          id?: string;
-          user_id: string;
-          restaurant_id: string;
-          booking_time: string;
-          party_size: number;
-          applied_loyalty_rule_id?: string | null;
-          status:
-            | "pending"
-            | "confirmed"
-            | "cancelled_by_user"
-            | "declined_by_restaurant"
-            | "completed"
-            | "no_show";
-          special_requests?: string | null;
-          occasion?: string | null;
-          dietary_notes?: string[] | null;
-          table_preferences?: string[] | null;
-          confirmation_code?: string;
-          reminder_sent?: boolean;
-          checked_in_at?: string | null;
-          loyalty_points_earned?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
+          acceptance_attempted_at?: string | null
+          acceptance_failed_reason?: string | null
+          actual_end_time?: string | null
+          applied_loyalty_rule_id?: string | null
+          applied_offer_id?: string | null
+          attendees?: number | null
+          auto_declined?: boolean | null
+          booking_time: string
+          checked_in_at?: string | null
+          confirmation_code?: string | null
+          created_at?: string | null
+          dietary_notes?: string[] | null
+          expected_loyalty_points?: number | null
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
+          id?: string
+          is_group_booking?: boolean | null
+          loyalty_points_earned?: number | null
+          meal_progress?: Json | null
+          occasion?: string | null
+          organizer_id?: string | null
+          party_size: number
+          reminder_sent?: boolean | null
+          request_expires_at?: string | null
+          restaurant_id: string
+          seated_at?: string | null
+          source?: string
+          special_requests?: string | null
+          status: string
+          suggested_alternative_tables?: string[] | null
+          suggested_alternative_time?: string | null
+          table_preferences?: string[] | null
+          turn_time_minutes?: number
+          updated_at?: string | null
+          user_id: string
+        }
         Update: {
-          id?: string;
-          user_id?: string;
-          restaurant_id?: string;
-          booking_time?: string;
-          party_size?: number;
-          status?:
-            | "pending"
-            | "confirmed"
-            | "cancelled_by_user"
-            | "declined_by_restaurant"
-            | "completed"
-            | "no_show";
-          special_requests?: string | null;
-          occasion?: string | null;
-          dietary_notes?: string[] | null;
-          table_preferences?: string[] | null;
-          confirmation_code?: string;
-          reminder_sent?: boolean;
-          checked_in_at?: string | null;
-          loyalty_points_earned?: number;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      favorites: {
+          acceptance_attempted_at?: string | null
+          acceptance_failed_reason?: string | null
+          actual_end_time?: string | null
+          applied_loyalty_rule_id?: string | null
+          applied_offer_id?: string | null
+          attendees?: number | null
+          auto_declined?: boolean | null
+          booking_time?: string
+          checked_in_at?: string | null
+          confirmation_code?: string | null
+          created_at?: string | null
+          dietary_notes?: string[] | null
+          expected_loyalty_points?: number | null
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
+          id?: string
+          is_group_booking?: boolean | null
+          loyalty_points_earned?: number | null
+          meal_progress?: Json | null
+          occasion?: string | null
+          organizer_id?: string | null
+          party_size?: number
+          reminder_sent?: boolean | null
+          request_expires_at?: string | null
+          restaurant_id?: string
+          seated_at?: string | null
+          source?: string
+          special_requests?: string | null
+          status?: string
+          suggested_alternative_tables?: string[] | null
+          suggested_alternative_time?: string | null
+          table_preferences?: string[] | null
+          turn_time_minutes?: number
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_applied_loyalty_rule_id_fkey"
+            columns: ["applied_loyalty_rule_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_loyalty_rules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_applied_offer_id_fkey"
+            columns: ["applied_offer_id"]
+            isOneToOne: false
+            referencedRelation: "special_offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_organizer_id_fkey"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "friends_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_organizer_id_fkey"
+            columns: ["organizer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_hours_summary"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "bookings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurant_loyalty_analytics"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "bookings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "restaurants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_restaurant_id_fkey"
+            columns: ["restaurant_id"]
+            isOneToOne: false
+            referencedRelation: "v_bookings_with_tables"
+            referencedColumns: ["restaurant_id"]
+          },
+          {
+            foreignKeyName: "bookings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "friends_view"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
         Row: {
-          id: string;
-          user_id: string;
-          restaurant_id: string;
-          created_at: string;
-        };
+          id: string
+          full_name: string | null
+          email: string | null
+          avatar_url: string | null
+          created_at: string | null
+          updated_at: string | null
+          phone: string | null
+          date_of_birth: string | null
+          bio: string | null
+          location: Json | null
+          preferences: Json | null
+          membership_tier: string
+          total_loyalty_points: number
+          lifetime_bookings: number
+          user_rating: number
+          last_active_at: string | null
+          notification_settings: Json | null
+          is_active: boolean
+          guest_mode: boolean
+        }
         Insert: {
-          id?: string;
-          user_id: string;
-          restaurant_id: string;
-          created_at?: string;
-        };
+          id: string
+          full_name?: string | null
+          email?: string | null
+          avatar_url?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          phone?: string | null
+          date_of_birth?: string | null
+          bio?: string | null
+          location?: Json | null
+          preferences?: Json | null
+          membership_tier?: string
+          total_loyalty_points?: number
+          lifetime_bookings?: number
+          user_rating?: number
+          last_active_at?: string | null
+          notification_settings?: Json | null
+          is_active?: boolean
+          guest_mode?: boolean
+        }
         Update: {
-          id?: string;
-          user_id?: string;
-          restaurant_id?: string;
-          created_at?: string;
-        };
-      };
-      reviews: {
+          id?: string
+          full_name?: string | null
+          email?: string | null
+          avatar_url?: string | null
+          created_at?: string | null
+          updated_at?: string | null
+          phone?: string | null
+          date_of_birth?: string | null
+          bio?: string | null
+          location?: Json | null
+          preferences?: Json | null
+          membership_tier?: string
+          total_loyalty_points?: number
+          lifetime_bookings?: number
+          user_rating?: number
+          last_active_at?: string | null
+          notification_settings?: Json | null
+          is_active?: boolean
+          guest_mode?: boolean
+        }
+        Relationships: []
+      }
+      restaurants: {
         Row: {
-          id: string;
-          booking_id: string;
-          user_id: string;
-          restaurant_id: string;
-          rating: number;
-          comment: string | null;
-          created_at: string;
-        };
+          id: string
+          name: string
+          description: string | null
+          image_url: string | null
+          address: string
+          location: unknown | null
+          phone: string | null
+          email: string | null
+          website: string | null
+          cuisine_type: string[]
+          price_range: string
+          rating: number
+          review_count: number
+          booking_policy: string
+          policies: Json | null
+          created_at: string | null
+          updated_at: string | null
+          is_active: boolean
+          turn_time_minutes: number
+          advance_booking_days: number
+          cancellation_policy: Json | null
+          dining_style: string[] | null
+          features: string[] | null
+          dress_code: string | null
+          age_restriction: string | null
+          operating_hours: Json | null
+          special_diets: string[] | null
+          payment_methods: string[] | null
+          social_media: Json | null
+          max_party_size: number
+          accepts_reservations: boolean
+          deposit_required: boolean
+          deposit_amount: number | null
+          availability_window: number
+          instant_booking_enabled: boolean
+          minimum_rating_required: number | null
+        }
         Insert: {
-          id?: string;
-          booking_id: string;
-          user_id: string;
-          restaurant_id: string;
-          rating: number;
-          comment?: string | null;
-          created_at?: string;
-        };
+          id?: string
+          name: string
+          description?: string | null
+          image_url?: string | null
+          address: string
+          location?: unknown | null
+          phone?: string | null
+          email?: string | null
+          website?: string | null
+          cuisine_type?: string[]
+          price_range?: string
+          rating?: number
+          review_count?: number
+          booking_policy?: string
+          policies?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+          is_active?: boolean
+          turn_time_minutes?: number
+          advance_booking_days?: number
+          cancellation_policy?: Json | null
+          dining_style?: string[] | null
+          features?: string[] | null
+          dress_code?: string | null
+          age_restriction?: string | null
+          operating_hours?: Json | null
+          special_diets?: string[] | null
+          payment_methods?: string[] | null
+          social_media?: Json | null
+          max_party_size?: number
+          accepts_reservations?: boolean
+          deposit_required?: boolean
+          deposit_amount?: number | null
+          availability_window?: number
+          instant_booking_enabled?: boolean
+          minimum_rating_required?: number | null
+        }
         Update: {
-          id?: string;
-          booking_id?: string;
-          user_id?: string;
-          restaurant_id?: string;
-          rating?: number;
-          comment?: string | null;
-          created_at?: string;
-        };
-      };
-      restaurant_availability: {
-        Row: {
-          id: string;
-          restaurant_id: string;
-          date: string;
-          time_slot: string;
-          total_capacity: number;
-          available_capacity: number;
-        };
-        Insert: {
-          id?: string;
-          restaurant_id: string;
-          date: string;
-          time_slot: string;
-          total_capacity: number;
-          available_capacity: number;
-        };
-        Update: {
-          id?: string;
-          restaurant_id?: string;
-          date?: string;
-          time_slot?: string;
-          total_capacity?: number;
-          available_capacity?: number;
-        };
-      };
-      waitlist: {
-        Row: {
-          id: string;
-          user_id: string | null;
-          restaurant_id: string;
-          desired_date: string;
-          desired_time_range: string;
-          party_size: number;
-          table_type: "any" | "indoor" | "outdoor" | "bar" | "private";
-          status: "active" | "notified" | "booked" | "expired" | "cancelled";
-          guest_name: string | null;
-          guest_email: string | null;
-          guest_phone: string | null;
-          special_requests: string | null;
-          notified_at: string | null;
-          notification_expires_at: string | null;
-          expires_at: string | null;
-          converted_booking_id: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id?: string | null;
-          restaurant_id: string;
-          desired_date: string;
-          desired_time_range: string;
-          party_size: number;
-          table_type?: "any" | "indoor" | "outdoor" | "bar" | "private";
-          status?: "active" | "notified" | "booked" | "expired" | "cancelled";
-          guest_name?: string | null;
-          guest_email?: string | null;
-          guest_phone?: string | null;
-          special_requests?: string | null;
-          notified_at?: string | null;
-          notification_expires_at?: string | null;
-          expires_at?: string | null;
-          converted_booking_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string | null;
-          restaurant_id?: string;
-          desired_date?: string;
-          desired_time_range?: string;
-          party_size?: number;
-          table_type?: "any" | "indoor" | "outdoor" | "bar" | "private";
-          status?: "active" | "notified" | "booked" | "expired" | "cancelled";
-          guest_name?: string | null;
-          guest_email?: string | null;
-          guest_phone?: string | null;
-          special_requests?: string | null;
-          notified_at?: string | null;
-          notification_expires_at?: string | null;
-          expires_at?: string | null;
-          converted_booking_id?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-      };
-      social_connections: {
-        Row: {
-          id: string;
-          user_id: string;
-          friend_id: string;
-          status: "pending" | "accepted" | "blocked";
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          friend_id: string;
-          status?: "pending" | "accepted" | "blocked";
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          friend_id?: string;
-          status?: "pending" | "accepted" | "blocked";
-          created_at?: string;
-        };
-      };
-      shared_bookings: {
-        Row: {
-          id: string;
-          booking_id: string;
-          shared_with_user_id: string;
-          accepted: boolean;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          booking_id: string;
-          shared_with_user_id: string;
-          accepted?: boolean;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          booking_id?: string;
-          shared_with_user_id?: string;
-          accepted?: boolean;
-          created_at?: string;
-        };
-      };
-      special_offers: {
-        Row: {
-          id: string;
-          restaurant_id: string;
-          title: string;
-          description: string | null;
-          discount_percentage: number;
-          valid_from: string;
-          valid_until: string;
-          terms_conditions: string[] | null;
-          minimum_party_size: number;
-          applicable_days: number[] | null;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          restaurant_id: string;
-          title: string;
-          description?: string | null;
-          discount_percentage: number;
-          valid_from: string;
-          valid_until: string;
-          terms_conditions?: string[] | null;
-          minimum_party_size?: number;
-          applicable_days?: number[] | null;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          restaurant_id?: string;
-          title?: string;
-          description?: string | null;
-          discount_percentage?: number;
-          valid_from?: string;
-          valid_until?: string;
-          terms_conditions?: string[] | null;
-          minimum_party_size?: number;
-          applicable_days?: number[] | null;
-          created_at?: string;
-        };
-      };
-      user_offers: {
-        Row: {
-          id: string;
-          user_id: string;
-          offer_id: string;
-          booking_id: string | null;
-          claimed_at: string;
-          used_at: string | null;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          offer_id: string;
-          booking_id?: string | null;
-          claimed_at?: string;
-          used_at?: string | null;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          offer_id?: string;
-          booking_id?: string | null;
-          claimed_at?: string;
-          used_at?: string | null;
-        };
-      };
-    };
+          id?: string
+          name?: string
+          description?: string | null
+          image_url?: string | null
+          address?: string
+          location?: unknown | null
+          phone?: string | null
+          email?: string | null
+          website?: string | null
+          cuisine_type?: string[]
+          price_range?: string
+          rating?: number
+          review_count?: number
+          booking_policy?: string
+          policies?: Json | null
+          created_at?: string | null
+          updated_at?: string | null
+          is_active?: boolean
+          turn_time_minutes?: number
+          advance_booking_days?: number
+          cancellation_policy?: Json | null
+          dining_style?: string[] | null
+          features?: string[] | null
+          dress_code?: string | null
+          age_restriction?: string | null
+          operating_hours?: Json | null
+          special_diets?: string[] | null
+          payment_methods?: string[] | null
+          social_media?: Json | null
+          max_party_size?: number
+          accepts_reservations?: boolean
+          deposit_required?: boolean
+          deposit_amount?: number | null
+          availability_window?: number
+          instant_booking_enabled?: boolean
+          minimum_rating_required?: number | null
+        }
+        Relationships: []
+      }
+    }
     Views: {
-      [_ in never]: never;
-    };
+      friends_view: {
+        Row: {
+          avatar_url: string | null
+          email: string | null
+          full_name: string | null
+          id: string | null
+          membership_tier: string | null
+          user_rating: number | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string | null
+          membership_tier?: string | null
+          user_rating?: number | null
+        }
+        Update: {
+          avatar_url?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string | null
+          membership_tier?: string | null
+          user_rating?: number | null
+        }
+        Relationships: []
+      }
+    }
     Functions: {
-      check_loyalty_rules_for_booking: {
+      calculate_user_rating: {
+        Args: { user_id_param: string }
+        Returns: number
+      }
+      check_booking_eligibility: {
         Args: {
-          p_booking_id: string;
-        };
+          party_size_param?: number
+          restaurant_id_param: string
+          user_id_param: string
+        }
         Returns: {
-          rule_id: string;
-          points_to_award: number;
-          rule_name: string;
-        }[];
-      };
-
-      award_restaurant_loyalty_points: {
+          can_book: boolean
+          forced_policy: string
+          restriction_reason: string
+          user_rating: number
+          user_tier: string
+        }[]
+      }
+      get_user_rating_tier: {
+        Args: { user_rating_param: number }
+        Returns: {
+          booking_policy: string
+          description: string
+          max_party_size: number
+          tier: string
+        }[]
+      }
+      update_user_rating: {
         Args: {
-          p_booking_id: string;
-        };
-        Returns: boolean;
-      };
-
-      refund_restaurant_loyalty_points: {
+          booking_id_param?: string
+          reason?: string
+          user_id_param: string
+        }
+        Returns: number
+      }
+      create_booking_with_tables: {
         Args: {
-          p_booking_id: string;
-        };
-        Returns: boolean;
-      };
-      update_restaurant_availability: {
+          p_applied_loyalty_rule_id?: string
+          p_applied_offer_id?: string
+          p_booking_policy?: string
+          p_booking_time: string
+          p_dietary_notes?: string[]
+          p_expected_loyalty_points?: number
+          p_is_group_booking?: boolean
+          p_occasion?: string
+          p_party_size: number
+          p_restaurant_id: string
+          p_special_requests?: string
+          p_table_ids?: string[]
+          p_table_preferences?: string[]
+          p_turn_time?: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      get_available_tables: {
         Args: {
-          p_restaurant_id: string;
-          p_date: string;
-          p_time_slot: string;
-          p_party_size: number;
-        };
-        Returns: void;
-      };
-      award_loyalty_points: {
-        Args: {
-          p_user_id: string;
-          p_points: number;
-        };
-        Returns: void;
-      };
-      calculate_tier: {
-        Args: {
-          p_points: number;
-        };
-        Returns: "bronze" | "silver" | "gold" | "platinum";
-      };
-    };
+          p_end_time: string
+          p_party_size: number
+          p_restaurant_id: string
+          p_start_time: string
+        }
+        Returns: {
+          capacity: number
+          is_combinable: boolean
+          max_capacity: number
+          min_capacity: number
+          priority_score: number
+          table_id: string
+          table_number: string
+          table_type: string
+        }[]
+      }
+      search_users: {
+        Args: { search_query: string }
+        Returns: {
+          avatar_url: string
+          full_name: string
+          id: string
+          is_friend: boolean
+        }[]
+      }
+      toggle_favorite: {
+        Args: { restaurant_id: string }
+        Returns: undefined
+      }
+    }
     Enums: {
-      [_ in never]: never;
-    };
-  };
+      notification_type:
+        | "booking_confirmation"
+        | "booking_reminder"
+        | "waiting_list_available"
+        | "promotional_offer"
+        | "admin_message"
+      table_type: "any" | "indoor" | "outdoor" | "bar" | "private"
+      waiting_status: "active" | "notified" | "booked" | "expired" | "cancelled"
+    }
+    CompositeTypes: {
+      geometry_dump: {
+        path: number[] | null
+        geom: unknown | null
+      }
+      valid_detail: {
+        valid: boolean | null
+        reason: string | null
+        location: unknown | null
+      }
+    }
+  }
 }
 
-// Re-export types from Supabase for convenience
-export type Session = {
-  access_token: string;
-  token_type: string;
-  expires_in: number;
-  expires_at?: number;
-  refresh_token: string;
-  user: User;
-};
+// Type aliases for easier usage
+export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
+export type TablesInsert<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Insert']
+export type TablesUpdate<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Update']
+export type Enums<T extends keyof Database['public']['Enums']> = Database['public']['Enums'][T]
+export type Functions<T extends keyof Database['public']['Functions']> = Database['public']['Functions'][T]
 
-export type User = {
-  id: string;
-  aud: string;
-  role?: string;
-  email?: string;
-  email_confirmed_at?: string;
-  phone?: string;
-  phone_confirmed_at?: string;
-  confirmation_sent_at?: string;
-  confirmed_at?: string;
-  recovery_sent_at?: string;
-  last_sign_in_at?: string;
-  app_metadata: Record<string, any>;
-  user_metadata: Record<string, any>;
-  identities?: {
-    id: string;
-    user_id: string;
-    identity_data?: Record<string, any>;
-    provider: string;
-    created_at: string;
-    last_sign_in_at: string;
-    updated_at?: string;
-  }[];
-  created_at: string;
-  updated_at?: string;
-};
+// Specific type exports for rating system
+export type UserRatingConfig = Tables<'user_rating_config'>
+export type UserRatingHistory = Tables<'user_rating_history'>
+export type UserRestaurantBlacklist = Tables<'user_restaurant_blacklist'>
+export type Profile = Tables<'profiles'>
+export type Restaurant = Tables<'restaurants'>
+export type Booking = Tables<'bookings'>
 
-export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+// Function return types
+export type BookingEligibilityResult = Database['public']['Functions']['check_booking_eligibility']['Returns'][0]
+export type UserRatingTierResult = Database['public']['Functions']['get_user_rating_tier']['Returns'][0]
+export type CreateBookingResult = Database['public']['Functions']['create_booking_with_tables']['Returns']
