@@ -155,48 +155,118 @@ export default function CreatePostScreen() {
   };
 
   const pickImage = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    try {
+      // Check current permission status first
+      const { status: currentStatus } =
+        await ImagePicker.getMediaLibraryPermissionsAsync();
 
-    if (status !== "granted") {
-      Alert.alert("Permission needed", "Please allow access to your photos");
-      return;
-    }
+      let finalStatus = currentStatus;
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsMultipleSelection: true,
-      quality: 0.8,
-      base64: true,
-    });
+      // Request permission if not granted
+      if (currentStatus !== "granted") {
+        const { status: requestStatus } =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
+        finalStatus = requestStatus;
+      }
 
-    if (!result.canceled) {
-      const newImages: SelectedImage[] = result.assets.map((asset) => ({
-        uri: asset.uri,
-        base64: asset.base64 || undefined,
-      }));
-      setSelectedImages([...selectedImages, ...newImages].slice(0, 5)); // Max 5 images
+      if (finalStatus !== "granted") {
+        Alert.alert(
+          "Permission Required",
+          "Please allow access to your photo library in Settings to share photos.",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Open Settings",
+              onPress: () => {
+                if (Platform.OS === "ios") {
+                  // On iOS, open Settings app
+                  import("expo-linking").then(({ default: Linking }) => {
+                    Linking.openURL("app-settings:");
+                  });
+                }
+              },
+            },
+          ],
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsMultipleSelection: true,
+        quality: 0.8,
+        base64: true,
+        allowsEditing: false,
+      });
+
+      if (!result.canceled && result.assets) {
+        const newImages: SelectedImage[] = result.assets.map((asset) => ({
+          uri: asset.uri,
+          base64: asset.base64 || undefined,
+        }));
+        setSelectedImages([...selectedImages, ...newImages].slice(0, 5)); // Max 5 images
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (error) {
+      console.error("Error picking image:", error);
+      Alert.alert("Error", "Failed to access photo library. Please try again.");
     }
   };
 
   const takePhoto = async () => {
-    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    try {
+      // Check current permission status first
+      const { status: currentStatus } =
+        await ImagePicker.getCameraPermissionsAsync();
 
-    if (status !== "granted") {
-      Alert.alert("Permission needed", "Please allow access to your camera");
-      return;
-    }
+      let finalStatus = currentStatus;
 
-    const result = await ImagePicker.launchCameraAsync({
-      quality: 0.8,
-      base64: true,
-    });
+      // Request permission if not granted
+      if (currentStatus !== "granted") {
+        const { status: requestStatus } =
+          await ImagePicker.requestCameraPermissionsAsync();
+        finalStatus = requestStatus;
+      }
 
-    if (!result.canceled) {
-      const newImage: SelectedImage = {
-        uri: result.assets[0].uri,
-        base64: result.assets[0].base64 || undefined,
-      };
-      setSelectedImages([...selectedImages, newImage].slice(0, 5));
+      if (finalStatus !== "granted") {
+        Alert.alert(
+          "Permission Required",
+          "Please allow access to your camera in Settings to take photos.",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Open Settings",
+              onPress: () => {
+                if (Platform.OS === "ios") {
+                  // On iOS, open Settings app
+                  import("expo-linking").then(({ default: Linking }) => {
+                    Linking.openURL("app-settings:");
+                  });
+                }
+              },
+            },
+          ],
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        quality: 0.8,
+        base64: true,
+        allowsEditing: false,
+      });
+
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const newImage: SelectedImage = {
+          uri: result.assets[0].uri,
+          base64: result.assets[0].base64 || undefined,
+        };
+        setSelectedImages([...selectedImages, newImage].slice(0, 5));
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+    } catch (error) {
+      console.error("Error taking photo:", error);
+      Alert.alert("Error", "Failed to access camera. Please try again.");
     }
   };
 

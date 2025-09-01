@@ -9,7 +9,11 @@ interface RatingIndicatorProps {
   size?: "small" | "medium" | "large";
 }
 
-export function RatingIndicator({ userId, showLabel = true, size = "medium" }: RatingIndicatorProps) {
+export function RatingIndicator({
+  userId,
+  showLabel = true,
+  size = "medium",
+}: RatingIndicatorProps) {
   const {
     currentRating,
     tier,
@@ -46,7 +50,9 @@ export function RatingIndicator({ userId, showLabel = true, size = "medium" }: R
   if (loading) {
     return (
       <View className="flex-row items-center">
-        <View className={`rounded-full bg-gray-200 ${getSizeClasses(size).dot}`} />
+        <View
+          className={`rounded-full bg-gray-200 ${getSizeClasses(size).dot}`}
+        />
         {showLabel && (
           <Text className={`ml-2 text-gray-400 ${getSizeClasses(size).text}`}>
             Loading...
@@ -57,29 +63,31 @@ export function RatingIndicator({ userId, showLabel = true, size = "medium" }: R
   }
 
   const getRatingColor = () => {
-    if (tier?.tier === 'unrestricted') return "bg-green-500";
-    if (tier?.tier === 'request_only') return "bg-amber-500";
-    if (tier?.tier === 'blocked') return "bg-red-500";
+    if (tier?.tier === "unrestricted") return "bg-green-500";
+    if (tier?.tier === "request_only") return "bg-amber-500";
+    if (tier?.tier === "blocked") return "bg-red-500";
     return "bg-gray-400";
   };
 
   const getRatingLabel = () => {
-    if (tier?.tier === 'unrestricted') return "Unrestricted";
-    if (tier?.tier === 'request_only') return "Request Only";
-    if (tier?.tier === 'blocked') return "Blocked";
+    if (tier?.tier === "unrestricted") return "Unrestricted";
+    if (tier?.tier === "request_only") return "Request Only";
+    if (tier?.tier === "blocked") return "Blocked";
     return "Unknown";
   };
 
   return (
     <View className="flex-row items-center">
-      <View className={`rounded-full ${getRatingColor()} ${getSizeClasses(size).dot}`} />
-      
+      <View
+        className={`rounded-full ${getRatingColor()} ${getSizeClasses(size).dot}`}
+      />
+
       {showLabel && (
         <Text className={`ml-2 text-gray-700 ${getSizeClasses(size).text}`}>
           {getRatingLabel()}
         </Text>
       )}
-      
+
       <Text className={`ml-1 text-gray-900 ${getSizeClasses(size).rating}`}>
         {currentRating.toFixed(1)}
       </Text>
@@ -93,7 +101,10 @@ interface BookingEligibilityIndicatorProps {
   size?: "small" | "medium";
 }
 
-export function BookingEligibilityIndicator({ restaurantId, size = "medium" }: BookingEligibilityIndicatorProps) {
+export function BookingEligibilityIndicator({
+  restaurantId,
+  size = "medium",
+}: BookingEligibilityIndicatorProps) {
   const { checkBookingEligibility } = useUserRating();
   const [eligibility, setEligibility] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
@@ -116,8 +127,12 @@ export function BookingEligibilityIndicator({ restaurantId, size = "medium" }: B
   if (loading) {
     return (
       <View className="flex-row items-center">
-        <View className={`rounded bg-gray-200 ${size === "small" ? "px-2 py-1" : "px-3 py-2"}`}>
-          <Text className={`text-gray-400 ${size === "small" ? "text-xs" : "text-sm"}`}>
+        <View
+          className={`rounded bg-gray-200 ${size === "small" ? "px-2 py-1" : "px-3 py-2"}`}
+        >
+          <Text
+            className={`text-gray-400 ${size === "small" ? "text-xs" : "text-sm"}`}
+          >
             Checking...
           </Text>
         </View>
@@ -142,8 +157,12 @@ export function BookingEligibilityIndicator({ restaurantId, size = "medium" }: B
   };
 
   return (
-    <View className={`rounded ${getStatusColor()} ${size === "small" ? "px-2 py-1" : "px-3 py-2"}`}>
-      <Text className={`font-medium ${size === "small" ? "text-xs" : "text-sm"}`}>
+    <View
+      className={`rounded ${getStatusColor()} ${size === "small" ? "px-2 py-1" : "px-3 py-2"}`}
+    >
+      <Text
+        className={`font-medium ${size === "small" ? "text-xs" : "text-sm"}`}
+      >
         {getStatusText()}
       </Text>
     </View>

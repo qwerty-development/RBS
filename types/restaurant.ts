@@ -32,10 +32,12 @@ export interface Restaurant extends DatabaseRestaurant {
   special_features?: string[];
 
   // Computed/location fields - override the database location type
-  location: {
-    lat: number;
-    lng: number;
-  } | unknown;
+  location:
+    | {
+        lat: number;
+        lng: number;
+      }
+    | unknown;
   staticCoordinates?: { lat: number; lng: number };
   coordinates?: { latitude: number; longitude: number };
 

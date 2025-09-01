@@ -18,7 +18,7 @@ interface RestaurantPlaylistIndicatorProps {
   restaurantId: string;
 }
 
-export const RestaurantPlaylistIndicator:any = ({ restaurantId }:any) => {
+export const RestaurantPlaylistIndicator: any = ({ restaurantId }: any) => {
   const router = useRouter();
   const { profile } = useAuth();
   const [playlists, setPlaylists] = useState<PlaylistInfo[]>([]);
@@ -45,7 +45,7 @@ export const RestaurantPlaylistIndicator:any = ({ restaurantId }:any) => {
             emoji,
             user_id
           )
-        `
+        `,
         )
         .eq("restaurant_id", restaurantId)
         .eq("restaurant_playlists.user_id", profile.id);
@@ -64,7 +64,7 @@ export const RestaurantPlaylistIndicator:any = ({ restaurantId }:any) => {
             emoji,
             user_id
           )
-        `
+        `,
         )
         .eq("restaurant_id", restaurantId)
         .neq("restaurant_playlists.user_id", profile.id)
@@ -76,16 +76,19 @@ export const RestaurantPlaylistIndicator:any = ({ restaurantId }:any) => {
             .select("playlist_id")
             .eq("user_id", profile.id)
             .not("accepted_at", "is", null)
-            .then(res => res.data?.map(c => c.playlist_id) || [])
+            .then((res) => res.data?.map((c) => c.playlist_id) || []),
         );
 
-      if (collabError && collabError.code !== 'PGRST116') throw collabError;
+      if (collabError && collabError.code !== "PGRST116") throw collabError;
 
       // Combine and deduplicate
-      const allPlaylistItems = [...(ownPlaylists || []), ...(collabPlaylists || [])];
+      const allPlaylistItems = [
+        ...(ownPlaylists || []),
+        ...(collabPlaylists || []),
+      ];
       const uniquePlaylists = new Map<string, PlaylistInfo>();
 
-      allPlaylistItems.forEach((item:any) => {
+      allPlaylistItems.forEach((item: any) => {
         const playlist = item.restaurant_playlists;
         if (playlist && !uniquePlaylists.has(playlist.id)) {
           uniquePlaylists.set(playlist.id, {

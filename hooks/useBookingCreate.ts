@@ -76,7 +76,8 @@ export function useBookingCreate() {
   const [loyaltyRuleId, setLoyaltyRuleId] = useState<string | null>(null);
 
   // --- Rating System State ---
-  const [ratingEligibility, setRatingEligibility] = useState<BookingEligibilityResult | null>(null);
+  const [ratingEligibility, setRatingEligibility] =
+    useState<BookingEligibilityResult | null>(null);
   const [ratingRestricted, setRatingRestricted] = useState<boolean>(false);
   const [ratingMessage, setRatingMessage] = useState<string>("");
 
@@ -224,18 +225,23 @@ export function useBookingCreate() {
       if (data && data.length > 0) {
         const eligibility = data[0];
         setRatingEligibility(eligibility);
-        
+
         if (!eligibility.can_book) {
           setRatingRestricted(true);
-          setRatingMessage(eligibility.restriction_reason || "Your current rating doesn't allow bookings at this restaurant.");
+          setRatingMessage(
+            eligibility.restriction_reason ||
+              "Your current rating doesn't allow bookings at this restaurant.",
+          );
         } else {
           setRatingRestricted(false);
           setRatingMessage("");
-          
+
           // Check if booking is forced to be request-only due to rating
           if (eligibility.forced_policy === "request_only") {
             setIsRequestBooking(true);
-            setRatingMessage("Due to your current rating, this will be submitted as a request for restaurant approval.");
+            setRatingMessage(
+              "Due to your current rating, this will be submitted as a request for restaurant approval.",
+            );
           }
         }
       }
@@ -264,7 +270,7 @@ export function useBookingCreate() {
 
       if (restaurantError) throw restaurantError;
       setRestaurant(restaurantData);
-      
+
       // Initial booking policy check - will be overridden by rating restrictions if needed
       setIsRequestBooking(restaurantData.booking_policy === "request");
 
@@ -405,8 +411,9 @@ export function useBookingCreate() {
       if (ratingRestricted) {
         Alert.alert(
           "Booking Restricted",
-          ratingMessage || "Your current rating doesn't allow bookings at this restaurant.",
-          [{ text: "OK" }]
+          ratingMessage ||
+            "Your current rating doesn't allow bookings at this restaurant.",
+          [{ text: "OK" }],
         );
         return;
       }
