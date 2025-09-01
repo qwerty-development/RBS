@@ -130,25 +130,40 @@ export default function PostDetailScreen() {
     });
 
   const fetchPostDetails = useCallback(async () => {
-    if (!postId || !profile?.id) return;
+    if (!postId) {
+      console.log("❌ No postId available, cannot fetch post details");
+      setLoading(false);
+      return;
+    }
+
+    console.log("🔄 Fetching post details for ID:", postId, "Profile ID:", profile?.id);
 
     try {
-      // Fetch post details
+      // Fetch post details (this doesn't require authentication)
       const { data: postData, error: postError } = await supabase
         .from("posts_with_details")
         .select("*")
         .eq("id", postId)
         .single();
 
-      if (postError) throw postError;
+      if (postError) {
+        console.error("❌ Error fetching post:", postError);
+        throw postError;
+      }
 
-      // Check if user has liked the post
-      const { data: likeData } = await supabase
-        .from("post_likes")
-        .select("id")
-        .eq("post_id", postId)
-        .eq("user_id", profile.id)
-        .single();
+      console.log("✅ Post data fetched successfully");
+
+      // Check if user has liked the post (only if user is authenticated)
+      let likeData = null;
+      if (profile?.id) {
+        const { data } = await supabase
+          .from("post_likes")
+          .select("id")
+          .eq("post_id", postId)
+          .eq("user_id", profile.id)
+          .single();
+        likeData = data;
+      }
 
       setPost({
         ...postData,
@@ -170,10 +185,15 @@ export default function PostDetailScreen() {
         .eq("post_id", postId)
         .order("created_at", { ascending: true });
 
-      if (commentsError) throw commentsError;
+      if (commentsError) {
+        console.error("❌ Error fetching comments:", commentsError);
+        throw commentsError;
+      }
+      
+      console.log("✅ Comments fetched successfully");
       setComments(commentsData || []);
     } catch (error) {
-      console.error("Error fetching post details:", error);
+      console.error("❌ Error fetching post details:", error);
       Alert.alert("Error", "Failed to load post");
     } finally {
       setLoading(false);
@@ -181,7 +201,10 @@ export default function PostDetailScreen() {
   }, [postId, profile?.id]);
 
   const handleLike = async () => {
-    if (!profile?.id || !post) return;
+    if (!profile?.id || !post) {
+      console.log("❌ Cannot like: no profile or post", { profileId: profile?.id, postExists: !!post });
+      return;
+    }
 
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
 
@@ -212,7 +235,8 @@ export default function PostDetailScreen() {
         });
       }
     } catch (error) {
-      console.error("Error toggling like:", error);
+      console.error("❌ Error toggling like:", error);
+      Alert.alert("Error", "Failed to update like. Please try again.");
     }
   };
 
@@ -223,6 +247,17 @@ export default function PostDetailScreen() {
   };
 
   const handleComment = async () => {
+    if (!profile?.id) {
+      console.log("❌ Cannot comment: no profile ID");
+      Alert.alert("Error", "Please sign in to comment");
+      return;
+    }
+
+    if (!newComment.trim()) {
+      console.log("❌ Cannot comment: empty comment");
+      return;
+    }
+
     setPosting(true);
     try {
       const { data, error } = await supabase
@@ -243,8 +278,12 @@ export default function PostDetailScreen() {
         )
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ Error posting comment:", error);
+        throw error;
+      }
 
+      console.log("✅ Comment posted successfully");
       setComments([...comments, data]);
       setNewComment("");
 
@@ -261,8 +300,8 @@ export default function PostDetailScreen() {
         scrollViewRef.current?.scrollToEnd({ animated: true });
       }, 100);
     } catch (error) {
-      console.error("Error posting comment:", error);
-      Alert.alert("Error", "Failed to post comment");
+      console.error("❌ Error posting comment:", error);
+      Alert.alert("Error", "Failed to post comment. Please try again.");
     } finally {
       setPosting(false);
     }
@@ -277,6 +316,28 @@ export default function PostDetailScreen() {
 
     router.push(`/(protected)/restaurant/${post.restaurant_id}`);
   }, [post?.restaurant_id, router]);
+
+  // Monitor authentication state changes
+  useEffect(() => {
+    console.log("🔄 Auth state changed in post detail:", {
+      profileId: profile?.id,
+      postId: postId,
+      hasProfile: !!profile,
+      loading,
+    });
+  }, [profile, postId, loading]);
+
+  // Timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.log("⏰ Post detail loading timeout, forcing completion");
+        setLoading(false);
+      }
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [loading]);
 
   useEffect(() => {
     fetchPostDetails();
@@ -326,9 +387,11 @@ export default function PostDetailScreen() {
             className="flex-row items-center p-4"
           >
             <Image
-              source={{
-                uri: post.user_avatar || "https://via.placeholder.com/50",
-              }}
+              source={
+                post.user_avatar
+                  ? { uri: post.user_avatar }
+                  : require("@/assets/default-avatar.jpeg")
+              }
               className="w-10 h-10 rounded-full mr-3"
             />
             <View className="flex-1">
@@ -473,11 +536,11 @@ export default function PostDetailScreen() {
                     onPress={() => router.push("/(protected)/profile")}
                   >
                     <Image
-                      source={{
-                        uri:
-                          comment.user.avatar_url ||
-                          "https://via.placeholder.com/40",
-                      }}
+                      source={
+                        comment.user.avatar_url
+                          ? { uri: comment.user.avatar_url }
+                          : require("@/assets/default-avatar.jpeg")
+                      }
                       className="w-10 h-10 rounded-full mr-3"
                     />
                   </Pressable>
