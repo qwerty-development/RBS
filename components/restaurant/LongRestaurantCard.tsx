@@ -17,6 +17,7 @@ import { H3, P, Muted } from "@/components/ui/typography";
 import { Database } from "@/types/supabase";
 import { cn } from "@/lib/utils";
 import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
+import { format } from "date-fns";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -274,18 +275,25 @@ export function EnhancedRestaurantCard({
                 <Clock
                   size={16}
                   color={
-                    checkAvailability(new Date()).isOpen ? "#10b981" : "#ef4444"
+                    checkAvailability(new Date(), format(new Date(), "HH:mm"))
+                      .isOpen
+                      ? "#10b981"
+                      : "#ef4444"
                   }
                 />
                 <Text
                   className={cn(
                     "text-sm font-medium",
-                    checkAvailability(new Date()).isOpen
+                    checkAvailability(new Date(), format(new Date(), "HH:mm"))
+                      .isOpen
                       ? "text-green-600"
                       : "text-red-600",
                   )}
                 >
-                  {checkAvailability(new Date()).isOpen ? "Open" : "Closed"}
+                  {checkAvailability(new Date(), format(new Date(), "HH:mm"))
+                    .isOpen
+                    ? "Open"
+                    : "Closed"}
                 </Text>
                 <Text className="text-sm text-muted-foreground">
                   • {formatOperatingHours()}
@@ -431,18 +439,25 @@ export function EnhancedRestaurantCard({
               <Clock
                 size={14}
                 color={
-                  checkAvailability(new Date()).isOpen ? "#10b981" : "#ef4444"
+                  checkAvailability(new Date(), format(new Date(), "HH:mm"))
+                    .isOpen
+                    ? "#10b981"
+                    : "#ef4444"
                 }
               />
               <Text
                 className={cn(
                   "text-xs font-medium",
-                  checkAvailability(new Date()).isOpen
+                  checkAvailability(new Date(), format(new Date(), "HH:mm"))
+                    .isOpen
                     ? "text-green-600"
                     : "text-red-600",
                 )}
               >
-                {checkAvailability(new Date()).isOpen ? "Open" : "Closed"}
+                {checkAvailability(new Date(), format(new Date(), "HH:mm"))
+                  .isOpen
+                  ? "Open"
+                  : "Closed"}
               </Text>
               <Text className="text-xs text-muted-foreground">
                 • {formatOperatingHours()}

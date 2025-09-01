@@ -1,13 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { View, Pressable } from "react-native";
-import { Star, ThumbsUp, MoreVertical, Calendar, MessageCircle, Reply } from "lucide-react-native";
+import {
+  Star,
+  ThumbsUp,
+  MoreVertical,
+  Calendar,
+  MessageCircle,
+  Reply,
+} from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { P, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 import { Database } from "@/types/supabase";
 import { useReviewReplies } from "@/hooks/useReviewReplies";
 import { ReviewRepliesList } from "@/components/review/ReviewReply";
-import { ReviewReplyComposer, ReviewReplyEdit } from "@/components/review/ReviewReplyComposer";
+import {
+  ReviewReplyComposer,
+  ReviewReplyEdit,
+} from "@/components/review/ReviewReplyComposer";
 
 // Enhanced review type with all new fields
 type Review = Database["public"]["Tables"]["reviews"]["Row"] & {
@@ -55,33 +65,41 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [showReplies, setShowReplies] = useState(true); // Show replies by default
   const [isEditingReply, setIsEditingReply] = useState(false);
-  
-  const { replies, loading, submitting, createReply, deleteReply, updateReply } = useReviewReplies({ reviewId: review.id });
+
+  const {
+    replies,
+    loading,
+    submitting,
+    createReply,
+    deleteReply,
+    updateReply,
+  } = useReviewReplies({ reviewId: review.id });
 
   const isLongReview = review.comment && review.comment.length > 150;
-  const displayComment = showFullReview || !isLongReview 
-    ? review.comment 
-    : `${review.comment?.substring(0, 150)}...`;
+  const displayComment =
+    showFullReview || !isLongReview
+      ? review.comment
+      : `${review.comment?.substring(0, 150)}...`;
 
   const formatDate = (dateString: string | null): string => {
     if (!dateString) return "";
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", { 
-      month: "short", 
-      day: "numeric", 
-      year: "numeric" 
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
 
   const handleReplySubmit = async (replyMessage: string): Promise<boolean> => {
     if (!restaurantId) return false;
-    
+
     try {
       await createReply(review.id, replyMessage);
       setShowReplyModal(false);
       return true;
     } catch (error) {
-      console.error('Error creating reply:', error);
+      console.error("Error creating reply:", error);
       return false;
     }
   };
@@ -96,7 +114,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
     try {
       await deleteReply(replyId);
     } catch (error) {
-      console.error('Error deleting reply:', error);
+      console.error("Error deleting reply:", error);
     }
   };
 
@@ -258,27 +276,29 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
         <View className="flex-row items-center gap-2">
           {/* View/Hide replies toggle - only show if there are replies */}
           {replies.length > 0 && (
-            <Pressable 
+            <Pressable
               onPress={() => setShowReplies(!showReplies)}
               className="flex-row items-center gap-1"
             >
               <MessageCircle size={14} color="#6366f1" />
               <Text className="text-xs text-indigo-600 font-medium">
-                {showReplies ? 'Hide' : 'Show'} {replies.length} {replies.length === 1 ? 'reply' : 'replies'}
+                {showReplies ? "Hide" : "Show"} {replies.length}{" "}
+                {replies.length === 1 ? "reply" : "replies"}
               </Text>
             </Pressable>
           )}
 
           {/* Reply button for restaurant owners */}
-          {showReplyComposer && !replies.some(reply => reply.restaurant_id === restaurantId) && (
-            <Pressable 
-              onPress={() => setShowReplyModal(true)}
-              className="flex-row items-center gap-1"
-            >
-              <Reply size={14} color="#6366f1" />
-              <Text className="text-xs text-indigo-600">Reply</Text>
-            </Pressable>
-          )}
+          {showReplyComposer &&
+            !replies.some((reply) => reply.restaurant_id === restaurantId) && (
+              <Pressable
+                onPress={() => setShowReplyModal(true)}
+                className="flex-row items-center gap-1"
+              >
+                <Reply size={14} color="#6366f1" />
+                <Text className="text-xs text-indigo-600">Reply</Text>
+              </Pressable>
+            )}
 
           {showActions && (
             <Text className="text-xs text-muted-foreground">Helpful?</Text>
@@ -289,7 +309,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
       {/* Replies Section */}
       {showReplies && replies.length > 0 && (
         <View className="mt-3 pt-3 border-t border-gray-100">
-          <ReviewRepliesList 
+          <ReviewRepliesList
             replies={replies}
             onEditReply={showReplyComposer ? handleReplyEdit : undefined}
             onDeleteReply={showReplyComposer ? handleReplyDelete : undefined}

@@ -261,7 +261,8 @@ export const useRestaurantReviewsWithReplies = (restaurantId: string) => {
         return;
       }
 
-      const reviewedBookingIds = existingReviews?.map((r) => r.booking_id) || [];
+      const reviewedBookingIds =
+        existingReviews?.map((r) => r.booking_id) || [];
       const unReviewedBookings = bookings.filter(
         (b) => !reviewedBookingIds.includes(b.id),
       );
@@ -307,14 +308,17 @@ export const useRestaurantReviewsWithReplies = (restaurantId: string) => {
     }
 
     const total = reviews.length;
-    const average = reviews.reduce((sum, review) => sum + review.rating, 0) / total;
-    
+    const average =
+      reviews.reduce((sum, review) => sum + review.rating, 0) / total;
+
     const distribution = [0, 0, 0, 0, 0];
     reviews.forEach((review) => {
       distribution[review.rating - 1]++;
     });
 
-    const photoCount = reviews.filter(r => r.photos && r.photos.length > 0).length;
+    const photoCount = reviews.filter(
+      (r) => r.photos && r.photos.length > 0,
+    ).length;
     const verifiedCount = total; // All reviews are verified in this app
 
     return {
@@ -342,13 +346,13 @@ export const useRestaurantReviewsWithReplies = (restaurantId: string) => {
     restaurant,
     reviews: filteredReviews,
     reviewStats,
-    
+
     // State
     loading,
     refreshing,
     selectedSort,
     selectedRating,
-    
+
     // Actions
     setSelectedSort,
     setSelectedRating,
@@ -356,7 +360,7 @@ export const useRestaurantReviewsWithReplies = (restaurantId: string) => {
     handleLikeReview,
     handleReportReview,
     handleWriteReview,
-    
+
     // Constants
     filterOptions: FILTER_OPTIONS,
     ratingFilterOptions: RATING_FILTER_OPTIONS,

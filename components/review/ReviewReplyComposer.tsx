@@ -58,10 +58,10 @@ export const ReviewReplyComposer = ({
       </View>
 
       {/* Text Input */}
-      <View 
+      <View
         className={`border rounded-lg p-3 ${
-          isFocused 
-            ? "border-primary bg-background" 
+          isFocused
+            ? "border-primary bg-background"
             : "border-border bg-muted/20"
         }`}
       >
@@ -113,8 +113,9 @@ export const ReviewReplyComposer = ({
       {/* Guidelines */}
       <View className="mt-2 p-2 bg-muted/10 rounded">
         <Text className="text-xs text-muted-foreground">
-          💡 <Text className="font-medium">Tip:</Text> A thoughtful reply can turn a negative experience into a positive one. 
-          Thank customers for their feedback and address their concerns professionally.
+          💡 <Text className="font-medium">Tip:</Text> A thoughtful reply can
+          turn a negative experience into a positive one. Thank customers for
+          their feedback and address their concerns professionally.
         </Text>
       </View>
     </View>
@@ -162,10 +163,10 @@ export const ReviewReplyEdit = ({
       </View>
 
       {/* Text Input */}
-      <View 
+      <View
         className={`border rounded-lg p-3 ${
-          isFocused 
-            ? "border-primary bg-background" 
+          isFocused
+            ? "border-primary bg-background"
             : "border-border bg-background"
         }`}
       >

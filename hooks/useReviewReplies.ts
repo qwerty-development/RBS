@@ -21,7 +21,10 @@ interface UseReviewRepliesOptions {
   restaurantId?: string;
 }
 
-export const useReviewReplies = ({ reviewId, restaurantId }: UseReviewRepliesOptions = {}) => {
+export const useReviewReplies = ({
+  reviewId,
+  restaurantId,
+}: UseReviewRepliesOptions = {}) => {
   const { session } = useAuth();
   const [replies, setReplies] = useState<ReviewReply[]>([]);
   const [loading, setLoading] = useState(false);
@@ -33,10 +36,11 @@ export const useReviewReplies = ({ reviewId, restaurantId }: UseReviewRepliesOpt
 
     try {
       setLoading(true);
-      
+
       const { data, error } = await supabase
         .from("review_replies")
-        .select(`
+        .select(
+          `
           *,
           replied_by_profile:profiles!replied_by (
             full_name,
@@ -46,12 +50,13 @@ export const useReviewReplies = ({ reviewId, restaurantId }: UseReviewRepliesOpt
             name,
             main_image_url
           )
-        `)
+        `,
+        )
         .eq("review_id", targetReviewId)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      
+
       setReplies(data || []);
     } catch (error) {
       console.error("Error fetching replies:", error);
@@ -68,7 +73,8 @@ export const useReviewReplies = ({ reviewId, restaurantId }: UseReviewRepliesOpt
     try {
       const { data, error } = await supabase
         .from("review_replies")
-        .select(`
+        .select(
+          `
           *,
           replied_by_profile:profiles!replied_by (
             full_name,
@@ -78,12 +84,13 @@ export const useReviewReplies = ({ reviewId, restaurantId }: UseReviewRepliesOpt
             name,
             main_image_url
           )
-        `)
+        `,
+        )
         .in("review_id", reviewIds)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      
+
       // Group replies by review_id
       const repliesByReview: Record<string, ReviewReply[]> = {};
       (data || []).forEach((reply) => {
@@ -101,29 +108,31 @@ export const useReviewReplies = ({ reviewId, restaurantId }: UseReviewRepliesOpt
   }, []);
 
   // Create a new reply
-  const createReply = useCallback(async (targetReviewId: string, replyMessage: string) => {
-    if (!session?.user?.id || !targetReviewId || !replyMessage.trim()) {
-      Alert.alert("Error", "Missing required information");
-      return false;
-    }
+  const createReply = useCallback(
+    async (targetReviewId: string, replyMessage: string) => {
+      if (!session?.user?.id || !targetReviewId || !replyMessage.trim()) {
+        Alert.alert("Error", "Missing required information");
+        return false;
+      }
 
-    if (!restaurantId) {
-      Alert.alert("Error", "Restaurant ID is required");
-      return false;
-    }
+      if (!restaurantId) {
+        Alert.alert("Error", "Restaurant ID is required");
+        return false;
+      }
 
-    try {
-      setSubmitting(true);
+      try {
+        setSubmitting(true);
 
-      const { data, error } = await supabase
-        .from("review_replies")
-        .insert({
-          review_id: targetReviewId,
-          restaurant_id: restaurantId,
-          replied_by: session.user.id,
-          reply_message: replyMessage.trim(),
-        })
-        .select(`
+        const { data, error } = await supabase
+          .from("review_replies")
+          .insert({
+            review_id: targetReviewId,
+            restaurant_id: restaurantId,
+            replied_by: session.user.id,
+            reply_message: replyMessage.trim(),
+          })
+          .select(
+            `
           *,
           replied_by_profile:profiles!replied_by (
             full_name,
@@ -133,81 +142,89 @@ export const useReviewReplies = ({ reviewId, restaurantId }: UseReviewRepliesOpt
             name,
             main_image_url
           )
-        `)
-        .single();
+        `,
+          )
+          .single();
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Add the new reply to the existing replies
-      if (data && reviewId === targetReviewId) {
-        setReplies((prev) => [data, ...prev]);
+        // Add the new reply to the existing replies
+        if (data && reviewId === targetReviewId) {
+          setReplies((prev) => [data, ...prev]);
+        }
+
+        Alert.alert("Success", "Reply posted successfully");
+        return true;
+      } catch (error: any) {
+        console.error("Error creating reply:", error);
+
+        // Handle specific error cases
+        if (error.message?.includes("duplicate key")) {
+          Alert.alert("Error", "A reply already exists for this review");
+        } else {
+          Alert.alert("Error", "Failed to post reply. Please try again.");
+        }
+
+        return false;
+      } finally {
+        setSubmitting(false);
       }
-
-      Alert.alert("Success", "Reply posted successfully");
-      return true;
-    } catch (error: any) {
-      console.error("Error creating reply:", error);
-      
-      // Handle specific error cases
-      if (error.message?.includes("duplicate key")) {
-        Alert.alert("Error", "A reply already exists for this review");
-      } else {
-        Alert.alert("Error", "Failed to post reply. Please try again.");
-      }
-      
-      return false;
-    } finally {
-      setSubmitting(false);
-    }
-  }, [session?.user?.id, restaurantId, reviewId]);
+    },
+    [session?.user?.id, restaurantId, reviewId],
+  );
 
   // Delete a reply (for authorized users only)
-  const deleteReply = useCallback(async (replyId: string) => {
-    if (!session?.user?.id) {
-      Alert.alert("Error", "Not authorized to delete replies");
-      return false;
-    }
+  const deleteReply = useCallback(
+    async (replyId: string) => {
+      if (!session?.user?.id) {
+        Alert.alert("Error", "Not authorized to delete replies");
+        return false;
+      }
 
-    try {
-      const { error } = await supabase
-        .from("review_replies")
-        .delete()
-        .eq("id", replyId)
-        .eq("replied_by", session.user.id); // Ensure user can only delete their own replies
+      try {
+        const { error } = await supabase
+          .from("review_replies")
+          .delete()
+          .eq("id", replyId)
+          .eq("replied_by", session.user.id); // Ensure user can only delete their own replies
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Remove the reply from the state
-      setReplies((prev) => prev.filter((reply) => reply.id !== replyId));
-      
-      Alert.alert("Success", "Reply deleted successfully");
-      return true;
-    } catch (error) {
-      console.error("Error deleting reply:", error);
-      Alert.alert("Error", "Failed to delete reply");
-      return false;
-    }
-  }, [session?.user?.id]);
+        // Remove the reply from the state
+        setReplies((prev) => prev.filter((reply) => reply.id !== replyId));
+
+        Alert.alert("Success", "Reply deleted successfully");
+        return true;
+      } catch (error) {
+        console.error("Error deleting reply:", error);
+        Alert.alert("Error", "Failed to delete reply");
+        return false;
+      }
+    },
+    [session?.user?.id],
+  );
 
   // Update a reply
-  const updateReply = useCallback(async (replyId: string, newMessage: string) => {
-    if (!session?.user?.id || !newMessage.trim()) {
-      Alert.alert("Error", "Missing required information");
-      return false;
-    }
+  const updateReply = useCallback(
+    async (replyId: string, newMessage: string) => {
+      if (!session?.user?.id || !newMessage.trim()) {
+        Alert.alert("Error", "Missing required information");
+        return false;
+      }
 
-    try {
-      setSubmitting(true);
+      try {
+        setSubmitting(true);
 
-      const { data, error } = await supabase
-        .from("review_replies")
-        .update({ 
-          reply_message: newMessage.trim(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", replyId)
-        .eq("replied_by", session.user.id) // Ensure user can only update their own replies
-        .select(`
+        const { data, error } = await supabase
+          .from("review_replies")
+          .update({
+            reply_message: newMessage.trim(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", replyId)
+          .eq("replied_by", session.user.id) // Ensure user can only update their own replies
+          .select(
+            `
           *,
           replied_by_profile:profiles!replied_by (
             full_name,
@@ -217,30 +234,31 @@ export const useReviewReplies = ({ reviewId, restaurantId }: UseReviewRepliesOpt
             name,
             main_image_url
           )
-        `)
-        .single();
-
-      if (error) throw error;
-
-      // Update the reply in the state
-      if (data) {
-        setReplies((prev) => 
-          prev.map((reply) => 
-            reply.id === replyId ? data : reply
+        `,
           )
-        );
-      }
+          .single();
 
-      Alert.alert("Success", "Reply updated successfully");
-      return true;
-    } catch (error) {
-      console.error("Error updating reply:", error);
-      Alert.alert("Error", "Failed to update reply");
-      return false;
-    } finally {
-      setSubmitting(false);
-    }
-  }, [session?.user?.id]);
+        if (error) throw error;
+
+        // Update the reply in the state
+        if (data) {
+          setReplies((prev) =>
+            prev.map((reply) => (reply.id === replyId ? data : reply)),
+          );
+        }
+
+        Alert.alert("Success", "Reply updated successfully");
+        return true;
+      } catch (error) {
+        console.error("Error updating reply:", error);
+        Alert.alert("Error", "Failed to update reply");
+        return false;
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [session?.user?.id],
+  );
 
   // Auto-fetch replies when reviewId changes
   useEffect(() => {

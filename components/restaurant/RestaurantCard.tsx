@@ -4,6 +4,7 @@ import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Star, Heart, FolderPlus, Award } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
+import { format } from "date-fns";
 
 import { Image } from "@/components/image";
 import { Text } from "@/components/ui/text";
@@ -140,7 +141,7 @@ export function RestaurantCard({
   // Check if restaurant is currently open
   const isRestaurantOpen = () => {
     if (!showAvailability || availabilityLoading) return true; // Default to open if not checking
-    return checkAvailability(new Date()).isOpen;
+    return checkAvailability(new Date(), format(new Date(), "HH:mm")).isOpen;
   };
 
   // Get card opacity based on availability

@@ -39,7 +39,10 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
     );
   }
 
-  const todayStatus = checkAvailability(new Date());
+  const todayStatus = checkAvailability(
+    new Date(),
+    format(new Date(), "HH:mm"),
+  );
   const weeklySchedule = getWeeklySchedule();
   const currentHours = formatOperatingHours();
 

@@ -1,6 +1,11 @@
 import React, { useState } from "react";
 import { View, Pressable, Alert } from "react-native";
-import { MessageCircle, MoreVertical, Edit2, Trash2 } from "lucide-react-native";
+import {
+  MessageCircle,
+  MoreVertical,
+  Edit2,
+  Trash2,
+} from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
@@ -70,7 +75,7 @@ export const ReviewReply = ({
             setShowActions(false);
           },
         },
-      ]
+      ],
     );
   };
 
@@ -120,9 +125,7 @@ export const ReviewReply = ({
       </View>
 
       {/* Reply Content */}
-      <Text className="text-sm leading-5 ml-6">
-        {reply.reply_message}
-      </Text>
+      <Text className="text-sm leading-5 ml-6">{reply.reply_message}</Text>
 
       {/* Actions Menu */}
       {showActions && canModify && (
@@ -169,7 +172,9 @@ export const ReviewRepliesList = ({
   if (loading) {
     return (
       <View className="ml-4 mt-2">
-        <Text className="text-sm text-muted-foreground">Loading replies...</Text>
+        <Text className="text-sm text-muted-foreground">
+          Loading replies...
+        </Text>
       </View>
     );
   }
