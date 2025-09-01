@@ -55,13 +55,13 @@ const debugPermissions = async () => {
         ImagePicker.getCameraPermissionsAsync(),
         ImagePicker.getMediaLibraryPermissionsAsync(),
       ]);
-      
+
       console.log("📸 Camera Permissions:", {
         status: cameraPerms.status,
         canAskAgain: cameraPerms.canAskAgain,
         granted: cameraPerms.granted,
       });
-      
+
       console.log("🖼️ Media Library Permissions:", {
         status: mediaPerms.status,
         canAskAgain: mediaPerms.canAskAgain,
@@ -186,7 +186,7 @@ export default function CreatePostScreen() {
   const pickImage = async () => {
     try {
       console.log("📱 [pickImage] Starting image picker flow");
-      
+
       // Prevent multiple simultaneous calls
       if (uploadingImages) {
         console.log("📱 [pickImage] Already uploading, skipping");
@@ -209,7 +209,9 @@ export default function CreatePostScreen() {
         }
 
         if (finalStatus !== "granted") {
-          const title = canAskAgain ? "Permission Required" : "Permission Denied";
+          const title = canAskAgain
+            ? "Permission Required"
+            : "Permission Denied";
           const message = canAskAgain
             ? "Please allow access to your photo library to share photos."
             : "Photo library access was denied. Please enable it in Settings to share photos.";
@@ -231,11 +233,12 @@ export default function CreatePostScreen() {
         }
       } else {
         // Android permission handling (simpler)
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        const { status } =
+          await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== "granted") {
           Alert.alert(
             "Permission Required",
-            "Please allow access to your photo library to share photos."
+            "Please allow access to your photo library to share photos.",
           );
           return;
         }
@@ -252,25 +255,27 @@ export default function CreatePostScreen() {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const assetsToProcess = Platform.OS === "ios" ? [result.assets[0]] : result.assets;
-        
+        const assetsToProcess =
+          Platform.OS === "ios" ? [result.assets[0]] : result.assets;
+
         const newImages: SelectedImage[] = assetsToProcess
-          .filter(asset => asset && asset.uri) // Double check for valid assets
+          .filter((asset) => asset && asset.uri) // Double check for valid assets
           .map((asset) => ({
             uri: asset.uri,
           }));
-        
+
         if (newImages.length > 0) {
           const totalImages = [...selectedImages, ...newImages];
           const maxImages = Platform.OS === "ios" ? 3 : 5;
           setSelectedImages(totalImages.slice(0, maxImages));
-          
+
           await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         }
       }
     } catch (error) {
       console.error("Error picking image:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       Alert.alert("Error", `Failed to access photo library: ${errorMessage}`);
     }
   };
@@ -278,7 +283,7 @@ export default function CreatePostScreen() {
   const takePhoto = async () => {
     try {
       console.log("📸 [takePhoto] Starting camera flow");
-      
+
       // Prevent multiple simultaneous calls
       if (uploadingImages) {
         console.log("📸 [takePhoto] Already uploading, skipping");
@@ -300,7 +305,9 @@ export default function CreatePostScreen() {
         }
 
         if (finalStatus !== "granted") {
-          const title = canAskAgain ? "Permission Required" : "Permission Denied";
+          const title = canAskAgain
+            ? "Permission Required"
+            : "Permission Denied";
           const message = canAskAgain
             ? "Please allow access to your camera to take photos."
             : "Camera access was denied. Please enable it in Settings to take photos.";
@@ -326,7 +333,7 @@ export default function CreatePostScreen() {
         if (status !== "granted") {
           Alert.alert(
             "Permission Required",
-            "Please allow access to your camera to take photos."
+            "Please allow access to your camera to take photos.",
           );
           return;
         }
@@ -340,18 +347,24 @@ export default function CreatePostScreen() {
         exif: false, // Reduce payload size
       });
 
-      if (!result.canceled && result.assets && result.assets[0] && result.assets[0].uri) {
+      if (
+        !result.canceled &&
+        result.assets &&
+        result.assets[0] &&
+        result.assets[0].uri
+      ) {
         const newImage: SelectedImage = {
           uri: result.assets[0].uri,
         };
-        
+
         const maxImages = Platform.OS === "ios" ? 3 : 5;
         setSelectedImages([...selectedImages, newImage].slice(0, maxImages));
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
     } catch (error) {
       console.error("Error taking photo:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
       Alert.alert("Error", `Failed to access camera: ${errorMessage}`);
     }
   };
@@ -379,9 +392,9 @@ export default function CreatePostScreen() {
 
         // Create FormData for file upload
         const formData = new FormData();
-        formData.append('file', {
+        formData.append("file", {
           uri: image.uri,
-          type: 'image/jpeg',
+          type: "image/jpeg",
           name: fileName,
         } as any);
 
@@ -482,7 +495,6 @@ export default function CreatePostScreen() {
       setUploadingImages(false);
     }
   };
-
 
   if (loading) {
     return <CreatePostSkeleton />;

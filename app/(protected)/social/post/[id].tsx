@@ -136,7 +136,12 @@ export default function PostDetailScreen() {
       return;
     }
 
-    console.log("🔄 Fetching post details for ID:", postId, "Profile ID:", profile?.id);
+    console.log(
+      "🔄 Fetching post details for ID:",
+      postId,
+      "Profile ID:",
+      profile?.id,
+    );
 
     try {
       // Fetch post details (this doesn't require authentication)
@@ -189,7 +194,7 @@ export default function PostDetailScreen() {
         console.error("❌ Error fetching comments:", commentsError);
         throw commentsError;
       }
-      
+
       console.log("✅ Comments fetched successfully");
       setComments(commentsData || []);
     } catch (error) {
@@ -202,7 +207,10 @@ export default function PostDetailScreen() {
 
   const handleLike = async () => {
     if (!profile?.id || !post) {
-      console.log("❌ Cannot like: no profile or post", { profileId: profile?.id, postExists: !!post });
+      console.log("❌ Cannot like: no profile or post", {
+        profileId: profile?.id,
+        postExists: !!post,
+      });
       return;
     }
 

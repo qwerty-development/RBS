@@ -17,37 +17,37 @@ export default function ProtectedLayout() {
   const { initialized, session, isGuest } = useAuth();
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
-  
+
   // Prevent flickering by using a stable auth state
   const [stableAuthState, setStableAuthState] = useState<{
     initialized: boolean;
     hasAccess: boolean;
   }>({ initialized: false, hasAccess: false });
-  
+
   const authCheckTimeout = useRef<ReturnType<typeof setTimeout>>();
-  
+
   useEffect(() => {
-    console.log("🔐 Auth State Change:", { 
-      initialized, 
-      hasSession: !!session, 
+    console.log("🔐 Auth State Change:", {
+      initialized,
+      hasSession: !!session,
       isGuest,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
-    
+
     // Clear any existing timeout
     if (authCheckTimeout.current) {
       clearTimeout(authCheckTimeout.current);
     }
-    
+
     // If not initialized, don't allow access yet
     if (!initialized) {
       setStableAuthState({ initialized: false, hasAccess: false });
       return;
     }
-    
+
     // If initialized and we have session or guest mode, allow access
     const hasAccess = session || isGuest;
-    
+
     if (hasAccess) {
       // Immediate access for valid states
       setStableAuthState({ initialized: true, hasAccess: true });
@@ -57,7 +57,7 @@ export default function ProtectedLayout() {
         setStableAuthState({ initialized: true, hasAccess: false });
       }, 1000); // 1 second grace period
     }
-    
+
     return () => {
       if (authCheckTimeout.current) {
         clearTimeout(authCheckTimeout.current);

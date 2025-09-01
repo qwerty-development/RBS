@@ -91,7 +91,11 @@ const EditPostModal = ({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+    >
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
           <Pressable onPress={onClose} className="p-2">
@@ -144,11 +148,16 @@ const EditPostModal = ({
               <Muted className="mb-2">Tagged Friends (cannot be edited)</Muted>
               <View className="flex-row flex-wrap">
                 {post.tagged_friends.map((friend) => (
-                  <View key={friend.id} className="flex-row items-center mr-4 mb-2">
+                  <View
+                    key={friend.id}
+                    className="flex-row items-center mr-4 mb-2"
+                  >
                     <Image
-                      source={{
-                        uri: friend.avatar_url || require("@/assets/default-avatar.jpeg"),
-                      }}
+                      source={
+                        friend.avatar_url
+                          ? { uri: friend.avatar_url }
+                          : require("@/assets/default-avatar.jpeg")
+                      }
                       className="w-6 h-6 rounded-full mr-2"
                     />
                     <Text className="text-sm">{friend.full_name}</Text>
@@ -179,38 +188,27 @@ const PostActionsModal = ({
 }) => {
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <Pressable
-        onPress={onClose}
-        className="flex-1 justify-end bg-black/60"
-      >
+      <Pressable onPress={onClose} className="flex-1 justify-end bg-black/60">
         <View className="bg-background rounded-t-3xl p-6">
           <View className="w-12 h-1 bg-muted rounded-full self-center mb-6" />
-          
-          <Pressable
-            onPress={onEdit}
-            className="flex-row items-center py-4"
-          >
+
+          <Pressable onPress={onEdit} className="flex-row items-center py-4">
             <View className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-full items-center justify-center mr-3">
               <Edit3 size={20} color="#3b82f6" />
             </View>
             <Text className="text-lg">Edit Post</Text>
           </Pressable>
 
-          <Pressable
-            onPress={onDelete}
-            className="flex-row items-center py-4"
-          >
+          <Pressable onPress={onDelete} className="flex-row items-center py-4">
             <View className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-full items-center justify-center mr-3">
               <Trash2 size={20} color="#ef4444" />
             </View>
-            <Text className="text-lg text-red-600 dark:text-red-400">Delete Post</Text>
+            <Text className="text-lg text-red-600 dark:text-red-400">
+              Delete Post
+            </Text>
           </Pressable>
 
-          <Button
-            onPress={onClose}
-            variant="ghost"
-            className="mt-4"
-          >
+          <Button onPress={onClose} variant="ghost" className="mt-4">
             <Text>Cancel</Text>
           </Button>
         </View>
@@ -271,7 +269,7 @@ const MyPostCard = ({
             </View>
           </View>
         </View>
-        
+
         <Pressable onPress={handleActionsPress} className="p-2">
           <MoreVertical size={20} color="#666" />
         </Pressable>
@@ -306,7 +304,11 @@ const MyPostCard = ({
 
         {post.images.length > 0 && (
           <View className="mb-3">
-            <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+            >
               {post.images.map((image) => (
                 <Image
                   key={image.id}
@@ -421,9 +423,7 @@ export default function MyPostsScreen() {
 
       // Update local state
       setPosts(
-        posts.map((post) =>
-          post.id === postId ? { ...post, content } : post
-        )
+        posts.map((post) => (post.id === postId ? { ...post, content } : post)),
       );
 
       setEditingPost(null);
@@ -448,7 +448,7 @@ export default function MyPostsScreen() {
           style: "destructive",
           onPress: () => confirmDeletePost(post.id),
         },
-      ]
+      ],
     );
   };
 
@@ -496,7 +496,7 @@ export default function MyPostsScreen() {
 
       // Update local state
       setPosts(posts.filter((post) => post.id !== postId));
-      
+
       Alert.alert("Success", "Post deleted successfully");
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch (error) {
