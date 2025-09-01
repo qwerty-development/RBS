@@ -2,10 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
-import type {
-  BookingEligibilityResult,
-  UserRatingTierResult,
-} from "@/types/supabase";
+import type { BookingEligibilityResult, UserRatingTierResult } from "@/types/supabase";
 
 // Types
 interface UserRatingStats {
@@ -37,8 +34,7 @@ export function useUserRating(userId?: string) {
   const { profile } = useAuth();
   const [stats, setStats] = useState<UserRatingStats | null>(null);
   const [history, setHistory] = useState<UserRatingHistory[]>([]);
-  const [eligibility, setEligibility] =
-    useState<BookingEligibilityResult | null>(null);
+  const [eligibility, setEligibility] = useState<BookingEligibilityResult | null>(null);
   const [tier, setTier] = useState<UserRatingTierResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,47 +42,40 @@ export function useUserRating(userId?: string) {
   const targetUserId = userId || profile?.id;
 
   // Check booking eligibility for a specific restaurant
-  const checkBookingEligibility = useCallback(
-    async (restaurantId: string): Promise<BookingEligibilityResult | null> => {
-      if (!targetUserId) return null;
+  const checkBookingEligibility = useCallback(async (restaurantId: string): Promise<BookingEligibilityResult | null> => {
+    if (!targetUserId) return null;
 
-      try {
-        const { data, error } = await supabase.rpc(
-          "check_booking_eligibility",
-          {
-            user_id_param: targetUserId,
-            restaurant_id_param: restaurantId,
-            party_size_param: 1,
-          },
-        );
+    try {
+      const { data, error } = await supabase.rpc('check_booking_eligibility', {
+        user_id_param: targetUserId,
+        restaurant_id_param: restaurantId,
+        party_size_param: 1
+      });
 
-        if (error) throw error;
-        return data && data.length > 0 ? data[0] : null;
-      } catch (err: any) {
-        console.error("Error checking booking eligibility:", err);
-        return null;
-      }
-    },
-    [targetUserId],
-  );
+      if (error) throw error;
+      return data && data.length > 0 ? data[0] : null;
+    } catch (err: any) {
+      console.error('Error checking booking eligibility:', err);
+      return null;
+    }
+  }, [targetUserId]);
 
   // Get user rating tier
-  const getUserRatingTier =
-    useCallback(async (): Promise<UserRatingTierResult | null> => {
-      if (!targetUserId || !stats?.current_rating) return null;
+  const getUserRatingTier = useCallback(async (): Promise<UserRatingTierResult | null> => {
+    if (!targetUserId || !stats?.current_rating) return null;
 
-      try {
-        const { data, error } = await supabase.rpc("get_user_rating_tier", {
-          user_rating_param: stats.current_rating,
-        });
+    try {
+      const { data, error } = await supabase.rpc('get_user_rating_tier', {
+        user_rating_param: stats.current_rating
+      });
 
-        if (error) throw error;
-        return data && data.length > 0 ? data[0] : null;
-      } catch (err: any) {
-        console.error("Error getting user rating tier:", err);
-        return null;
-      }
-    }, [targetUserId, stats?.current_rating]);
+      if (error) throw error;
+      return data && data.length > 0 ? data[0] : null;
+    } catch (err: any) {
+      console.error('Error getting user rating tier:', err);
+      return null;
+    }
+  }, [targetUserId, stats?.current_rating]);
 
   const fetchRatingStats = useCallback(async () => {
     if (!targetUserId) return;
@@ -165,28 +154,24 @@ export function useUserRating(userId?: string) {
     history,
     eligibility,
     tier,
-
+    
     // State
     loading,
     error,
-
+    
     // Actions
     refresh: fetchRatingStats,
     refreshRating,
     checkBookingEligibility,
     getUserRatingTier,
-
+    
     // Computed values
     currentRating: stats?.current_rating || 5.0,
-    isExcellent: tier?.tier === "excellent",
-    isGood: tier?.tier === "good",
-    isRestricted: tier?.tier === "restricted",
-    isBlocked: tier?.tier === "blocked",
-    canBookInstant: tier
-      ? ["excellent", "good"].indexOf(tier.tier) !== -1
-      : true,
-    hasRestrictions: tier
-      ? ["restricted", "blocked"].indexOf(tier.tier) !== -1
-      : false,
+    isExcellent: tier?.tier === 'unrestricted', // For backward compatibility
+    isGood: tier?.tier === 'unrestricted', // For backward compatibility 
+    isRestricted: tier?.tier === 'request_only',
+    isBlocked: tier?.tier === 'blocked',
+    canBookInstant: tier ? tier.tier === 'unrestricted' : true,
+    hasRestrictions: tier ? ['request_only', 'blocked'].indexOf(tier.tier) !== -1 : false,
   };
 }

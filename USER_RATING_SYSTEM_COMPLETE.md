@@ -15,9 +15,9 @@ The comprehensive user rating system has been successfully implemented with prog
 
 #### Rating Tiers
 - **Excellent (4.5-5.0)**: Full instant booking privileges
-- **Good (3.5-4.4)**: Request-only bookings but generally accepted
-- **Restricted (2.5-3.4)**: Limited access, subject to restaurant approval and restrictions
-- **Blocked (1.0-2.4)**: Booking privileges suspended
+- **Good (2.1-4.4)**: Request-only bookings but generally accepted
+- **Restricted (1.1-2.0)**: Limited access, subject to restaurant approval and restrictions
+- **Blocked (1.0)**: Booking privileges suspended
 
 ### Core Functions
 
