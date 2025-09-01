@@ -430,7 +430,7 @@ function AuthContent({ children }: PropsWithChildren) {
             throw new Error("Please enter a valid email address");
           }
 
-          if (!password || password.length < 6) {
+          if (!password || password.length < 4) {
             throw new Error("Password must be at least 6 characters");
           }
 

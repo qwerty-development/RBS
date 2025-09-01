@@ -18,9 +18,7 @@ interface RestaurantPlaylistIndicatorProps {
   restaurantId: string;
 }
 
-export const RestaurantPlaylistIndicator: React.FC<
-  RestaurantPlaylistIndicatorProps
-> = ({ restaurantId }) => {
+export const RestaurantPlaylistIndicator:any = ({ restaurantId }:any) => {
   const router = useRouter();
   const { profile } = useAuth();
   const [playlists, setPlaylists] = useState<PlaylistInfo[]>([]);
@@ -34,63 +32,72 @@ export const RestaurantPlaylistIndicator: React.FC<
     if (!profile?.id) return;
 
     try {
-      // Get playlists that contain this restaurant
-      const { data, error } = await supabase
+      // Use a single RPC call or a more efficient query structure
+      // First, get user's own playlists containing this restaurant
+      const { data: ownPlaylists, error: ownError } = await supabase
         .from("playlist_items")
         .select(
           `
-          playlist:restaurant_playlists (
+          playlist_id,
+          restaurant_playlists!inner (
             id,
             name,
             emoji,
-            user_id,
-            is_public
+            user_id
           )
-        `,
+        `
         )
         .eq("restaurant_id", restaurantId)
-        .order("created_at", { ascending: false });
+        .eq("restaurant_playlists.user_id", profile.id);
 
-      if (error) throw error;
+      if (ownError) throw ownError;
 
-      // Filter to show only user's playlists or public playlists they have access to
-      const userPlaylists = await Promise.all(
-        (data || []).map(async (item) => {
-          const playlist = item.playlist;
-          if (!playlist) return null;
-
-          // Check if user owns the playlist
-          if (playlist.user_id === profile.id) {
-            return {
-              id: playlist.id,
-              name: playlist.name,
-              emoji: playlist.emoji,
-              isOwner: true,
-            };
-          }
-
-          // Check if user is a collaborator
-          const { data: collab } = await supabase
+      // Then get playlists where user is a collaborator
+      const { data: collabPlaylists, error: collabError } = await supabase
+        .from("playlist_items")
+        .select(
+          `
+          playlist_id,
+          restaurant_playlists!inner (
+            id,
+            name,
+            emoji,
+            user_id
+          )
+        `
+        )
+        .eq("restaurant_id", restaurantId)
+        .neq("restaurant_playlists.user_id", profile.id)
+        .in(
+          "playlist_id",
+          // Get playlist IDs where user is a collaborator
+          await supabase
             .from("playlist_collaborators")
-            .select("id")
-            .eq("playlist_id", playlist.id)
+            .select("playlist_id")
             .eq("user_id", profile.id)
-            .single();
+            .not("accepted_at", "is", null)
+            .then(res => res.data?.map(c => c.playlist_id) || [])
+        );
 
-          if (collab || playlist.is_public) {
-            return {
-              id: playlist.id,
-              name: playlist.name,
-              emoji: playlist.emoji,
-              isOwner: false,
-            };
-          }
+      if (collabError && collabError.code !== 'PGRST116') throw collabError;
 
-          return null;
-        }),
-      );
+      // Combine and deduplicate
+      const allPlaylistItems = [...(ownPlaylists || []), ...(collabPlaylists || [])];
+      const uniquePlaylists = new Map<string, PlaylistInfo>();
 
-      setPlaylists(userPlaylists.filter(Boolean) as PlaylistInfo[]);
+      allPlaylistItems.forEach((item:any) => {
+        const playlist = item.restaurant_playlists;
+        if (playlist && !uniquePlaylists.has(playlist.id)) {
+          uniquePlaylists.set(playlist.id, {
+            id: playlist.id,
+            name: playlist.name,
+            emoji: playlist.emoji,
+            isOwner: playlist.user_id === profile.id,
+          });
+        }
+      });
+
+      setPlaylists(Array.from(uniquePlaylists.values()));
     } catch (error) {
       console.error("Error fetching playlists:", error);
     } finally {
@@ -102,7 +109,7 @@ export const RestaurantPlaylistIndicator: React.FC<
 
   return (
     <View className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700 ml-3">
-      <View className="flex-row items-center mb-3 ">
+      <View className="flex-row items-center mb-3">
         <FolderOpen size={18} color="#6b7280" />
         <Muted className="ml-2 text-sm">In Your Playlists</Muted>
       </View>

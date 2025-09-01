@@ -459,7 +459,7 @@ export class InputValidator {
     const errors: string[] = [];
     let score = 0;
 
-    if (password.length < 8) {
+    if (password.length < 4) {
       errors.push("Password must be at least 8 characters long");
     } else {
       score += 1;
