@@ -113,6 +113,33 @@ export default function FavoritesScreen() {
     removePlaylistFromState,
   } = playlistsHook;
 
+  // Invitations hook - MOVED BEFORE EARLY RETURN to fix hooks violations
+  const invitationsHook = usePlaylistInvitations();
+
+  useEffect(() => {
+    if (invitationsHook.error) {
+      setInvitationError(true);
+    }
+  }, [invitationsHook.error]);
+
+  const { pendingCount = 0 } = invitationsHook;
+
+  // Filters hook - MOVED BEFORE EARLY RETURN to fix hooks violations
+  const {
+    sortBy,
+    setSortBy,
+    groupBy,
+    setGroupBy,
+    showOptions,
+    setShowOptions,
+    insightsBannerDismissed,
+    setInsightsBannerDismissed,
+    processedFavorites,
+    resetFilters,
+    resetBannerOnRefresh,
+    hasActiveFilters,
+  } = useFavoritesFilters(favorites);
+
   // --- Guest View ---
   if (isGuest) {
     return (
@@ -157,33 +184,6 @@ export default function FavoritesScreen() {
       </SafeAreaView>
     );
   }
-
-  // Invitations hook (same pattern as above – keep side-effects out of render)
-  const invitationsHook = usePlaylistInvitations();
-
-  useEffect(() => {
-    if (invitationsHook.error) {
-      setInvitationError(true);
-    }
-  }, [invitationsHook.error]);
-
-  const { pendingCount = 0 } = invitationsHook;
-
-  // Filters hook
-  const {
-    sortBy,
-    setSortBy,
-    groupBy,
-    setGroupBy,
-    showOptions,
-    setShowOptions,
-    insightsBannerDismissed,
-    setInsightsBannerDismissed,
-    processedFavorites,
-    resetFilters,
-    resetBannerOnRefresh,
-    hasActiveFilters,
-  } = useFavoritesFilters(favorites);
 
   // Navigation functions - memoized to prevent re-renders
   const navigateToRestaurant = useCallback(
@@ -715,3 +715,5 @@ export default function FavoritesScreen() {
     </SafeAreaView>
   );
 }
+
+FavoritesScreen.displayName = "FavoritesScreen";

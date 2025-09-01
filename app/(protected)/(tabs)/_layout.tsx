@@ -7,9 +7,14 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { getThemedColors } from "@/lib/utils";
 import { useNotificationsBadge } from "@/hooks/useNotificationsBadge";
 
-export const homeScrollRef = useRef<ScrollView>(null);
+// Create ref outside component but don't use useRef at module level
+export let homeScrollRef: React.RefObject<ScrollView> | null = null;
 
 export default function TabsLayout() {
+  // Initialize the ref inside the component
+  const scrollRef = useRef<ScrollView>(null);
+  homeScrollRef = scrollRef as React.RefObject<ScrollView>;
+
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
   const { unreadCount } = useNotificationsBadge();
@@ -56,7 +61,7 @@ export default function TabsLayout() {
           tabPress: (e) => {
             const state = navigation.getState();
             const isHomeTabActive = state.routes[state.index]?.name === "index";
-            if (isHomeTabActive && homeScrollRef.current) {
+            if (isHomeTabActive && homeScrollRef?.current) {
               e.preventDefault();
               homeScrollRef.current.scrollTo({ y: 0, animated: true });
             }
@@ -127,3 +132,5 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+TabsLayout.displayName = "TabsLayout";

@@ -161,7 +161,12 @@ export function BookingCard({
   showQuickActions = true,
   processingBookingId,
 }: BookingCardProps) {
-  // Early return if booking is invalid
+  // React hooks must always be called before any early returns
+  const [hasReview, setHasReview] = useState(false);
+  const [isAddingToCalendar, setIsAddingToCalendar] = useState(false);
+  const [addedToCalendar, setAddedToCalendar] = useState(false);
+
+  // Early return AFTER hooks for invalid booking data
   if (!booking || !booking.id || !booking.booking_time || !booking.restaurant) {
     console.warn("Invalid booking data provided to BookingCard", {
       hasBooking: !!booking,
@@ -173,7 +178,9 @@ export function BookingCard({
   }
 
   const statusConfig =
-    BOOKING_STATUS_CONFIG[booking.status] || BOOKING_STATUS_CONFIG.pending;
+    BOOKING_STATUS_CONFIG[
+      booking.status as keyof typeof BOOKING_STATUS_CONFIG
+    ] || BOOKING_STATUS_CONFIG.pending;
   const StatusIcon = statusConfig.icon;
 
   // Safe date parsing with error handling
@@ -231,10 +238,6 @@ export function BookingCard({
     }
   }
 
-  const [hasReview, setHasReview] = useState(false);
-  const [isAddingToCalendar, setIsAddingToCalendar] = useState(false);
-  const [addedToCalendar, setAddedToCalendar] = useState(false);
-
   useEffect(() => {
     let isCancelled = false;
 
@@ -282,7 +285,7 @@ export function BookingCard({
   const handleQuickCall = async (e: any) => {
     e.stopPropagation();
 
-    if (!booking.restaurant.phone_number) {
+    if (!booking.restaurant.phone) {
       Alert.alert(
         "No Phone Number",
         "Phone number is not available for this restaurant",
@@ -290,7 +293,7 @@ export function BookingCard({
       return;
     }
 
-    const phoneUrl = `tel:${booking.restaurant.phone_number}`;
+    const phoneUrl = `tel:${booking.restaurant.phone}`;
 
     try {
       const canOpen = await Linking.canOpenURL(phoneUrl);
@@ -439,8 +442,8 @@ export function BookingCard({
           booking.restaurant.cuisine_type
             ? `🍜 Cuisine: ${booking.restaurant.cuisine_type}`
             : "",
-          booking.restaurant.phone_number
-            ? `📞 Phone: ${booking.restaurant.phone_number}`
+          booking.restaurant.phone
+            ? `📞 Phone: ${booking.restaurant.phone}`
             : "",
           booking.special_requests
             ? `💬 Special Requests: ${booking.special_requests}`
@@ -558,7 +561,7 @@ export function BookingCard({
           <Image
             source={{
               uri:
-                booking.restaurant?.main_image_url ||
+                booking.restaurant?.image_url ||
                 "https://via.placeholder.com/80x80?text=No+Image",
             }}
             className="w-20 h-20 rounded-lg bg-muted"
@@ -726,7 +729,7 @@ export function BookingCard({
                       textColor="text-primary"
                     />
                   </View>
-                  {booking.restaurant.phone_number && (
+                  {booking.restaurant.phone && (
                     <Button
                       size="sm"
                       variant="outline"
@@ -805,3 +808,5 @@ export function BookingCard({
     </>
   );
 }
+
+BookingCard.displayName = "BookingCard";
