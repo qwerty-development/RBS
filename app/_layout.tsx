@@ -20,6 +20,8 @@ import {
   ensurePushPermissionsAndToken,
   registerDeviceForPush,
 } from "@/lib/notifications/setup";
+import { metaTracker } from "@/lib/metaTracking";
+import * as TrackingTransparency from "expo-tracking-transparency";
 
 LogBox.ignoreAllLogs();
 
@@ -86,6 +88,32 @@ function RootLayoutContent() {
       }
     });
     ensurePushPermissionsAndToken();
+
+    // Request tracking transparency permission and initialize Meta tracking
+    const initializeTracking = async () => {
+      try {
+        // Request tracking permission on iOS 14+
+        const { status } =
+          await TrackingTransparency.requestTrackingPermissionsAsync();
+
+        if (status === "granted") {
+          console.log("Tracking permission granted");
+        } else {
+          console.log("Tracking permission denied");
+        }
+
+        // Initialize Meta tracking regardless of permission status
+        // (SDK will handle permission status internally)
+        metaTracker.trackAppInstall();
+      } catch (error) {
+        console.warn("Error requesting tracking permission:", error);
+        // Still track app install even if permission request fails
+        metaTracker.trackAppInstall();
+      }
+    };
+
+    initializeTracking();
+
     return () => {
       // handlers cleaned up on unmount if needed
     };

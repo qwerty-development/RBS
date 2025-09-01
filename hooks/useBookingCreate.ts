@@ -14,6 +14,7 @@ import {
   TierType,
 } from "@/lib/bookingUtils";
 import { calculateBookingWindow } from "@/lib/tableManagementUtils";
+import { metaTracker } from "@/lib/metaTracking";
 
 // Type Definitions
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
@@ -459,6 +460,37 @@ export function useBookingCreate() {
             throw new Error("No booking data returned from RPC.");
 
           const booking = bookingResult.booking;
+
+          // Check if this is user's first booking and track with Meta
+          try {
+            const { count: bookingCount } = await supabase
+              .from("bookings")
+              .select("*", { count: "exact", head: true })
+              .eq("user_id", profile.id)
+              .in("status", ["confirmed", "completed"]);
+
+            const isFirstBooking = (bookingCount || 0) === 1; // This booking was just created
+
+            // Track booking with Meta
+            const bookingData = {
+              restaurantId: restaurant.id,
+              restaurantName: restaurant.name,
+              bookingDate: bookingDate.toISOString().split("T")[0],
+              partySize: totalPartySize,
+              tableType: "standard", // Could be enhanced based on actual table data
+              currency: "USD", // Could be configured based on restaurant
+              value: expectedLoyaltyPoints * 0.1, // Rough value estimate
+            };
+
+            if (isFirstBooking) {
+              metaTracker.trackFirstBooking(bookingData);
+            }
+
+            // Track booking confirmation for all bookings
+            metaTracker.trackBookingConfirmation(bookingData);
+          } catch (trackingError) {
+            console.warn("Meta tracking error (non-critical):", trackingError);
+          }
 
           // Post-booking side-effects (non-blocking)
           const postBookingPromises = [];

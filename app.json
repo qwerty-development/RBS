@@ -167,7 +167,18 @@
           "project": "plate",
           "organization": "qwerty-5v"
         }
-      ]
+      ],
+      [
+        "react-native-fbsdk-next",
+        {
+          "appID": "YOUR_FACEBOOK_APP_ID",
+          "clientToken": "YOUR_FACEBOOK_CLIENT_TOKEN",
+          "displayName": "Plate",
+          "scheme": "fb[YOUR_FACEBOOK_APP_ID]",
+          "iosUserTrackingPermission": "This identifier will be used to deliver personalized ads to you."
+        }
+      ],
+      "expo-tracking-transparency"
     ],
     "extra": {
       "router": {},
