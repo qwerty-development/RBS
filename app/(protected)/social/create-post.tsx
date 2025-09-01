@@ -24,6 +24,7 @@ import {
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Haptics from "expo-haptics";
+import * as Linking from "expo-linking";
 import { format } from "date-fns";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -44,8 +45,33 @@ interface Friend {
 
 interface SelectedImage {
   uri: string;
-  base64?: string;
 }
+
+// Helper function to debug permissions on iOS
+const debugPermissions = async () => {
+  if (__DEV__ && Platform.OS === "ios") {
+    try {
+      const [cameraPerms, mediaPerms] = await Promise.all([
+        ImagePicker.getCameraPermissionsAsync(),
+        ImagePicker.getMediaLibraryPermissionsAsync(),
+      ]);
+      
+      console.log("📸 Camera Permissions:", {
+        status: cameraPerms.status,
+        canAskAgain: cameraPerms.canAskAgain,
+        granted: cameraPerms.granted,
+      });
+      
+      console.log("🖼️ Media Library Permissions:", {
+        status: mediaPerms.status,
+        canAskAgain: mediaPerms.canAskAgain,
+        granted: mediaPerms.granted,
+      });
+    } catch (error) {
+      console.error("❌ Error checking permissions:", error);
+    }
+  }
+};
 
 export default function CreatePostScreen() {
   const router = useRouter();
@@ -70,6 +96,9 @@ export default function CreatePostScreen() {
   useEffect(() => {
     const initializeData = async () => {
       setLoading(true);
+
+      // Debug permissions in development
+      await debugPermissions();
 
       // Fetch friends first
       await fetchFriends();
@@ -156,117 +185,174 @@ export default function CreatePostScreen() {
 
   const pickImage = async () => {
     try {
-      // Check current permission status first
-      const { status: currentStatus } =
-        await ImagePicker.getMediaLibraryPermissionsAsync();
-
-      let finalStatus = currentStatus;
-
-      // Request permission if not granted
-      if (currentStatus !== "granted") {
-        const { status: requestStatus } =
-          await ImagePicker.requestMediaLibraryPermissionsAsync();
-        finalStatus = requestStatus;
+      console.log("📱 [pickImage] Starting image picker flow");
+      
+      // Prevent multiple simultaneous calls
+      if (uploadingImages) {
+        console.log("📱 [pickImage] Already uploading, skipping");
+        return;
       }
 
-      if (finalStatus !== "granted") {
-        Alert.alert(
-          "Permission Required",
-          "Please allow access to your photo library in Settings to share photos.",
-          [
+      // iOS-specific permission handling
+      if (Platform.OS === "ios") {
+        // Check if permissions are granted
+        const { status: currentStatus, canAskAgain } =
+          await ImagePicker.getMediaLibraryPermissionsAsync();
+
+        let finalStatus = currentStatus;
+
+        // Only request permission if we can ask again and it's not already granted
+        if (currentStatus !== "granted" && canAskAgain) {
+          const { status: requestStatus } =
+            await ImagePicker.requestMediaLibraryPermissionsAsync();
+          finalStatus = requestStatus;
+        }
+
+        if (finalStatus !== "granted") {
+          const title = canAskAgain ? "Permission Required" : "Permission Denied";
+          const message = canAskAgain
+            ? "Please allow access to your photo library to share photos."
+            : "Photo library access was denied. Please enable it in Settings to share photos.";
+
+          Alert.alert(title, message, [
             { text: "Cancel", style: "cancel" },
             {
               text: "Open Settings",
               onPress: () => {
-                if (Platform.OS === "ios") {
-                  // On iOS, open Settings app
-                  import("expo-linking").then(({ default: Linking }) => {
-                    Linking.openURL("app-settings:");
-                  });
+                try {
+                  Linking.openURL("app-settings:");
+                } catch (linkError) {
+                  console.error("Error opening settings:", linkError);
                 }
               },
             },
-          ],
-        );
-        return;
+          ]);
+          return;
+        }
+      } else {
+        // Android permission handling (simpler)
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert(
+            "Permission Required",
+            "Please allow access to your photo library to share photos."
+          );
+          return;
+        }
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsMultipleSelection: true,
-        quality: 0.8,
-        base64: true,
-        allowsEditing: false,
+        allowsMultipleSelection: Platform.OS === "android",
+        quality: Platform.OS === "ios" ? 0.7 : 0.8, // Higher quality on iOS to avoid compression issues
+        base64: false,
+        allowsEditing: Platform.OS === "ios", // Only allow editing on iOS where it's more stable
+        aspect: Platform.OS === "ios" ? [1, 1] : undefined,
+        exif: false, // Don't include EXIF data to reduce payload
       });
 
-      if (!result.canceled && result.assets) {
-        const newImages: SelectedImage[] = result.assets.map((asset) => ({
-          uri: asset.uri,
-          base64: asset.base64 || undefined,
-        }));
-        setSelectedImages([...selectedImages, ...newImages].slice(0, 5)); // Max 5 images
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const assetsToProcess = Platform.OS === "ios" ? [result.assets[0]] : result.assets;
+        
+        const newImages: SelectedImage[] = assetsToProcess
+          .filter(asset => asset && asset.uri) // Double check for valid assets
+          .map((asset) => ({
+            uri: asset.uri,
+          }));
+        
+        if (newImages.length > 0) {
+          const totalImages = [...selectedImages, ...newImages];
+          const maxImages = Platform.OS === "ios" ? 3 : 5;
+          setSelectedImages(totalImages.slice(0, maxImages));
+          
+          await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
       }
     } catch (error) {
       console.error("Error picking image:", error);
-      Alert.alert("Error", "Failed to access photo library. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      Alert.alert("Error", `Failed to access photo library: ${errorMessage}`);
     }
   };
 
   const takePhoto = async () => {
     try {
-      // Check current permission status first
-      const { status: currentStatus } =
-        await ImagePicker.getCameraPermissionsAsync();
-
-      let finalStatus = currentStatus;
-
-      // Request permission if not granted
-      if (currentStatus !== "granted") {
-        const { status: requestStatus } =
-          await ImagePicker.requestCameraPermissionsAsync();
-        finalStatus = requestStatus;
+      console.log("📸 [takePhoto] Starting camera flow");
+      
+      // Prevent multiple simultaneous calls
+      if (uploadingImages) {
+        console.log("📸 [takePhoto] Already uploading, skipping");
+        return;
       }
 
-      if (finalStatus !== "granted") {
-        Alert.alert(
-          "Permission Required",
-          "Please allow access to your camera in Settings to take photos.",
-          [
+      // iOS-specific permission handling
+      if (Platform.OS === "ios") {
+        const { status: currentStatus, canAskAgain } =
+          await ImagePicker.getCameraPermissionsAsync();
+
+        let finalStatus = currentStatus;
+
+        // Only request permission if we can ask again and it's not already granted
+        if (currentStatus !== "granted" && canAskAgain) {
+          const { status: requestStatus } =
+            await ImagePicker.requestCameraPermissionsAsync();
+          finalStatus = requestStatus;
+        }
+
+        if (finalStatus !== "granted") {
+          const title = canAskAgain ? "Permission Required" : "Permission Denied";
+          const message = canAskAgain
+            ? "Please allow access to your camera to take photos."
+            : "Camera access was denied. Please enable it in Settings to take photos.";
+
+          Alert.alert(title, message, [
             { text: "Cancel", style: "cancel" },
             {
               text: "Open Settings",
               onPress: () => {
-                if (Platform.OS === "ios") {
-                  // On iOS, open Settings app
-                  import("expo-linking").then(({ default: Linking }) => {
-                    Linking.openURL("app-settings:");
-                  });
+                try {
+                  Linking.openURL("app-settings:");
+                } catch (linkError) {
+                  console.error("Error opening settings:", linkError);
                 }
               },
             },
-          ],
-        );
-        return;
+          ]);
+          return;
+        }
+      } else {
+        // Android permission handling
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== "granted") {
+          Alert.alert(
+            "Permission Required",
+            "Please allow access to your camera to take photos."
+          );
+          return;
+        }
       }
 
       const result = await ImagePicker.launchCameraAsync({
-        quality: 0.8,
-        base64: true,
-        allowsEditing: false,
+        quality: Platform.OS === "ios" ? 0.7 : 0.8, // Better quality on iOS
+        base64: false,
+        allowsEditing: Platform.OS === "ios", // More stable on iOS
+        aspect: Platform.OS === "ios" ? [1, 1] : undefined,
+        exif: false, // Reduce payload size
       });
 
-      if (!result.canceled && result.assets && result.assets[0]) {
+      if (!result.canceled && result.assets && result.assets[0] && result.assets[0].uri) {
         const newImage: SelectedImage = {
           uri: result.assets[0].uri,
-          base64: result.assets[0].base64 || undefined,
         };
-        setSelectedImages([...selectedImages, newImage].slice(0, 5));
+        
+        const maxImages = Platform.OS === "ios" ? 3 : 5;
+        setSelectedImages([...selectedImages, newImage].slice(0, maxImages));
         await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       }
     } catch (error) {
       console.error("Error taking photo:", error);
-      Alert.alert("Error", "Failed to access camera. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      Alert.alert("Error", `Failed to access camera: ${errorMessage}`);
     }
   };
 
@@ -287,24 +373,38 @@ export default function CreatePostScreen() {
     const uploadedUrls: string[] = [];
 
     for (const image of selectedImages) {
-      const fileName = `post-${Date.now()}-${Math.random()}.jpg`;
-      const filePath = `posts/${profile?.id}/${fileName}`;
+      try {
+        const fileName = `post-${Date.now()}-${Math.random().toString(36)}.jpg`;
+        const filePath = `posts/${profile?.id}/${fileName}`;
 
-      const { data, error } = await supabase.storage.from("images").upload(
-        filePath,
-        decode(image.base64!), // You'll need to implement base64 decode
-        {
-          contentType: "image/jpeg",
-        },
-      );
+        // Create FormData for file upload
+        const formData = new FormData();
+        formData.append('file', {
+          uri: image.uri,
+          type: 'image/jpeg',
+          name: fileName,
+        } as any);
 
-      if (error) throw error;
+        const { data, error } = await supabase.storage
+          .from("images")
+          .upload(filePath, formData, {
+            contentType: "image/jpeg",
+          });
 
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("images").getPublicUrl(filePath);
+        if (error) {
+          console.error("Upload error:", error);
+          throw error;
+        }
 
-      uploadedUrls.push(publicUrl);
+        const {
+          data: { publicUrl },
+        } = supabase.storage.from("images").getPublicUrl(filePath);
+
+        uploadedUrls.push(publicUrl);
+      } catch (uploadError) {
+        console.error("Error uploading individual image:", uploadError);
+        // Continue with other images instead of failing completely
+      }
     }
 
     return uploadedUrls;
@@ -383,15 +483,6 @@ export default function CreatePostScreen() {
     }
   };
 
-  // Helper function to decode base64 (simplified version)
-  const decode = (base64: string): Blob => {
-    const binaryString = atob(base64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    return new Blob([bytes], { type: "image/jpeg" });
-  };
 
   if (loading) {
     return <CreatePostSkeleton />;

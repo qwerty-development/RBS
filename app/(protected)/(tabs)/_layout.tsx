@@ -2,10 +2,9 @@
 import React, { useRef } from "react";
 import { Tabs } from "expo-router";
 import { Home, Search, Heart, Calendar, User } from "lucide-react-native";
-import { ScrollView, View, Text } from "react-native";
+import { ScrollView } from "react-native";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { getThemedColors } from "@/lib/utils";
-import { useNotificationsBadge } from "@/hooks/useNotificationsBadge";
 
 // Create ref outside component but don't use useRef at module level
 export let homeScrollRef: React.RefObject<ScrollView> | null = null;
@@ -17,7 +16,6 @@ export default function TabsLayout() {
 
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
-  const { unreadCount } = useNotificationsBadge();
 
   return (
     <Tabs
@@ -95,37 +93,12 @@ export default function TabsLayout() {
           ),
         }}
       />
-      {/* Notifications inside Social tab icon with badge for simplicity */}
       <Tabs.Screen
         name="social"
         options={{
           title: "Social",
           tabBarIcon: ({ color, size }) => (
-            <View>
-              <User size={size} color={color} strokeWidth={2} />
-              {unreadCount > 0 && (
-                <View
-                  style={{
-                    position: "absolute",
-                    right: -4,
-                    top: -4,
-                    backgroundColor: "#EF4444",
-                    borderRadius: 10,
-                    minWidth: 16,
-                    height: 16,
-                    paddingHorizontal: 3,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text
-                    style={{ color: "white", fontSize: 10, fontWeight: "700" }}
-                  >
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </Text>
-                </View>
-              )}
-            </View>
+            <User size={size} color={color} strokeWidth={2} />
           ),
         }}
       />

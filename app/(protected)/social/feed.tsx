@@ -25,7 +25,6 @@ import {
   Heart,
   MessageCircle,
   Share2,
-  MoreVertical,
   Camera,
   Plus,
   Users,
@@ -37,7 +36,7 @@ import { useAuth } from "@/context/supabase-provider";
 import { SafeAreaView } from "@/components/safe-area-view";
 import SocialFeedScreenSkeleton from "@/components/skeletons/SocialFeedScreenSkeleton";
 import { Text } from "@/components/ui/text";
-import { H2, H3, P, Muted } from "@/components/ui/typography";
+import { H3, P, Muted } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { Image } from "@/components/image";
@@ -131,16 +130,7 @@ const PostCard: React.FC<{
   onComment: (postId: string) => void;
   onShare: (post: Post) => void;
   friendIdSet: Set<string>;
-  currentUserId?: string;
-}> = ({
-  post,
-  isGuest,
-  onLike,
-  onComment,
-  onShare,
-  friendIdSet,
-  currentUserId,
-}) => {
+}> = ({ post, isGuest, onLike, onComment, onShare, friendIdSet }) => {
   const router = useRouter();
   const [imageIndex, setImageIndex] = useState(0);
 
@@ -213,9 +203,11 @@ const PostCard: React.FC<{
           disabled={isGuest}
         >
           <Image
-            source={{
-              uri: post.user_avatar || "https://via.placeholder.com/50",
-            }}
+            source={
+              post.user_avatar
+                ? { uri: post.user_avatar }
+                : require("@/assets/default-avatar.jpeg")
+            }
             className="w-10 h-10 rounded-full mr-3"
           />
         </Pressable>
@@ -241,9 +233,6 @@ const PostCard: React.FC<{
             )}
           </View>
         </View>
-        <Pressable className="p-2">
-          <MoreVertical size={20} color="#666" />
-        </Pressable>
       </View>
 
       {/* Content + images wrapped with gesture detector for double-tap */}
@@ -386,7 +375,7 @@ export default function SocialFeedScreen() {
 
   const handleConfirmGuestPrompt = async () => {
     setShowGuestPrompt(false);
-    await convertGuestToUser();
+    convertGuestToUser();
   };
 
   // --- MODIFIED: fetchPosts now handles both guests and authenticated users ---
@@ -514,7 +503,13 @@ export default function SocialFeedScreen() {
     }, "create posts");
   };
 
-  const handleShare = (post: Post) => {
+  const handleMyPosts = () => {
+    runProtectedAction(() => {
+      router.push("/(protected)/social/my-posts");
+    }, "view your posts");
+  };
+
+  const handleShare = () => {
     Alert.alert("Share", "Share functionality coming soon!");
   };
 
@@ -538,6 +533,9 @@ export default function SocialFeedScreen() {
         title="Social Feed"
         actions={
           <View className="flex-row items-center gap-3">
+            <Pressable onPress={handleMyPosts} className="p-2">
+              <Camera size={24} color="#666" />
+            </Pressable>
             <Pressable onPress={handleFindFriends} className="p-2">
               <Users size={24} color="#666" />
             </Pressable>
@@ -594,7 +592,6 @@ export default function SocialFeedScreen() {
                 onComment={handleComment}
                 onShare={handleShare}
                 friendIdSet={friendIdSet}
-                currentUserId={profile?.id}
               />
             ))}
           </View>

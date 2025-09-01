@@ -34,6 +34,7 @@
         "NSCalendarsUsageDescription": "Plate needs access to your calendar to add restaurant reservations with reminder notifications.",
         "NSCameraUsageDescription": "Plate needs access to your camera to take photos for your dining posts and reviews.",
         "NSPhotoLibraryUsageDescription": "Plate needs access to your photo library to share photos of your dining experiences.",
+        "NSPhotoLibraryAddUsageDescription": "Plate needs access to save photos to your photo library from your dining experiences.",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false,
           "NSExceptionDomains": {
@@ -155,7 +156,8 @@
         "expo-image-picker",
         {
           "photosPermission": "Plate needs access to your photo library to share photos of your dining experiences.",
-          "cameraPermission": "Plate needs access to your camera to take photos for your dining posts and reviews."
+          "cameraPermission": "Plate needs access to your camera to take photos for your dining posts and reviews.",
+          "microphonePermission": false
         }
       ],
       [
