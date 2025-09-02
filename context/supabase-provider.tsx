@@ -23,7 +23,6 @@ import {
   withSecurityMiddleware,
   InputValidator,
 } from "../lib/security";
-import { metaTracker } from "../lib/metaTracking";
 
 const GUEST_MODE_KEY = "guest-mode-active";
 
@@ -234,16 +233,6 @@ function AuthContent({ children }: PropsWithChildren) {
             return null;
           }
 
-          // Track OAuth registration with Meta
-          const oauthProvider = session.user.app_metadata?.provider;
-          if (oauthProvider === "google" || oauthProvider === "apple") {
-            metaTracker.setUserId(session.user.id);
-            metaTracker.trackRegistration({
-              method: oauthProvider,
-              hasProfileData: !!session.user.user_metadata.full_name,
-            });
-          }
-
           return createdProfile as Profile;
         } else if (fetchError) {
           console.error("❌ Error fetching user profile:", fetchError);
@@ -414,13 +403,6 @@ function AuthContent({ children }: PropsWithChildren) {
                 email,
                 timestamp: new Date().toISOString(),
               },
-            });
-
-            // Track registration with Meta
-            metaTracker.setUserId(authData.user.id);
-            metaTracker.trackRegistration({
-              method: "email",
-              hasProfileData: !!phoneNumber,
             });
           }
         } catch (error) {

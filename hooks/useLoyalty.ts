@@ -3,7 +3,6 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
-import { metaTracker } from "@/lib/metaTracking";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 type SpecialOffer = Database["public"]["Tables"]["special_offers"]["Row"] & {
@@ -360,24 +359,6 @@ export function useLoyalty() {
         });
 
         if (error) throw error;
-
-        // Track loyalty points earned with Meta
-        try {
-          // We need to get restaurant info for the tracking
-          // For now, we'll use a generic tracking approach
-          metaTracker.trackLoyaltyPointsEarned({
-            restaurantId: relatedId || "general", // Use relatedId if provided (could be restaurant ID)
-            restaurantName: "Restaurant", // Could be enhanced to fetch actual restaurant name
-            pointsEarned: multipliedPoints,
-            totalPoints: (profile.loyalty_points || 0) + multipliedPoints,
-            activityType: activity,
-          });
-        } catch (trackingError) {
-          console.warn(
-            "Meta loyalty tracking error (non-critical):",
-            trackingError,
-          );
-        }
 
         // Refresh profile to get updated points and tier
         await refreshProfile();
