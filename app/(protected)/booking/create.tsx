@@ -151,7 +151,8 @@ export default function BookingCreateScreen() {
             partySize={totalPartySize}
           />
 
-          {/* Friends Invitation */}
+          {/* FRIENDS INVITATION TEMPORARILY HIDDEN FOR APP STORE SUBMISSION */}
+          {/*
           <FriendsInvitationSection
             invitedFriends={invitedFriends}
             restaurantName={restaurant.name}
@@ -159,6 +160,7 @@ export default function BookingCreateScreen() {
             partySize={partySize}
             onInvitesSent={handleInvitesSent}
           />
+          */}
 
           {/* Special Requirements Form */}
           <SpecialRequirementsForm

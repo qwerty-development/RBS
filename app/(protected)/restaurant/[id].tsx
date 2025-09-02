@@ -312,6 +312,8 @@ const ImageGallery: React.FC<{
             fill={isFavorite ? "#ef4444" : "none"}
           />
         </Pressable>
+        {/* ADD TO PLAYLIST BUTTON TEMPORARILY HIDDEN FOR APP STORE SUBMISSION */}
+        {/*
         <Pressable
           onPress={onAddToPlaylist}
           className="w-10 h-10 bg-black/50 rounded-full items-center justify-center"
@@ -319,6 +321,7 @@ const ImageGallery: React.FC<{
         >
           <FolderPlus size={20} color="white" />
         </Pressable>
+        */}
       </View>
 
       {/* Image Indicators - More Subtle */}
@@ -947,7 +950,9 @@ export default function RestaurantDetailsScreen() {
         <FeaturesSection restaurant={restaurant} />
         <RestaurantLoyaltyRules restaurantId={id as string} />
 
+        {/* SOCIAL FEATURES TEMPORARILY HIDDEN FOR APP STORE SUBMISSION */}
         {/* 6. Reviews */}
+        {/*
         <ReviewsSummary
           restaurant={restaurant}
           reviews={reviews}
@@ -959,6 +964,7 @@ export default function RestaurantDetailsScreen() {
           restaurantId={restaurant.id}
           restaurantName={restaurant.name}
         />
+        */}
       </ScrollView>
 
       {/* Floating Book Button - No BookingWidget */}
@@ -1016,6 +1022,8 @@ export default function RestaurantDetailsScreen() {
       </View>
 
       {/* Modals */}
+      {/* PLAYLIST MODAL TEMPORARILY HIDDEN FOR APP STORE SUBMISSION */}
+      {/*
       {!isGuest && restaurant && (
         <AddToPlaylistModal
           visible={showAddToPlaylist}
@@ -1025,6 +1033,7 @@ export default function RestaurantDetailsScreen() {
           onSuccess={handleAddToPlaylistSuccess}
         />
       )}
+      */}
 
       <GuestPromptModal
         visible={showGuestPrompt}

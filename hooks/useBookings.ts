@@ -364,8 +364,14 @@ export function useBookings() {
     [router],
   );
 
+  // REVIEW BOOKING TEMPORARILY HIDDEN FOR APP STORE SUBMISSION
   const reviewBooking = useCallback(
     (booking: Booking) => {
+      // Review functionality temporarily disabled
+      console.log(
+        "Review booking temporarily disabled for App Store submission",
+      );
+      /* 
       if (!booking?.restaurant) {
         console.error("Invalid booking data for review");
         return;
@@ -383,6 +389,7 @@ export function useBookings() {
       } catch (err) {
         console.error("Navigation error:", err);
       }
+      */
     },
     [router],
   );
