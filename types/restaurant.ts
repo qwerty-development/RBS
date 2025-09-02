@@ -97,7 +97,14 @@ export interface RestaurantTable {
   id: string;
   restaurant_id: string;
   table_number: string;
-  table_type: "booth" | "window" | "patio" | "standard" | "bar" | "private";
+  table_type:
+    | "booth"
+    | "window"
+    | "patio"
+    | "standard"
+    | "bar"
+    | "private"
+    | "shared";
   capacity: number;
   min_capacity: number;
   max_capacity: number;
@@ -111,5 +118,34 @@ export interface RestaurantTable {
   is_combinable: boolean;
   combinable_with: string[];
   priority_score: number;
+  created_at: string;
+}
+
+// Shared table specific types
+export interface SharedTableAvailability {
+  table_id: string;
+  table: RestaurantTable;
+  total_seats: number;
+  available_seats: number;
+  occupied_seats: number;
+  current_bookings: SharedTableBooking[];
+}
+
+export interface SharedTableBooking {
+  booking_id: string;
+  user_id: string;
+  user_name?: string;
+  party_size: number;
+  seats_occupied: number;
+  booking_time: string;
+  status: string;
+  is_social?: boolean; // Whether user opted to share booking info
+}
+
+export interface BookingTable {
+  id: string;
+  booking_id: string;
+  table_id: string;
+  seats_occupied: number;
   created_at: string;
 }

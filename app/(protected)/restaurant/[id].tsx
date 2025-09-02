@@ -19,6 +19,7 @@ import {
   Send,
   Timer,
   X,
+  Share2,
 } from "lucide-react-native";
 import {
   ScrollView,
@@ -821,6 +822,23 @@ export default function RestaurantDetailsScreen() {
     runProtectedAction(handleBookTable, "book a table");
   }, [runProtectedAction, handleBookTable]);
 
+  const handleSharedTables = useCallback(() => {
+    if (!restaurant) return;
+    router.push({
+      pathname: "/booking/shared-tables",
+      params: {
+        restaurantId: id!,
+        restaurantName: restaurant.name,
+        date: new Date().toISOString(),
+        partySize: "2",
+      },
+    });
+  }, [router, id, restaurant]);
+
+  const handleAttemptSharedTables = useCallback(() => {
+    runProtectedAction(handleSharedTables, "view shared tables");
+  }, [runProtectedAction, handleSharedTables]);
+
   const handleAddToPlaylistSuccess = useCallback(
     (playlistName: string) => {
       Alert.alert(
@@ -1007,6 +1025,31 @@ export default function RestaurantDetailsScreen() {
                 )}
               </View>
             </Button>
+
+            {/* Shared Tables Button */}
+            <Button
+              onPress={handleAttemptSharedTables}
+              variant="outline"
+              size="lg"
+              className="w-full mt-3"
+            >
+              <View className="flex-row items-center justify-center gap-2">
+                <Share2
+                  size={20}
+                  className="text-purple-600 dark:text-purple-400"
+                />
+                <Text className="font-bold text-lg text-purple-600 dark:text-purple-400">
+                  Shared Tables
+                </Text>
+              </View>
+            </Button>
+
+            {/* Shared Tables Info */}
+            <View className="flex-row items-center justify-center gap-2 mt-2">
+              <Text className="text-xs text-muted-foreground">
+                Join other diners • Social dining experience
+              </Text>
+            </View>
 
             {/* Instant Booking Badge */}
             {restaurant.booking_policy === "instant" && (

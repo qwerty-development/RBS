@@ -134,6 +134,7 @@ export function getTableTypeDisplayName(tableType: string): string {
     standard: "Standard Table",
     bar: "Bar Seating",
     private: "Private Room",
+    shared: "Shared Table",
   };
 
   return displayNames[tableType] || tableType;
