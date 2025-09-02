@@ -20,6 +20,7 @@ import {
   ensurePushPermissionsAndToken,
   registerDeviceForPush,
 } from "@/lib/notifications/setup";
+import AnimatedSplashScreen from "@/components/AnimatedSplashScreen";
 
 LogBox.ignoreAllLogs();
 
@@ -71,6 +72,7 @@ function RootLayoutContent() {
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
   const { profile } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     initializeNotificationHandlers((deeplink: any) => {
@@ -112,6 +114,11 @@ function RootLayoutContent() {
 
   return (
     <>
+      {showSplash && (
+        <AnimatedSplashScreen
+          onAnimationComplete={() => setShowSplash(false)}
+        />
+      )}
       <NetworkStatusBar />
       <Stack
         screenOptions={{
