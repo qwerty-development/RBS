@@ -56,31 +56,12 @@ export class MetaTrackingService implements MetaTrackingServiceInterface {
       Settings.setAdvertiserTrackingEnabled(true);
       Settings.initializeSDK();
 
-      // Development mode configuration
-      if (__DEV__) {
-        // Enable advertiser ID collection for better debugging
-        Settings.setAdvertiserIDCollectionEnabled(true);
-
-        // Note: Flush behavior and test event codes are set via methods below
-        // when explicitly called during testing
-
-        appMonitor.log(
-          "info",
-          "Meta tracking initialized in development mode",
-          {
-            advertiserIdEnabled: true,
-            isDevelopment: true,
-          },
-          "MetaTracking",
-        );
-      }
-
       this.isInitialized = true;
 
       appMonitor.log(
         "info",
         "Meta tracking service initialized",
-        { isDev: __DEV__ },
+        {},
         "MetaTracking",
       );
     } catch (error) {
@@ -332,69 +313,14 @@ export class MetaTrackingService implements MetaTrackingServiceInterface {
     }
   }
 
-  // Set test event code for Meta Events Manager testing (development only)
-  setTestEventCode(testCode: string): void {
-    if (__DEV__) {
-      try {
-        // Note: test_event_code should be set via Meta Events Manager interface
-        // This method provides logging for tracking setup
-        appMonitor.log(
-          "info",
-          "Meta test event code setup",
-          {
-            testCode,
-            note: "Set this code in Meta Events Manager for testing",
-          },
-          "MetaTracking",
-        );
-      } catch (error) {
-        appMonitor.log(
-          "error",
-          "Failed to log Meta test event code setup",
-          { error, testCode },
-          "MetaTracking",
-        );
-      }
-    } else {
-      appMonitor.log(
-        "warn",
-        "Test event codes only available in development mode",
-        {},
-        "MetaTracking",
-      );
-    }
-  }
-
-  // Force flush events for testing
-  forceFlush(): void {
-    try {
-      AppEventsLogger.flush();
-      appMonitor.log(
-        "info",
-        "Meta events manually flushed",
-        {},
-        "MetaTracking",
-      );
-    } catch (error) {
-      appMonitor.log(
-        "error",
-        "Failed to manually flush Meta events",
-        { error },
-        "MetaTracking",
-      );
-    }
-  }
-
   // Get debug info for testing
   getDebugInfo(): {
     isInitialized: boolean;
     userId?: string;
-    isDevelopment: boolean;
   } {
     return {
       isInitialized: this.isInitialized,
       userId: this.userId,
-      isDevelopment: __DEV__,
     };
   }
 }
@@ -431,8 +357,6 @@ export function useMetaTracking() {
     setUserProperties: (properties: MetaEventProperties) =>
       tracker.setUserProperties(properties),
     flush: () => tracker.flush(),
-    setTestEventCode: (testCode: string) => tracker.setTestEventCode(testCode),
-    forceFlush: () => tracker.forceFlush(),
     getDebugInfo: () => tracker.getDebugInfo(),
   };
 }
