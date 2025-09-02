@@ -402,6 +402,24 @@ function AuthContent({ children }: PropsWithChildren) {
             } else {
               console.log("✅ Profile created successfully");
             }
+
+            // Record terms acceptance for new users (since they agreed during sign-up)
+            const { error: termsError } = await supabase
+              .from("terms_acceptance")
+              .insert({
+                user_id: authData.user.id,
+                terms_version: "1.0", // Current terms version
+                accepted_at: new Date().toISOString(),
+              });
+
+            if (termsError) {
+              console.error(
+                "⚠️ Terms acceptance recording error (non-critical):",
+                termsError,
+              );
+            } else {
+              console.log("✅ Terms acceptance recorded successfully");
+            }
           }
 
           // Log successful registration for monitoring

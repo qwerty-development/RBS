@@ -43,6 +43,7 @@ import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { getRefreshControlColor } from "@/lib/utils";
+import { ModerationMenuButton } from "@/components/moderation/ModerationMenu";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -132,7 +133,11 @@ const PostCard: React.FC<{
   friendIdSet: Set<string>;
 }> = ({ post, isGuest, onLike, onComment, onShare, friendIdSet }) => {
   const router = useRouter();
+  const { profile } = useAuth();
   const [imageIndex, setImageIndex] = useState(0);
+
+  // Check if current user is the post author
+  const isPostAuthor = profile?.id === post.user_id;
 
   // Heart animation for whole-post double-tap
   const likeScale = useSharedValue(0);
@@ -233,6 +238,24 @@ const PostCard: React.FC<{
             )}
           </View>
         </View>
+
+        {/* Moderation menu - only show for authenticated users */}
+        {!isGuest && (
+          <ModerationMenuButton
+            contentType="post"
+            contentId={post.id}
+            contentAuthor={post.user_name}
+            contentPreview={post.content || "Post with images"}
+            userId={post.user_id}
+            userName={post.user_name}
+            userAvatar={post.user_avatar}
+            showEdit={false} // Posts typically aren't editable
+            showDelete={false} // Delete would be handled elsewhere
+            showFlag={!isPostAuthor}
+            showBlock={!isPostAuthor}
+            size={20}
+          />
+        )}
       </View>
 
       {/* Content + images wrapped with gesture detector for double-tap */}

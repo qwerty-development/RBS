@@ -18,6 +18,8 @@ import {
   ReviewReplyComposer,
   ReviewReplyEdit,
 } from "@/components/review/ReviewReplyComposer";
+import { ModerationMenuButton } from "@/components/moderation/ModerationMenu";
+import { useAuth } from "@/context/supabase-provider";
 
 // Enhanced review type with all new fields
 type Review = Database["public"]["Tables"]["reviews"]["Row"] & {
@@ -61,6 +63,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   showReplyComposer = false,
   restaurantId,
 }) => {
+  const { profile } = useAuth();
   const [showFullReview, setShowFullReview] = useState(false);
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [showReplies, setShowReplies] = useState(true); // Show replies by default
@@ -74,6 +77,9 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
     deleteReply,
     updateReply,
   } = useReviewReplies({ reviewId: review.id });
+
+  // Check if current user is the review author
+  const isReviewAuthor = profile?.id === review.user_id;
 
   const isLongReview = review.comment && review.comment.length > 150;
   const displayComment =
@@ -189,10 +195,23 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
           </View>
         </View>
 
-        {showActions && isOwner && (
-          <Pressable className="p-1">
-            <MoreVertical size={16} color="#666" />
-          </Pressable>
+        {showActions && (
+          <ModerationMenuButton
+            contentType="review"
+            contentId={review.id}
+            contentAuthor={review.user.full_name}
+            contentPreview={review.comment || `${review.rating} star review`}
+            userId={review.user_id}
+            userName={review.user.full_name}
+            userAvatar={review.user.avatar_url}
+            showEdit={isReviewAuthor}
+            showDelete={isReviewAuthor}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            showFlag={!isReviewAuthor}
+            showBlock={!isReviewAuthor}
+            size={16}
+          />
         )}
       </View>
 

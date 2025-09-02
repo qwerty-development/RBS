@@ -19,7 +19,8 @@
       "mcp__filesystem__list_directory",
       "Bash(npm install:*)",
       "Bash(node:*)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(npx supabase:*)"
     ],
     "deny": []
   },

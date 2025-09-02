@@ -512,13 +512,51 @@ Service Availability:
 • Not incentivized by restaurants or third parties`,
         },
         {
+          id: "zero_tolerance_policy",
+          title: "ZERO TOLERANCE POLICY FOR OBJECTIONABLE CONTENT",
+          content: `WE HAVE ABSOLUTELY NO TOLERANCE FOR:
+• Harassment, bullying, or abusive behavior toward other users
+• Hate speech, discrimination, or content targeting individuals based on race, religion, gender, sexual orientation, or other protected characteristics
+• Threats of violence or harm toward any person
+• Sexual, explicit, or inappropriate content
+• Content that promotes illegal activities or substances
+• Spam, fake reviews, or misleading information
+• Impersonation of other users or entities
+
+IMMEDIATE CONSEQUENCES:
+• First offense may result in immediate content removal and account warning
+• Serious violations result in immediate permanent account termination
+• We report illegal content to appropriate authorities
+• No appeals for zero-tolerance violations involving threats, harassment, or illegal content`,
+        },
+        {
           id: "content_moderation",
-          title: "Content Moderation",
-          content: `• We reserve the right to review and remove content
-• Automated systems may flag inappropriate content
-• Appeals can be submitted for removed content
-• Repeated violations may result in account restrictions
-• We do not guarantee the accuracy of user-generated content`,
+          title: "Content Moderation and Reporting",
+          content: `CONTENT FLAGGING SYSTEM:
+• All users can report objectionable content using in-app flagging tools
+• Reports are reviewed within 24 hours by our moderation team
+• Users who submit false reports may face account restrictions
+• Anonymous reporting is supported to protect reporter safety
+
+USER BLOCKING FEATURES:
+• Users can block other users who engage in abusive behavior
+• Blocked users cannot contact, view, or interact with your content
+• Blocking is permanent and immediate
+• We maintain logs of all blocking actions for safety purposes
+
+MODERATION PROCESS:
+• Automated systems detect potentially harmful content
+• Human moderators review all flagged content
+• Content removal decisions are made within 24 hours
+• Serious violations result in immediate account suspension
+• We maintain detailed logs of all moderation actions
+
+APPEALS PROCESS:
+• Appeals only accepted for non-zero-tolerance violations
+• Submit appeals through support@plate-app.com within 30 days
+• Include detailed explanation and supporting evidence
+• Appeals are reviewed by senior moderation team
+• Final decisions are binding and not subject to further review`,
         },
       ],
     },
@@ -991,8 +1029,21 @@ export const COMMUNITY_GUIDELINES: LegalDocument = {
       id: "prohibited_content",
       title: "Prohibited Content and Behavior",
       content:
-        "The following content and behaviors are not allowed on our platform:",
+        "The following content and behaviors are STRICTLY PROHIBITED and subject to our ZERO TOLERANCE POLICY:",
       subsections: [
+        {
+          id: "zero_tolerance_violations",
+          title: "ZERO TOLERANCE VIOLATIONS - IMMEDIATE PERMANENT BAN",
+          content: `The following result in immediate permanent account termination:
+• Harassment, bullying, threats, or abusive behavior toward any user or staff member
+• Hate speech, discrimination, or attacks based on race, religion, gender, sexual orientation, disability, or other protected characteristics
+• Threats of violence, harm, or illegal activity against any person or business
+• Sexual harassment, explicit sexual content, or inappropriate advances
+• Doxxing, sharing personal information, or violating privacy
+• Content promoting terrorism, extremism, or illegal substances
+• Impersonation with intent to deceive or harm
+• Coordinated harassment campaigns or brigading`,
+        },
         {
           id: "fake_content",
           title: "Fake and Misleading Content",
@@ -1001,17 +1052,18 @@ export const COMMUNITY_GUIDELINES: LegalDocument = {
 • Artificially inflated or deflated ratings
 • Reviews written by restaurant owners about their own establishments
 • Coordinated review campaigns or vote manipulation
-• Impersonating other users or restaurant staff`,
+• Creating false personas or accounts`,
         },
         {
           id: "inappropriate_content",
           title: "Inappropriate Content",
-          content: `• Offensive, discriminatory, or hate speech
+          content: `• Offensive or discriminatory language
 • Content that promotes violence or illegal activities
-• Sexually explicit or inappropriate material
-• Personal attacks or harassment of users or restaurant staff
+• Inappropriate sexual material or advances
+• Personal attacks on users or restaurant staff
 • Defamatory or libelous statements
-• Content that violates intellectual property rights`,
+• Content that violates intellectual property rights
+• Spam or repetitive irrelevant content`,
         },
         {
           id: "commercial_violations",
@@ -1031,7 +1083,8 @@ export const COMMUNITY_GUIDELINES: LegalDocument = {
 • Using automated tools or bots
 • Scraping data from the platform without permission
 • Attempting to reverse engineer the application
-• Violating rate limits or usage restrictions`,
+• Violating rate limits or usage restrictions
+• Circumventing blocks or suspensions`,
         },
       ],
     },
