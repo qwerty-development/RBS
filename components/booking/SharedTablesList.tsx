@@ -10,14 +10,12 @@ import { useSharedTableAvailability } from "@/hooks/useSharedTableAvailability";
 interface SharedTablesListProps {
   restaurantId: string;
   date: Date;
-  time?: string;
   onBookingSuccess?: (bookingId: string) => void;
 }
 
 export const SharedTablesList: React.FC<SharedTablesListProps> = ({
   restaurantId,
   date,
-  time,
   onBookingSuccess,
 }) => {
   const [refreshing, setRefreshing] = useState(false);
@@ -32,7 +30,6 @@ export const SharedTablesList: React.FC<SharedTablesListProps> = ({
   } = useSharedTableAvailability({
     restaurantId,
     date,
-    timeRange: time,
     enableRealtime: true,
   });
 
@@ -50,15 +47,10 @@ export const SharedTablesList: React.FC<SharedTablesListProps> = ({
     partySize: number,
   ): Promise<void> => {
     try {
-      // Create booking time from date and selected time
-      const bookingDateTime = time 
-        ? new Date(`${date.toISOString().split("T")[0]}T${time}:00`)
-        : date;
-        
       const booking = await bookSharedTableSeat(
         tableId,
         partySize,
-        bookingDateTime,
+        date,
         undefined, // special requests
         true, // social booking (allow others to see)
       );
@@ -205,8 +197,6 @@ export const SharedTablesList: React.FC<SharedTablesListProps> = ({
                 tableAvailability={tableAvailability}
                 onBookSeat={handleBookSeat}
                 loading={loading}
-                restaurantId={restaurantId}
-                date={date}
               />
             ))}
           </View>
@@ -224,8 +214,6 @@ export const SharedTablesList: React.FC<SharedTablesListProps> = ({
                 tableAvailability={tableAvailability}
                 onBookSeat={handleBookSeat}
                 loading={loading}
-                restaurantId={restaurantId}
-                date={date}
               />
             ))}
           </View>

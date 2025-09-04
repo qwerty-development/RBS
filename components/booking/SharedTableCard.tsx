@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { View, TouchableOpacity, Alert } from "react-native";
-import { Users, Share2, Clock, UserPlus, Bell } from "lucide-react-native";
+import { Users, Share2, Clock, UserPlus } from "lucide-react-native";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,16 +10,12 @@ import {
   SharedTableBooking,
 } from "@/types/restaurant";
 import { getTableTypeDisplayName } from "@/lib/tableManagementUtils";
-import { useWaitlist } from "@/hooks/useWaitlist";
-import { useAuth } from "@/context/supabase-provider";
 
 interface SharedTableCardProps {
   tableAvailability: SharedTableAvailability;
   onBookSeat: (tableId: string, partySize: number) => Promise<void>;
   maxPartySize?: number;
   loading?: boolean;
-  restaurantId: string;
-  date: Date;
 }
 
 export const SharedTableCard: React.FC<SharedTableCardProps> = ({
@@ -27,15 +23,10 @@ export const SharedTableCard: React.FC<SharedTableCardProps> = ({
   onBookSeat,
   maxPartySize = 4,
   loading = false,
-  restaurantId,
-  date,
 }) => {
   const [selectedPartySize, setSelectedPartySize] = useState(1);
   const [isBooking, setIsBooking] = useState(false);
   const [showBookingOptions, setShowBookingOptions] = useState(false);
-  
-  const { joinWaitlist } = useWaitlist();
-  const { profile } = useAuth();
 
   const {
     table,
@@ -79,36 +70,6 @@ export const SharedTableCard: React.FC<SharedTableCardProps> = ({
     if (occupancyRate < 0.5) return "text-green-600 dark:text-green-400";
     if (occupancyRate < 0.8) return "text-yellow-600 dark:text-yellow-400";
     return "text-red-600 dark:text-red-400";
-  };
-
-  const handleJoinWaitlist = async (): Promise<void> => {
-    if (!profile?.id) {
-      Alert.alert("Error", "Please sign in to join the waitlist");
-      return;
-    }
-    
-    try {
-      await joinWaitlist({
-        userId: profile.id,
-        restaurantId,
-        desiredDate: date.toISOString().split("T")[0],
-        desiredTimeRange: "19:00-21:00", // Default dinner time
-        partySize: selectedPartySize,
-        table_type: "any", // Use "any" since shared might not be supported in waitlist
-        special_requests: `Waitlist for shared table at ${table.table_number || "shared seating"}`,
-      });
-      
-      Alert.alert(
-        "Added to Waitlist",
-        "You'll be notified when a shared table becomes available.",
-        [{ text: "OK" }]
-      );
-    } catch (error: any) {
-      Alert.alert(
-        "Waitlist Error", 
-        error.message || "Failed to join waitlist"
-      );
-    }
   };
 
   const getAvailabilityStatus = (): string => {
@@ -277,27 +238,13 @@ export const SharedTableCard: React.FC<SharedTableCardProps> = ({
           )}
         </View>
       ) : (
-        <View>
-          <View className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg mb-3">
-            <Text className="text-red-800 dark:text-red-200 text-center">
-              Table is currently full
-            </Text>
-            <Text className="text-red-600 dark:text-red-400 text-sm text-center mt-1">
-              Join the waitlist to be notified when seats become available
-            </Text>
-          </View>
-          
-          <Button
-            onPress={handleJoinWaitlist}
-            variant="outline"
-            className="w-full"
-            disabled={loading}
-          >
-            <View className="flex-row items-center justify-center space-x-2">
-              <Bell size={16} className="text-gray-600 dark:text-gray-400" />
-              <Text className="font-medium">Join Waitlist</Text>
-            </View>
-          </Button>
+        <View className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+          <Text className="text-red-800 dark:text-red-200 text-center">
+            Table is currently full
+          </Text>
+          <Text className="text-red-600 dark:text-red-400 text-sm text-center mt-1">
+            Join the waitlist to be notified when seats become available
+          </Text>
         </View>
       )}
     </Card>
