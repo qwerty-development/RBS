@@ -960,8 +960,6 @@ export default function RestaurantDetailsScreen() {
           restaurantId={restaurant.id}
           restaurantName={restaurant.name}
         /> */}
-
-
       </ScrollView>
 
       {/* Floating Book Button - No BookingWidget */}

@@ -542,6 +542,7 @@ export function useBookingCreate() {
               bookingTime: bookingTime,
               bookingDate: bookingDate.toISOString(),
               partySize: totalPartySize.toString(),
+              confirmationCode: booking.confirmation_code || "",
             },
           });
         }

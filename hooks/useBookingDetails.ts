@@ -6,6 +6,7 @@ import * as Clipboard from "expo-clipboard";
 
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
+import { useBookingsStore } from "@/stores";
 import { Database } from "@/types/supabase";
 
 type Booking = Database["public"]["Tables"]["bookings"]["Row"] & {
@@ -45,6 +46,7 @@ type LoyaltyActivity = {
 
 export const useBookingDetails = (bookingId: string) => {
   const { profile } = useAuth();
+  const { updateBooking } = useBookingsStore();
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
@@ -265,7 +267,13 @@ export const useBookingDetails = (bookingId: string) => {
                 Haptics.NotificationFeedbackType.Success,
               );
 
-              // Refresh booking data
+              // Update global bookings store immediately for real-time sync
+              updateBooking(booking.id, {
+                status: "cancelled_by_user",
+                updated_at: new Date().toISOString(),
+              });
+
+              // Refresh local booking data
               await fetchBookingDetails();
 
               Alert.alert(

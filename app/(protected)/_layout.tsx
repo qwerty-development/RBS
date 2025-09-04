@@ -140,6 +140,10 @@ export default function ProtectedLayout() {
         <Stack.Screen name="playlist/join" />
         <Stack.Screen name="restaurant/[id]" />
         <Stack.Screen name="booking/availability" />
+        <Stack.Screen name="booking/create" />
+        <Stack.Screen name="booking/request-sent" />
+        <Stack.Screen name="booking/success" />
+        <Stack.Screen name="booking/[id]" />
         <Stack.Screen name="cuisine/[cuisineId]" />
         <Stack.Screen name="profile/loyalty" />
         <Stack.Screen name="profile/insights" />
