@@ -56,7 +56,7 @@ import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 import RestaurantDetailsScreenSkeleton from "@/components/skeletons/RestaurantDetailsScreenSkeleton";
 import { Database } from "@/types/supabase";
 
-// Type definitions
+// Type definitions - Extended to match actual database schema
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
   dietary_options?: string[] | null;
   ambiance_tags?: string[] | null;
@@ -71,6 +71,17 @@ type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
     total_reviews: number;
     recommendation_percentage: number;
   } | null;
+  // Additional fields that exist in the database but not in the types
+  main_image_url?: string | null;
+  image_urls?: string[] | null;
+  website_url?: string | null;
+  booking_policy?: "instant" | "request" | null;
+  cuisine_type?: string | null;
+  address?: string | null;
+  location?: any;
+  phone_number?: string | null;
+  description?: string | null;
+  price_range?: number | null;
   // Add any additional fields that might be missing
   [key: string]: any;
 };
@@ -251,15 +262,13 @@ const ImageGalleryModal: React.FC<{
   );
 };
 
-// Image Gallery Component
+// Image Gallery Component - FIXED: Moved buttons outside ScrollView
 const ImageGallery: React.FC<{
   images: string[];
   onImagePress: (index: number) => void;
-  restaurant: Restaurant;
   isFavorite: boolean;
   onToggleFavorite: () => void;
   onAddToPlaylist: () => void;
-  colorScheme: any;
 }> = ({
   images,
   onImagePress,
@@ -299,29 +308,7 @@ const ImageGallery: React.FC<{
         ))}
       </ScrollView>
 
-      {/* Overlay Action Buttons - Horizontal Layout */}
-      <View className="absolute top-16 right-4 flex-row gap-2">
-        <Pressable
-          onPress={onToggleFavorite}
-          className="w-10 h-10 bg-black/50 rounded-full items-center justify-center"
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
-          <Heart
-            size={20}
-            color={isFavorite ? "#ef4444" : "white"}
-            fill={isFavorite ? "#ef4444" : "none"}
-          />
-        </Pressable>
-        <Pressable
-          onPress={onAddToPlaylist}
-          className="w-10 h-10 bg-black/50 rounded-full items-center justify-center"
-          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-        >
-          <FolderPlus size={20} color="white" />
-        </Pressable>
-      </View>
-
-      {/* Image Indicators - More Subtle */}
+      {/* Image Indicators */}
       {images.length > 1 && (
         <View className="absolute bottom-4 left-0 right-0 flex-row justify-center">
           <View className="flex-row bg-black/20 rounded-full px-2 py-0.5 gap-0.5">
@@ -831,18 +818,26 @@ export default function RestaurantDetailsScreen() {
 
   const allImages = React.useMemo(() => {
     if (!restaurant) return [];
-    const images = [restaurant.main_image_url];
-    if (Array.isArray(restaurant.image_urls)) {
-      images.push(...restaurant.image_urls);
+    const images: string[] = [];
+    
+    // Add main image if it exists - using type assertion for now
+    if ((restaurant as any).main_image_url) {
+      images.push((restaurant as any).main_image_url);
     }
-    return images.filter(Boolean) as string[];
+    
+    // Add additional images if they exist - using type assertion for now
+    if (Array.isArray((restaurant as any).image_urls)) {
+      images.push(...(restaurant as any).image_urls);
+    }
+    
+    return images.filter(Boolean);
   }, [restaurant]);
 
   const handleWebsite = useCallback(() => {
-    if (restaurant?.website_url) {
-      Linking.openURL(restaurant.website_url);
+    if ((restaurant as any)?.website_url) {
+      Linking.openURL((restaurant as any).website_url);
     }
-  }, [restaurant?.website_url]);
+  }, [(restaurant as any)?.website_url]);
 
   const handleViewAllReviews = useCallback(() => {
     router.push({
@@ -909,6 +904,30 @@ export default function RestaurantDetailsScreen() {
         </SafeAreaView>
       </View>
 
+      {/* Favorite and Playlist Buttons - Outside ScrollView for proper touch handling */}
+      <View className="absolute top-20 right-4 flex-row gap-3 z-50">
+        <Pressable
+          onPress={handleToggleFavorite}
+          className="w-12 h-12 bg-black/60 rounded-full items-center justify-center shadow-lg backdrop-blur-sm"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={{ elevation: 10, zIndex: 50 }}
+        >
+          <Heart
+            size={20}
+            color={isFavorite ? "#ef4444" : "white"}
+            fill={isFavorite ? "#ef4444" : "none"}
+          />
+        </Pressable>
+        <Pressable
+          onPress={handleAddToPlaylist}
+          className="w-12 h-12 bg-black/60 rounded-full items-center justify-center shadow-lg backdrop-blur-sm"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={{ elevation: 10, zIndex: 50 }}
+        >
+          <FolderPlus size={20} color="white" />
+        </Pressable>
+      </View>
+
       <ScrollView
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
@@ -917,11 +936,9 @@ export default function RestaurantDetailsScreen() {
         <ImageGallery
           images={allImages}
           onImagePress={handleImagePress}
-          restaurant={restaurant}
           isFavorite={isFavorite}
           onToggleFavorite={handleToggleFavorite}
           onAddToPlaylist={handleAddToPlaylist}
-          colorScheme={colorScheme}
         />
 
         {/* 1. Name, cuisine, etc. */}
@@ -967,7 +984,7 @@ export default function RestaurantDetailsScreen() {
         <SafeAreaView edges={["bottom"]}>
           <View className="p-4 bg-background border-t border-border">
             {/* Booking Policy Info */}
-            {restaurant.booking_policy === "request" && (
+            {(restaurant as any).booking_policy === "request" && (
               <View className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 mb-3">
                 <View className="flex-row items-center gap-2">
                   <Timer size={16} color="#f97316" />
@@ -985,7 +1002,7 @@ export default function RestaurantDetailsScreen() {
 
             <Button onPress={handleAttemptBooking} size="lg" className="w-full">
               <View className="flex-row items-center justify-center gap-2">
-                {restaurant.booking_policy === "request" ? (
+                {(restaurant as any).booking_policy === "request" ? (
                   <>
                     <Send size={20} color="white" />
                     <Text className="text-white font-bold text-lg">
@@ -1004,7 +1021,7 @@ export default function RestaurantDetailsScreen() {
             </Button>
 
             {/* Instant Booking Badge */}
-            {restaurant.booking_policy === "instant" && (
+            {(restaurant as any).booking_policy === "instant" && (
               <View className="flex-row items-center justify-center gap-2 mt-2">
                 <CheckCircle size={14} color="#10b981" />
                 <Text className="text-xs text-muted-foreground">

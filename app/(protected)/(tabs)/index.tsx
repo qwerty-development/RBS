@@ -211,7 +211,7 @@ export default function HomeScreen() {
               renderItem={({ item }) => (
                 <RestaurantCard
                   item={item}
-                  variant="compact"
+                  variant="featured"
                   onPress={handleRestaurantPress}
                   onToggleFavorite={() => handleToggleFavorite(item.id)}
                 />
@@ -237,7 +237,7 @@ export default function HomeScreen() {
               renderItem={({ item }) => (
                 <RestaurantCard
                   item={item}
-                  variant="compact"
+                  variant="featured"
                   onPress={handleRestaurantPress}
                   onToggleFavorite={() => handleToggleFavorite(item.id)}
                 />
