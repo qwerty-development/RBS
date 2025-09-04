@@ -129,6 +129,9 @@ async function sendMessageToRestoAI(
   userId?: string,
 ): Promise<ChatMessage> {
   try {
+    // Get current user session for JWT authentication
+    const { data: { session } } = await supabase.auth.getSession();
+    
     // Get last 10 message pairs (20 messages total) for context
     const recentHistory = conversationHistory.slice(-20);
     
@@ -139,20 +142,33 @@ async function sendMessageToRestoAI(
       // Don't send restaurant data in history to keep payload lean
     }));
 
+    // Prepare headers with JWT authentication
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    // Add JWT token if user is authenticated
+    if (session?.access_token) {
+      headers["Authorization"] = `Bearer ${session.access_token}`;
+    }
+
     const response = await fetch(`${AI_API_BASE_URL}/api/chat`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: headers,
       body: JSON.stringify({
         message: message,
         conversation_history: formattedHistory,
         session_id: sessionId || "default",
-        user_id: userId,
+        user_id: session?.user?.id || userId, // Use session user ID if available
       }),
     });
 
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error(`Authentication failed: Your session may have expired. Please log in again.`);
+      } else if (response.status === 403) {
+        throw new Error(`Access denied: You don't have permission to access this feature.`);
+      }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
@@ -249,6 +265,7 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
   const [sessionId] = useState(() => `session_${Date.now()}`);
   const scrollViewRef = useRef<ScrollView>(null);
   const [userId, setUserId] = useState<string | undefined>(undefined);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
   // Check API health on component mount
   useEffect(() => {
@@ -268,15 +285,26 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
     checkHealth();
   }, []);
 
-  // Load user ID once from Supabase session
+  // Load user ID and authentication status from Supabase session
   useEffect(() => {
-    const loadUserId = async () => {
+    const loadUserSession = async () => {
       try {
         const { data } = await supabase.auth.getSession();
-        setUserId(data.session?.user?.id);
-      } catch {}
+        const session = data.session;
+        setUserId(session?.user?.id);
+        setIsAuthenticated(!!session?.access_token);
+        
+        if (session?.user?.id) {
+          console.log("User authenticated:", session.user.id);
+        } else {
+          console.log("User not authenticated - limited AI functionality");
+        }
+      } catch (error) {
+        console.error("Error loading user session:", error);
+        setIsAuthenticated(false);
+      }
     };
-    loadUserId();
+    loadUserSession();
   }, []);
 
   // Auto-scroll to bottom when messages change
@@ -340,21 +368,32 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
       console.error("Error in chat:", error);
       setIsLoading(false);
 
-      // Check if it's a connection error
-      const isConnectionError =
-        error instanceof Error &&
-        (error.message.includes("fetch") || error.message.includes("Network"));
+      let errorMessage = "Sorry, I encountered an error. Please try again.";
 
-      setApiConnected(false);
+      if (error instanceof Error) {
+        // Check for authentication errors
+        if (error.message.includes("Authentication failed") || error.message.includes("401")) {
+          errorMessage = "Your session has expired. Please log in again to continue using personalized features.";
+          Alert.alert(
+            "Session Expired",
+            "Your session has expired. Please log in again to access personalized AI features.",
+            [{ text: "OK" }]
+          );
+        } else if (error.message.includes("Access denied") || error.message.includes("403")) {
+          errorMessage = "You don't have permission to access this feature. Please contact support if you believe this is an error.";
+        } else if (error.message.includes("fetch") || error.message.includes("Network")) {
+          // Connection error
+          setApiConnected(false);
+          errorMessage = "Sorry, I'm having trouble connecting to the server. Please check if the RestoAI backend is running and try again.";
+        }
+      }
 
       // Add error message to chat
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
-          content: isConnectionError
-            ? "Sorry, I'm having trouble connecting to the server. Please check if the RestoAI backend is running and try again."
-            : "Sorry, I encountered an error. Please try again.",
+          content: errorMessage,
         },
       ]);
     }
@@ -375,15 +414,26 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
 
   const resetChat = useCallback(async () => {
     try {
+      // Get current user session for JWT authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      // Prepare headers with JWT authentication
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // Add JWT token if user is authenticated
+      if (session?.access_token) {
+        headers["Authorization"] = `Bearer ${session.access_token}`;
+      }
+
       // Call RestoAI API to reset chat with conversation history cleared
       await fetch(`${AI_API_BASE_URL}/api/chat/reset`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: headers,
         body: JSON.stringify({
           session_id: sessionId,
-          user_id: userId,
+          user_id: session?.user?.id || userId,
           clear_history: true, // Signal to clear conversation history
         }),
       });
@@ -424,6 +474,7 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
               </View>
               <Text className="text-muted-foreground">
                 RestoAI-powered chat assistant for restaurant recommendations
+                {isAuthenticated ? " (Authenticated)" : " (Limited Mode)"}
               </Text>
               {apiConnected === false && (
                 <Text className="text-xs text-red-500 mt-1">
@@ -471,6 +522,22 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
                 I can help you find restaurants, make reservations, get
                 recommendations, and answer questions about dining options.
               </Text>
+              
+              {/* Authentication status message */}
+              {isAuthenticated ? (
+                <View className="bg-green-100 p-3 rounded-lg mb-4">
+                  <Text className="text-sm text-green-700 text-center">
+                    ✅ You're signed in! I can provide personalized recommendations based on your preferences and booking history.
+                  </Text>
+                </View>
+              ) : (
+                <View className="bg-blue-100 p-3 rounded-lg mb-4">
+                  <Text className="text-sm text-blue-700 text-center">
+                    💡 Sign in for personalized recommendations and booking features. I can still help with general restaurant information!
+                  </Text>
+                </View>
+              )}
+              
               <View className="bg-muted p-3 rounded-lg">
                 <Text className="text-sm text-muted-foreground text-center">
                   Try asking: "Show me Italian restaurants" or "Find places with
