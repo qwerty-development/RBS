@@ -297,25 +297,25 @@ export default function ProfileScreen() {
         },
       ],
     },
-    {
-      title: "Social",
-      items: [
-        {
-          id: "my-posts",
-          title: "My Posts",
-          subtitle: "Manage your shared experiences",
-          icon: "Camera",
-          onPress: () => router.push("/(protected)/social/my-posts"),
-        },
-        {
-          id: "friends",
-          title: "Friends",
-          subtitle: "Manage your connections",
-          icon: "Users",
-          onPress: () => router.push("/friends"),
-        },
-      ],
-    },
+    // {
+    //   title: "Social",
+    //   items: [
+    //     // {
+    //     //   id: "my-posts",
+    //     //   title: "My Posts",
+    //     //   subtitle: "Manage your shared experiences",
+    //     //   icon: "Camera",
+    //     //   onPress: () => router.push("/(protected)/social/my-posts"),
+    //     // },
+    //     {
+    //       id: "friends",
+    //       title: "Friends",
+    //       subtitle: "Manage your connections",
+    //       icon: "Users",
+    //       onPress: () => router.push("/friends"),
+    //     },
+    //   ],
+    // },
     {
       title: "Support",
       items: [

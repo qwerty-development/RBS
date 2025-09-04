@@ -912,6 +912,7 @@ export default function RestaurantDetailsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
+        className="mb-40"
       >
         <ImageGallery
           images={allImages}
@@ -955,10 +956,12 @@ export default function RestaurantDetailsScreen() {
           onWriteReview={handleWriteReview}
         />
 
-        <RestaurantPosts
+        {/* <RestaurantPosts
           restaurantId={restaurant.id}
           restaurantName={restaurant.name}
-        />
+        /> */}
+
+
       </ScrollView>
 
       {/* Floating Book Button - No BookingWidget */}
