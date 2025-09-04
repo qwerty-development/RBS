@@ -586,7 +586,10 @@ export function useBookings() {
                   Haptics.NotificationFeedbackType.Success,
                 );
 
-                Alert.alert("Success", "You have left the booking successfully");
+                Alert.alert(
+                  "Success",
+                  "You have left the booking successfully",
+                );
 
                 // Refresh bookings to reflect changes
                 await fetchBookings();

@@ -337,7 +337,7 @@ export function BookingCard({
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onCancel?.(booking.id);
   };
-  
+
   const handleLeaveBooking = (e: any) => {
     e.stopPropagation();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -642,7 +642,7 @@ export function BookingCard({
                 <H3 className="mb-1 text-lg">
                   {booking.restaurant.name || "Restaurant"}
                 </H3>
-                
+
                 {/* Invitation Indicator */}
                 {booking.is_invitee && booking.invited_by && (
                   <View className="flex-row items-center gap-1 mb-1">
@@ -652,7 +652,7 @@ export function BookingCard({
                     </Text>
                   </View>
                 )}
-                
+
                 <Text className="text-muted-foreground text-sm">
                   {booking.restaurant.cuisine_type || "Cuisine"}
                 </Text>
@@ -822,7 +822,11 @@ export function BookingCard({
                 <Button
                   size="sm"
                   variant="destructive"
-                  onPress={booking.is_invitee ? handleLeaveBooking : handleCancelBooking}
+                  onPress={
+                    booking.is_invitee
+                      ? handleLeaveBooking
+                      : handleCancelBooking
+                  }
                   disabled={isProcessing}
                   className="flex-1 min-w-[100px]"
                 >
@@ -832,12 +836,11 @@ export function BookingCard({
                     <View className="flex-row items-center gap-1">
                       <XCircle size={14} color="#fff" />
                       <Text className="text-xs text-white">
-                        {booking.is_invitee 
-                          ? "Leave Booking" 
-                          : isPending 
-                            ? "Cancel Request" 
-                            : "Cancel Booking"
-                        }
+                        {booking.is_invitee
+                          ? "Leave Booking"
+                          : isPending
+                            ? "Cancel Request"
+                            : "Cancel Booking"}
                       </Text>
                     </View>
                   )}

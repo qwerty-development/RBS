@@ -819,17 +819,17 @@ export default function RestaurantDetailsScreen() {
   const allImages = React.useMemo(() => {
     if (!restaurant) return [];
     const images: string[] = [];
-    
+
     // Add main image if it exists - using type assertion for now
     if ((restaurant as any).main_image_url) {
       images.push((restaurant as any).main_image_url);
     }
-    
+
     // Add additional images if they exist - using type assertion for now
     if (Array.isArray((restaurant as any).image_urls)) {
       images.push(...(restaurant as any).image_urls);
     }
-    
+
     return images.filter(Boolean);
   }, [restaurant]);
 
