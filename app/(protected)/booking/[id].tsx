@@ -42,6 +42,7 @@ import {
   BookingContactSection,
   BookingSpecialRequests,
   AppliedOfferCard,
+  BookingInvitationsSection,
 } from "@/components/booking";
 import { BookingTableInfo } from "@/components/booking/BookingTableInfo";
 
@@ -193,7 +194,7 @@ export default function BookingDetailsScreen() {
     isTomorrow,
     cancelBooking,
     copyOfferCode,
-    refetch,
+    refresh,
   } = useBookingDetails(params.id || "");
 
   // Fetch restaurant loyalty details
@@ -393,7 +394,8 @@ export default function BookingDetailsScreen() {
     );
   }
 
-  const statusConfig = BOOKING_STATUS_CONFIG[booking.status];
+  const statusConfig =
+    BOOKING_STATUS_CONFIG[booking.status as keyof typeof BOOKING_STATUS_CONFIG];
   const StatusIcon = statusConfig.icon;
   const bookingDate = new Date(booking.booking_time);
 
@@ -572,6 +574,12 @@ export default function BookingDetailsScreen() {
             </Text>
           </View>
         </View>
+
+        {/* Booking Invitations Section */}
+        <BookingInvitationsSection
+          bookingId={booking.id}
+          bookingUserId={booking.user_id}
+        />
 
         {/* Table Assignment - Only show for confirmed bookings */}
         {booking.status === "confirmed" && (

@@ -1,12 +1,12 @@
-import { LogBox } from "react-native";
+import {
+  LogBox,
+  View,
+  ScrollView,
+  Share,
+  Alert,
+  Pressable,
+} from "react-native";
 import React, { useEffect, useState } from "react";
-
-// Completely suppress all warnings
-if (__DEV__) {
-  console.warn = () => {};
-  console.error = () => {};
-}
-import { View, ScrollView, Share, Alert, Pressable } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Clock,
@@ -31,6 +31,12 @@ import { H1, H2, H3, P, Muted } from "@/components/ui/typography";
 import { supabase } from "@/config/supabase";
 import { Database } from "@/types/supabase";
 
+// Completely suppress all warnings
+if (__DEV__) {
+  console.warn = () => {};
+  console.error = () => {};
+}
+
 // Nuclear option - completely disable all logging
 LogBox.ignoreAllLogs();
 (console as any).disableYellowBox = true;
@@ -39,16 +45,28 @@ LogBox.ignoreAllLogs();
 if (__DEV__) {
   const originalWarn = console.warn;
   const originalError = console.error;
-  
+
   console.warn = (...args) => {
-    if (args[0] && typeof args[0] === 'string' && args[0].includes('Text strings must be rendered within a <Text> component')) {
+    if (
+      args[0] &&
+      typeof args[0] === "string" &&
+      args[0].includes(
+        "Text strings must be rendered within a <Text> component",
+      )
+    ) {
       return;
     }
     originalWarn.apply(console, args);
   };
-  
+
   console.error = (...args) => {
-    if (args[0] && typeof args[0] === 'string' && args[0].includes('Text strings must be rendered within a <Text> component')) {
+    if (
+      args[0] &&
+      typeof args[0] === "string" &&
+      args[0].includes(
+        "Text strings must be rendered within a <Text> component",
+      )
+    ) {
       return;
     }
     originalError.apply(console, args);
@@ -106,7 +124,8 @@ const PotentialLoyaltyPointsCard: React.FC<{
       <View className="flex-row items-start mt-3">
         <Info size={14} color="#666" className="mt-0.5" />
         <Text className="text-xs text-muted-foreground ml-2 flex-1">
-          Points will be added to your account automatically once the restaurant confirms your booking.
+          Points will be added to your account automatically once the restaurant
+          confirms your booking.
         </Text>
       </View>
     </View>
@@ -126,25 +145,29 @@ export default function RequestSentScreen() {
   // Parse and format date with proper validation
   const parseBookingDate = (dateString: string): Date => {
     if (!dateString) return new Date();
-    
+
     // Try parsing as ISO string first
     let date = new Date(dateString);
-    
+
     // If invalid, try parsing common formats
     if (isNaN(date.getTime())) {
       // Try YYYY-MM-DD format
       const isoMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})$/);
       if (isoMatch) {
-        date = new Date(parseInt(isoMatch[1]), parseInt(isoMatch[2]) - 1, parseInt(isoMatch[3]));
+        date = new Date(
+          parseInt(isoMatch[1]),
+          parseInt(isoMatch[2]) - 1,
+          parseInt(isoMatch[3]),
+        );
       }
     }
-    
+
     // Fallback to current date if still invalid
     if (isNaN(date.getTime())) {
-      console.warn('Invalid booking date provided:', dateString);
+      console.warn("Invalid booking date provided:", dateString);
       date = new Date();
     }
-    
+
     return date;
   };
 
@@ -250,13 +273,10 @@ export default function RequestSentScreen() {
   const copyConfirmationCode = async () => {
     const code = booking?.confirmation_code || params.confirmationCode;
     if (!code) return;
-    
+
     await Clipboard.setStringAsync(code);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert(
-      "Copied!",
-      `Reference code ${code} copied to clipboard`,
-    );
+    Alert.alert("Copied!", `Reference code ${code} copied to clipboard`);
   };
 
   const navigateToBookingDetails = () => {
@@ -297,7 +317,9 @@ export default function RequestSentScreen() {
                 Reference Code
               </Text>
               <Text className="text-3xl font-bold tracking-wider text-orange-600 dark:text-orange-400">
-                {booking?.confirmation_code || params.confirmationCode || 'Loading...'}
+                {booking?.confirmation_code ||
+                  params.confirmationCode ||
+                  "Loading..."}
               </Text>
               <Pressable
                 onPress={copyConfirmationCode}
@@ -319,7 +341,8 @@ export default function RequestSentScreen() {
               </Text>
             </View>
             <Text className="text-sm text-blue-700 dark:text-blue-300">
-              The restaurant will review your request and confirm availability. You'll receive a notification with their response.
+              The restaurant will review your request and confirm availability.
+              You'll receive a notification with their response.
             </Text>
           </View>
 
@@ -340,7 +363,8 @@ export default function RequestSentScreen() {
               <View className="flex-row items-center gap-3">
                 <Users size={20} color="#666" />
                 <Text className="font-medium">
-                  {params.partySize} {parseInt(params.partySize) === 1 ? "Guest" : "Guests"}
+                  {params.partySize}{" "}
+                  {parseInt(params.partySize) === 1 ? "Guest" : "Guests"}
                 </Text>
               </View>
             </View>
@@ -356,7 +380,8 @@ export default function RequestSentScreen() {
                 <View className="flex-1">
                   <Text className="font-medium">Restaurant Reviews</Text>
                   <Text className="text-sm text-muted-foreground">
-                    The restaurant will check availability and review your request
+                    The restaurant will check availability and review your
+                    request
                   </Text>
                 </View>
               </View>
@@ -382,7 +407,8 @@ export default function RequestSentScreen() {
                     Confirmation or Alternative
                   </Text>
                   <Text className="text-sm">
-                    If confirmed, you're all set! If not, try booking another time
+                    If confirmed, you're all set! If not, try booking another
+                    time
                   </Text>
                 </View>
               </View>
@@ -390,7 +416,11 @@ export default function RequestSentScreen() {
           </View>
 
           {(() => {
-            if (!loading && booking?.expected_loyalty_points && booking.expected_loyalty_points > 0) {
+            if (
+              !loading &&
+              booking?.expected_loyalty_points &&
+              booking.expected_loyalty_points > 0
+            ) {
               return (
                 <PotentialLoyaltyPointsCard
                   expectedPoints={booking.expected_loyalty_points}
@@ -410,9 +440,14 @@ export default function RequestSentScreen() {
                 </Text>
                 <Text className="text-sm text-amber-700 dark:text-amber-300">
                   {(() => {
-                    let text = "Enable push notifications to get instant updates about your booking request";
-                    if (booking?.expected_loyalty_points && booking.expected_loyalty_points > 0) {
-                      text += " and earn your bonus loyalty points when confirmed";
+                    let text =
+                      "Enable push notifications to get instant updates about your booking request";
+                    if (
+                      booking?.expected_loyalty_points &&
+                      booking.expected_loyalty_points > 0
+                    ) {
+                      text +=
+                        " and earn your bonus loyalty points when confirmed";
                     }
                     return text;
                   })()}
@@ -453,7 +488,10 @@ export default function RequestSentScreen() {
           <Text className="text-sm text-muted-foreground text-center">
             {(() => {
               let text = "We'll notify you as soon as the restaurant responds";
-              if (booking?.expected_loyalty_points && booking.expected_loyalty_points > 0) {
+              if (
+                booking?.expected_loyalty_points &&
+                booking.expected_loyalty_points > 0
+              ) {
                 text += " and award your bonus points";
               }
               return text;

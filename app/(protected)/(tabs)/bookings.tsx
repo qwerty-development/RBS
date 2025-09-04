@@ -1,7 +1,7 @@
 // app/(protected)/(tabs)/bookings.tsx
 import React, { useCallback } from "react";
-import { View, RefreshControl, ScrollView } from "react-native";
-import { Calendar, Clock, UserPlus } from "lucide-react-native";
+import { View, RefreshControl, ScrollView, Pressable } from "react-native";
+import { Calendar, Clock, UserPlus, Bell, Users } from "lucide-react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -16,6 +16,7 @@ import { BookingCard } from "@/components/booking/BookingCard";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useBookings } from "@/hooks/useBookings";
 import { useAuth } from "@/context/supabase-provider";
+import { useBookingInvitations } from "@/hooks/useBookingInvitations";
 import BookingsScreenSkeleton from "@/components/skeletons/BookingsScreenSkeleton";
 import { getRefreshControlColor } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ function BookingsScreenContent() {
   const router = useRouter();
   const { isGuest, convertGuestToUser, user } = useAuth();
   const { colorScheme } = useColorScheme();
+  const { invitations } = useBookingInvitations();
 
   // --- Authenticated User Hooks (must be called before any early returns) ---
   const {
@@ -143,10 +145,39 @@ function BookingsScreenContent() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* Header */}
-      <PageHeader
-        title="My Bookings"
-        subtitle="Tap any booking for full details and options"
-      />
+      <View className="px-4 py-3 bg-background border-b border-border">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-1">
+            <Text className="text-2xl font-bold">My Bookings</Text>
+            <Text className="text-sm text-muted-foreground">
+              Tap any booking for full details and options
+            </Text>
+          </View>
+
+          {/* Invitations Button */}
+          <Pressable
+            onPress={() => router.push("/(protected)/invitations")}
+            className="relative ml-4 p-3 bg-card rounded-full border border-border"
+          >
+            <Users
+              size={20}
+              color={colorScheme === "dark" ? "white" : "black"}
+            />
+            {invitations.filter((inv) => inv.status === "pending").length >
+              0 && (
+              <View className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full items-center justify-center">
+                <Text className="text-white text-xs font-bold">
+                  {Math.min(
+                    invitations.filter((inv) => inv.status === "pending")
+                      .length,
+                    9,
+                  )}
+                </Text>
+              </View>
+            )}
+          </Pressable>
+        </View>
+      </View>
 
       {/* Tabs */}
       <View className="flex-row border-b border-border bg-background">

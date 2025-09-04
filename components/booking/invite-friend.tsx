@@ -445,27 +445,41 @@ export function InviteFriends({
 export const FriendsInvitationSection: React.FC<
   FriendsInvitationSectionProps
 > = ({
-  invitedFriends,
-  restaurantName,
-  bookingTime,
-  partySize,
+  invitedFriends = [],
+  restaurantName = "",
+  bookingTime = "",
+  partySize = 2,
   onInvitesSent,
 }) => {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
+  // Early return if required props are missing
+  if (!restaurantName || !onInvitesSent) {
+    console.warn("FriendsInvitationSection: Missing required props");
+    return null;
+  }
+
   const handleInviteFriends = () => {
-    // Navigate to friends selection screen
-    router.push({
-      pathname: "/friends",
-      params: {
-        mode: "invite",
-        restaurantName,
-        bookingTime,
-        partySize: partySize.toString(),
-        currentInvites: JSON.stringify(invitedFriends),
-      },
-    });
+    try {
+      // Navigate to friends selection screen
+      router.push({
+        pathname: "/(protected)/friends",
+        params: {
+          mode: "invite",
+          restaurantName,
+          bookingTime,
+          partySize: partySize.toString(),
+          currentInvites: JSON.stringify(invitedFriends),
+        },
+      });
+    } catch (error) {
+      console.error("Navigation error:", error);
+      Alert.alert(
+        "Error",
+        "Unable to open friends selection. Please try again.",
+      );
+    }
   };
 
   const totalGuests = partySize + invitedFriends.length;

@@ -28,6 +28,7 @@ interface BookingConfirmationProps {
   guestName?: string;
   guestEmail?: string;
   guestPhone?: string;
+  invitedFriends?: string[]; // Array of friend user IDs
 }
 
 interface BookingResult {
@@ -150,6 +151,7 @@ export const useBookingConfirmation = () => {
         requiresCombination,
         turnTime = 120,
         isGroupBooking = false,
+        invitedFriends = [],
       } = modifiedProps;
 
       // Parse table IDs
@@ -441,6 +443,40 @@ export const useBookingConfirmation = () => {
 
         if (debugMode && bookingResult.debug_info) {
           console.log("Booking Debug Info:", bookingResult.debug_info);
+        }
+
+        // Send friend invitations if any friends were invited
+        if (invitedFriends.length > 0) {
+          try {
+            const invites = invitedFriends.map((friendId) => ({
+              booking_id: bookingResult.booking.id,
+              from_user_id: profile.id,
+              to_user_id: friendId,
+              message: `Join me at ${bookingResult.booking.restaurant?.name || "this restaurant"}!`,
+              status: "pending",
+            }));
+
+            const { error: inviteError } = await supabase
+              .from("booking_invites")
+              .insert(invites);
+
+            if (inviteError) {
+              console.error("Failed to send booking invites:", inviteError);
+              // Don't fail the entire booking if invites fail
+            } else {
+              // Update booking to mark as group booking
+              await supabase
+                .from("bookings")
+                .update({
+                  is_group_booking: true,
+                  organizer_id: profile.id,
+                })
+                .eq("id", bookingResult.booking.id);
+            }
+          } catch (inviteError) {
+            console.error("Error processing friend invitations:", inviteError);
+            // Don't fail the entire booking if invites fail
+          }
         }
 
         // Success feedback
