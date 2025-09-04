@@ -49,12 +49,14 @@ export const useBookingInvitations = () => {
 
     setLoading(true);
     try {
+      const now = new Date().toISOString();
+
       const { data, error } = await supabase
         .from("booking_invites")
         .select(
           `
           *,
-          booking:bookings(
+          booking:bookings!inner(
             id,
             booking_time,
             party_size,
@@ -75,6 +77,8 @@ export const useBookingInvitations = () => {
         )
         .eq("to_user_id", profile.id)
         .in("status", ["pending", "accepted"])
+        .gte("booking.booking_time", now) // Only show future bookings
+        .in("booking.status", ["pending", "confirmed"]) // Only show active bookings
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -93,12 +97,14 @@ export const useBookingInvitations = () => {
 
     setLoading(true);
     try {
+      const now = new Date().toISOString();
+
       const { data, error } = await supabase
         .from("booking_invites")
         .select(
           `
           *,
-          booking:bookings(
+          booking:bookings!inner(
             id,
             booking_time,
             party_size,
@@ -118,6 +124,8 @@ export const useBookingInvitations = () => {
         `,
         )
         .eq("from_user_id", profile.id)
+        .gte("booking.booking_time", now) // Only show future bookings
+        .in("booking.status", ["pending", "confirmed"]) // Only show active bookings
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -356,12 +364,11 @@ export const useBookingInvitations = () => {
                 }
 
                 // Check if this was the last person in the booking
-                const { data: remainingInvites, error: checkError } =
-                  await supabase
-                    .from("booking_invites")
-                    .select("id")
-                    .eq("booking_id", bookingId)
-                    .eq("status", "accepted");
+                const { error: checkError } = await supabase
+                  .from("booking_invites")
+                  .select("id")
+                  .eq("booking_id", bookingId)
+                  .eq("status", "accepted");
 
                 if (checkError) throw checkError;
 

@@ -23,7 +23,7 @@ import * as Haptics from "expo-haptics";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { H2, H3, Muted } from "@/components/ui/typography";
+import { H2, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 import { useColorScheme } from "@/lib/useColorScheme";
 import {
@@ -44,334 +44,353 @@ const InvitationCard = React.memo<{
   onLeave?: (id: string, bookingId: string) => void;
   onCancelEntire?: (bookingId: string) => void;
   canCancelEntireBooking?: boolean;
-}>(
-  ({
-    invitation,
-    type,
-    onAccept,
-    onDecline,
-    onCancel,
-    onLeave,
-    onCancelEntire,
-    canCancelEntireBooking = false,
-  }) => {
-    const { colorScheme } = useColorScheme();
-    const [processing, setProcessing] = useState(false);
+}>(function InvitationCard({
+  invitation,
+  type,
+  onAccept,
+  onDecline,
+  onCancel,
+  onLeave,
+  onCancelEntire,
+  canCancelEntireBooking = false,
+}) {
+  const { colorScheme } = useColorScheme();
+  const [processing, setProcessing] = useState(false);
 
-    const booking = invitation.booking;
-    const restaurant = booking?.restaurant;
-    const otherUser =
-      type === "received" ? invitation.from_user : invitation.to_user;
+  const booking = invitation.booking;
+  const restaurant = booking?.restaurant;
+  const otherUser =
+    type === "received" ? invitation.from_user : invitation.to_user;
 
-    const formatBookingTime = (timeStr: string) => {
-      const date = new Date(timeStr);
-      const today = new Date();
-      const tomorrow = new Date(today);
-      tomorrow.setDate(today.getDate() + 1);
+  // Check if booking time has passed
+  const isBookingExpired = useCallback(() => {
+    if (!booking?.booking_time) return false;
+    return new Date(booking.booking_time) <= new Date();
+  }, [booking?.booking_time]);
 
-      const isToday = date.toDateString() === today.toDateString();
-      const isTomorrow = date.toDateString() === tomorrow.toDateString();
+  const bookingExpired = isBookingExpired();
 
-      const timeString = date.toLocaleTimeString("en-US", {
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
+  const formatBookingTime = (timeStr: string) => {
+    const date = new Date(timeStr);
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(today.getDate() + 1);
 
-      if (isToday) return `Today at ${timeString}`;
-      if (isTomorrow) return `Tomorrow at ${timeString}`;
+    const isToday = date.toDateString() === today.toDateString();
+    const isTomorrow = date.toDateString() === tomorrow.toDateString();
 
-      return date.toLocaleDateString("en-US", {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-        hour: "numeric",
-        minute: "2-digit",
-        hour12: true,
-      });
-    };
+    const timeString = date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
 
-    const handleAction = async (action: string) => {
-      if (processing) return;
+    if (isToday) return `Today at ${timeString}`;
+    if (isTomorrow) return `Tomorrow at ${timeString}`;
 
-      setProcessing(true);
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  };
 
-      try {
-        switch (action) {
-          case "accept":
-            await onAccept?.(invitation.id);
-            break;
-          case "decline":
-            await onDecline?.(invitation.id);
-            break;
-          case "cancel":
-            await onCancel?.(invitation.id);
-            break;
-          case "leave":
-            await onLeave?.(invitation.id, invitation.booking_id);
-            break;
-          case "cancelEntire":
-            await onCancelEntire?.(invitation.booking_id);
-            break;
-        }
-      } finally {
-        setProcessing(false);
+  const handleAction = async (action: string) => {
+    if (processing) return;
+
+    setProcessing(true);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+    try {
+      switch (action) {
+        case "accept":
+          await onAccept?.(invitation.id);
+          break;
+        case "decline":
+          await onDecline?.(invitation.id);
+          break;
+        case "cancel":
+          await onCancel?.(invitation.id);
+          break;
+        case "leave":
+          await onLeave?.(invitation.id, invitation.booking_id);
+          break;
+        case "cancelEntire":
+          await onCancelEntire?.(invitation.booking_id);
+          break;
       }
-    };
+    } finally {
+      setProcessing(false);
+    }
+  };
 
-    const getStatusColor = (status: string) => {
-      switch (status) {
-        case "accepted":
-          return "text-green-600 dark:text-green-400";
-        case "declined":
-          return "text-red-600 dark:text-red-400";
-        case "cancelled":
-          return "text-gray-600 dark:text-gray-400";
-        default:
-          return "text-orange-600 dark:text-orange-400";
-      }
-    };
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "accepted":
+        return "text-green-600 dark:text-green-400";
+      case "declined":
+        return "text-red-600 dark:text-red-400";
+      case "cancelled":
+        return "text-gray-600 dark:text-gray-400";
+      default:
+        return "text-orange-600 dark:text-orange-400";
+    }
+  };
 
-    const getStatusText = (status: string) => {
-      switch (status) {
-        case "accepted":
-          return "Accepted";
-        case "declined":
-          return "Declined";
-        case "cancelled":
-          return "Cancelled";
-        default:
-          return "Pending";
-      }
-    };
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "accepted":
+        return "Accepted";
+      case "declined":
+        return "Declined";
+      case "cancelled":
+        return "Cancelled";
+      default:
+        return "Pending";
+    }
+  };
 
-    return (
-      <View
-        className="mb-4 p-4 bg-card rounded-xl border border-border shadow-sm"
-        style={{
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-          elevation: 3,
-        }}
-      >
-        {/* Header */}
-        <View className="flex-row items-center justify-between mb-3">
-          <View className="flex-row items-center gap-3 flex-1">
-            <Image
-              source={{
-                uri:
-                  otherUser?.avatar_url ||
-                  `https://ui-avatars.com/api/?name=${otherUser?.full_name || "User"}`,
-              }}
-              className="w-10 h-10 rounded-full bg-gray-100"
-            />
-            <View className="flex-1">
-              <Text className="font-semibold">
-                {type === "received"
-                  ? `${otherUser?.full_name || "Someone"} invited you`
-                  : `Invited ${otherUser?.full_name || "someone"}`}
-              </Text>
-              <Text
-                className={`text-sm font-medium ${getStatusColor(invitation.status)}`}
-              >
-                {getStatusText(invitation.status)}
-              </Text>
-            </View>
-          </View>
-          <View className="flex-row items-center gap-1">
-            <Clock size={14} color="#666" />
-            <Muted className="text-xs">
-              {new Date(invitation.created_at).toLocaleDateString()}
-            </Muted>
-          </View>
-        </View>
-
-        {/* Restaurant Info */}
-        <View className="flex-row gap-3 mb-3 p-3 bg-muted/30 rounded-lg">
+  return (
+    <View
+      className="mb-4 p-4 bg-card rounded-xl border border-border shadow-sm"
+      style={{
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+      }}
+    >
+      {/* Header */}
+      <View className="flex-row items-center justify-between mb-3">
+        <View className="flex-row items-center gap-3 flex-1">
           <Image
             source={{
               uri:
-                restaurant?.main_image_url || "https://via.placeholder.com/150",
+                otherUser?.avatar_url ||
+                `https://ui-avatars.com/api/?name=${otherUser?.full_name || "User"}`,
             }}
-            className="w-12 h-12 rounded-lg bg-gray-100"
-            contentFit="cover"
-            placeholder="Restaurant"
+            className="w-10 h-10 rounded-full bg-gray-100"
           />
           <View className="flex-1">
             <Text className="font-semibold">
-              {restaurant?.name || "Restaurant"}
+              {type === "received"
+                ? `${otherUser?.full_name || "Someone"} invited you`
+                : `Invited ${otherUser?.full_name || "someone"}`}
             </Text>
-            <View className="flex-row items-center gap-1 mt-1">
-              <MapPin size={12} color="#666" />
-              <Text className="text-xs text-muted-foreground" numberOfLines={1}>
-                {restaurant?.address || "Address"}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Booking Details */}
-        <View className="flex-row items-center justify-between mb-4">
-          <View className="flex-row items-center gap-4">
-            <View className="flex-row items-center gap-2">
-              <Calendar size={16} color="#3b82f6" />
-              <Text className="text-sm font-medium">
-                {booking ? formatBookingTime(booking.booking_time) : "Time TBD"}
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-2">
-              <Users size={16} color="#3b82f6" />
-              <Text className="text-sm font-medium">
-                Party of {booking?.party_size || "?"}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Message */}
-        {invitation.message && (
-          <View className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <Text className="text-sm text-blue-800 dark:text-blue-200">
-              "{invitation.message}"
+            <Text
+              className={`text-sm font-medium ${bookingExpired ? "text-gray-500" : getStatusColor(invitation.status)}`}
+            >
+              {bookingExpired ? "Expired" : getStatusText(invitation.status)}
             </Text>
           </View>
+        </View>
+        <View className="flex-row items-center gap-1">
+          <Clock size={14} color="#666" />
+          <Muted className="text-xs">
+            {new Date(invitation.created_at).toLocaleDateString()}
+          </Muted>
+        </View>
+      </View>
+
+      {/* Restaurant Info */}
+      <View className="flex-row gap-3 mb-3 p-3 bg-muted/30 rounded-lg">
+        <Image
+          source={{
+            uri:
+              restaurant?.main_image_url || "https://via.placeholder.com/150",
+          }}
+          className="w-12 h-12 rounded-lg bg-gray-100"
+          contentFit="cover"
+          placeholder="Restaurant"
+        />
+        <View className="flex-1">
+          <Text className="font-semibold">
+            {restaurant?.name || "Restaurant"}
+          </Text>
+          <View className="flex-row items-center gap-1 mt-1">
+            <MapPin size={12} color="#666" />
+            <Text className="text-xs text-muted-foreground" numberOfLines={1}>
+              {restaurant?.address || "Address"}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Booking Details */}
+      <View className="flex-row items-center justify-between mb-4">
+        <View className="flex-row items-center gap-4">
+          <View className="flex-row items-center gap-2">
+            <Calendar size={16} color="#3b82f6" />
+            <Text className="text-sm font-medium">
+              {booking ? formatBookingTime(booking.booking_time) : "Time TBD"}
+            </Text>
+          </View>
+          <View className="flex-row items-center gap-2">
+            <Users size={16} color="#3b82f6" />
+            <Text className="text-sm font-medium">
+              Party of {booking?.party_size || "?"}
+            </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Message */}
+      {invitation.message && (
+        <View className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+          <Text className="text-sm text-blue-800 dark:text-blue-200">
+            &ldquo;{invitation.message}&rdquo;
+          </Text>
+        </View>
+      )}
+
+      {/* Action Buttons */}
+      <View className="flex-row gap-2">
+        {type === "received" && invitation.status === "pending" && (
+          <>
+            <Button
+              onPress={() => handleAction("accept")}
+              disabled={processing || bookingExpired}
+              className="flex-1"
+            >
+              {processing ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <View className="flex-row items-center justify-center gap-2">
+                  <Check size={16} color="white" />
+                  <Text className="text-white font-medium">
+                    {bookingExpired ? "Expired" : "Accept"}
+                  </Text>
+                </View>
+              )}
+            </Button>
+
+            <Button
+              variant="outline"
+              onPress={() => handleAction("decline")}
+              disabled={processing || bookingExpired}
+              className="flex-1"
+            >
+              <View className="flex-row items-center justify-center gap-2">
+                <X
+                  size={16}
+                  color={colorScheme === "dark" ? "white" : "black"}
+                />
+                <Text className="font-medium">
+                  {bookingExpired ? "Expired" : "Decline"}
+                </Text>
+              </View>
+            </Button>
+          </>
         )}
 
-        {/* Action Buttons */}
-        <View className="flex-row gap-2">
-          {type === "received" && invitation.status === "pending" && (
-            <>
+        {type === "received" && invitation.status === "accepted" && (
+          <>
+            <Button
+              variant="outline"
+              onPress={() => handleAction("leave")}
+              disabled={processing || bookingExpired}
+              className="flex-1"
+            >
+              {processing ? (
+                <ActivityIndicator size="small" color="currentColor" />
+              ) : (
+                <View className="flex-row items-center justify-center gap-2">
+                  <Trash2
+                    size={16}
+                    color={bookingExpired ? "#9ca3af" : "#ef4444"}
+                  />
+                  <Text
+                    className={`font-medium ${bookingExpired ? "text-gray-400" : "text-red-500"}`}
+                  >
+                    {bookingExpired ? "Expired" : "Leave"}
+                  </Text>
+                </View>
+              )}
+            </Button>
+
+            {canCancelEntireBooking && (
               <Button
-                onPress={() => handleAction("accept")}
-                disabled={processing}
-                className="flex-1"
+                variant="destructive"
+                onPress={() => onCancelEntire?.(invitation.booking_id)}
+                disabled={processing || bookingExpired}
+                className="flex-1 ml-2"
               >
                 {processing ? (
                   <ActivityIndicator size="small" color="white" />
                 ) : (
                   <View className="flex-row items-center justify-center gap-2">
-                    <Check size={16} color="white" />
-                    <Text className="text-white font-medium">Accept</Text>
+                    <X size={16} color="white" />
+                    <Text className="font-medium text-white">
+                      {bookingExpired ? "Expired" : "Cancel Booking"}
+                    </Text>
                   </View>
                 )}
               </Button>
+            )}
+          </>
+        )}
 
-              <Button
-                variant="outline"
-                onPress={() => handleAction("decline")}
-                disabled={processing}
-                className="flex-1"
-              >
+        {type === "sent" && invitation.status === "pending" && (
+          <>
+            <Button
+              variant="outline"
+              onPress={() => handleAction("cancel")}
+              disabled={processing || bookingExpired}
+              className="flex-1"
+            >
+              {processing ? (
+                <ActivityIndicator size="small" color="currentColor" />
+              ) : (
                 <View className="flex-row items-center justify-center gap-2">
                   <X
                     size={16}
                     color={colorScheme === "dark" ? "white" : "black"}
                   />
-                  <Text className="font-medium">Decline</Text>
+                  <Text className="font-medium">
+                    {bookingExpired ? "Expired" : "Cancel Invitation"}
+                  </Text>
                 </View>
-              </Button>
-            </>
-          )}
+              )}
+            </Button>
 
-          {type === "received" && invitation.status === "accepted" && (
-            <>
+            {canCancelEntireBooking && (
               <Button
-                variant="outline"
-                onPress={() => handleAction("leave")}
-                disabled={processing}
-                className="flex-1"
+                variant="destructive"
+                onPress={() => onCancelEntire?.(invitation.booking_id)}
+                disabled={processing || bookingExpired}
+                className="flex-1 ml-2"
               >
                 {processing ? (
-                  <ActivityIndicator size="small" color="currentColor" />
+                  <ActivityIndicator size="small" color="white" />
                 ) : (
                   <View className="flex-row items-center justify-center gap-2">
-                    <Trash2 size={16} color="#ef4444" />
-                    <Text className="font-medium text-red-500">Leave</Text>
+                    <Trash2 size={16} color="white" />
+                    <Text className="font-medium text-white">
+                      {bookingExpired ? "Expired" : "Cancel Booking"}
+                    </Text>
                   </View>
                 )}
               </Button>
+            )}
+          </>
+        )}
 
-              {canCancelEntireBooking && (
-                <Button
-                  variant="destructive"
-                  onPress={() => onCancelEntire?.(invitation.booking_id)}
-                  disabled={processing}
-                  className="flex-1 ml-2"
-                >
-                  {processing ? (
-                    <ActivityIndicator size="small" color="white" />
-                  ) : (
-                    <View className="flex-row items-center justify-center gap-2">
-                      <X size={16} color="white" />
-                      <Text className="font-medium text-white">
-                        Cancel Booking
-                      </Text>
-                    </View>
-                  )}
-                </Button>
-              )}
-            </>
-          )}
-
-          {type === "sent" && invitation.status === "pending" && (
-            <>
-              <Button
-                variant="outline"
-                onPress={() => handleAction("cancel")}
-                disabled={processing}
-                className="flex-1"
-              >
-                {processing ? (
-                  <ActivityIndicator size="small" color="currentColor" />
-                ) : (
-                  <View className="flex-row items-center justify-center gap-2">
-                    <X
-                      size={16}
-                      color={colorScheme === "dark" ? "white" : "black"}
-                    />
-                    <Text className="font-medium">Cancel Invitation</Text>
-                  </View>
-                )}
-              </Button>
-
-              {canCancelEntireBooking && (
-                <Button
-                  variant="destructive"
-                  onPress={() => onCancelEntire?.(invitation.booking_id)}
-                  disabled={processing}
-                  className="flex-1 ml-2"
-                >
-                  {processing ? (
-                    <ActivityIndicator size="small" color="white" />
-                  ) : (
-                    <View className="flex-row items-center justify-center gap-2">
-                      <Trash2 size={16} color="white" />
-                      <Text className="font-medium text-white">
-                        Cancel Booking
-                      </Text>
-                    </View>
-                  )}
-                </Button>
-              )}
-            </>
-          )}
-
-          {invitation.status === "accepted" && (
-            <View className="flex-1 flex-row items-center justify-center gap-2 p-3">
-              <UserCheck size={16} color="#10b981" />
-              <Text className="font-medium text-green-600 dark:text-green-400">
-                {type === "received" ? "You're going!" : "They're coming!"}
-              </Text>
-            </View>
-          )}
-        </View>
+        {invitation.status === "accepted" && (
+          <View className="flex-1 flex-row items-center justify-center gap-2 p-3">
+            <UserCheck size={16} color="#10b981" />
+            <Text className="font-medium text-green-600 dark:text-green-400">
+              {type === "received" ? "You're going!" : "They're coming!"}
+            </Text>
+          </View>
+        )}
       </View>
-    );
-  },
-);
+    </View>
+  );
+});
 
 export default function InvitationsScreen() {
   const router = useRouter();

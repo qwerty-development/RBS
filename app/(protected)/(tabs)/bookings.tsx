@@ -41,6 +41,7 @@ function BookingsScreenContent() {
     navigateToRestaurant,
     navigateToSearch,
     cancelBooking,
+    leaveBooking,
     rebookRestaurant,
     reviewBooking,
   } = useBookings();
@@ -235,6 +236,7 @@ function BookingsScreenContent() {
                   variant={activeTab}
                   onPress={() => navigateToBookingDetails(item.id)}
                   onCancel={cancelBooking}
+                  onLeave={leaveBooking}
                   onRebook={rebookRestaurant}
                   onReview={reviewBooking}
                   onNavigateToRestaurant={navigateToRestaurant}

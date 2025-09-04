@@ -26,6 +26,7 @@ import {
   RotateCcw, // Added for rebooking
   X,
   Check,
+  UserPlus, // Added for invitation indicator
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
@@ -40,17 +41,70 @@ import { supabase } from "@/config/supabase";
 import { cn } from "@/lib/utils";
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 
-type Booking = Database["public"]["Tables"]["bookings"]["Row"] & {
-  restaurant: Database["public"]["Tables"]["restaurants"]["Row"];
-};
+// Enhanced booking type that includes invitation info
+interface EnhancedBooking {
+  id: string;
+  user_id: string;
+  restaurant_id: string;
+  booking_time: string;
+  party_size: number;
+  status: string;
+  special_requests?: string;
+  occasion?: string;
+  dietary_notes?: string[];
+  confirmation_code?: string;
+  table_preferences?: string[];
+  reminder_sent?: boolean;
+  checked_in_at?: string;
+  loyalty_points_earned?: number;
+  created_at?: string;
+  updated_at?: string;
+  applied_offer_id?: string;
+  expected_loyalty_points?: number;
+  guest_name?: string;
+  guest_email?: string;
+  guest_phone?: string;
+  is_group_booking?: boolean;
+  organizer_id?: string;
+  attendees?: number;
+  turn_time_minutes: number;
+  applied_loyalty_rule_id?: string;
+  actual_end_time?: string;
+  seated_at?: string;
+  meal_progress?: any;
+  request_expires_at?: string;
+  auto_declined?: boolean;
+  acceptance_attempted_at?: string;
+  acceptance_failed_reason?: string;
+  suggested_alternative_time?: string;
+  suggested_alternative_tables?: string[];
+  source: string;
+  is_shared_booking?: boolean;
+  restaurant: {
+    id: string;
+    name: string;
+    main_image_url?: string;
+    address?: string;
+    [key: string]: any;
+  };
+  // Invitation-related fields for bookings where user was invited
+  invitation_id?: string;
+  invited_by?: {
+    id: string;
+    full_name: string;
+    avatar_url?: string;
+  };
+  is_invitee?: boolean;
+}
 
 interface BookingCardProps {
-  booking: Booking;
+  booking: EnhancedBooking;
   variant?: "upcoming" | "past";
   onPress?: () => void;
-  onCancel?: (bookingId: string) => Promise<void>;
-  onRebook?: (booking: Booking) => void;
-  onReview?: (booking: Booking) => void;
+  onCancel?: (bookingId: string) => void;
+  onRebook?: (booking: EnhancedBooking) => void;
+  onReview?: (booking: EnhancedBooking) => void;
+  onLeave?: (booking: EnhancedBooking) => void;
   onNavigateToRestaurant?: (restaurantId: string) => void;
   className?: string;
   showQuickActions?: boolean;
@@ -156,6 +210,7 @@ export function BookingCard({
   onCancel,
   onRebook,
   onReview,
+  onLeave,
   onNavigateToRestaurant,
   className,
   showQuickActions = true,
@@ -281,6 +336,12 @@ export function BookingCard({
     e.stopPropagation();
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onCancel?.(booking.id);
+  };
+  
+  const handleLeaveBooking = (e: any) => {
+    e.stopPropagation();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    onLeave?.(booking);
   };
   const handleQuickCall = async (e: any) => {
     e.stopPropagation();
@@ -581,6 +642,17 @@ export function BookingCard({
                 <H3 className="mb-1 text-lg">
                   {booking.restaurant.name || "Restaurant"}
                 </H3>
+                
+                {/* Invitation Indicator */}
+                {booking.is_invitee && booking.invited_by && (
+                  <View className="flex-row items-center gap-1 mb-1">
+                    <UserPlus size={12} color="#10b981" />
+                    <Text className="text-xs text-green-600 font-medium">
+                      Invited by {booking.invited_by.full_name}
+                    </Text>
+                  </View>
+                )}
+                
                 <Text className="text-muted-foreground text-sm">
                   {booking.restaurant.cuisine_type || "Cuisine"}
                 </Text>
@@ -745,12 +817,12 @@ export function BookingCard({
                 </>
               )}
 
-              {/* Cancel: Show for pending or confirmed */}
+              {/* Cancel/Leave: Show for pending or confirmed */}
               {!isPast && (isConfirmed || isPending) && (
                 <Button
                   size="sm"
                   variant="destructive"
-                  onPress={handleCancelBooking}
+                  onPress={booking.is_invitee ? handleLeaveBooking : handleCancelBooking}
                   disabled={isProcessing}
                   className="flex-1 min-w-[100px]"
                 >
@@ -760,7 +832,12 @@ export function BookingCard({
                     <View className="flex-row items-center gap-1">
                       <XCircle size={14} color="#fff" />
                       <Text className="text-xs text-white">
-                        {isPending ? "Cancel Request" : "Cancel Booking"}
+                        {booking.is_invitee 
+                          ? "Leave Booking" 
+                          : isPending 
+                            ? "Cancel Request" 
+                            : "Cancel Booking"
+                        }
                       </Text>
                     </View>
                   )}
