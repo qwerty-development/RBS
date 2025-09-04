@@ -134,13 +134,10 @@ export default function ProtectedLayout() {
       >
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="modal" options={{ presentation: "modal" }} />
-        {/* PLAYLIST ROUTES TEMPORARILY HIDDEN FOR APP STORE SUBMISSION */}
-        {/*
         <Stack.Screen name="playlist/[id]" />
         <Stack.Screen name="playlist/add-restaurants" />
         <Stack.Screen name="playlist/[id]/collaborators" />
         <Stack.Screen name="playlist/join" />
-        */}
         <Stack.Screen name="restaurant/[id]" />
         <Stack.Screen name="booking/availability" />
         <Stack.Screen name="cuisine/[cuisineId]" />

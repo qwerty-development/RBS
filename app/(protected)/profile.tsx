@@ -281,8 +281,6 @@ export default function ProfileScreen() {
           icon: "BarChart3",
           onPress: () => router.push("/profile/insights"),
         },
-        /* REVIEWS TEMPORARILY HIDDEN FOR APP STORE SUBMISSION */
-        /*
         {
           id: "reviews",
           title: "My Reviews",
@@ -290,7 +288,6 @@ export default function ProfileScreen() {
           icon: "MessageCircle",
           onPress: () => router.push("/profile/reviews"),
         },
-        */
         {
           id: "loyalty",
           title: "Loyalty & Rewards",
@@ -300,8 +297,6 @@ export default function ProfileScreen() {
         },
       ],
     },
-    /* SOCIAL SECTION TEMPORARILY HIDDEN FOR APP STORE SUBMISSION */
-    /*
     {
       title: "Social",
       items: [
@@ -321,7 +316,6 @@ export default function ProfileScreen() {
         },
       ],
     },
-    */
     {
       title: "Support",
       items: [

@@ -470,26 +470,33 @@ export default function FavoritesScreen() {
       {/* Header */}
       <PageHeader
         title="My Collection"
-        subtitle={`${favorites?.length || 0} ${(favorites?.length || 0) === 1 ? "restaurant" : "restaurants"}`}
+        subtitle={
+          activeTab === "favorites"
+            ? `${favorites?.length || 0} ${(favorites?.length || 0) === 1 ? "restaurant" : "restaurants"}`
+            : `${playlists?.length || 0} ${(playlists?.length || 0) === 1 ? "playlist" : "playlists"}`
+        }
         actions={
-          <Pressable
-            onPress={() => setShowOptions(!showOptions)}
-            className="p-2 relative"
-          >
-            <Filter
-              size={24}
-              color={colorScheme === "dark" ? "#fff" : "#000"}
-            />
-            {hasActiveFilters && (
-              <View className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-background" />
-            )}
-          </Pressable>
+          activeTab === "favorites" ? (
+            <Pressable
+              onPress={() => setShowOptions(!showOptions)}
+              className="p-2 relative"
+            >
+              <Filter
+                size={24}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+              />
+              {hasActiveFilters && (
+                <View className="absolute -top-1 -right-1 w-3 h-3 bg-primary rounded-full border-2 border-background" />
+              )}
+            </Pressable>
+          ) : (
+            <PlaylistHeaderActions />
+          )
         }
       />
 
-      {/* PLAYLIST TABS TEMPORARILY HIDDEN FOR APP STORE SUBMISSION */}
-      {/*
       <View className="px-4">
+        {/* Tabs */}
         <View className="flex-row bg-muted dark:bg-card rounded-xl p-1">
           <Pressable
             onPress={() => handleTabSwitch("favorites")}
@@ -542,7 +549,6 @@ export default function FavoritesScreen() {
           </Pressable>
         </View>
       </View>
-      */}
 
       <PlaylistErrorBoundary
         fallback={
@@ -570,38 +576,40 @@ export default function FavoritesScreen() {
           }
           contentContainerStyle={{ flexGrow: 1 }}
         >
-          {/* ALWAYS SHOW FAVORITES - PLAYLISTS TEMPORARILY HIDDEN FOR APP STORE SUBMISSION */}
-          {(favorites?.length || 0) === 0 ? (
-            <FavoritesEmptyState onDiscoverPress={navigateToSearch} />
-          ) : groupBy === "none" ? (
-            <View className="p-2 pb-24">
-              {processedFavorites?.[0]?.data?.map(
-                (item: any, index: number) => (
-                  <View key={`${item?.[0]?.id || index}-${index}`}>
-                    {renderGridRow({ item })}
-                  </View>
-                ),
-              )}
-            </View>
-          ) : (
-            <View className="pb-24">
-              {processedFavorites?.map((section: any, sectionIndex: number) => (
-                <View key={section.title}>
-                  {renderSectionHeader({ section })}
-                  <View className="p-2">
-                    {section.data?.map((item: any, index: number) => (
-                      <View key={`${item?.[0]?.id || index}-${index}`}>
-                        {renderGridRow({ item })}
+          {activeTab === "favorites" ? (
+            // Favorites content
+            (favorites?.length || 0) === 0 ? (
+              <FavoritesEmptyState onDiscoverPress={navigateToSearch} />
+            ) : groupBy === "none" ? (
+              <View className="p-2 pb-24">
+                {processedFavorites?.[0]?.data?.map(
+                  (item: any, index: number) => (
+                    <View key={`${item?.[0]?.id || index}-${index}`}>
+                      {renderGridRow({ item })}
+                    </View>
+                  ),
+                )}
+              </View>
+            ) : (
+              <View className="pb-24">
+                {processedFavorites?.map(
+                  (section: any, sectionIndex: number) => (
+                    <View key={section.title}>
+                      {renderSectionHeader({ section })}
+                      <View className="p-2">
+                        {section.data?.map((item: any, index: number) => (
+                          <View key={`${item?.[0]?.id || index}-${index}`}>
+                            {renderGridRow({ item })}
+                          </View>
+                        ))}
                       </View>
-                    ))}
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-          {/* PLAYLIST CONTENT TEMPORARILY HIDDEN FOR APP STORE SUBMISSION */}
-          {/*
-          : (playlists?.length || 0) === 0 ? (
+                    </View>
+                  ),
+                )}
+              </View>
+            )
+          ) : // Playlists content
+          (playlists?.length || 0) === 0 ? (
             <View className="flex-1 items-center justify-center px-8 pt-6">
               <FolderPlus size={64} color="#6b7280" className="mb-4" />
               <H3 className="text-center mb-2">No Playlists Yet</H3>
@@ -672,8 +680,7 @@ export default function FavoritesScreen() {
                 }
               })}
             </View>
-          )
-          */}
+          )}
         </ScrollView>
       </PlaylistErrorBoundary>
 
@@ -686,25 +693,25 @@ export default function FavoritesScreen() {
         />
       )}
 
-      {/* Filter Modal - Always show for favorites since playlists are hidden */}
-      <FavoritesFilterModal
-        visible={showOptions}
-        sortBy={sortBy}
-        groupBy={groupBy}
-        onClose={() => setShowOptions(false)}
-        onSortChange={setSortBy}
-        onGroupChange={setGroupBy}
-        onReset={resetFilters}
-      />
+      {/* Filter Modal */}
+      {activeTab === "favorites" && (
+        <FavoritesFilterModal
+          visible={showOptions}
+          sortBy={sortBy}
+          groupBy={groupBy}
+          onClose={() => setShowOptions(false)}
+          onSortChange={setSortBy}
+          onGroupChange={setGroupBy}
+          onReset={resetFilters}
+        />
+      )}
 
-      {/* CREATE PLAYLIST MODAL TEMPORARILY HIDDEN FOR APP STORE SUBMISSION */}
-      {/*
+      {/* Create Playlist Modal */}
       <CreatePlaylistModal
         visible={showCreatePlaylist}
         onClose={() => setShowCreatePlaylist(false)}
         onSubmit={handleCreatePlaylist}
       />
-      */}
     </SafeAreaView>
   );
 }

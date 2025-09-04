@@ -1,12 +1,7 @@
 // app/(protected)/(tabs)/_layout.tsx
 import React, { useRef } from "react";
 import { Tabs } from "expo-router";
-import {
-  Home,
-  Search,
-  Heart,
-  Calendar /* , User */,
-} from "lucide-react-native";
+import { Home, Search, Heart, Calendar, User } from "lucide-react-native";
 import { ScrollView } from "react-native";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { getThemedColors } from "@/lib/utils";
@@ -98,7 +93,6 @@ export default function TabsLayout() {
           ),
         }}
       />
-      {/* TEMPORARILY HIDDEN FOR APP STORE SUBMISSION
       <Tabs.Screen
         name="social"
         options={{
@@ -108,7 +102,6 @@ export default function TabsLayout() {
           ),
         }}
       />
-      */}
     </Tabs>
   );
 }
