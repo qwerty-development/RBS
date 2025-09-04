@@ -44,6 +44,11 @@ export function useSharedTableAvailability({
     if (!restaurantId) return [];
 
     const dateStr = date.toISOString().split("T")[0];
+    
+    // Use the actual booking date/time for availability calculation
+    const bookingDateTime = timeRange 
+      ? new Date(`${dateStr}T${timeRange}:00`)
+      : new Date(date);
 
     // Get all shared tables for this restaurant
     const { data: sharedTables, error: tablesError } = await supabase
@@ -61,11 +66,11 @@ export function useSharedTableAvailability({
     // For each shared table, calculate availability
     for (const table of sharedTables) {
       try {
-        // Use the function we created in the migration
+        // Use the function we created in the migration with proper time
         const { data: availableSeats, error: availabilityError } =
           await supabase.rpc("get_shared_table_available_seats", {
             table_id_param: table.id,
-            booking_time_param: new Date().toISOString(),
+            booking_time_param: bookingDateTime.toISOString(),
             turn_time_minutes_param: 120,
           });
 
@@ -110,25 +115,31 @@ export function useSharedTableAvailability({
             table.id,
             bookingsError,
           );
+          // Continue with empty bookings array instead of skipping table
         }
 
         const currentBookingsList: SharedTableBooking[] = (
           currentBookings || []
-        ).map((booking: any) => ({
-          booking_id: booking.id,
-          user_id: booking.user_id,
-          user_name:
-            booking.profiles?.privacy_settings?.profile_visibility === "public"
-              ? booking.profiles.full_name
+        ).map((booking: any) => {
+          // Safely access privacy settings with proper defaults
+          const privacySettings = booking.profiles?.privacy_settings || {};
+          const profileVisibility = privacySettings.profile_visibility || "private";
+          const activitySharing = privacySettings.activity_sharing ?? false;
+          
+          return {
+            booking_id: booking.id,
+            user_id: booking.user_id,
+            user_name: profileVisibility === "public" 
+              ? (booking.profiles?.full_name || "Guest")
               : "Guest",
-          party_size: booking.party_size,
-          seats_occupied:
-            booking.booking_tables[0]?.seats_occupied || booking.party_size,
-          booking_time: booking.booking_time,
-          status: booking.status,
-          is_social:
-            booking.profiles?.privacy_settings?.activity_sharing || false,
-        }));
+            party_size: booking.party_size,
+            seats_occupied:
+              booking.booking_tables[0]?.seats_occupied || booking.party_size,
+            booking_time: booking.booking_time,
+            status: booking.status,
+            is_social: activitySharing,
+          };
+        });
 
         const occupiedSeats = currentBookingsList.reduce(
           (sum, booking) => sum + booking.seats_occupied,
@@ -149,7 +160,7 @@ export function useSharedTableAvailability({
     }
 
     return sharedTableAvailability;
-  }, [restaurantId, date.toISOString().split("T")[0]]);
+  }, [restaurantId, date, timeRange]); // Fixed dependency array
 
   // Load availability data
   const loadAvailability = useCallback(async () => {
@@ -192,12 +203,23 @@ export function useSharedTableAvailability({
         throw new Error("Authentication required");
       }
 
-      // Check if enough seats are available
+      // Validate that enough seats are available
       const tableAvailability = state.sharedTables.find(
         (t) => t.table_id === tableId,
       );
       if (!tableAvailability || tableAvailability.available_seats < partySize) {
         throw new Error("Not enough seats available");
+      }
+
+      // Validate that this is actually a shared table
+      const { data: tableInfo, error: tableError } = await supabase
+        .from("restaurant_tables")
+        .select("table_type")
+        .eq("id", tableId)
+        .single();
+
+      if (tableError || tableInfo?.table_type !== "shared") {
+        throw new Error("Invalid table selection");
       }
 
       try {
@@ -246,7 +268,7 @@ export function useSharedTableAvailability({
     if (!enableRealtime || !restaurantId) return;
 
     const setupRealtimeSubscription = async () => {
-      // Subscribe to booking changes that might affect shared tables
+      // Subscribe to booking changes that might affect shared tables - more targeted
       subscriptionRef.current = supabase
         .channel(`shared-tables-${restaurantId}`)
         .on(
@@ -255,10 +277,10 @@ export function useSharedTableAvailability({
             event: "*",
             schema: "public",
             table: "bookings",
-            filter: `restaurant_id=eq.${restaurantId}`,
+            filter: `restaurant_id=eq.${restaurantId},is_shared_booking=eq.true`,
           },
           () => {
-            // Refresh availability when bookings change
+            // Refresh availability when shared bookings change
             loadAvailability();
           },
         )
@@ -269,9 +291,11 @@ export function useSharedTableAvailability({
             schema: "public",
             table: "booking_tables",
           },
-          () => {
-            // Refresh availability when table assignments change
-            loadAvailability();
+          (payload) => {
+            // Only refresh if this affects a shared table
+            if (payload.new || payload.old) {
+              loadAvailability();
+            }
           },
         )
         .subscribe();

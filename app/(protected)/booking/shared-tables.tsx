@@ -14,10 +14,13 @@ import { useRestaurant } from "@/hooks/useRestaurant";
 import { useAuth } from "@/context/supabase-provider";
 import { useColorScheme } from "@/lib/useColorScheme";
 
-export default function SharedTablesScreen(): JSX.Element {
+export default function SharedTablesScreen() {
   const { colorScheme } = useColorScheme();
   const { profile, isGuest } = useAuth();
   const router = useRouter();
+  
+  // State for time selection
+  const [selectedTime, setSelectedTime] = useState<string>("19:00"); // Default to 7 PM
 
   // Get parameters
   const params = useLocalSearchParams<{
@@ -25,11 +28,19 @@ export default function SharedTablesScreen(): JSX.Element {
     restaurantName?: string;
     date?: string;
     partySize?: string;
+    time?: string;
   }>();
 
   const restaurantId = params.restaurantId;
   const selectedDate = params.date ? new Date(params.date) : new Date();
   const partySize = params.partySize ? parseInt(params.partySize, 10) : 1;
+  
+  // Set initial time from params or default
+  useEffect(() => {
+    if (params.time) {
+      setSelectedTime(params.time);
+    }
+  }, [params.time]);
 
   // Check if user is a guest and redirect if needed
   useEffect(() => {
@@ -56,7 +67,6 @@ export default function SharedTablesScreen(): JSX.Element {
   const {
     restaurant,
     loading: restaurantLoading,
-    error: restaurantError,
   } = useRestaurant(restaurantId);
 
   const handleBack = useCallback(() => {
@@ -66,7 +76,7 @@ export default function SharedTablesScreen(): JSX.Element {
 
   const handleBookingSuccess = useCallback(
     (bookingId: string) => {
-      Haptics.successAsync();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       router.push({
         pathname: "/booking/success",
         params: {
@@ -101,7 +111,7 @@ export default function SharedTablesScreen(): JSX.Element {
     );
   }
 
-  if (restaurantError || !restaurant) {
+  if (!restaurant) {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View className="flex-1 justify-center items-center p-6">
@@ -181,6 +191,7 @@ export default function SharedTablesScreen(): JSX.Element {
         <SharedTablesList
           restaurantId={restaurantId}
           date={selectedDate}
+          time={selectedTime}
           onBookingSuccess={handleBookingSuccess}
         />
       </View>
