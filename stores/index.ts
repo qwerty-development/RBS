@@ -8,9 +8,30 @@ import {
 import { immer } from "zustand/middleware/immer";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import type { Session, User } from "@supabase/supabase-js";
 
 import type { Restaurant } from "@/types/restaurant";
-import type { Session, User, Profile } from "@/types/supabase";
+
+// Profile type definition (matching what we use in the app)
+type Profile = {
+  id: string;
+  full_name: string;
+  phone_number?: string;
+  avatar_url?: string;
+  allergies?: string[];
+  favorite_cuisines?: string[];
+  dietary_restrictions?: string[];
+  preferred_party_size?: number;
+  notification_preferences?: {
+    email: boolean;
+    push: boolean;
+    sms: boolean;
+  };
+  loyalty_points?: number;
+  membership_tier?: "bronze" | "silver" | "gold" | "platinum";
+  created_at?: string;
+  updated_at?: string;
+};
 
 /**
  * Auth Store - Handles authentication state

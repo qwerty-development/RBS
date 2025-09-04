@@ -2,22 +2,32 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
+import type {
+  BookingEligibilityResult,
+  UserRatingTierResult,
+} from "@/types/supabase";
 
+// Types
 interface UserRatingStats {
   current_rating: number;
+  rating_count: number;
+  excellent_count: number;
+  good_count: number;
+  average_count: number;
+  poor_count: number;
+  terrible_count: number;
   total_bookings: number;
   completed_bookings: number;
   cancelled_bookings: number;
-  no_show_bookings: number;
-  completion_rate: number;
-  reliability_score: string;
-  rating_trend: string;
+  no_show_count: number;
+  late_cancellation_count: number;
 }
 
 interface UserRatingHistory {
   id: string;
-  old_rating: number;
-  new_rating: number;
+  user_id: string;
+  rating_before: number;
+  rating_after: number;
   booking_id?: string;
   change_reason: string;
   created_at: string;
@@ -27,10 +37,56 @@ export function useUserRating(userId?: string) {
   const { profile } = useAuth();
   const [stats, setStats] = useState<UserRatingStats | null>(null);
   const [history, setHistory] = useState<UserRatingHistory[]>([]);
+  const [eligibility, setEligibility] =
+    useState<BookingEligibilityResult | null>(null);
+  const [tier, setTier] = useState<UserRatingTierResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const targetUserId = userId || profile?.id;
+
+  // Check booking eligibility for a specific restaurant
+  const checkBookingEligibility = useCallback(
+    async (restaurantId: string): Promise<BookingEligibilityResult | null> => {
+      if (!targetUserId) return null;
+
+      try {
+        const { data, error } = await supabase.rpc(
+          "check_booking_eligibility",
+          {
+            user_id_param: targetUserId,
+            restaurant_id_param: restaurantId,
+            party_size_param: 1,
+          },
+        );
+
+        if (error) throw error;
+        return data && data.length > 0 ? data[0] : null;
+      } catch (err: any) {
+        console.error("Error checking booking eligibility:", err);
+        return null;
+      }
+    },
+    [targetUserId],
+  );
+
+  // Get user rating tier
+  const getUserRatingTier =
+    useCallback(async (): Promise<UserRatingTierResult | null> => {
+      if (!targetUserId || !stats?.current_rating) return null;
+
+      try {
+        const { data, error } = await supabase.rpc("get_user_rating_tier", {
+          user_rating_param: stats.current_rating,
+        });
+
+        if (error) throw error;
+        return data && data.length > 0 ? data[0] : null;
+      } catch (err: any) {
+        console.error("Error getting user rating tier:", err);
+        return null;
+      }
+    }, [targetUserId, stats?.current_rating]);
 
   const fetchRatingStats = useCallback(async () => {
     if (!targetUserId) return;
@@ -50,6 +106,10 @@ export function useUserRating(userId?: string) {
       if (data && data.length > 0) {
         setStats(data[0]);
       }
+
+      // Get user rating tier
+      const tierData = await getUserRatingTier();
+      setTier(tierData);
 
       // Fetch rating history if viewing own profile
       if (!userId && profile?.id === targetUserId) {
@@ -72,7 +132,7 @@ export function useUserRating(userId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [targetUserId, userId, profile?.id]);
+  }, [targetUserId, userId, profile?.id, getUserRatingTier]);
 
   const refreshRating = useCallback(async () => {
     if (!targetUserId) return;
@@ -100,12 +160,31 @@ export function useUserRating(userId?: string) {
   }, [targetUserId, fetchRatingStats]);
 
   return {
+    // Data
     stats,
     history,
+    eligibility,
+    tier,
+
+    // State
     loading,
     error,
+
+    // Actions
     refresh: fetchRatingStats,
     refreshRating,
+    checkBookingEligibility,
+    getUserRatingTier,
+
+    // Computed values
     currentRating: stats?.current_rating || 5.0,
+    isExcellent: tier?.tier === "unrestricted", // For backward compatibility
+    isGood: tier?.tier === "unrestricted", // For backward compatibility
+    isRestricted: tier?.tier === "request_only",
+    isBlocked: tier?.tier === "blocked",
+    canBookInstant: tier ? tier.tier === "unrestricted" : true,
+    hasRestrictions: tier
+      ? ["request_only", "blocked"].indexOf(tier.tier) !== -1
+      : false,
   };
 }

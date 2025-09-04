@@ -182,7 +182,7 @@ export class AvailabilityService {
   private async getMaxTurnTime(restaurantId: string): Promise<number> {
     const cacheKey = `turn-time:${restaurantId}`;
     let cached = this.restaurantConfigCache.get(cacheKey);
-    
+
     if (cached) return cached;
 
     try {
@@ -481,6 +481,7 @@ export class AvailabilityService {
   ): Promise<TimeSlotBasic[]> {
     const dateStr = date.toISOString().split("T")[0];
     const now = new Date();
+    const minimumBookingTime = new Date(now.getTime() + 15 * 60 * 1000); // 15 minutes from now
     const availableSlots: TimeSlotBasic[] = [];
 
     const batchSize = 10;
@@ -489,7 +490,8 @@ export class AvailabilityService {
       const batchPromises = batch.map(async (slot) => {
         const startTime = new Date(`${dateStr}T${slot.time}:00`);
 
-        if (startTime < now) return null;
+        // Filter out slots that are less than 15 minutes from now
+        if (startTime <= minimumBookingTime) return null;
 
         const cacheKey = `quick-check:${restaurantId}:${startTime.toISOString()}:${partySize}`;
         let hasAvailability = this.quickAvailabilityCache.get(cacheKey);
@@ -1353,9 +1355,12 @@ export class AvailabilityService {
     }
 
     let closeTimeInMinutes = closeHour * 60 + closeMin;
-    
+
     // Handle overnight hours (when closeTime is 00:00:00, it means midnight of next day)
-    if (closeTimeInMinutes === 0 || closeTimeInMinutes < openHour * 60 + openMin) {
+    if (
+      closeTimeInMinutes === 0 ||
+      closeTimeInMinutes < openHour * 60 + openMin
+    ) {
       closeTimeInMinutes = 24 * 60; // midnight = 1440 minutes
     }
 
@@ -1379,7 +1384,7 @@ export class AvailabilityService {
         currentMin = 0;
         currentHour++;
       }
-      
+
       // Break if we've gone past 23:59 (can't go to next day)
       if (currentHour >= 24) {
         break;

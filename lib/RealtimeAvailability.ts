@@ -113,7 +113,9 @@ export class RealtimeAvailability {
               }
             }, 1000);
           } else if (status === "TIMED_OUT") {
-            console.warn(`Subscription timed out for ${channelKey}, retrying...`);
+            console.warn(
+              `Subscription timed out for ${channelKey}, retrying...`,
+            );
             setTimeout(() => {
               if (this.channels.has(channelKey)) {
                 this.resubscribe(channelKey, restaurantId);
@@ -161,7 +163,7 @@ export class RealtimeAvailability {
    */
   private async resubscribe(channelKey: string, restaurantId: string) {
     console.log(`Attempting to resubscribe to ${channelKey}`);
-    
+
     try {
       const channel = this.channels.get(channelKey);
       if (channel) {
@@ -170,8 +172,8 @@ export class RealtimeAvailability {
       }
 
       // Wait a moment before recreating the subscription
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       // Check if we still have listeners for this channel
       const listeners = this.listeners.get(channelKey);
       if (listeners && listeners.size > 0) {

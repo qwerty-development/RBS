@@ -79,7 +79,7 @@ export function useNetworkMonitor(config: NetworkMonitorConfig = {}) {
         alertTimerRef.current = setTimeout(() => {
           Alert.alert(title, message, [{ text: "OK" }]);
           alertTimerRef.current = null;
-        }, delay);
+        }, delay) as any;
       } else {
         Alert.alert(title, message, [{ text: "OK" }]);
       }

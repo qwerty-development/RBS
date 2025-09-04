@@ -37,7 +37,10 @@ import { H2, H3, P, Muted } from "@/components/ui/typography";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
-import { useAccountDeletion, UserDataSummary } from "@/lib/accountDeletionService";
+import {
+  useAccountDeletion,
+  UserDataSummary,
+} from "@/lib/accountDeletionService";
 
 // 1. Type Definitions for Privacy Settings
 interface PrivacySettings {
@@ -114,12 +117,12 @@ export default function PrivacyScreen() {
   const { profile, user, signOut } = useAuth();
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-  const { 
-    getUserDataSummary, 
-    deleteAccount, 
-    softDeleteAccount, 
-    validateDeletion, 
-    requestDataExport: requestDataExportService 
+  const {
+    getUserDataSummary,
+    deleteAccount,
+    softDeleteAccount,
+    validateDeletion,
+    requestDataExport: requestDataExportService,
   } = useAccountDeletion();
 
   // 3.1 Privacy Settings State
@@ -136,7 +139,8 @@ export default function PrivacyScreen() {
   );
   const [requestingExport, setRequestingExport] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
-  const [userDataSummary, setUserDataSummary] = useState<UserDataSummary | null>(null);
+  const [userDataSummary, setUserDataSummary] =
+    useState<UserDataSummary | null>(null);
   const [showDeletionDetails, setShowDeletionDetails] = useState(false);
 
   // 3.3 UI State
@@ -227,7 +231,7 @@ export default function PrivacyScreen() {
     setRequestingExport(true);
     try {
       const result = await requestDataExportService();
-      
+
       if (result.success) {
         Alert.alert("Export Requested", result.message);
         // Optionally fetch existing export request to update UI
@@ -258,32 +262,32 @@ export default function PrivacyScreen() {
   const handleAccountDeletion = useCallback(async () => {
     // First, validate if user can delete account
     const validation = await validateDeletion();
-    
+
     if (!validation.canDelete) {
       Alert.alert(
         "Cannot Delete Account",
-        `Account deletion is not possible:\n\n${validation.restrictions.join('\n')}`,
-        [{ text: "OK" }]
+        `Account deletion is not possible:\n\n${validation.restrictions.join("\n")}`,
+        [{ text: "OK" }],
       );
       return;
     }
 
     // Load user data summary
     const summary = await loadUserDataSummary();
-    
+
     // Show initial confirmation with data preview
     Alert.alert(
       "Delete Account",
       `This will permanently delete your account and all associated data:\n\n${
-        summary 
+        summary
           ? `• ${summary.bookings_count} bookings\n• ${summary.reviews_count} reviews\n• ${summary.favorites_count} favorites\n• ${summary.friends_count} friend connections\n• ${summary.playlists_count} playlists\n• ${summary.posts_count} posts`
-          : 'All your data including bookings, reviews, and favorites'
-      }\n\n${validation.warnings.length > 0 ? '\nWarnings:\n' + validation.warnings.join('\n') : ''}\n\nThis action cannot be undone.`,
+          : "All your data including bookings, reviews, and favorites"
+      }\n\n${validation.warnings.length > 0 ? "\nWarnings:\n" + validation.warnings.join("\n") : ""}\n\nThis action cannot be undone.`,
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Export Data First", 
-          onPress: () => requestDataExport() 
+        {
+          text: "Export Data First",
+          onPress: () => requestDataExport(),
         },
         {
           text: "Continue",
@@ -335,7 +339,7 @@ export default function PrivacyScreen() {
     setDeletingAccount(true);
     try {
       const result = await softDeleteAccount();
-      
+
       if (result.success) {
         Alert.alert(
           "Account Deactivated",
@@ -345,7 +349,7 @@ export default function PrivacyScreen() {
               text: "OK",
               onPress: () => signOut(),
             },
-          ]
+          ],
         );
       } else {
         Alert.alert("Error", result.message);
@@ -363,7 +367,7 @@ export default function PrivacyScreen() {
     setDeletingAccount(true);
     try {
       const result = await deleteAccount();
-      
+
       if (result.success) {
         Alert.alert(
           "Account Deleted",
@@ -376,7 +380,7 @@ export default function PrivacyScreen() {
                 signOut();
               },
             },
-          ]
+          ],
         );
       } else {
         Alert.alert("Error", result.message);

@@ -2,17 +2,20 @@
 import React, { useRef } from "react";
 import { Tabs } from "expo-router";
 import { Home, Search, Heart, Calendar, User } from "lucide-react-native";
-import { ScrollView, View, Text } from "react-native";
+import { ScrollView } from "react-native";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { getThemedColors } from "@/lib/utils";
-import { useNotificationsBadge } from "@/hooks/useNotificationsBadge";
 
-export const homeScrollRef = useRef<ScrollView>(null);
+// Create ref outside component but don't use useRef at module level
+export let homeScrollRef: React.RefObject<ScrollView> | null = null;
 
 export default function TabsLayout() {
+  // Initialize the ref inside the component
+  const scrollRef = useRef<ScrollView>(null);
+  homeScrollRef = scrollRef as React.RefObject<ScrollView>;
+
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
-  const { unreadCount } = useNotificationsBadge();
 
   return (
     <Tabs
@@ -56,7 +59,7 @@ export default function TabsLayout() {
           tabPress: (e) => {
             const state = navigation.getState();
             const isHomeTabActive = state.routes[state.index]?.name === "index";
-            if (isHomeTabActive && homeScrollRef.current) {
+            if (isHomeTabActive && homeScrollRef?.current) {
               e.preventDefault();
               homeScrollRef.current.scrollTo({ y: 0, animated: true });
             }
@@ -90,40 +93,17 @@ export default function TabsLayout() {
           ),
         }}
       />
-      {/* Notifications inside Social tab icon with badge for simplicity */}
       <Tabs.Screen
         name="social"
         options={{
           title: "Social",
           tabBarIcon: ({ color, size }) => (
-            <View>
-              <User size={size} color={color} strokeWidth={2} />
-              {unreadCount > 0 && (
-                <View
-                  style={{
-                    position: "absolute",
-                    right: -4,
-                    top: -4,
-                    backgroundColor: "#EF4444",
-                    borderRadius: 10,
-                    minWidth: 16,
-                    height: 16,
-                    paddingHorizontal: 3,
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <Text
-                    style={{ color: "white", fontSize: 10, fontWeight: "700" }}
-                  >
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </Text>
-                </View>
-              )}
-            </View>
+            <User size={size} color={color} strokeWidth={2} />
           ),
         }}
       />
     </Tabs>
   );
 }
+
+TabsLayout.displayName = "TabsLayout";

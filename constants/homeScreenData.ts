@@ -54,12 +54,47 @@ export const QUICK_FILTERS: QuickFilter[] = [
 ];
 
 export const CUISINE_CATEGORIES: CuisineCategory[] = [
-  { id: "lebanese", label: "Lebanese", image: require("@/assets/cuisine-categories/lebanese.png"), popular: true },
-  { id: "italian", label: "Italian", image: require("@/assets/cuisine-categories/italian.png"), popular: true },
-  { id: "japanese", label: "Japanese", image: require("@/assets/cuisine-categories/japanese.png"), popular: true },
-  { id: "french", label: "French", image: require("@/assets/cuisine-categories/french.png") },
-  { id: "chinese", label: "Chinese", image: require("@/assets/cuisine-categories/chinese.png") },
-  { id: "indian", label: "Indian", image: require("@/assets/cuisine-categories/indian.png") },
-  { id: "mexican", label: "Mexican", image: require("@/assets/cuisine-categories/mexican.png") },
-  { id: "seafood", label: "Seafood", image: require("@/assets/cuisine-categories/seafood.png") },
+  {
+    id: "lebanese",
+    label: "Lebanese",
+    image: require("@/assets/cuisine-categories/lebanese.png"),
+    popular: true,
+  },
+  {
+    id: "italian",
+    label: "Italian",
+    image: require("@/assets/cuisine-categories/italian.png"),
+    popular: true,
+  },
+  {
+    id: "japanese",
+    label: "Japanese",
+    image: require("@/assets/cuisine-categories/japanese.png"),
+    popular: true,
+  },
+  {
+    id: "french",
+    label: "French",
+    image: require("@/assets/cuisine-categories/french.png"),
+  },
+  {
+    id: "chinese",
+    label: "Chinese",
+    image: require("@/assets/cuisine-categories/chinese.png"),
+  },
+  {
+    id: "indian",
+    label: "Indian",
+    image: require("@/assets/cuisine-categories/indian.png"),
+  },
+  {
+    id: "mexican",
+    label: "Mexican",
+    image: require("@/assets/cuisine-categories/mexican.png"),
+  },
+  {
+    id: "seafood",
+    label: "Seafood",
+    image: require("@/assets/cuisine-categories/seafood.png"),
+  },
 ];

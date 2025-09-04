@@ -6,9 +6,8 @@ import { AuthProvider, useAuth } from "@/context/supabase-provider";
 import { NetworkProvider } from "@/context/network-provider";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
-import { LogBox, Alert, View, Text } from "react-native";
+import { LogBox, View, Text } from "react-native";
 import React, { useEffect, useState } from "react";
-import * as Updates from "expo-updates";
 import {
   ErrorBoundary,
   NavigationErrorBoundary,
@@ -21,6 +20,7 @@ import {
   ensurePushPermissionsAndToken,
   registerDeviceForPush,
 } from "@/lib/notifications/setup";
+import AnimatedSplashScreen from "@/components/AnimatedSplashScreen";
 
 LogBox.ignoreAllLogs();
 
@@ -56,7 +56,6 @@ function NetworkStatusBar() {
 
   const backgroundColor = !isOnline ? "#F44336" : "#FF9800";
 
-
   return (
     <View
       style={{
@@ -65,9 +64,7 @@ function NetworkStatusBar() {
         paddingHorizontal: 16,
       }}
       className="bg-warning"
-    >
-
-    </View>
+    ></View>
   );
 }
 
@@ -75,12 +72,13 @@ function RootLayoutContent() {
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
   const { profile } = useAuth();
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    initializeNotificationHandlers((deeplink:any) => {
+    initializeNotificationHandlers((deeplink: any) => {
       try {
         if (deeplink.startsWith("app://")) {
-          const path:any = deeplink.replace("app://", "/");
+          const path: any = deeplink.replace("app://", "/");
           router.push(path);
         } else {
           router.push(deeplink);
@@ -114,37 +112,13 @@ function RootLayoutContent() {
     ]);
   }, []);
 
-  // Handle over-the-air updates
-  useEffect(() => {
-    async function handleUpdates() {
-      try {
-        const update = await Updates.checkForUpdateAsync();
-        if (update.isAvailable) {
-          Alert.alert(
-            "Update Available",
-            "A new version of the app is available. Would you like to update now?",
-            [
-              { text: "Later", style: "cancel" },
-              {
-                text: "Update",
-                onPress: async () => {
-                  await Updates.fetchUpdateAsync();
-                  await Updates.reloadAsync();
-                },
-              },
-            ],
-          );
-        }
-      } catch (error) {}
-    }
-
-    if (!__DEV__) {
-      handleUpdates();
-    }
-  }, []);
-
   return (
     <>
+      {showSplash && (
+        <AnimatedSplashScreen
+          onAnimationComplete={() => setShowSplash(false)}
+        />
+      )}
       <NetworkStatusBar />
       <Stack
         screenOptions={{
@@ -155,7 +129,10 @@ function RootLayoutContent() {
         }}
       >
         <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
-        <Stack.Screen name="auth/google/callback" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="auth/google/callback"
+          options={{ headerShown: false }}
+        />
         <Stack.Screen name="oauth-callback" options={{ headerShown: false }} />
       </Stack>
     </>

@@ -117,11 +117,5 @@ export function NetworkStatusBanner({
     outputRange: position === "top" ? [-100, 0] : [100, 0],
   });
 
-  return (
-    <Animated.View
-     
-    >
-     
-    </Animated.View>
-  );
+  return <Animated.View></Animated.View>;
 }

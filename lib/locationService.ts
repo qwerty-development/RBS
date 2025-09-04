@@ -223,7 +223,7 @@ export class LocationService {
     userLocation: LocationCoordinates,
     maxDistance?: number,
     retryCount: number = 0,
-  ) {
+  ): Promise<any[]> {
     console.log("🍽️ Getting restaurants with distance from:", userLocation);
 
     try {
@@ -504,8 +504,6 @@ export class LocationService {
       // Get current position with timeout and accuracy settings
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
-        timeout: 15000, // 15 second timeout
-        maximumAge: 300000, // Accept cached location up to 5 minutes old
       });
 
       console.log("📍 Got GPS position:", {

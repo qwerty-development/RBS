@@ -1,44 +1,45 @@
 // types/restaurant.ts
-export interface Restaurant {
-  id: string;
-  name: string;
-  description: string | null;
-  address: string;
-  location: {
-    lat: number;
-    lng: number;
-  };
-  main_image_url: string | null;
-  image_urls: string[];
-  cuisine_type: string;
-  tags: string[];
-  opening_time?: string; // Legacy field - use restaurant_hours instead
-  closing_time?: string; // Legacy field - use restaurant_hours instead
-  booking_policy: "instant" | "request";
-  booking_window_days: number;
-  cancellation_window_hours: number;
-  table_turnover_minutes: number;
-  max_party_size: number;
-  min_party_size: number;
-  price_range: number;
+import { Database } from "./supabase";
+
+// Create a type alias for the database restaurant type
+type DatabaseRestaurant = Database["public"]["Tables"]["restaurants"]["Row"];
+
+// Use the database restaurant type as the base and extend it with additional fields
+export interface Restaurant extends DatabaseRestaurant {
+  // Legacy/computed fields for backward compatibility
+  main_image_url?: string | null; // Maps to image_url
+  image_urls?: string[];
+  tags?: string[];
+  opening_time?: string; // Legacy field - use opening_hours instead
+  closing_time?: string; // Legacy field - use closing_hours instead
+  booking_policy?: "instant" | "request";
+  booking_window_days?: number;
+  cancellation_window_hours?: number;
+  table_turnover_minutes?: number;
+  min_party_size?: number;
   average_rating?: number;
   total_reviews?: number;
-  phone_number?: string;
+  phone_number?: string; // Maps to phone
   whatsapp_number?: string;
-  website_url?: string;
+  website_url?: string; // Maps to website
   instagram_handle?: string;
-  parking_available: boolean;
-  valet_parking: boolean;
-  outdoor_seating: boolean;
-  shisha_available: boolean;
-  live_entertainment: boolean;
-  wifi_available: boolean;
-  dietary_options: string[];
-  payment_methods: string[];
-  dress_code?: string;
-  special_features: string[];
-  created_at: string;
-  updated_at: string;
+  valet_parking?: boolean;
+  outdoor_seating?: boolean;
+  shisha_available?: boolean;
+  live_entertainment?: boolean;
+  wifi_available?: boolean;
+  dietary_options?: string[];
+  special_features?: string[];
+
+  // Computed/location fields - override the database location type
+  location:
+    | {
+        lat: number;
+        lng: number;
+      }
+    | unknown;
+  staticCoordinates?: { lat: number; lng: number };
+  coordinates?: { latitude: number; longitude: number };
 
   // Relations
   restaurant_hours?: RestaurantHours[];

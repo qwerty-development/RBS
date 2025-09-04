@@ -1,3 +1,4 @@
+import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import {
@@ -29,7 +30,10 @@ const formSchema = z
       .string()
       .min(2, "Please enter at least 2 characters.")
       .max(50, "Please enter fewer than 50 characters.")
-      .regex(/^[a-zA-Z\s\u0600-\u06FF]+$/, "Please enter a valid name."),
+      .regex(
+        /^[a-zA-Z\s\u0600-\u06FF\u002D\u0027]+$/,
+        "Please enter a valid name.",
+      ),
     email: z
       .string()
       .email("Please enter a valid email address.")
@@ -39,50 +43,45 @@ const formSchema = z
       .regex(lebanesPhoneRegex, "Please enter a valid Lebanese phone number.")
       .transform((val) => {
         // Normalize phone number format
+        const cleaned = val.trim();
         if (
-          val.startsWith("03") ||
-          val.startsWith("7") ||
-          val.startsWith("8")
+          cleaned.startsWith("03") ||
+          cleaned.startsWith("7") ||
+          cleaned.startsWith("8")
         ) {
-          return `+961${val.replace(/^0/, "")}`;
+          return `+961${cleaned.replace(/^0/, "")}`;
         }
-        if (val.startsWith("961")) {
-          return `+${val}`;
+        if (cleaned.startsWith("961")) {
+          return `+${cleaned}`;
         }
-        return val;
+        return cleaned;
       }),
     password: z
       .string()
-      .min(8, "Please enter at least 8 characters.")
-      .max(64, "Please enter fewer than 64 characters.")
+      .min(8, "Password must be at least 8 characters.")
+      .max(128, "Password must be fewer than 128 characters.")
       .regex(
-        /^(?=.*[a-z])/,
-        "Your password must have at least one lowercase letter.",
-      )
-      .regex(
-        /^(?=.*[A-Z])/,
-        "Your password must have at least one uppercase letter.",
-      )
-      .regex(/^(?=.*[0-9])/, "Your password must have at least one number.")
-      .regex(
-        /^(?=.*[!@#$%^&*])/,
-        "Your password must have at least one special character.",
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/,
+        "Password must contain uppercase, lowercase, number, and special character.",
       ),
-    confirmPassword: z.string().min(8, "Please enter at least 8 characters."),
-    acceptTerms: z.boolean().refine((val) => val === true, {
-      message: "You must accept the terms and conditions.",
+    confirmPassword: z.string().min(8, "Please confirm your password."),
+    agreeToTerms: z.boolean().refine((val) => val === true, {
+      message: "You must agree to the terms and conditions.",
     }),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "Your passwords do not match.",
+    message: "Passwords don't match.",
     path: ["confirmPassword"],
   });
 
-export default function SignUp() {
-  const { signUp, loading } = useAuth();
-  const router = useRouter();
+type FormData = z.infer<typeof formSchema>;
 
-  const form = useForm<z.infer<typeof formSchema>>({
+export default function SignUp() {
+  const { signUp } = useAuth();
+  const router = useRouter();
+  const [loading, setLoading] = React.useState(false);
+
+  const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       fullName: "",
@@ -90,12 +89,13 @@ export default function SignUp() {
       phoneNumber: "",
       password: "",
       confirmPassword: "",
-      acceptTerms: false,
+      agreeToTerms: false,
     },
   });
 
-  async function onSubmit(data: z.infer<typeof formSchema>) {
+  async function onSubmit(data: FormData) {
     try {
+      setLoading(true);
       await signUp(data.email, data.password, data.fullName, data.phoneNumber);
 
       // Success - navigation handled by AuthContext
@@ -116,6 +116,8 @@ export default function SignUp() {
       }
 
       Alert.alert("Sign Up Error", errorMessage);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -223,7 +225,7 @@ export default function SignUp() {
 
                 <FormField
                   control={form.control}
-                  name="acceptTerms"
+                  name="agreeToTerms"
                   render={({ field }) => (
                     <View className="flex-row items-start gap-2 px-1">
                       <Checkbox

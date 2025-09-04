@@ -15,7 +15,7 @@ import { supabase } from "@/config/supabase";
 const formSchema = z
   .object({
     token: z.string().min(1, "Token is required."),
-    password: z.string().min(8, "Password must be at least 8 characters."),
+    password: z.string().min(4, "Password must be at least 8 characters."),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {

@@ -35,7 +35,7 @@ class ImageCache {
     const info = await FileSystem.getInfoAsync(path);
     this.cacheIndex.set(hash, {
       path,
-      size: info.size || 0,
+      size: (info as any).size || 0,
       lastAccessed: Date.now(),
     });
 

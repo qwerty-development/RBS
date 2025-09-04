@@ -1,0 +1,40 @@
+{
+  "mcpServers": {
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "env": {}
+    },
+    "filesystem": {
+      "type": "stdio",
+      "command": "npx", 
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/asifalam/Desktop/work/Plate", "/Users/asifalam/Desktop/work"],
+      "env": {}
+    },
+    "fetch": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@kazuph/mcp-fetch"],
+      "env": {}
+    },
+    "puppeteer": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-puppeteer"],
+      "env": {}
+    },
+    "supabase": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--features=account,docs,database,debug,development,functions,branching,storage"
+      ],
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": "sbp_7d89342eba400c2588d4c6ee7021c6f37968152c"
+      }
+    }
+  }
+}

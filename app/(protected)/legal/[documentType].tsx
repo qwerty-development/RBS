@@ -67,7 +67,8 @@ const DOCUMENT_INFO: Record<LegalDocumentType, LegalDocumentInfo> = {
   DATA_PROCESSING_AGREEMENT: {
     icon: FileText,
     color: "#f59e0b",
-    description: "Agreement between Plate and restaurant partners for data processing",
+    description:
+      "Agreement between Plate and restaurant partners for data processing",
   },
   DATA_PROTECTION_POLICY: {
     icon: Database,
@@ -123,7 +124,7 @@ export default function LegalDocumentScreen() {
   const expandAllSections = useCallback(() => {
     if (!document) return;
     const allSectionIds = new Set<string>();
-    
+
     const addSectionIds = (sections: LegalSection[]) => {
       sections.forEach((section) => {
         allSectionIds.add(section.id);
@@ -132,7 +133,7 @@ export default function LegalDocumentScreen() {
         }
       });
     };
-    
+
     addSectionIds(document.sections);
     setExpandedSections(allSectionIds);
   }, [document]);
@@ -145,7 +146,7 @@ export default function LegalDocumentScreen() {
   // Share document
   const shareDocument = useCallback(async () => {
     if (!document) return;
-    
+
     try {
       await Share.share({
         message: `Check out the ${document.title} from Plate`,
@@ -161,7 +162,7 @@ export default function LegalDocumentScreen() {
   // Open external link
   const openExternalLink = useCallback(async () => {
     if (!documentType) return;
-    
+
     try {
       const url = `https://plate-app.com/legal/${documentType}`;
       await Linking.openURL(url);
@@ -212,7 +213,7 @@ export default function LegalDocumentScreen() {
               <Text className="text-foreground leading-6 whitespace-pre-line">
                 {subsection.content}
               </Text>
-              
+
               {subsection.subsections && subsection.subsections.length > 0 && (
                 <View className="mt-4">
                   {subsection.subsections.map((sub) =>
@@ -254,7 +255,7 @@ export default function LegalDocumentScreen() {
               <Text className="text-foreground leading-6 mb-4 whitespace-pre-line">
                 {section.content}
               </Text>
-              
+
               {section.subsections && section.subsections.length > 0 && (
                 <View>
                   {section.subsections.map((subsection) =>
@@ -374,7 +375,10 @@ export default function LegalDocumentScreen() {
               onPress={downloadDocument}
               className="px-3"
             >
-              <Download size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
+              <Download
+                size={16}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+              />
             </Button>
           </View>
         </View>
@@ -409,7 +413,7 @@ export default function LegalDocumentScreen() {
           <Text className="text-center text-sm text-muted-foreground mb-4">
             Have questions about this document?
           </Text>
-          
+
           <View className="flex-row gap-2">
             <Button
               variant="outline"
@@ -428,7 +432,10 @@ export default function LegalDocumentScreen() {
               onPress={openExternalLink}
               className="px-4"
             >
-              <ExternalLink size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
+              <ExternalLink
+                size={16}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+              />
             </Button>
           </View>
         </View>

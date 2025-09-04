@@ -83,14 +83,15 @@ export function useErrorHandler(defaultOptions: ErrorHandlerOptions = {}) {
         const alertButtons = [{ text: "OK", style: "default" as const }];
 
         if (config.retryable && config.onRetry) {
-          alertButtons.unshift({
+          // Add retry button with proper typing
+          const retryButton = {
             text: "Retry",
-            style: "default" as const,
             onPress: () => {
               clearError();
               config.onRetry!();
             },
-          });
+          };
+          alertButtons.unshift(retryButton as any);
         }
 
         Alert.alert("Error", userMessage, alertButtons);

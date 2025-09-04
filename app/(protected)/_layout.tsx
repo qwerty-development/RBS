@@ -1,5 +1,5 @@
 // app/(protected)/_layout.tsx
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Stack } from "expo-router";
 import { useAuth } from "@/context/supabase-provider";
 import { GlobalChatTab } from "@/components/ui/global-chat-tab";
@@ -18,8 +18,56 @@ export default function ProtectedLayout() {
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
 
-  // Show loading while auth is initializing
-  if (!initialized) {
+  // Prevent flickering by using a stable auth state
+  const [stableAuthState, setStableAuthState] = useState<{
+    initialized: boolean;
+    hasAccess: boolean;
+  }>({ initialized: false, hasAccess: false });
+
+  const authCheckTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    console.log("🔐 Auth State Change:", {
+      initialized,
+      hasSession: !!session,
+      isGuest,
+      timestamp: Date.now(),
+    });
+
+    // Clear any existing timeout
+    if (authCheckTimeout.current) {
+      clearTimeout(authCheckTimeout.current);
+    }
+
+    // If not initialized, don't allow access yet
+    if (!initialized) {
+      setStableAuthState({ initialized: false, hasAccess: false });
+      return;
+    }
+
+    // If initialized and we have session or guest mode, allow access
+    const hasAccess = session || isGuest;
+
+    if (hasAccess) {
+      // Immediate access for valid states
+      setStableAuthState({ initialized: true, hasAccess: true });
+    } else {
+      // Delay the "no access" state to prevent flickering during auth transitions
+      authCheckTimeout.current = setTimeout(() => {
+        setStableAuthState({ initialized: true, hasAccess: false });
+      }, 1000); // 1 second grace period
+    }
+
+    return () => {
+      if (authCheckTimeout.current) {
+        clearTimeout(authCheckTimeout.current);
+      }
+    };
+  }, [initialized, session, isGuest]);
+
+  // Show loading while auth is stabilizing
+  if (!stableAuthState.initialized) {
+    console.log("⏳ Auth stabilizing, showing loading screen");
     return (
       <View
         style={{
@@ -44,8 +92,9 @@ export default function ProtectedLayout() {
     );
   }
 
-  // Allow access if user has session OR is a guest
-  if (!session && !isGuest) {
+  // Show redirecting only after grace period
+  if (!stableAuthState.hasAccess) {
+    console.log("🚫 No stable access, showing redirecting screen");
     return (
       <View
         style={{
@@ -78,7 +127,6 @@ export default function ProtectedLayout() {
       }}
       className="bg-background"
     >
-     
       <Stack
         screenOptions={{
           headerShown: false,

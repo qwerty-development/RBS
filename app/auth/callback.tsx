@@ -16,12 +16,15 @@ export default function AuthCallback() {
   const [processing, setProcessing] = useState(true);
 
   // Determine the provider from params or URL
-  const provider = params.provider || 
-                  (typeof window !== "undefined" && window.location?.href?.includes("google") ? "Google" : "OAuth");
+  const provider =
+    params.provider ||
+    (typeof window !== "undefined" && window.location?.href?.includes("google")
+      ? "Google"
+      : "OAuth");
 
   useEffect(() => {
     console.log(`🔄 ${provider} auth callback route hit with params:`, params);
-    
+
     // Wait for auth to initialize
     if (!initialized) {
       console.log("⏳ Waiting for auth to initialize...");
@@ -30,8 +33,10 @@ export default function AuthCallback() {
 
     // If we have a session, redirect with a small delay for smooth transition
     if (session) {
-      console.log(`✅ Session found in ${provider} callback, redirecting to app`);
-      
+      console.log(
+        `✅ Session found in ${provider} callback, redirecting to app`,
+      );
+
       // Add a longer delay to ensure completely smooth transition and mask any brief errors
       setTimeout(() => {
         router.replace("/(protected)/(tabs)");
@@ -41,10 +46,12 @@ export default function AuthCallback() {
 
     // Start countdown timer
     const timer = setInterval(() => {
-      setCountdown(prev => {
+      setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          console.log(`⏰ ${provider} auth callback timeout, redirecting to welcome`);
+          console.log(
+            `⏰ ${provider} auth callback timeout, redirecting to welcome`,
+          );
           router.replace("/welcome");
           return 0;
         }
@@ -66,31 +73,29 @@ export default function AuthCallback() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <View className="flex-1 items-center justify-center p-6 gap-y-6">
-        <ActivityIndicator 
-          size="large" 
+        <ActivityIndicator
+          size="large"
           color={getActivityIndicatorColor(colorScheme)}
         />
-        
+
         <H1 className="text-center text-2xl">
           {processing ? `Signing you in with ${provider}...` : "Almost there!"}
         </H1>
-        
+
         <Muted className="text-center">
-          {processing 
+          {processing
             ? `Please wait while we complete your ${provider} authentication.`
-            : "Finalizing your authentication process."
-          }
+            : "Finalizing your authentication process."}
         </Muted>
-        
+
         <View className="bg-muted/20 rounded-lg p-4 w-full">
           <Muted className="text-center text-sm">
-            {processing 
+            {processing
               ? "Processing authentication tokens..."
-              : "Taking longer than usual? You'll be redirected soon."
-            }
+              : "Taking longer than usual? You'll be redirected soon."}
           </Muted>
         </View>
-        
+
         <Muted className="text-center text-xs opacity-70">
           {countdown > 0 ? `Redirecting in ${countdown}s` : "Redirecting..."}
         </Muted>

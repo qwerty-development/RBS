@@ -134,9 +134,9 @@ async function sendMessageToRestoAI(
     
     // Get last 10 message pairs (20 messages total) for context
     const recentHistory = conversationHistory.slice(-20);
-    
+
     // Format conversation history for the AI backend
-    const formattedHistory = recentHistory.map(msg => ({
+    const formattedHistory = recentHistory.map((msg) => ({
       role: msg.role,
       content: msg.content,
       // Don't send restaurant data in history to keep payload lean
@@ -345,7 +345,7 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
     try {
       console.log("Sending message to RestoAI API:", trimmedInput);
       console.log("Conversation history length:", messages.length);
-      
+
       // Sliding window: Keep last 20 messages (10 user + 10 AI pairs) for context
       // This ensures the AI remembers recent conversation without overwhelming the API
       const historyToSend = messages.slice(-20);

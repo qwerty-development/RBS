@@ -17,7 +17,7 @@ export default function GoogleOAuthCallback() {
 
   useEffect(() => {
     console.log("🎯 Google OAuth callback route hit with params:", params);
-    
+
     // Wait for auth to initialize
     if (!initialized) {
       console.log("⏳ Waiting for auth to initialize...");
@@ -27,7 +27,7 @@ export default function GoogleOAuthCallback() {
     // If we have a session, redirect with a small delay for smooth transition
     if (session) {
       console.log("✅ Session found in Google callback, redirecting to app");
-      
+
       // Add a longer delay to ensure completely smooth transition and mask any brief errors
       setTimeout(() => {
         router.replace("/(protected)/(tabs)");
@@ -37,10 +37,12 @@ export default function GoogleOAuthCallback() {
 
     // Start countdown timer
     const timer = setInterval(() => {
-      setCountdown(prev => {
+      setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          console.log("⏰ Google OAuth callback timeout, redirecting to welcome");
+          console.log(
+            "⏰ Google OAuth callback timeout, redirecting to welcome",
+          );
           router.replace("/welcome");
           return 0;
         }
@@ -62,33 +64,33 @@ export default function GoogleOAuthCallback() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <View className="flex-1 items-center justify-center p-6 gap-y-6">
-        <ActivityIndicator 
-          size="large" 
+        <ActivityIndicator
+          size="large"
           color={getActivityIndicatorColor(colorScheme)}
         />
-        
+
         <H1 className="text-center text-2xl">
           {processing ? "Completing Google Sign In..." : "Almost Ready!"}
         </H1>
-        
+
         <Muted className="text-center text-lg">
-          {processing 
+          {processing
             ? "Setting up your account and preferences..."
-            : "Finalizing your authentication."
-          }
+            : "Finalizing your authentication."}
         </Muted>
-        
+
         <View className="bg-muted/20 rounded-lg p-4 w-full">
           <Muted className="text-center text-sm">
-            {processing 
+            {processing
               ? "Processing OAuth tokens and setting up your session..."
-              : "If this takes too long, you'll be redirected automatically."
-            }
+              : "If this takes too long, you'll be redirected automatically."}
           </Muted>
         </View>
-        
+
         <Muted className="text-center text-xs opacity-70">
-          {countdown > 0 ? `Auto-redirect in ${countdown} seconds` : "Redirecting now..."}
+          {countdown > 0
+            ? `Auto-redirect in ${countdown} seconds`
+            : "Redirecting now..."}
         </Muted>
       </View>
     </SafeAreaView>

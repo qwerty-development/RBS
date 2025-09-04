@@ -32,6 +32,9 @@
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Plate uses your location to find nearby restaurants and provide personalized recommendations.",
         "NSContactsUsageDescription": "Plate needs optional access to your contacts only when you ask it to import guests or share a reservation.",
         "NSCalendarsUsageDescription": "Plate needs access to your calendar to add restaurant reservations with reminder notifications.",
+        "NSCameraUsageDescription": "Plate needs access to your camera to take photos for your dining posts and reviews.",
+        "NSPhotoLibraryUsageDescription": "Plate needs access to your photo library to share photos of your dining experiences.",
+        "NSPhotoLibraryAddUsageDescription": "Plate needs access to save photos to your photo library from your dining experiences.",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": false,
           "NSExceptionDomains": {
@@ -60,11 +63,11 @@
       },
       "splash": {
         "image": "./assets/icon.png",
-        "resizeMode": "cover",
-        "backgroundColor": "#ffffff",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffece2",
         "dark": {
-          "image": "./assets/icon.png",
-          "resizeMode": "cover",
+          "image": "./assets/icon-dark.png",
+          "resizeMode": "contain",
           "backgroundColor": "#000000"
         }
       },
@@ -94,11 +97,11 @@
       ],
       "splash": {
         "image": "./assets/icon.png",
-        "resizeMode": "cover",
-        "backgroundColor": "#ffffff",
+        "resizeMode": "contain",
+        "backgroundColor": "#ffece2",
         "dark": {
-          "image": "./assets/icon.png",
-          "resizeMode": "cover",
+          "image": "./assets/icon-dark.png",
+          "resizeMode": "contain",
           "backgroundColor": "#000000"
         }
       },
@@ -149,6 +152,14 @@
       ],
       "expo-calendar",
       "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Plate needs access to your photo library to share photos of your dining experiences.",
+          "cameraPermission": "Plate needs access to your camera to take photos for your dining posts and reviews.",
+          "microphonePermission": false
+        }
+      ],
       [
         "@sentry/react-native/expo",
         {

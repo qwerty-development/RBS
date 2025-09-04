@@ -1,275 +1,310 @@
-# CLAUDE.md
+# TableReserve (Plate) - AI Coding Agent Instructions
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## 🏗️ Architecture Overview
 
-## Essential Development Commands
+React Native + Expo restaurant booking app with sophisticated business logic.
+## 📱 Platform Integration
+
+- **Expo APIs** - Calendar, location, notifications, biometrics
+- **File-based routing** with authentication guards
+- **Native optimizations** for Android/iOS only
+- **Permission handling** - Always request/handle properly
+
+```tsx
+// Protected routes pattern
+app/(protected)/bookings.tsx  // Requires auth
+app/sign-in.tsx              // Public route
+```*
+- **Expo 53** - File-based routing, Android/iOS only (no web)
+- **Supabase** - Auth + PostgreSQL with PostGIS + Edge Functions  
+- **Zustand + Immer** - State management with persistence
+- **NativeWind 4.1** - Tailwind CSS styling
+- **TypeScript 5.8** - Strict type safety, 70% test coverage
+- **React Native 0.79.5** - Latest with React 19
+
+**Key Features:**
+- Real-time table reservations with availability tracking
+- Advanced time range search + table type filtering  
+- Waitlist system with notifications
+- AI chat assistant (LangChain + Google GenAI)
+- Social features (playlists, reviews, loyalty points)
+- Calendar integration + performance monitoring
+
+## 🔧 Essential Commands
 
 ```bash
 # Development
-npm start                    # Start Expo dev server
-npm run android             # Run on Android
-npm run ios                 # Run on iOS
-
-# Code Quality & Testing
+npm start                    # Expo dev server
+npm run android             # Android device/emulator 
+npm run ios                 # iOS device/simulator
 npm run lint                # ESLint with auto-fix
+npm run test                # Jest tests (70% coverage)
 npm run type-check          # TypeScript checking
-npm run test                # Run Jest tests
-npm run test:watch          # Jest in watch mode
-npm run test:coverage       # Jest with coverage reports (70% threshold)
 
 # Build & Deploy
-npm run build:apk           # Build Android APK (cloud)
-npm run build:apk:local     # Build Android APK (local)
-npm run build:production    # Build for app stores
+npm run build:apk           # Android APK (EAS)
+npm run build:production    # Production builds
 npm run builds:status       # Check build status
+
+# Supabase (Use MCP instead when possible)
+npm run supabase:start      # Local Supabase
+npm run supabase:migrate    # Push migrations
+npm run supabase:gen-types  # Generate types
 ```
 
-## Architecture Overview
-
-This is a **React Native + Expo restaurant booking app** with sophisticated business logic:
-
-### Core Stack
-- **Expo Router** - File-based routing (`/app` directory)
-- **Supabase** - Authentication + PostgreSQL database
-- **Zustand** - State management with persistence
-- **NativeWind** - Tailwind CSS for React Native
-- **TypeScript** - Full type safety throughout
-
-### Key Business Features
-- Restaurant discovery with PostGIS location queries
-- Table reservation system with real-time availability
-- Loyalty points per restaurant with configurable rules
-- AI chat assistant for restaurant recommendations
-- Social features (playlists, reviews, friend invitations)
-- Calendar integration for booking management
-- VIP and waiting list systems
-
-## File Structure Patterns
+## 🗂️ Project Structure
 
 ```
-app/(protected)/            # Authenticated routes only
-├── (tabs)/                # Tab-based navigation
-├── booking/               # Booking flow screens
+app/(protected)/            # Auth-required routes
+├── (tabs)/                # Home, search, bookings, profile
+├── booking/               # Booking flow
 ├── restaurant/            # Restaurant details
-└── profile/               # User profile sections
+├── playlist/              # Social playlists
+├── waiting-list.tsx       # Waitlist management
+└── offers.tsx             # Promotions
 
 components/
 ├── ui/                    # Base components (Button, Text, Card)
-├── booking/               # Booking-specific components  
-├── restaurant/            # Restaurant display components
-└── skeletons/             # Loading state components
+├── booking/               # Booking components
+├── restaurant/            # Restaurant displays
+├── search/                # Search & filtering
+├── network/               # Offline handling
+└── skeletons/             # Loading states
 
-hooks/                     # Custom hooks (40+ hooks)
-stores/index.ts           # Zustand stores with persistence
-types/supabase.ts         # Generated database types
+hooks/                     # 45+ custom hooks
+├── useTimeRangeSearch.ts  # Advanced search
+├── useWaitlist.ts         # Waitlist management
+├── useNetworkAwareRequest.ts # Offline handling
+├── useBiometricAuth.ts    # Face/Touch ID
+└── usePerformanceMonitor.ts # Analytics
+
+stores/index.ts            # Zustand + Immer + persistence
+types/supabase.ts          # Generated DB types (primary)
+db/schema.sql              # Schema source of truth
 ```
+## 🎨 Code Patterns
 
-## Database Schema Knowledge
-
-**⚠️ CRITICAL: Always consult `db/schema.sql` as the single source of truth for database schema before writing any queries, defining types, or working with database operations.**
-
-### Schema Verification Workflow
-1. **FIRST**: Read `db/schema.sql` to understand table structure
-2. **VERIFY**: Column names, types, constraints, and relationships
-3. **VALIDATE**: Foreign key relationships and RLS policies
-4. **IMPLEMENT**: Write queries based on actual schema
-
-### Critical Tables & Relationships
-- **bookings** ↔ **restaurants** + **profiles** (core reservation flow)
-- **booking_attendees** + **booking_invites** (group booking system)
-- **booking_status_history** (audit trail for status changes)
-- **booking_archive** (historical booking data)
-- **loyalty_activities** + **restaurant_loyalty_rules** (configurable points system)  
-- **restaurant_playlists** + **playlist_items** + **playlist_collaborators** (social curation)
-- **reviews** (verified reviews linked to completed bookings)
-- **waiting_list** + **waiting_list_notifications** (queue management)
-- **restaurant_tables** + **table_availability** (table management & real-time availability)
-
-### Location & Spatial Data
-- Uses **PostGIS** with `geometry(Point, 4326)` for precise location queries
-- **restaurant_availability** manages capacity by time slots
-- Always reference actual PostGIS functions in schema for location-based queries
-
-### Database Best Practices
+### Component Styling (NativeWind + CVA)
 ```tsx
-// ALWAYS verify table structure in db/schema.sql first
-const { data } = await supabase
-  .from('bookings')  // ✅ Verify 'bookings' table exists
-  .select(`
-    id,
-    booking_time,        // ✅ Check exact column name
-    party_size,          // ✅ Verify data type constraints  
-    status,              // ✅ Check enum values allowed
-    restaurant:restaurants(name, cuisine_type),
-    user:profiles(full_name, avatar_url)
-  `)
-  .eq('user_id', userId);  // ✅ Verify RLS policy allows this
-```
-
-## State Management Patterns
-
-### Zustand Store Architecture
-```tsx
-// All stores use this pattern:
-export const useAuthStore = create<AuthState>()(
-  devtools(
-    subscribeWithSelector(
-      persist(
-        immer((set, get) => ({
-          // state and actions with Immer mutations
-        }))
-      )
-    )
-  )
+const buttonVariants = cva(
+  "group flex items-center justify-center rounded-3xl", 
+  {
+    variants: {
+      variant: {
+        default: "bg-primary shadow-md active:shadow-sm",
+        outline: "border border-input bg-background"
+      },
+      size: { default: "h-10 px-4 py-2", sm: "h-9 rounded-lg px-3" }
+    }
+  }
 );
 ```
 
-### Key Stores
-- **useAuthStore** - Authentication + user profile
-- **useAppStore** - Network status, location, notifications
-- **useRestaurantStore** - Favorites, cache, recently viewed
-- **useBookingStore** - Current booking flow + history
-
-## Component Development Rules
-
-### Styling Patterns
-- **ALWAYS use NativeWind classes** instead of StyleSheet
-- **Use expo-image** instead of React Native Image
-- **Follow compound variants pattern** with `class-variance-authority`
-
-### Type Safety Requirements
-- **Generate types** from Supabase schema regularly
-- **Use Database types**: `Database["public"]["Tables"]["table_name"]["Row"]`
-- **Add explicit TypeScript types** to all parameters and return values
-
-### Performance Optimizations
-- **Network-aware requests** with `useNetworkAwareRequest` hook
-- **Debounced search** for restaurant filtering  
-- **Background network monitoring** with state persistence
-- **Image optimization** with expo-image's `contentFit`
-
-## Authentication & Security
-
-### Supabase Integration
-- **Custom SecureStorage class** with memory fallback
-- **Row Level Security** enforced on all database tables
-- **Guest mode support** via `useGuestGuard` hook
-- **Auto-refresh tokens** with PKCE flow
-
-### Permission Patterns
-Always check permissions before using native APIs:
+### State Management (Zustand + Immer)
 ```tsx
-// Calendar permissions
-const { status } = await Calendar.requestCalendarPermissionsAsync();
-
-// Location permissions  
-const { status } = await Location.requestForegroundPermissionsAsync();
+export const useAuthStore = create<AuthState>()(
+  devtools(subscribeWithSelector(persist(immer((set) => ({
+    session: null,
+    setSession: (session) => set((state) => { state.session = session; })
+  })))))
+);
 ```
 
-## AI Integration
-
-### Restaurant Assistant
-- **Location**: `/ai/AI_Agent.py` (LangChain + Google Generative AI)
-- **Response format**: `RESTAURANTS_TO_SHOW: id1,id2,id3`
-- **TypeScript interface**: `/ai/AI_Agent.ts`
-- **Direct Supabase integration** for real-time restaurant data
-
-## Testing Guidelines
-
-### Jest Configuration
-- **Coverage threshold**: 70% across all metrics  
-- **Test files**: `**/__tests__/**/*.(ts|tsx|js)` or `**/*.(test|spec).(ts|tsx|js)`
-- **Setup**: Custom `jest.setup.js` with extended matchers
-- **Timeout**: 30 seconds for complex tests
-
-### Testing Strategy
-- Focus on business logic in hooks and utilities
-- Test component interactions, not implementation details
-- Mock Supabase calls and external API dependencies
-
-## 🚨 CRITICAL RULES - DO NOT VIOLATE
-
-**These rules are ABSOLUTE and must NEVER be compromised:**
-
-1. **NEVER create mock/simplified components** - Fix existing code, debug root causes
-2. **NEVER replace complex components** - Debug and fix the actual problem  
-3. **ALWAYS work with existing codebase** - No new simplified alternatives ever
-4. **ALWAYS add explicit TypeScript types** to all parameters and return values
-5. **Fix all linter/TypeScript errors immediately** - Zero tolerance policy
-6. **When in doubt, always ask first** - Never assume or guess requirements
-
-**Database Schema Rule:**
-- **MANDATORY**: Consult `db/schema.sql` before ANY database operation
-- Verify table names, column types, constraints, and relationships
-- Never assume schema structure - always verify first
-
-**Code Quality Standards:**
-- All functions must have explicit return types
-- All parameters must have explicit types  
-- No `any` types unless absolutely necessary with justification
-- All async operations must handle errors properly
-- All network requests must use network-aware patterns
-
-## Common Gotchas & Solutions
-
-### Database Queries
+### Database Queries (Typed Supabase)
 ```tsx
-// CORRECT: Use joins and RLS-aware queries
 const { data } = await supabase
   .from('bookings')
-  .select(`
-    *,
-    restaurant:restaurants(*),
-    user:profiles(*)
-  `)
+  .select(`*, restaurant:restaurants(*), user:profiles(*)`)
   .eq('user_id', userId);
 ```
 
-### Calendar Integration
-- Always request permissions first
-- Let users choose calendar app instead of auto-selecting
-- Create events with proper duration and reminders
+## 🗄️ Database Schema
 
-### Network Handling  
-- Use `useNetworkAwareRequest` for all API calls
-- Implement graceful degradation for offline scenarios
-- Show network status banners for poor connections
+**Always reference `db/schema.sql` as source of truth**
 
-## Build & Deployment
+### Key Tables
+- **`bookings`** - Reservations with status tracking
+- **`restaurant_tables`** - Table layout + positioning
+- **`table_availability`** - Real-time availability (PostGIS)
+- **`waitlist`** - User waitlist entries with notifications
+- **`loyalty_activities`** - Points per restaurant
+- **`booking_attendees`** - Group dining participants
+- **`restaurant_playlists`** - Social collections
 
-### EAS Build Commands
-```bash
-npm run build:apk              # Cloud APK build
-npm run build:apk:local        # Local APK build  
-npm run build:android:preview  # Preview AAB
-npm run build:production       # Store-ready AAB
+### PostGIS Location Queries
+```tsx
+const { data } = await supabase.rpc('restaurants_within_radius', {
+  lat: userLocation.latitude,
+  lng: userLocation.longitude, 
+  radius_km: 5
+});
 ```
 
-Refer to `BUILD_GUIDE.md` for detailed build instructions and troubleshooting.
+## 🔐 Auth & Network
 
-## 🔧 Development Workflow - MANDATORY PROCESS
+- **Supabase Auth** - PKCE flow with SecureStorage + memory fallback
+- **Row Level Security** on all user tables
+- **Guest mode** via `useGuestGuard` hook
+- **Network-aware requests** with `useNetworkAwareRequest` for offline handling
+- **Biometric auth** - Face ID/Touch ID via `useBiometricAuth`
 
-**Before ANY code changes:**
+```tsx
+const result = useNetworkAwareRequest(async () => {
+  return await supabase.from('restaurants').select('*');
+});
+```
 
-1. **Schema First**: Read `db/schema.sql` to verify database structure
-2. **Understand Context**: Read existing code to understand patterns and architecture  
-3. **Type Safety**: Ensure all new code has explicit TypeScript types
-4. **Fix, Don't Replace**: Debug existing complex components, never create simplified versions
-5. **Test Thoroughly**: Run `npm run lint` and `npm run type-check` before completing tasks
+## 🧪 Testing
 
-**Core Development Principles:**
+- **Jest** with 70% coverage threshold
+- **React Native Testing Library** for components
+- **Detox** for E2E testing
+- **Mock setup** in `jest.setup.js`
 
-1. **Follow existing Zustand + Supabase patterns** religiously - never deviate
-2. **Use NativeWind classes, never StyleSheet** objects - maintain consistency
-3. **Test permission flows** for all native API usage - handle edge cases properly
-4. **Handle network states and offline scenarios** - use network-aware request patterns
-5. **Maintain component complexity** - fix bugs in existing components, don't simplify
-6. **Ask before major changes** - when uncertain, always ask for clarification first
+```tsx
+describe('RestaurantCard', () => {
+  it('handles booking press', () => {
+    const { getByText } = render(<RestaurantCard {...props} />);
+    fireEvent.press(getByText('Book Now'));
+    expect(mockOnPress).toHaveBeenCalledWith(restaurant);
+  });
+});
+```
 
-**Quality Assurance Checklist:**
-- ✅ All TypeScript errors resolved
-- ✅ All ESLint warnings fixed  
-- ✅ Database schema verified in `db/schema.sql`
-- ✅ Network-aware patterns used for API calls
-- ✅ Proper error handling implemented
-- ✅ Guest mode and offline scenarios considered
+## 📱 Platform Integration Patterns
+
+### Expo APIs
+- **`expo-calendar`** - Always check permissions first, let user choose calendar app
+- **`expo-location`** - PostGIS integration for restaurant directions
+- **`expo-secure-store`** - Auth token storage with memory fallback
+- **`expo-notifications`** - Booking confirmations and reminders
+
+### Navigation with Protection
+```tsx
+// File-based routing with authentication guards
+app/(protected)/bookings.tsx  // Requires auth
+app/sign-in.tsx              // Public route
+app/(protected)/(tabs)/      // Tab-based protected routes
+```
+
+## 🤖 AI Integration
+
+- **LangChain + Google GenAI** for restaurant recommendations
+- **Custom response format**: `RESTAURANTS_TO_SHOW: id1,id2,id3`
+- **Direct Supabase integration** with session management
+- **Backend API spec** in `AI_BACKEND_API_SPECIFICATION.md`
+
+## 🆕 Latest Features
+
+### Time Range Search & Waitlist
+- **Time Range Selector** - Search across time windows with table type filtering
+- **Smart Waitlist** - Auto-suggest when no tables available
+- **Real-time notifications** when tables become available
+- **6 table types** with visual icons (Booth, Window, Patio, etc.)
+
+### Enhanced Auth & Performance
+- **Biometric authentication** (Face ID/Touch ID)
+- **Network-aware requests** for offline handling
+- **Performance monitoring** and error tracking
+- **Social features** (playlists, reviews, loyalty points)
+
+## 🧠 MCP Integration
+
+### Core MCPs
+- **Sequential Thinking** - Complex problem solving & multi-step planning
+- **Knowledge Graph Memory** - Store relationships & architectural decisions  
+- **Memory Bank** - Detailed documentation & code examples
+- **Supabase MCP** - Primary tool for ALL database operations
+- **Playwright** - Web automation & testing external integrations
+
+### Key Usage Patterns
+- **Always use Supabase MCP** for database operations (not CLI)
+- **Use Sequential Thinking** for complex refactoring & debugging
+- **Store solutions in Knowledge Graph** for relationships & patterns
+- **Document comprehensive guides** in Memory Bank
+- **Test external integrations** with Playwright
+
+### Database-First Development with Supabase MCP
+- Schema analysis before changes
+- Type generation after modifications  
+- Development branch testing
+- Cross-project operations
+- Performance monitoring
+## ⚠️ Critical Development Rules
+
+### Type Safety & Code Quality
+- **Always generate types** from Supabase schema: Use Supabase MCP for `generate_typescript_types`
+- **Use database types**: `Database["public"]["Tables"]["table_name"]["Row"]`
+- **Reference `db/schema.sql`** and use Supabase MCP to analyze current schema before writing queries
+- **Strict TypeScript** - All functions must have explicit parameter and return types
+- **ESLint compliance** - Fix all linting errors immediately with `npm run lint`
+- **Test coverage** - Maintain 70% coverage threshold across all metrics
+
+### Database Operations & Schema Management
+- **Use Supabase MCP for all database operations** instead of manual CLI commands
+- **Use `execute_sql` for queries** and `apply_migration` for schema changes
+- **Always check logs** with Supabase MCP after database operations
+- **Use development branches** via Supabase MCP for testing schema changes
+- **Generate fresh types** after any schema modifications using Supabase MCP
+- **PostGIS queries** for all location-based operations (restaurant proximity, etc.)
+- **Row Level Security** - Ensure all user data tables have proper RLS policies
+
+### Performance & Patterns
+- **Use NativeWind classes**, not StyleSheet.create
+- **Network-aware requests** with `useNetworkAwareRequest` for offline handling
+- **Debounced search** for restaurant filtering with `use-debounce`
+- **PostGIS location queries** for proximity searches
+- **Image optimization** with expo-image's `contentFit`
+- **React.memo** for expensive components (TimeRangeSelector, RestaurantCard)
+- **Zustand with Immer** for all state mutations
+- **Persistent storage** for critical user data (auth, favorites, search history)
+
+### Mobile Platform Focus
+- **Android & iOS ONLY** - Ignore web development concerns completely
+- **Native APIs** - Leverage Expo APIs for calendar, location, notifications, biometrics
+- **Offline-first** - All critical features must work offline
+- **Permission handling** - Always request and handle permissions properly
+- **Platform-specific optimizations** - Use platform checks when needed
+- **Gesture handling** - Implement proper touch gestures with react-native-gesture-handler
+
+### Feature Implementation Standards
+- **Waitlist Integration** - Use `useWaitlist` hook for all waitlist operations
+- **Time Range Search** - Use `useTimeRangeSearch` for advanced search functionality
+- **Authentication Guards** - Use `useGuestGuard` for protected features
+- **Error Boundaries** - Wrap complex components with ErrorBoundary
+- **Loading States** - Implement skeleton components for all async operations
+- **Accessibility** - Use `useAccessibility` hook and semantic labels
+
+### MCP Integration Rules
+- **Use Sequential Thinking** for complex multi-step problems before coding
+- **Store solutions in Knowledge Graph Memory** for relationships and entities
+- **Store detailed documentation in Memory Bank** for comprehensive records
+- **Use Supabase MCP** for all database operations, schema changes, and Edge Functions
+- **Use Playwright** for web automation, testing, and browser-based tasks
+- **Document architectural decisions** using both memory systems as appropriate
+- **Leverage MCPs proactively** - don't wait to be asked
+
+### Database-First Development with Supabase MCP
+- **Schema Analysis**: Always use Supabase MCP to examine current schema before changes
+- **Type Generation**: Use Supabase MCP to generate TypeScript types after schema modifications
+- **Data Operations**: Use Supabase MCP for complex queries instead of writing manual SQL
+- **Migration Management**: Plan and execute migrations through Supabase MCP
+- **Edge Functions**: Deploy and manage restaurant AI agent functions via Supabase MCP
+- **Development Workflow**: Create branches, test changes, merge via Supabase MCP
+- **Cross-Project Operations**: Use Supabase MCP to compare and sync across multiple projects
+- **Performance Monitoring**: Access logs and advisors through Supabase MCP for optimization
+
+### Absolute Rules - DO NOT VIOLATE
+- **NEVER create mock/simplified components** - fix existing code
+- **NEVER replace complex components** - debug and fix root cause  
+- **ALWAYS work with existing codebase** - no new simplified alternatives
+- **ALWAYS add explicit TypeScript types** to all parameters and return values
+- **Fix all linter/TypeScript errors immediately**
+- **USE MCPs strategically** to enhance problem-solving and maintain comprehensive project knowledge
+- **USE Supabase MCP for all database operations** - don't use manual CLI commands when MCP can handle it
+- **FOCUS ONLY ON ANDROID & iOS** - ignore web development concerns
+- **NEVER modify core database schema** without using development branches first
+- **ALWAYS test authentication flows** with both guest and authenticated states
+- **MAINTAIN backwards compatibility** when updating existing features
+- **IMPLEMENT proper error handling** for all network operations
+- **USE existing patterns** - don't reinvent solutions for solved problems

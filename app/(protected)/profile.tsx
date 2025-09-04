@@ -35,6 +35,7 @@ import {
   User, // Added for guest view
   Heart,
   ChevronLeft, // Added for guest view
+  Camera, // Added for my posts
 } from "lucide-react-native";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -71,6 +72,7 @@ const iconMap: { [key: string]: any } = {
   KeyRound,
   User,
   Heart,
+  Camera,
 };
 
 interface MenuItem {
@@ -298,6 +300,13 @@ export default function ProfileScreen() {
     {
       title: "Social",
       items: [
+        {
+          id: "my-posts",
+          title: "My Posts",
+          subtitle: "Manage your shared experiences",
+          icon: "Camera",
+          onPress: () => router.push("/(protected)/social/my-posts"),
+        },
         {
           id: "friends",
           title: "Friends",

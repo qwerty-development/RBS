@@ -37,6 +37,20 @@ export interface CachedData<T> {
 // Simple in-memory cache
 const requestCache = new Map<string, CachedData<any>>();
 
+// Simple offline queue (placeholder implementation)
+const queueAction = async (type: string, data: any): Promise<void> => {
+  // Placeholder for offline queue functionality
+  console.log(`Queuing ${type} action for offline sync:`, data);
+};
+
+// Simple sync handler (placeholder implementation)
+const registerSyncHandler = (
+  handler: (action?: any) => Promise<void>,
+): void => {
+  // Placeholder for sync handler registration
+  console.log("Sync handler registered");
+};
+
 // Default configuration
 const DEFAULT_CONFIG: Required<RequestConfig> = {
   timeout: 10000,

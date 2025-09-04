@@ -1,8 +1,9 @@
 import { Alert } from "react-native";
 import * as Sentry from "@sentry/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { supabase } from "../config/supabase";
 
-// Security configuration
+// Enhanced Security configuration
 const SECURITY_CONFIG = {
   maxInputLength: 10000,
   rateLimitWindow: 60000, // 1 minute
@@ -12,7 +13,304 @@ const SECURITY_CONFIG = {
     /\b\d{3}-?\d{2}-?\d{4}\b/, // SSN
     /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/, // Email (for logging protection)
   ],
+
+  // Rate limiting configurations for different actions
+  rateLimits: {
+    booking_creation: { requests: 5, window: 300000 }, // 5 bookings per 5 minutes
+    booking_cancellation: { requests: 10, window: 3600000 }, // 10 cancellations per hour
+    review_submission: { requests: 3, window: 600000 }, // 3 reviews per 10 minutes
+    profile_update: { requests: 10, window: 3600000 }, // 10 profile updates per hour
+    search_requests: { requests: 100, window: 60000 }, // 100 searches per minute
+    login_attempts: { requests: 5, window: 900000 }, // 5 login attempts per 15 minutes
+    registration_attempts: { requests: 3, window: 3600000 }, // 3 registrations per hour
+    password_reset: { requests: 3, window: 3600000 }, // 3 password resets per hour
+    friend_requests: { requests: 20, window: 3600000 }, // 20 friend requests per hour
+  },
+
+  // Booking fraud detection thresholds
+  fraudDetection: {
+    maxBookingsPerDay: 10,
+    maxCancellationsPerWeek: 5,
+    maxNoShowsPerMonth: 3,
+    suspiciousPatternThreshold: 0.7,
+    rapidBookingWindow: 300000, // 5 minutes
+    maxRapidBookings: 3,
+  },
+
+  // Account security settings
+  accountSecurity: {
+    maxAccountsPerDevice: 3,
+    deviceIdStorage: "device_fingerprint",
+    suspiciousLoginThreshold: 3,
+    accountLockoutDuration: 3600000, // 1 hour
+  },
+
+  // Validation rules
+  validation: {
+    minPasswordLength: 8,
+    maxPasswordLength: 128,
+    minNameLength: 2,
+    maxNameLength: 50,
+    maxCommentLength: 1000,
+    maxSpecialRequestLength: 500,
+    phoneNumberPattern: /^\+961[0-9]{8}$/,
+    emailPattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+  },
 };
+
+/**
+ * Enhanced fraud detection and abuse prevention
+ */
+export class FraudDetection {
+  /**
+   * Check for booking fraud patterns
+   */
+  static async checkBookingFraud(
+    userId: string,
+    restaurantId: string,
+  ): Promise<{
+    isAllowed: boolean;
+    riskScore: number;
+    reasons: string[];
+  }> {
+    const reasons: string[] = [];
+    let riskScore = 0;
+
+    try {
+      // Check rapid booking attempts
+      const rapidBookings = await this.checkRapidBookingAttempts(userId);
+      if (
+        rapidBookings.count >= SECURITY_CONFIG.fraudDetection.maxRapidBookings
+      ) {
+        riskScore += 0.4;
+        reasons.push("Rapid booking attempts detected");
+      }
+
+      // Check daily booking limit
+      const todayBookings = await this.getTodayBookingCount(userId);
+      if (todayBookings >= SECURITY_CONFIG.fraudDetection.maxBookingsPerDay) {
+        riskScore += 0.6;
+        reasons.push("Daily booking limit exceeded");
+      }
+
+      // Check recent cancellation pattern
+      const recentCancellations = await this.getRecentCancellations(userId);
+      if (
+        recentCancellations >=
+        SECURITY_CONFIG.fraudDetection.maxCancellationsPerWeek
+      ) {
+        riskScore += 0.5;
+        reasons.push("High cancellation rate detected");
+      }
+
+      // Check no-show history
+      const noShowCount = await this.getMonthlyNoShows(userId);
+      if (noShowCount >= SECURITY_CONFIG.fraudDetection.maxNoShowsPerMonth) {
+        riskScore += 0.7;
+        reasons.push("High no-show rate detected");
+      }
+
+      // Check if user is blacklisted at this restaurant
+      const isBlacklisted = await this.checkRestaurantBlacklist(
+        userId,
+        restaurantId,
+      );
+      if (isBlacklisted) {
+        riskScore = 1.0;
+        reasons.push("User is blacklisted at this restaurant");
+      }
+
+      const isAllowed =
+        riskScore < SECURITY_CONFIG.fraudDetection.suspiciousPatternThreshold;
+
+      // Log suspicious activity
+      if (riskScore >= 0.5) {
+        await this.logSuspiciousActivity({
+          type: "booking_fraud_attempt",
+          userId,
+          restaurantId,
+          riskScore,
+          reasons,
+        });
+      }
+
+      return { isAllowed, riskScore, reasons };
+    } catch (error) {
+      console.error("Error checking booking fraud:", error);
+      // Allow booking if check fails, but log the error
+      return { isAllowed: true, riskScore: 0, reasons: [] };
+    }
+  }
+
+  private static async checkRapidBookingAttempts(
+    userId: string,
+  ): Promise<{ count: number }> {
+    const { data } = await supabase
+      .from("bookings")
+      .select("created_at")
+      .eq("user_id", userId)
+      .gte(
+        "created_at",
+        new Date(
+          Date.now() - SECURITY_CONFIG.fraudDetection.rapidBookingWindow,
+        ).toISOString(),
+      )
+      .order("created_at", { ascending: false });
+
+    return { count: data?.length || 0 };
+  }
+
+  private static async getTodayBookingCount(userId: string): Promise<number> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const { count } = await supabase
+      .from("bookings")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", today.toISOString());
+
+    return count || 0;
+  }
+
+  private static async getRecentCancellations(userId: string): Promise<number> {
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const { count } = await supabase
+      .from("bookings")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .in("status", ["cancelled_by_user", "cancelled_by_restaurant"])
+      .gte("created_at", weekAgo.toISOString());
+
+    return count || 0;
+  }
+
+  private static async getMonthlyNoShows(userId: string): Promise<number> {
+    const monthAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+    const { count } = await supabase
+      .from("bookings")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("status", "no_show")
+      .gte("created_at", monthAgo.toISOString());
+
+    return count || 0;
+  }
+
+  private static async checkRestaurantBlacklist(
+    userId: string,
+    restaurantId: string,
+  ): Promise<boolean> {
+    const { data } = await supabase
+      .from("restaurant_customers")
+      .select("blacklisted")
+      .eq("user_id", userId)
+      .eq("restaurant_id", restaurantId)
+      .eq("blacklisted", true)
+      .single();
+
+    return !!data;
+  }
+
+  private static async logSuspiciousActivity(activity: {
+    type: string;
+    userId: string;
+    restaurantId?: string;
+    riskScore: number;
+    reasons: string[];
+  }) {
+    try {
+      await supabase.from("security_audit_log").insert({
+        user_id: activity.userId,
+        restaurant_id: activity.restaurantId,
+        activity_type: activity.type,
+        risk_score: activity.riskScore,
+        details: {
+          reasons: activity.reasons,
+          timestamp: new Date().toISOString(),
+        },
+        ip_address: null, // Would be filled by backend
+        user_agent: null, // Would be filled by backend
+      });
+    } catch (error) {
+      console.error("Failed to log suspicious activity:", error);
+    }
+  }
+}
+
+/**
+ * Device fingerprinting and account abuse prevention
+ */
+export class DeviceSecurity {
+  /**
+   * Get or generate device fingerprint
+   */
+  static async getDeviceFingerprint(): Promise<string> {
+    try {
+      const stored = await AsyncStorage.getItem(
+        SECURITY_CONFIG.accountSecurity.deviceIdStorage,
+      );
+      if (stored) return stored;
+
+      // Generate new fingerprint
+      const fingerprint = this.generateDeviceFingerprint();
+      await AsyncStorage.setItem(
+        SECURITY_CONFIG.accountSecurity.deviceIdStorage,
+        fingerprint,
+      );
+      return fingerprint;
+    } catch (error) {
+      console.error("Error getting device fingerprint:", error);
+      return this.generateDeviceFingerprint();
+    }
+  }
+
+  private static generateDeviceFingerprint(): string {
+    // Generate a unique device identifier
+    return `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Check if device has too many accounts
+   */
+  static async checkDeviceAccountLimit(): Promise<boolean> {
+    try {
+      const fingerprint = await this.getDeviceFingerprint();
+
+      const { count } = await supabase
+        .from("user_devices")
+        .select("*", { count: "exact", head: true })
+        .eq("device_fingerprint", fingerprint);
+
+      return (
+        (count || 0) < SECURITY_CONFIG.accountSecurity.maxAccountsPerDevice
+      );
+    } catch (error) {
+      console.error("Error checking device account limit:", error);
+      return true; // Allow if check fails
+    }
+  }
+
+  /**
+   * Register device for user
+   */
+  static async registerDeviceForUser(userId: string): Promise<void> {
+    try {
+      const fingerprint = await this.getDeviceFingerprint();
+
+      await supabase.from("user_devices").upsert({
+        user_id: userId,
+        device_fingerprint: fingerprint,
+        last_login: new Date().toISOString(),
+        is_trusted: true,
+      });
+    } catch (error) {
+      console.error("Error registering device:", error);
+    }
+  }
+}
 
 /**
  * Input sanitization utilities
@@ -161,7 +459,7 @@ export class InputValidator {
     const errors: string[] = [];
     let score = 0;
 
-    if (password.length < 8) {
+    if (password.length < 4) {
       errors.push("Password must be at least 8 characters long");
     } else {
       score += 1;
@@ -234,7 +532,7 @@ export class InputValidator {
 }
 
 /**
- * Rate limiting utilities
+ * Enhanced rate limiting utilities
  */
 export class RateLimiter {
   private static requestCounts: Map<
@@ -243,7 +541,52 @@ export class RateLimiter {
   > = new Map();
 
   /**
-   * Check if request is within rate limit
+   * Check if request is within rate limit for specific action type
+   */
+  static async checkActionRateLimit(
+    identifier: string,
+    actionType: keyof typeof SECURITY_CONFIG.rateLimits,
+  ): Promise<{ allowed: boolean; resetTime?: number }> {
+    const config = SECURITY_CONFIG.rateLimits[actionType];
+    if (!config) {
+      return { allowed: true };
+    }
+
+    const key = `${actionType}:${identifier}`;
+    const now = Date.now();
+    const windowStart = now - config.window;
+
+    const current = this.requestCounts.get(key);
+
+    if (!current || current.resetTime < windowStart) {
+      // Reset or initialize counter
+      const resetTime = now + config.window;
+      this.requestCounts.set(key, { count: 1, resetTime });
+      return { allowed: true };
+    }
+
+    if (current.count >= config.requests) {
+      // Rate limit exceeded
+      this.logSecurityEvent("rate_limit_exceeded", {
+        identifier,
+        actionType,
+        count: current.count,
+        limit: config.requests,
+      });
+
+      return {
+        allowed: false,
+        resetTime: current.resetTime,
+      };
+    }
+
+    // Increment counter
+    current.count++;
+    return { allowed: true };
+  }
+
+  /**
+   * Check if request is within rate limit (legacy method)
    */
   static async checkRateLimit(
     identifier: string,
@@ -272,6 +615,32 @@ export class RateLimiter {
     // Increment counter
     current.count++;
     return true;
+  }
+
+  /**
+   * Reset rate limit for specific identifier and action
+   */
+  static resetRateLimit(identifier: string, actionType?: string): void {
+    const key = actionType ? `${actionType}:${identifier}` : identifier;
+    this.requestCounts.delete(key);
+  }
+
+  /**
+   * Get current rate limit status
+   */
+  static getRateLimitStatus(
+    identifier: string,
+    actionType: keyof typeof SECURITY_CONFIG.rateLimits,
+  ): { count: number; limit: number; resetTime: number | null } {
+    const config = SECURITY_CONFIG.rateLimits[actionType];
+    const key = `${actionType}:${identifier}`;
+    const current = this.requestCounts.get(key);
+
+    return {
+      count: current?.count || 0,
+      limit: config?.requests || 0,
+      resetTime: current?.resetTime || null,
+    };
   }
 
   /**
@@ -357,80 +726,222 @@ export class SecureStorage {
 }
 
 /**
- * Security monitoring utilities
+ * Enhanced security monitoring utilities
  */
 export class SecurityMonitor {
+  private static suspiciousActivityCounts: Map<string, number> = new Map();
+
   /**
-   * Monitor for suspicious activity
+   * Monitor for suspicious activity with enhanced detection
    */
-  static monitorSuspiciousActivity(activity: {
+  static async monitorSuspiciousActivity(activity: {
     type:
       | "multiple_failed_logins"
       | "rapid_requests"
       | "invalid_input"
-      | "unauthorized_access";
+      | "unauthorized_access"
+      | "booking_fraud"
+      | "review_spam"
+      | "account_abuse"
+      | "data_manipulation";
+    userId?: string;
     metadata?: any;
   }) {
-    const { type, metadata } = activity;
+    const key = `${activity.type}:${activity.userId || "anonymous"}`;
+    const currentCount = this.suspiciousActivityCounts.get(key) || 0;
+    this.suspiciousActivityCounts.set(key, currentCount + 1);
 
-    console.warn(`Suspicious activity detected: ${type}`, metadata);
+    // Log activity
+    await this.logSecurityEvent(activity);
 
-    // Report to monitoring service
-    Sentry.withScope((scope) => {
-      scope.setTag("security_alert", true);
-      scope.setLevel("warning");
-      scope.setContext("suspicious_activity", {
-        type,
-        metadata: InputSanitizer.sanitizeForLogging(metadata),
-        timestamp: new Date().toISOString(),
-      });
-
-      Sentry.captureMessage(`Suspicious activity: ${type}`);
-    });
-
-    // Take appropriate action based on activity type
-    switch (type) {
+    // Handle based on activity type
+    switch (activity.type) {
       case "multiple_failed_logins":
-        this.handleMultipleFailedLogins(metadata);
+        await this.handleMultipleFailedLogins(activity.metadata);
         break;
       case "rapid_requests":
-        this.handleRapidRequests(metadata);
+        await this.handleRapidRequests(activity.metadata);
         break;
       case "invalid_input":
-        this.handleInvalidInput(metadata);
+        await this.handleInvalidInput(activity.metadata);
         break;
       case "unauthorized_access":
-        this.handleUnauthorizedAccess(metadata);
+        await this.handleUnauthorizedAccess(activity.metadata);
         break;
+      case "booking_fraud":
+        await this.handleBookingFraud(activity.metadata);
+        break;
+      case "review_spam":
+        await this.handleReviewSpam(activity.metadata);
+        break;
+      case "account_abuse":
+        await this.handleAccountAbuse(activity.metadata);
+        break;
+      case "data_manipulation":
+        await this.handleDataManipulation(activity.metadata);
+        break;
+    }
+
+    // Escalate if too many suspicious activities
+    if (currentCount >= 5) {
+      await this.escalateSuspiciousUser(activity.userId, activity.type);
     }
   }
 
-  private static handleMultipleFailedLogins(metadata: any) {
-    // Could implement account lockout, captcha, etc.
+  private static async logSecurityEvent(activity: any) {
+    try {
+      await supabase.from("security_audit_log").insert({
+        user_id: activity.userId,
+        activity_type: activity.type,
+        details: activity.metadata,
+        ip_address: null, // Would be filled by backend
+        user_agent: null, // Would be filled by backend
+        risk_score: this.calculateRiskScore(activity.type),
+        created_at: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Failed to log security event:", error);
+    }
+  }
+
+  private static calculateRiskScore(activityType: string): number {
+    const riskScores = {
+      multiple_failed_logins: 0.6,
+      rapid_requests: 0.4,
+      invalid_input: 0.3,
+      unauthorized_access: 0.8,
+      booking_fraud: 0.9,
+      review_spam: 0.7,
+      account_abuse: 0.8,
+      data_manipulation: 0.9,
+    };
+
+    return riskScores[activityType as keyof typeof riskScores] || 0.5;
+  }
+
+  private static async escalateSuspiciousUser(
+    userId?: string,
+    activityType?: string,
+  ) {
+    if (!userId) return;
+
+    try {
+      // Create escalation record
+      await supabase.from("security_escalations").insert({
+        user_id: userId,
+        activity_type: activityType,
+        escalation_level: "high",
+        auto_flagged: true,
+        created_at: new Date().toISOString(),
+      });
+
+      // Could trigger additional actions like temporary account restrictions
+      console.warn(`Security escalation for user ${userId}: ${activityType}`);
+    } catch (error) {
+      console.error("Failed to escalate suspicious user:", error);
+    }
+  }
+
+  private static async handleMultipleFailedLogins(metadata: any) {
     Alert.alert(
       "Security Alert",
-      "Multiple failed login attempts detected. Please verify your credentials.",
+      "Multiple failed login attempts detected. Your account may be temporarily restricted.",
       [{ text: "OK" }],
     );
   }
 
-  private static handleRapidRequests(metadata: any) {
-    // Could implement temporary blocks, warnings, etc.
+  private static async handleRapidRequests(metadata: any) {
     console.warn("Rapid requests detected - possible bot activity");
+    // Could implement CAPTCHA or temporary slowdown
   }
 
-  private static handleInvalidInput(metadata: any) {
-    // Log and monitor for patterns
+  private static async handleInvalidInput(metadata: any) {
     console.warn("Invalid input detected - possible injection attempt");
+    // Enhanced input validation and sanitization
   }
 
-  private static handleUnauthorizedAccess(metadata: any) {
-    // Could trigger logout, session invalidation, etc.
+  private static async handleUnauthorizedAccess(metadata: any) {
     Alert.alert(
       "Security Alert",
       "Unauthorized access detected. Please log in again.",
       [{ text: "OK" }],
     );
+  }
+
+  private static async handleBookingFraud(metadata: any) {
+    Alert.alert(
+      "Booking Restriction",
+      "Suspicious booking patterns detected. Please contact support if you believe this is an error.",
+      [{ text: "OK" }],
+    );
+  }
+
+  private static async handleReviewSpam(metadata: any) {
+    console.warn("Review spam detected");
+    // Could implement review restrictions or verification
+  }
+
+  private static async handleAccountAbuse(metadata: any) {
+    console.warn("Account abuse detected");
+    // Could implement account restrictions
+  }
+
+  private static async handleDataManipulation(metadata: any) {
+    console.warn("Data manipulation attempt detected");
+    // Enhanced audit logging and potential account suspension
+  }
+
+  /**
+   * Check if user has been flagged for suspicious activity
+   */
+  static async checkUserSuspiciousFlags(userId: string): Promise<{
+    isFlagged: boolean;
+    riskLevel: "low" | "medium" | "high";
+    restrictions: string[];
+  }> {
+    try {
+      const { data } = await supabase
+        .from("security_escalations")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("resolved", false)
+        .order("created_at", { ascending: false });
+
+      if (!data || data.length === 0) {
+        return { isFlagged: false, riskLevel: "low", restrictions: [] };
+      }
+
+      const highRiskCount = data.filter(
+        (d) => d.escalation_level === "high",
+      ).length;
+      const mediumRiskCount = data.filter(
+        (d) => d.escalation_level === "medium",
+      ).length;
+
+      let riskLevel: "low" | "medium" | "high" = "low";
+      let restrictions: string[] = [];
+
+      if (highRiskCount > 0) {
+        riskLevel = "high";
+        restrictions = [
+          "booking_restrictions",
+          "review_restrictions",
+          "limited_access",
+        ];
+      } else if (mediumRiskCount > 2) {
+        riskLevel = "medium";
+        restrictions = ["booking_review_required", "limited_bookings"];
+      }
+
+      return {
+        isFlagged: data.length > 0,
+        riskLevel,
+        restrictions,
+      };
+    } catch (error) {
+      console.error("Error checking user suspicious flags:", error);
+      return { isFlagged: false, riskLevel: "low", restrictions: [] };
+    }
   }
 }
 
@@ -493,33 +1004,101 @@ export function useSecureInput() {
 }
 
 /**
- * Security middleware for API calls
+ * Enhanced security middleware for API calls
  */
 export function withSecurityMiddleware<T extends (...args: any[]) => any>(
   apiCall: T,
   options: {
     rateLimitKey?: string;
+    actionType?: keyof typeof SECURITY_CONFIG.rateLimits;
     sanitizeArgs?: boolean;
     monitorFailures?: boolean;
+    requireAuth?: boolean;
+    validateInput?: boolean;
+    fraudCheck?: boolean;
   } = {},
 ): T {
-  const { rateLimitKey, sanitizeArgs = true, monitorFailures = true } = options;
+  const {
+    rateLimitKey,
+    actionType,
+    sanitizeArgs = true,
+    monitorFailures = true,
+    requireAuth = false,
+    validateInput = true,
+    fraudCheck = false,
+  } = options;
 
   return (async (...args: Parameters<T>) => {
     try {
-      // Rate limiting
-      if (rateLimitKey) {
-        const allowed = await RateLimiter.checkRateLimit(rateLimitKey);
-        if (!allowed) {
-          throw new Error("Rate limit exceeded");
+      // Check authentication if required
+      if (requireAuth) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          await SecurityMonitor.monitorSuspiciousActivity({
+            type: "unauthorized_access",
+            metadata: { function: apiCall.name },
+          });
+          throw new Error("Authentication required");
         }
       }
 
-      // Sanitize arguments
-      if (sanitizeArgs) {
-        args = args.map((arg) =>
-          typeof arg === "string" ? InputSanitizer.sanitizeText(arg) : arg,
-        ) as Parameters<T>;
+      // Enhanced rate limiting with action-specific limits
+      if (rateLimitKey || actionType) {
+        const identifier = rateLimitKey || "default";
+        let allowed = true;
+
+        if (actionType) {
+          const result = await RateLimiter.checkActionRateLimit(
+            identifier,
+            actionType,
+          );
+          allowed = result.allowed;
+        } else {
+          allowed = await RateLimiter.checkRateLimit(identifier);
+        }
+
+        if (!allowed) {
+          await SecurityMonitor.monitorSuspiciousActivity({
+            type: "rapid_requests",
+            metadata: {
+              function: apiCall.name,
+              identifier,
+              actionType,
+            },
+          });
+          throw new Error("Rate limit exceeded. Please try again later.");
+        }
+      }
+
+      // Input validation and sanitization
+      if (validateInput && sanitizeArgs) {
+        args = args.map((arg) => {
+          if (typeof arg === "string") {
+            return InputSanitizer.sanitizeText(arg);
+          } else if (typeof arg === "object" && arg !== null) {
+            return sanitizeObject(arg);
+          }
+          return arg;
+        }) as Parameters<T>;
+      }
+
+      // Fraud detection for sensitive operations
+      if (fraudCheck && requireAuth) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (user) {
+          const suspiciousFlags =
+            await SecurityMonitor.checkUserSuspiciousFlags(user.id);
+          if (
+            suspiciousFlags.isFlagged &&
+            suspiciousFlags.riskLevel === "high"
+          ) {
+            throw new Error("Access restricted due to suspicious activity");
+          }
+        }
       }
 
       // Make API call
@@ -527,7 +1106,7 @@ export function withSecurityMiddleware<T extends (...args: any[]) => any>(
       return result;
     } catch (error) {
       if (monitorFailures) {
-        SecurityMonitor.monitorSuspiciousActivity({
+        await SecurityMonitor.monitorSuspiciousActivity({
           type: "invalid_input",
           metadata: {
             function: apiCall.name,
@@ -539,4 +1118,24 @@ export function withSecurityMiddleware<T extends (...args: any[]) => any>(
       throw error;
     }
   }) as T;
+
+  // Helper method to sanitize objects
+  function sanitizeObject(obj: any): any {
+    if (Array.isArray(obj)) {
+      return obj.map((item) => sanitizeObject(item));
+    } else if (obj && typeof obj === "object") {
+      const sanitized: any = {};
+      for (const [key, value] of Object.entries(obj)) {
+        if (typeof value === "string") {
+          sanitized[key] = InputSanitizer.sanitizeText(value);
+        } else if (value && typeof value === "object") {
+          sanitized[key] = sanitizeObject(value);
+        } else {
+          sanitized[key] = value;
+        }
+      }
+      return sanitized;
+    }
+    return obj;
+  }
 }

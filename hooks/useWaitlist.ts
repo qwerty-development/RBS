@@ -156,7 +156,6 @@ export const useWaitlist = () => {
     [user, getMyWaitlist],
   );
 
-
   // Leave waitlist
   const leaveWaitlist = useCallback(
     async (waitlistId: string): Promise<boolean> => {

@@ -16,24 +16,28 @@ export default function NotFound() {
   useEffect(() => {
     // Check if this might be an OAuth callback scenario
     const url = typeof window !== "undefined" ? window.location?.href : "";
-    const hasAuthIndicators = url.includes("google") || 
-                             url.includes("access_token") || 
-                             url.includes("code=") ||
-                             url.includes("auth") ||
-                             Object.keys(params).some(key => 
-                               key.includes("token") || 
-                               key.includes("code") || 
-                               key.includes("google") ||
-                               key.includes("auth")
-                             );
+    const hasAuthIndicators =
+      url.includes("google") ||
+      url.includes("access_token") ||
+      url.includes("code=") ||
+      url.includes("auth") ||
+      Object.keys(params).some(
+        (key) =>
+          key.includes("token") ||
+          key.includes("code") ||
+          key.includes("google") ||
+          key.includes("auth"),
+      );
 
     if (hasAuthIndicators) {
-      console.log("🔄 Detected potential OAuth callback, showing loading state");
+      console.log(
+        "🔄 Detected potential OAuth callback, showing loading state",
+      );
       setIsAuthCallback(true);
-      
+
       // Start countdown
       const timer = setInterval(() => {
-        setCountdown(prev => {
+        setCountdown((prev) => {
           if (prev <= 1) {
             clearInterval(timer);
             // After countdown, redirect to welcome if still here
@@ -50,7 +54,7 @@ export default function NotFound() {
       const timer = setTimeout(() => {
         router.replace("/welcome");
       }, 2000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [params, router]);
@@ -58,8 +62,8 @@ export default function NotFound() {
   if (isAuthCallback) {
     return (
       <View className="flex flex-1 items-center justify-center bg-background p-4 gap-y-6">
-        <ActivityIndicator 
-          size="large" 
+        <ActivityIndicator
+          size="large"
           color={getActivityIndicatorColor(colorScheme)}
         />
         <H1 className="text-center">Signing you in...</H1>
@@ -77,13 +81,11 @@ export default function NotFound() {
     <View className="flex flex-1 items-center justify-center bg-background p-4 gap-y-6">
       <H1 className="text-center">404</H1>
       <Muted className="text-center">This page could not be found.</Muted>
-      <ActivityIndicator 
-        size="small" 
+      <ActivityIndicator
+        size="small"
         color={getActivityIndicatorColor(colorScheme)}
       />
-      <Muted className="text-center text-xs">
-        Redirecting to home...
-      </Muted>
+      <Muted className="text-center text-xs">Redirecting to home...</Muted>
     </View>
   );
 }
