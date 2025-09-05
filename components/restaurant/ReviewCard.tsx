@@ -7,6 +7,8 @@ import {
   Calendar,
   MessageCircle,
   Reply,
+  Flag,
+  Check,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { P, Muted } from "@/components/ui/typography";
@@ -18,6 +20,10 @@ import {
   ReviewReplyComposer,
   ReviewReplyEdit,
 } from "@/components/review/ReviewReplyComposer";
+import { ReportReviewModal } from "@/components/review/ReportReviewModal";
+import { useAuth } from "@/context/supabase-provider";
+import { useReviewReports } from "@/hooks/useReviewReports";
+import { useColorScheme } from "@/lib/useColorScheme";
 
 // Enhanced review type with all new fields
 type Review = Database["public"]["Tables"]["reviews"]["Row"] & {
@@ -42,7 +48,6 @@ interface ReviewCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onLike?: () => void;
-  onReport?: () => void;
   showActions?: boolean;
   variant?: "default" | "compact";
   showReplyComposer?: boolean;
@@ -55,7 +60,6 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   onEdit,
   onDelete,
   onLike,
-  onReport,
   showActions = true,
   variant = "default",
   showReplyComposer = false,
@@ -65,6 +69,35 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   const [showReplyModal, setShowReplyModal] = useState(false);
   const [showReplies, setShowReplies] = useState(true); // Show replies by default
   const [isEditingReply, setIsEditingReply] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
+
+  const { colorScheme } = useColorScheme();
+  const { profile } = useAuth();
+  const { isAlreadyReported, checkIfReported } = useReviewReports();
+  const isDark = colorScheme === "dark";
+
+  // Check if current user is the review owner
+  const isCurrentUserOwner = profile?.id === review.user_id || isOwner;
+
+  // Check if this review has already been reported by current user
+  const isReported = isAlreadyReported(review.id);
+
+  // Check reported status when component mounts or review changes
+  useEffect(() => {
+    if (profile?.id && review.id) {
+      checkIfReported(review.id);
+    }
+  }, [profile?.id, review.id]);
+
+  // Debug logging to help identify why report button might not show
+  console.log("ReviewCard debug:", {
+    showActions,
+    hasProfile: !!profile,
+    profileId: profile?.id,
+    reviewUserId: review.user_id,
+    isCurrentUserOwner,
+    reviewId: review.id,
+  });
 
   const {
     replies,
@@ -116,6 +149,11 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
     } catch (error) {
       console.error("Error deleting reply:", error);
     }
+  };
+
+  const handleReportSubmitted = () => {
+    // The hook will automatically update the isReported state
+    console.log("Report submitted for review:", review.id);
   };
 
   const renderStars = (rating: number, size: number = 16) => {
@@ -189,7 +227,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
           </View>
         </View>
 
-        {showActions && isOwner && (
+        {showActions && isCurrentUserOwner && (
           <Pressable className="p-1">
             <MoreVertical size={16} color="#666" />
           </Pressable>
@@ -300,9 +338,27 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
               </Pressable>
             )}
 
-          {showActions && (
-            <Text className="text-xs text-muted-foreground">Helpful?</Text>
-          )}
+          {/* Report button: show different states based on report status */}
+          {showActions &&
+            !isCurrentUserOwner &&
+            (isReported ? (
+              <View className="flex-row items-center gap-1 bg-green-50 px-2 py-1 rounded opacity-60">
+                <Check size={14} color="#10b981" />
+                <Text className="text-xs text-green-600 font-medium">
+                  Reported
+                </Text>
+              </View>
+            ) : (
+              <Pressable
+                onPress={() => setShowReportModal(true)}
+                className="flex-row items-center gap-1 bg-red-50 px-2 py-1 rounded active:opacity-70"
+              >
+                <Flag size={14} color="#ef4444" />
+                <Text className="text-xs text-red-500 font-medium">Report</Text>
+              </Pressable>
+            ))}
+
+          
         </View>
       </View>
 
@@ -327,6 +383,16 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
             isSubmitting={submitting}
           />
         </View>
+      )}
+
+      {/* Report Review Modal */}
+      {showReportModal && (
+        <ReportReviewModal
+          reviewId={review.id}
+          visible={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          onReportSubmitted={handleReportSubmitted}
+        />
       )}
     </View>
   );
