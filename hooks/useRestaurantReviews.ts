@@ -166,6 +166,15 @@ export const useRestaurantReviews = (restaurantId: string) => {
     }
   }, []);
 
+  const handleReportReview = useCallback((reviewId: string) => {
+    Alert.alert("Report Review", "Why are you reporting this review?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Inappropriate content", onPress: () => {} },
+      { text: "Spam", onPress: () => {} },
+      { text: "Fake review", onPress: () => {} },
+    ]);
+  }, []);
+
   const handleWriteReview = useCallback(async () => {
     if (!profile?.id) {
       Alert.alert("Sign In Required", "Please sign in to write a review");
@@ -352,6 +361,7 @@ export const useRestaurantReviews = (restaurantId: string) => {
 
     // Handlers
     handleLikeReview,
+    handleReportReview,
     handleWriteReview,
     handleSortChange,
     handleRatingChange,

@@ -199,8 +199,8 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
             onPress={handleFavoritePress}
             className="absolute top-3 right-3 rounded-full p-2 active:scale-90 transition-transform"
             style={{
-              backgroundColor: "rgba(0, 0, 0, 0.3)",
-              shadowColor: "#000",
+              backgroundColor: 'rgba(0, 0, 0, 0.3)',
+              shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.15,
               shadowRadius: 4,
