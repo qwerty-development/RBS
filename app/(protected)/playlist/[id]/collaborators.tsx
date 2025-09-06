@@ -105,9 +105,19 @@ export default function PlaylistCollaboratorsScreen() {
           .select("id, full_name, avatar_url")
           .ilike("full_name", `%${query}%`)
           .neq("id", profile?.id)
-          .limit(10);
+          .limit(20);
 
         if (error) throw error;
+
+        // Filter out blocked users on client side
+        let filteredData = data || [];
+        if (profile?.id) {
+          const { getBlockedUserIds } = await import("@/utils/blockingUtils");
+          const blockedUserIds = await getBlockedUserIds(profile.id);
+          filteredData = filteredData.filter(
+            user => !blockedUserIds.includes(user.id)
+          );
+        }
 
         // Filter out users who are already collaborators
         const existingUserIds = new Set([
@@ -115,11 +125,11 @@ export default function PlaylistCollaboratorsScreen() {
           ...pendingInvites.map((p) => p.user_id),
         ]);
 
-        const filteredResults = (data || []).filter(
+        const finalResults = filteredData.filter(
           (user) => !existingUserIds.has(user.id),
         );
 
-        setSearchResults(filteredResults);
+        setSearchResults(finalResults);
       } catch (error) {
         console.error("Error searching users:", error);
       } finally {

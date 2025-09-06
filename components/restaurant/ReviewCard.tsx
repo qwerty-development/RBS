@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Pressable } from "react-native";
+import { useRouter } from "expo-router";
 import {
   Star,
   ThumbsUp,
@@ -71,6 +72,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
   const [isEditingReply, setIsEditingReply] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
 
+  const router = useRouter();
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();
   const { isAlreadyReported, checkIfReported } = useReviewReports();
@@ -201,7 +203,10 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
     <View className="bg-card border border-border rounded-lg p-4 mb-3">
       {/* Header */}
       <View className="flex-row items-start justify-between mb-2">
-        <View className="flex-row items-center flex-1">
+        <Pressable 
+          className="flex-row items-center flex-1"
+          onPress={() => router.push(`/social/profile/${review.user_id}`)}
+        >
           <View className="w-10 h-10 rounded-full bg-primary/10 items-center justify-center mr-3">
             {review.user.avatar_url ? (
               <Image
@@ -225,7 +230,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
               <Muted className="text-xs">{formatDate(review.created_at)}</Muted>
             </View>
           </View>
-        </View>
+        </Pressable>
 
         {showActions && isCurrentUserOwner && (
           <Pressable className="p-1">

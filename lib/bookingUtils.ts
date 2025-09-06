@@ -1,4 +1,5 @@
-import { Alert, Share } from "react-native";
+import { Share, Alert } from "react-native";
+import { InputValidator } from "./security";
 
 // Date and Time Validation Utilities
 export const isValidDate = (dateString: string | undefined): boolean => {
@@ -247,8 +248,22 @@ export const validateBookingForm = (data: {
     errors.push("You must accept the booking terms and conditions");
   }
 
-  if (data.specialRequests && data.specialRequests.length > 500) {
-    errors.push("Special requests must be 500 characters or less");
+  if (data.specialRequests) {
+    if (data.specialRequests.length > 500) {
+      errors.push("Special requests must be 500 characters or less");
+    }
+    
+    // Check for profanity and inappropriate content
+    const contentValidation = InputValidator.validateContent(data.specialRequests, {
+      maxLength: 500,
+      minLength: 0,
+      checkProfanity: true,
+      fieldName: "special requests"
+    });
+    
+    if (!contentValidation.isValid) {
+      errors.push(...contentValidation.errors);
+    }
   }
 
   return {

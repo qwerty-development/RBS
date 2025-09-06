@@ -319,21 +319,37 @@ export class InputSanitizer {
   /**
    * Sanitize text input to prevent XSS and injection attacks
    */
-  static sanitizeText(input: string): string {
+  static sanitizeText(input: string, options: {
+    removeProfanity?: boolean;
+    maxLength?: number;
+  } = {}): string {
     if (typeof input !== "string") {
       return "";
     }
+
+    const { removeProfanity = false, maxLength = SECURITY_CONFIG.maxInputLength } = options;
 
     // Remove null bytes
     let sanitized = input.replace(/\0/g, "");
 
     // Limit length
-    if (sanitized.length > SECURITY_CONFIG.maxInputLength) {
-      sanitized = sanitized.substring(0, SECURITY_CONFIG.maxInputLength);
+    if (sanitized.length > maxLength) {
+      sanitized = sanitized.substring(0, maxLength);
     }
 
     // Remove potentially dangerous characters for SQL injection
     sanitized = sanitized.replace(/[<>'";&\\]/g, "");
+
+    // Optional profanity removal (for filtering rather than blocking)
+    if (removeProfanity) {
+      const profanityCheck = InputValidator.containsProfanity(sanitized);
+      if (profanityCheck.hasProfanity && profanityCheck.foundWords) {
+        for (const word of profanityCheck.foundWords) {
+          const regex = new RegExp(word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
+          sanitized = sanitized.replace(regex, '*'.repeat(word.length));
+        }
+      }
+    }
 
     // Normalize whitespace
     sanitized = sanitized.replace(/\s+/g, " ").trim();
@@ -429,9 +445,188 @@ export class InputSanitizer {
 }
 
 /**
+ * Profanity filter word list for Apple App Store compliance
+ */
+// Profanity words for Apple App Store compliance
+const PROFANITY_WORDS = [
+  // Common profanity
+  'fuck', 'fucking', 'shit', 'damn', 'hell', 'bitch', 'bastard', 'ass', 'crap',
+  'piss', 'cock', 'dick', 'pussy', 'whore', 'slut', 'fag', 'faggot', 'nigger',
+  'retard', 'homo', 'gay', 'lesbian',
+  
+  // Offensive terms
+  'nazi', 'hitler', 'terrorist', 'bomb', 'bombed', 'kill', 'murder', 'die', 'death',
+  'hate', 'stupid', 'idiot', 'moron', 'dumb', 'ugly',
+  
+  // Drug references
+  'drug', 'cocaine', 'heroin', 'marijuana', 'weed', 'pot', 'high', 'stoned',
+  
+  // Sexual content
+  'sex', 'porn', 'naked', 'nude'
+];
+
+// Special handling for words that need context or are high-risk false positives
+const CONTEXT_SENSITIVE_WORDS = [
+  { word: "ass", whitelist: ["bass", "class", "glass", "grass", "mass", "pass", "assault", "assess", "classic", "massive"] },
+  { word: "kill", whitelist: ["skill", "skilled", "skills", "killed", "killer", "killing"] }, // Allow skill, but watch for threatening "kill"
+  { word: "die", whitelist: ["died", "diet", "diesel", "audience", "indie", "ladies"] },
+  { word: "high", whitelist: ["highly", "highlight", "highway", "right", "night", "light", "sight", "fight", "might"] }, // Allow positive uses
+  { word: "pot", whitelist: ["spot", "spots", "potatoes", "pottery", "despot", "potential"] },
+];
+
+/**
  * Input validation utilities
  */
 export class InputValidator {
+  /**
+   * Check if text contains profanity (Apple App Store compliance)
+   */
+  static containsProfanity(text: string): {
+    hasProfanity: boolean;
+    foundWords?: string[];
+  } {
+    if (typeof text !== "string" || !text.trim()) {
+      return { hasProfanity: false };
+    }
+
+    const normalizedText = text.toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ') // Replace special chars with spaces
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+
+    const foundWords: string[] = [];
+
+    // Check for direct profanity words
+    for (const word of PROFANITY_WORDS) {
+      // Create a pattern that matches the word with potential character substitutions
+      const pattern = word
+        .split('')
+        .map(char => {
+          switch (char.toLowerCase()) {
+            case 'a': return '[a@*4]';
+            case 'e': return '[e3*]';
+            case 'i': return '[i1!*]';
+            case 'o': return '[o0*]';
+            case 'u': return '[u*]';
+            case 's': return '[s$5*]';
+            case 'c': return '[c*]';
+            case 'k': return '[k*]';
+            default: return `[${char}*]`;
+          }
+        })
+        .join('');
+
+      // Check for whole word matches and substring matches (for substitutions)
+      const wordRegex = new RegExp(`\\b${pattern}\\b`, 'gi');
+      const substringRegex = new RegExp(pattern, 'gi');
+      
+      if (wordRegex.test(text) || substringRegex.test(text)) {
+        // Check if this word has context-sensitive exceptions
+        const contextSensitive = CONTEXT_SENSITIVE_WORDS.find(cs => cs.word === word);
+        if (contextSensitive) {
+          // Check if it's in a whitelisted context
+          const isWhitelisted = contextSensitive.whitelist.some(whiteWord => {
+            const whiteRegex = new RegExp(`\\b${whiteWord}\\b`, 'i');
+            return whiteRegex.test(normalizedText);
+          });
+          
+          if (!isWhitelisted) {
+            foundWords.push(word);
+          }
+        } else {
+          // No context restrictions, add it
+          foundWords.push(word);
+        }
+      }
+    }
+
+    return {
+      hasProfanity: foundWords.length > 0,
+      foundWords: foundWords.length > 0 ? foundWords : undefined,
+    };
+  }
+
+  /**
+   * Validate text input for profanity and other content issues
+   */
+  static validateContent(text: string, options: {
+    maxLength?: number;
+    minLength?: number;
+    checkProfanity?: boolean;
+    fieldName?: string;
+  } = {}): {
+    isValid: boolean;
+    errors: string[];
+  } {
+    const { 
+      maxLength = SECURITY_CONFIG.maxInputLength, 
+      minLength = 0,
+      checkProfanity = true,
+      fieldName = "text"
+    } = options;
+
+    const errors: string[] = [];
+
+    // Length validation
+    if (text.length < minLength) {
+      errors.push(`${fieldName} must be at least ${minLength} characters`);
+    }
+    if (text.length > maxLength) {
+      errors.push(`${fieldName} must be less than ${maxLength} characters`);
+    }
+
+    // Profanity check for Apple App Store compliance
+    if (checkProfanity) {
+      const profanityCheck = this.containsProfanity(text);
+      if (profanityCheck.hasProfanity) {
+        errors.push("Please review your text for inappropriate language");
+      }
+    }
+
+    // Check for spam patterns (excessive repetition)
+    if (this.isSpamText(text)) {
+      errors.push("Text appears to contain spam or excessive repetition");
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
+   * Detect spam patterns in text
+   */
+  static isSpamText(text: string): boolean {
+    if (!text || text.length < 10) return false;
+
+    const words = text.toLowerCase().split(/\s+/);
+    
+    // Check for excessive repetition of the same word
+    const wordCounts = new Map<string, number>();
+    for (const word of words) {
+      if (word.length > 2) { // Only count meaningful words
+        wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
+      }
+    }
+
+    // Flag as spam if any single word appears more than 30% of the time
+    const totalWords = words.filter(w => w.length > 2).length;
+    for (const count of wordCounts.values()) {
+      if (count > 3 && count / totalWords > 0.3) {
+        return true;
+      }
+    }
+
+    // Check for excessive special characters or numbers
+    const specialCharCount = (text.match(/[^a-zA-Z0-9\s.,!?'-]/g) || []).length;
+    if (specialCharCount / text.length > 0.2) {
+      return true;
+    }
+
+    return false;
+  }
+
   /**
    * Validate email format
    */
@@ -946,13 +1141,26 @@ export class SecurityMonitor {
 }
 
 /**
- * Hook for secure input handling
+ * Hook for secure input handling with profanity filtering
  */
 export function useSecureInput() {
   const validateAndSanitize = (
     input: string,
     type: "text" | "email" | "phone" | "url" | "password" = "text",
+    options: {
+      checkProfanity?: boolean;
+      maxLength?: number;
+      minLength?: number;
+      fieldName?: string;
+    } = {},
   ) => {
+    const { 
+      checkProfanity = true, 
+      maxLength = SECURITY_CONFIG.maxInputLength,
+      minLength = 0,
+      fieldName = "field"
+    } = options;
+
     // Sanitize first
     let sanitized: string;
     switch (type) {
@@ -966,7 +1174,7 @@ export function useSecureInput() {
         sanitized = InputSanitizer.sanitizeUrl(input);
         break;
       default:
-        sanitized = InputSanitizer.sanitizeText(input);
+        sanitized = InputSanitizer.sanitizeText(input, { maxLength });
     }
 
     // Validate
@@ -991,12 +1199,24 @@ export function useSecureInput() {
         isValid = passwordValidation.isValid;
         errors = passwordValidation.errors;
         break;
+      default:
+        // Use the new content validation for text fields
+        const contentValidation = InputValidator.validateContent(sanitized, {
+          maxLength,
+          minLength,
+          checkProfanity,
+          fieldName,
+        });
+        isValid = contentValidation.isValid;
+        errors = contentValidation.errors;
     }
 
     return {
       sanitized,
       isValid,
       errors,
+      originalLength: input.length,
+      sanitizedLength: sanitized.length,
     };
   };
 

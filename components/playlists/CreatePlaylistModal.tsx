@@ -15,6 +15,7 @@ import { Text } from "@/components/ui/text";
 import { H3, Muted } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { useColorScheme } from "@/lib/useColorScheme";
+import { InputValidator } from "@/lib/security";
 import { Playlist } from "@/hooks/usePlaylists";
 
 interface CreatePlaylistModalProps {
@@ -88,13 +89,43 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    if (!name.trim()) newErrors.name = "Playlist name is required";
-    else if (name.trim().length < 2)
+    
+    // Name validation
+    if (!name.trim()) {
+      newErrors.name = "Playlist name is required";
+    } else if (name.trim().length < 2) {
       newErrors.name = "Name must be at least 2 characters";
-    else if (name.trim().length > 50)
+    } else if (name.trim().length > 50) {
       newErrors.name = "Name must be less than 50 characters";
-    if (description.trim().length > 200)
+    } else {
+      // Check for profanity in name
+      const nameValidation = InputValidator.validateContent(name.trim(), {
+        maxLength: 50,
+        minLength: 2,
+        checkProfanity: true,
+        fieldName: "playlist name"
+      });
+      if (!nameValidation.isValid) {
+        newErrors.name = nameValidation.errors[0]; // Show first error
+      }
+    }
+    
+    // Description validation
+    if (description.trim().length > 200) {
       newErrors.description = "Description must be less than 200 characters";
+    } else if (description.trim().length > 0) {
+      // Only check profanity if description is provided (since it's optional)
+      const descValidation = InputValidator.validateContent(description.trim(), {
+        maxLength: 200,
+        minLength: 0,
+        checkProfanity: true,
+        fieldName: "description"
+      });
+      if (!descValidation.isValid) {
+        newErrors.description = descValidation.errors[0]; // Show first error
+      }
+    }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };

@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
+import { getBlockedUserIds, addBlockedUsersFilter } from "@/utils/blockingUtils";
 
 // Type definitions
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
@@ -144,7 +145,17 @@ export const useRestaurantReviews = (restaurantId: string) => {
           await reviewsQuery.limit(50);
 
         if (reviewsError) throw reviewsError;
-        setReviews(reviewsData || []);
+
+        // Filter out blocked users on client side
+        let filteredReviews = reviewsData || [];
+        if (profile?.id) {
+          const blockedUserIds = await getBlockedUserIds(profile.id);
+          filteredReviews = filteredReviews.filter(
+            review => !blockedUserIds.includes(review.user_id)
+          );
+        }
+
+        setReviews(filteredReviews);
       } catch (error) {
         console.error("Error fetching data:", error);
         Alert.alert("Error", "Failed to load reviews");

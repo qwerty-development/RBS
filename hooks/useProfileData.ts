@@ -61,7 +61,7 @@ export const useProfileData = () => {
     totalReviews: 0,
     averageSpending: 0,
     mostVisitedCuisine: "Not available",
-    mostVisitedRestaurant: null,
+    mostVisitedRestaurant: null as { id: string; name: string; visits: number } | null,
     diningStreak: 0,
     memberSince: new Date().toISOString(),
     totalFriends: 0,
@@ -302,7 +302,7 @@ export const useProfileData = () => {
           id: "rating-details",
           title: "Reliability Score",
           subtitle: ratingStats
-            ? `${ratingStats.current_rating.toFixed(1)} stars • ${ratingStats.reliability_score}`
+            ? `${ratingStats.current_rating.toFixed(1)} stars • ${ratingStats.total_bookings} bookings`
             : "View your booking reliability",
           icon: "BarChart3",
           onPress: () => router.push("/profile/rating-details"),
@@ -392,6 +392,13 @@ export const useProfileData = () => {
           subtitle: "Privacy policy and data settings",
           icon: "Shield",
           onPress: () => router.push("/profile/privacy"),
+        },
+        {
+          id: "blocked-users",
+          title: "Blocked Users",
+          subtitle: "Manage blocked users and content",
+          icon: "ShieldOff",
+          onPress: () => router.push("/profile/blocked-users"),
         },
       ],
     },

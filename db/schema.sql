@@ -182,6 +182,16 @@ CREATE TABLE public.friends (
   CONSTRAINT friends_friend_id_fkey FOREIGN KEY (friend_id) REFERENCES public.profiles(id),
   CONSTRAINT friends_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
 );
+CREATE TABLE public.blocked_users (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  blocker_id uuid NOT NULL,
+  blocked_id uuid NOT NULL,
+  blocked_at timestamp with time zone DEFAULT now(),
+  reason text,
+  CONSTRAINT blocked_users_pkey PRIMARY KEY (id),
+  CONSTRAINT blocked_users_blocker_id_fkey FOREIGN KEY (blocker_id) REFERENCES public.profiles(id),
+  CONSTRAINT blocked_users_blocked_id_fkey FOREIGN KEY (blocked_id) REFERENCES public.profiles(id)
+);
 CREATE TABLE public.kitchen_assignments (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   order_item_id uuid NOT NULL,

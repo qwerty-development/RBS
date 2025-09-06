@@ -93,7 +93,7 @@ export default function ProfileScreen() {
   const {
     profile,
     signOut,
-    loading: authLoading,
+    initialized,
     isGuest,
     convertGuestToUser,
   } = useAuth();
@@ -297,25 +297,26 @@ export default function ProfileScreen() {
         },
       ],
     },
-    // {
-    //   title: "Social",
-    //   items: [
-    //     // {
-    //     //   id: "my-posts",
-    //     //   title: "My Posts",
-    //     //   subtitle: "Manage your shared experiences",
-    //     //   icon: "Camera",
-    //     //   onPress: () => router.push("/(protected)/social/my-posts"),
-    //     // },
-    //     {
-    //       id: "friends",
-    //       title: "Friends",
-    //       subtitle: "Manage your connections",
-    //       icon: "Users",
-    //       onPress: () => router.push("/friends"),
-    //     },
-    //   ],
-    // },
+    {
+      title: "Social",
+      items: [
+        {
+          id: "friends",
+          title: "Friends",
+          subtitle: "Manage your connections",
+          icon: "Users",
+          onPress: () => router.push("/friends"),
+        },
+      
+        {
+          id: "blocked-users",
+          title: "Blocked Users",
+          subtitle: "Manage blocked accounts",
+          icon: "Shield",
+          onPress: () => router.push("/profile/blocked-users"),
+        },
+      ],
+    },
     {
       title: "Support",
       items: [
@@ -395,7 +396,7 @@ export default function ProfileScreen() {
     );
   };
 
-  if (authLoading || userRating.loading) {
+  if (!initialized || userRating.loading) {
     return <ProfileScreenSkeleton />;
   }
 

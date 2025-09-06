@@ -4,6 +4,7 @@ import { Send, X } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { useColorScheme } from "@/lib/useColorScheme";
+import { InputValidator } from "@/lib/security";
 
 interface ReviewReplyComposerProps {
   onSubmit: (message: string) => Promise<boolean>;
@@ -28,6 +29,20 @@ export const ReviewReplyComposer = ({
 
   const handleSubmit = async () => {
     if (!message.trim() || isSubmitting) return;
+
+    // Validate content for profanity and spam
+    const validation = InputValidator.validateContent(message.trim(), {
+      maxLength: maxLength,
+      minLength: 1,
+      checkProfanity: true,
+      fieldName: "reply"
+    });
+
+    if (!validation.isValid) {
+      // Show error alert for invalid content
+      alert(validation.errors.join("\n"));
+      return;
+    }
 
     const success = await onSubmit(message.trim());
     if (success) {
@@ -143,6 +158,20 @@ export const ReviewReplyEdit = ({
 
   const handleSave = async () => {
     if (!message.trim() || isSubmitting || message === currentMessage) return;
+
+    // Validate content for profanity and spam
+    const validation = InputValidator.validateContent(message.trim(), {
+      maxLength: maxLength,
+      minLength: 1,
+      checkProfanity: true,
+      fieldName: "reply"
+    });
+
+    if (!validation.isValid) {
+      // Show error alert for invalid content
+      alert(validation.errors.join("\n"));
+      return;
+    }
 
     const success = await onSave(message.trim());
     if (success) {

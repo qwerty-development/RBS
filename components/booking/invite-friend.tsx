@@ -28,6 +28,7 @@ import { Text } from "@/components/ui/text";
 import { H3, P, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
+import { InputValidator } from "@/lib/security";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 
@@ -148,6 +149,21 @@ export function InviteFriends({
         "Please select at least one friend to invite.",
       );
       return;
+    }
+
+    // Validate invite message for profanity if provided
+    if (inviteMessage && inviteMessage.trim()) {
+      const validation = InputValidator.validateContent(inviteMessage.trim(), {
+        maxLength: 200,
+        minLength: 0,
+        checkProfanity: true,
+        fieldName: "invite message"
+      });
+
+      if (!validation.isValid) {
+        Alert.alert("Content Issue", validation.errors.join("\n"));
+        return;
+      }
     }
 
     setSending(true);

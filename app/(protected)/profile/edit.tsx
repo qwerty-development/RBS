@@ -32,6 +32,7 @@ import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
+import { InputValidator } from "@/lib/security";
 
 // 1. Lebanese Phone Number Validation
 const lebanesPhoneRegex = /^(\+961|961|03|70|71|76|78|79|80|81)\d{6,7}$/;
@@ -42,7 +43,21 @@ const profileEditSchema = z.object({
     .string()
     .min(2, "Name must be at least 2 characters")
     .max(50, "Name must be less than 50 characters")
-    .regex(/^[a-zA-Z\s\u0600-\u06FF]+$/, "Please enter a valid name"),
+    .regex(/^[a-zA-Z\s\u0600-\u06FF]+$/, "Please enter a valid name")
+    .refine(
+      (name) => {
+        const validation = InputValidator.validateContent(name, {
+          maxLength: 50,
+          minLength: 2,
+          checkProfanity: true,
+          fieldName: "name"
+        });
+        return validation.isValid;
+      },
+      {
+        message: "Please use appropriate language in your name",
+      }
+    ),
   email: z.string().email("Please enter a valid email address").toLowerCase(),
   phone_number: z
     .string()
