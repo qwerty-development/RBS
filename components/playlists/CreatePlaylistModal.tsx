@@ -89,7 +89,7 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
-    
+
     // Name validation
     if (!name.trim()) {
       newErrors.name = "Playlist name is required";
@@ -103,29 +103,32 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
         maxLength: 50,
         minLength: 2,
         checkProfanity: true,
-        fieldName: "playlist name"
+        fieldName: "playlist name",
       });
       if (!nameValidation.isValid) {
         newErrors.name = nameValidation.errors[0]; // Show first error
       }
     }
-    
+
     // Description validation
     if (description.trim().length > 200) {
       newErrors.description = "Description must be less than 200 characters";
     } else if (description.trim().length > 0) {
       // Only check profanity if description is provided (since it's optional)
-      const descValidation = InputValidator.validateContent(description.trim(), {
-        maxLength: 200,
-        minLength: 0,
-        checkProfanity: true,
-        fieldName: "description"
-      });
+      const descValidation = InputValidator.validateContent(
+        description.trim(),
+        {
+          maxLength: 200,
+          minLength: 0,
+          checkProfanity: true,
+          fieldName: "description",
+        },
+      );
       if (!descValidation.isValid) {
         newErrors.description = descValidation.errors[0]; // Show first error
       }
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };

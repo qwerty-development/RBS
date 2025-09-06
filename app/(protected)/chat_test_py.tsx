@@ -332,7 +332,7 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
       maxLength: 500,
       minLength: 1,
       checkProfanity: true,
-      fieldName: "message"
+      fieldName: "message",
     });
 
     if (!validation.isValid) {

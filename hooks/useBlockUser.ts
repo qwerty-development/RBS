@@ -36,14 +36,16 @@ export const useBlockUser = (options: UseBlockUserOptions = {}) => {
 
       const { data, error } = await supabase
         .from("blocked_users")
-        .select(`
+        .select(
+          `
           *,
           blocked_profile:profiles!blocked_users_blocked_id_fkey (
             id,
             full_name,
             avatar_url
           )
-        `)
+        `,
+        )
         .eq("blocker_id", profile.id)
         .order("blocked_at", { ascending: false });
 
@@ -64,7 +66,7 @@ export const useBlockUser = (options: UseBlockUserOptions = {}) => {
     (userId: string): boolean => {
       return blockedUsers.some((blocked) => blocked.blocked_id === userId);
     },
-    [blockedUsers]
+    [blockedUsers],
   );
 
   // Block a user with confirmation
@@ -89,16 +91,19 @@ export const useBlockUser = (options: UseBlockUserOptions = {}) => {
         setBockingUser(userId);
 
         // Start a transaction to handle blocking and friend removal atomically
-        const { error } = await supabase.rpc('block_user_and_remove_friendship', {
-          p_blocker_id: profile.id,
-          p_blocked_id: userId,
-          p_reason: reason || null
-        });
+        const { error } = await supabase.rpc(
+          "block_user_and_remove_friendship",
+          {
+            p_blocker_id: profile.id,
+            p_blocked_id: userId,
+            p_reason: reason || null,
+          },
+        );
 
         if (error) {
           // Fallback to manual operations if RPC doesn't exist
-          console.log('RPC not available, falling back to manual operations');
-          
+          console.log("RPC not available, falling back to manual operations");
+
           // First, insert the block record
           const { error: blockError } = await supabase
             .from("blocked_users")
@@ -114,7 +119,9 @@ export const useBlockUser = (options: UseBlockUserOptions = {}) => {
           const { error: friendshipError } = await supabase
             .from("friends")
             .delete()
-            .or(`and(user_id.eq.${profile.id},friend_id.eq.${userId}),and(user_id.eq.${userId},friend_id.eq.${profile.id})`);
+            .or(
+              `and(user_id.eq.${profile.id},friend_id.eq.${userId}),and(user_id.eq.${userId},friend_id.eq.${profile.id})`,
+            );
 
           if (friendshipError) {
             console.error("Error removing friendships:", friendshipError);
@@ -125,7 +132,9 @@ export const useBlockUser = (options: UseBlockUserOptions = {}) => {
           const { error: requestError } = await supabase
             .from("friend_requests")
             .delete()
-            .or(`and(from_user_id.eq.${profile.id},to_user_id.eq.${userId}),and(from_user_id.eq.${userId},to_user_id.eq.${profile.id})`);
+            .or(
+              `and(from_user_id.eq.${profile.id},to_user_id.eq.${userId}),and(from_user_id.eq.${userId},to_user_id.eq.${profile.id})`,
+            );
 
           if (requestError) {
             console.error("Error removing friend requests:", requestError);
@@ -144,12 +153,15 @@ export const useBlockUser = (options: UseBlockUserOptions = {}) => {
 
         setBlockedUsers((prev) => [newBlockedUser, ...prev]);
 
-        Alert.alert("Success", "User has been blocked and removed from your friends list");
+        Alert.alert(
+          "Success",
+          "User has been blocked and removed from your friends list",
+        );
         onBlockSuccess?.(userId);
-        
+
         // Refresh the list to get the real data
         await fetchBlockedUsers();
-        
+
         return true;
       } catch (error) {
         console.error("Error blocking user:", error);
@@ -160,7 +172,7 @@ export const useBlockUser = (options: UseBlockUserOptions = {}) => {
         setBockingUser(null);
       }
     },
-    [profile?.id, isUserBlocked, onBlockSuccess, onError, fetchBlockedUsers]
+    [profile?.id, isUserBlocked, onBlockSuccess, onError, fetchBlockedUsers],
   );
 
   // Unblock a user with confirmation
@@ -188,11 +200,13 @@ export const useBlockUser = (options: UseBlockUserOptions = {}) => {
         if (error) throw error;
 
         // Update local state
-        setBlockedUsers((prev) => prev.filter((blocked) => blocked.blocked_id !== userId));
+        setBlockedUsers((prev) =>
+          prev.filter((blocked) => blocked.blocked_id !== userId),
+        );
 
         Alert.alert("Success", "User has been unblocked successfully");
         onUnblockSuccess?.(userId);
-        
+
         return true;
       } catch (error) {
         console.error("Error unblocking user:", error);
@@ -203,14 +217,14 @@ export const useBlockUser = (options: UseBlockUserOptions = {}) => {
         setBockingUser(null);
       }
     },
-    [profile?.id, isUserBlocked, onUnblockSuccess, onError]
+    [profile?.id, isUserBlocked, onUnblockSuccess, onError],
   );
 
   // Block with confirmation dialog
   const blockUserWithConfirmation = useCallback(
     async (userId: string, userName?: string) => {
       const displayName = userName || "this user";
-      
+
       Alert.alert(
         "Block User",
         `Are you sure you want to block ${displayName}?\n\n• You won't see their content anymore\n• They won't be able to interact with you\n• They will be removed from your friends list\n• Any pending friend requests will be cancelled`,
@@ -221,17 +235,17 @@ export const useBlockUser = (options: UseBlockUserOptions = {}) => {
             style: "destructive",
             onPress: () => blockUser(userId),
           },
-        ]
+        ],
       );
     },
-    [blockUser]
+    [blockUser],
   );
 
   // Unblock with confirmation dialog
   const unblockUserWithConfirmation = useCallback(
     async (userId: string, userName?: string) => {
       const displayName = userName || "this user";
-      
+
       Alert.alert(
         "Unblock User",
         `Are you sure you want to unblock ${displayName}? You'll be able to see their content again.`,
@@ -241,10 +255,10 @@ export const useBlockUser = (options: UseBlockUserOptions = {}) => {
             text: "Unblock",
             onPress: () => unblockUser(userId),
           },
-        ]
+        ],
       );
     },
-    [unblockUser]
+    [unblockUser],
   );
 
   // Refresh blocked users list

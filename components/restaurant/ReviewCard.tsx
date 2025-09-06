@@ -203,7 +203,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
     <View className="bg-card border border-border rounded-lg p-4 mb-3">
       {/* Header */}
       <View className="flex-row items-start justify-between mb-2">
-        <Pressable 
+        <Pressable
           className="flex-row items-center flex-1"
           onPress={() => router.push(`/social/profile/${review.user_id}`)}
         >
@@ -362,8 +362,6 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
                 <Text className="text-xs text-red-500 font-medium">Report</Text>
               </Pressable>
             ))}
-
-          
         </View>
       </View>
 

@@ -115,7 +115,7 @@ export default function PlaylistCollaboratorsScreen() {
           const { getBlockedUserIds } = await import("@/utils/blockingUtils");
           const blockedUserIds = await getBlockedUserIds(profile.id);
           filteredData = filteredData.filter(
-            user => !blockedUserIds.includes(user.id)
+            (user) => !blockedUserIds.includes(user.id),
           );
         }
 

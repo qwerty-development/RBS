@@ -90,13 +90,8 @@ interface MenuItem {
 export default function ProfileScreen() {
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-  const {
-    profile,
-    signOut,
-    initialized,
-    isGuest,
-    convertGuestToUser,
-  } = useAuth();
+  const { profile, signOut, initialized, isGuest, convertGuestToUser } =
+    useAuth();
 
   // --- Guest View ---
   // If the user is a guest, display a call-to-action screen.
@@ -307,7 +302,7 @@ export default function ProfileScreen() {
           icon: "Users",
           onPress: () => router.push("/friends"),
         },
-      
+
         {
           id: "blocked-users",
           title: "Blocked Users",

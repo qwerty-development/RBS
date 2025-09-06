@@ -35,7 +35,7 @@ export const ReviewReplyComposer = ({
       maxLength: maxLength,
       minLength: 1,
       checkProfanity: true,
-      fieldName: "reply"
+      fieldName: "reply",
     });
 
     if (!validation.isValid) {
@@ -164,7 +164,7 @@ export const ReviewReplyEdit = ({
       maxLength: maxLength,
       minLength: 1,
       checkProfanity: true,
-      fieldName: "reply"
+      fieldName: "reply",
     });
 
     if (!validation.isValid) {

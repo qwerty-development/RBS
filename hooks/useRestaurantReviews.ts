@@ -5,7 +5,10 @@ import { useRouter } from "expo-router";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
-import { getBlockedUserIds, addBlockedUsersFilter } from "@/utils/blockingUtils";
+import {
+  getBlockedUserIds,
+  addBlockedUsersFilter,
+} from "@/utils/blockingUtils";
 
 // Type definitions
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
@@ -151,7 +154,7 @@ export const useRestaurantReviews = (restaurantId: string) => {
         if (profile?.id) {
           const blockedUserIds = await getBlockedUserIds(profile.id);
           filteredReviews = filteredReviews.filter(
-            review => !blockedUserIds.includes(review.user_id)
+            (review) => !blockedUserIds.includes(review.user_id),
           );
         }
 

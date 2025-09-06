@@ -252,15 +252,18 @@ export const validateBookingForm = (data: {
     if (data.specialRequests.length > 500) {
       errors.push("Special requests must be 500 characters or less");
     }
-    
+
     // Check for profanity and inappropriate content
-    const contentValidation = InputValidator.validateContent(data.specialRequests, {
-      maxLength: 500,
-      minLength: 0,
-      checkProfanity: true,
-      fieldName: "special requests"
-    });
-    
+    const contentValidation = InputValidator.validateContent(
+      data.specialRequests,
+      {
+        maxLength: 500,
+        minLength: 0,
+        checkProfanity: true,
+        fieldName: "special requests",
+      },
+    );
+
     if (!contentValidation.isValid) {
       errors.push(...contentValidation.errors);
     }

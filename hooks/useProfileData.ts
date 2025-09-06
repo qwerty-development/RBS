@@ -61,7 +61,11 @@ export const useProfileData = () => {
     totalReviews: 0,
     averageSpending: 0,
     mostVisitedCuisine: "Not available",
-    mostVisitedRestaurant: null as { id: string; name: string; visits: number } | null,
+    mostVisitedRestaurant: null as {
+      id: string;
+      name: string;
+      visits: number;
+    } | null,
     diningStreak: 0,
     memberSince: new Date().toISOString(),
     totalFriends: 0,

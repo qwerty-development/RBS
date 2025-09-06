@@ -157,7 +157,7 @@ export function InviteFriends({
         maxLength: 200,
         minLength: 0,
         checkProfanity: true,
-        fieldName: "invite message"
+        fieldName: "invite message",
       });
 
       if (!validation.isValid) {

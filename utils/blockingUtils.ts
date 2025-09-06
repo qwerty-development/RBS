@@ -4,9 +4,11 @@ import { supabase } from "@/config/supabase";
  * Get list of user IDs that the current user has blocked
  * This can be used to filter content from blocked users
  */
-export async function getBlockedUserIds(currentUserId?: string): Promise<string[]> {
+export async function getBlockedUserIds(
+  currentUserId?: string,
+): Promise<string[]> {
   if (!currentUserId) return [];
-  
+
   try {
     const { data, error } = await supabase
       .from("blocked_users")
@@ -18,7 +20,7 @@ export async function getBlockedUserIds(currentUserId?: string): Promise<string[
       return [];
     }
 
-    return data?.map(row => row.blocked_id) || [];
+    return data?.map((row) => row.blocked_id) || [];
   } catch (error) {
     console.warn("Error fetching blocked users:", error);
     return [];
@@ -29,9 +31,11 @@ export async function getBlockedUserIds(currentUserId?: string): Promise<string[
  * Get list of user IDs who have blocked the current user
  * This can be used to prevent the current user's content from being shown to those users
  */
-export async function getBlockingUserIds(currentUserId?: string): Promise<string[]> {
+export async function getBlockingUserIds(
+  currentUserId?: string,
+): Promise<string[]> {
   if (!currentUserId) return [];
-  
+
   try {
     const { data, error } = await supabase
       .from("blocked_users")
@@ -43,7 +47,7 @@ export async function getBlockingUserIds(currentUserId?: string): Promise<string
       return [];
     }
 
-    return data?.map(row => row.blocker_id) || [];
+    return data?.map((row) => row.blocker_id) || [];
   } catch (error) {
     console.warn("Error fetching blocking users:", error);
     return [];
@@ -53,9 +57,12 @@ export async function getBlockingUserIds(currentUserId?: string): Promise<string
 /**
  * Check if a user is blocked by the current user
  */
-export async function isUserBlocked(currentUserId?: string, targetUserId?: string): Promise<boolean> {
+export async function isUserBlocked(
+  currentUserId?: string,
+  targetUserId?: string,
+): Promise<boolean> {
   if (!currentUserId || !targetUserId) return false;
-  
+
   try {
     const { data, error } = await supabase
       .from("blocked_users")
@@ -81,12 +88,12 @@ export async function isUserBlocked(currentUserId?: string, targetUserId?: strin
  */
 export function filterBlockedUsers<T extends { user_id?: string }>(
   items: T[],
-  blockedUserIds: string[]
+  blockedUserIds: string[],
 ): T[] {
   if (blockedUserIds.length === 0) return items;
-  
-  return items.filter(item => 
-    item.user_id && !blockedUserIds.includes(item.user_id)
+
+  return items.filter(
+    (item) => item.user_id && !blockedUserIds.includes(item.user_id),
   );
 }
 
@@ -95,12 +102,12 @@ export function filterBlockedUsers<T extends { user_id?: string }>(
  */
 export function filterBlockedUsersNested<T extends { user?: { id: string } }>(
   items: T[],
-  blockedUserIds: string[]
+  blockedUserIds: string[],
 ): T[] {
   if (blockedUserIds.length === 0) return items;
-  
-  return items.filter(item => 
-    !item.user || !blockedUserIds.includes(item.user.id)
+
+  return items.filter(
+    (item) => !item.user || !blockedUserIds.includes(item.user.id),
   );
 }
 
@@ -111,15 +118,15 @@ export function filterBlockedUsersNested<T extends { user?: { id: string } }>(
 export function addBlockedUsersFilter(
   queryBuilder: any,
   currentUserId?: string,
-  userIdColumn = "user_id"
+  userIdColumn = "user_id",
 ) {
   if (!currentUserId) return queryBuilder;
 
   // Use the .not() method with 'in' operator and a properly formatted subquery
   return queryBuilder.not(
     userIdColumn,
-    'in',
-    `(SELECT blocked_id FROM blocked_users WHERE blocker_id = ${currentUserId})`
+    "in",
+    `(SELECT blocked_id FROM blocked_users WHERE blocker_id = ${currentUserId})`,
   );
 }
 
@@ -128,10 +135,10 @@ export function addBlockedUsersFilter(
  */
 export function getBlockedUsersWhereCondition(
   currentUserId?: string,
-  userIdColumn = "user_id"
+  userIdColumn = "user_id",
 ): string {
   if (!currentUserId) return "";
-  
+
   return `AND ${userIdColumn} NOT IN (
     SELECT blocked_id 
     FROM blocked_users 

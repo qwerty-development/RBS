@@ -54,13 +54,13 @@ const reviewSchema = z.object({
           maxLength: REVIEW_VALIDATION.MAX_COMMENT_LENGTH,
           minLength: REVIEW_VALIDATION.MIN_COMMENT_LENGTH,
           checkProfanity: true,
-          fieldName: "review"
+          fieldName: "review",
         });
         return validation.isValid;
       },
       {
         message: "Please review your text for inappropriate language or spam",
-      }
+      },
     ),
   foodRating: z.number().min(1, "Food rating is required").max(5),
   serviceRating: z.number().min(1, "Service rating is required").max(5),
@@ -350,23 +350,20 @@ export function useReviewCreate({
             );
             return false;
           }
-          
+
           // Check for profanity and spam
           const contentValidation = InputValidator.validateContent(comment, {
             maxLength: REVIEW_VALIDATION.MAX_COMMENT_LENGTH,
             minLength: REVIEW_VALIDATION.MIN_COMMENT_LENGTH,
             checkProfanity: true,
-            fieldName: "review"
+            fieldName: "review",
           });
-          
+
           if (!contentValidation.isValid) {
-            Alert.alert(
-              "Content Issue",
-              contentValidation.errors.join("\n")
-            );
+            Alert.alert("Content Issue", contentValidation.errors.join("\n"));
             return false;
           }
-          
+
           return true;
 
         default:

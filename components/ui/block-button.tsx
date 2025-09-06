@@ -30,7 +30,12 @@ export function BlockButton({
   onBlockStateChange,
 }: BlockButtonProps) {
   const { colorScheme } = useColorScheme();
-  const { isUserBlocked, blockingUser, blockUserWithConfirmation, unblockUserWithConfirmation } = useBlockUser({
+  const {
+    isUserBlocked,
+    blockingUser,
+    blockUserWithConfirmation,
+    unblockUserWithConfirmation,
+  } = useBlockUser({
     onBlockSuccess: () => onBlockStateChange?.(true),
     onUnblockSuccess: () => onBlockStateChange?.(false),
   });
@@ -55,7 +60,7 @@ export function BlockButton({
   const getIcon = () => {
     const iconColor = colorScheme === "dark" ? "#fff" : "#000";
     const size = variant === "icon" ? 20 : 16;
-    
+
     return isBlocked ? (
       <ShieldOff size={size} color={iconColor} />
     ) : (
@@ -105,7 +110,10 @@ interface BlockStatusIndicatorProps {
   className?: string;
 }
 
-export function BlockStatusIndicator({ userId, className }: BlockStatusIndicatorProps) {
+export function BlockStatusIndicator({
+  userId,
+  className,
+}: BlockStatusIndicatorProps) {
   const { colorScheme } = useColorScheme();
   const { isUserBlocked } = useBlockUser();
 
@@ -146,17 +154,18 @@ export function BlockedUserCard({
       <View className="flex-row items-center justify-between">
         <View className="flex-1 flex-row items-center gap-3">
           <View className="w-10 h-10 rounded-full bg-muted items-center justify-center">
-            <Shield size={16} color={colorScheme === "dark" ? "#666" : "#999"} />
+            <Shield
+              size={16}
+              color={colorScheme === "dark" ? "#666" : "#999"}
+            />
           </View>
-          
+
           <View className="flex-1">
             <Text className="font-medium">{userName}</Text>
             <Muted className="text-xs">
               Blocked {new Date(blockedAt).toLocaleDateString()}
             </Muted>
-            {reason && (
-              <Muted className="text-xs mt-1">Reason: {reason}</Muted>
-            )}
+            {reason && <Muted className="text-xs mt-1">Reason: {reason}</Muted>}
           </View>
         </View>
 

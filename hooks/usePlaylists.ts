@@ -133,7 +133,7 @@ export const usePlaylists = () => {
           const { getBlockedUserIds } = await import("@/utils/blockingUtils");
           const blockedUserIds = await getBlockedUserIds(profile.id);
           filteredCollabPlaylists = filteredCollabPlaylists.filter(
-            playlist => !blockedUserIds.includes(playlist.user_id)
+            (playlist) => !blockedUserIds.includes(playlist.user_id),
           );
         }
 
@@ -157,18 +157,20 @@ export const usePlaylists = () => {
         }
 
         // Add collaborative metadata to each playlist
-        collaborativePlaylists = (filteredCollabPlaylists || []).map((playlist) => {
-          const collaboration = collaborations.find(
-            (c) => c.playlist_id === playlist.id,
-          );
-          const owner = ownersData.find((o) => o.id === playlist.user_id);
-          return {
-            ...playlist,
-            is_collaborative: true,
-            user_permission: collaboration?.permission,
-            owner: owner || null,
-          };
-        });
+        collaborativePlaylists = (filteredCollabPlaylists || []).map(
+          (playlist) => {
+            const collaboration = collaborations.find(
+              (c) => c.playlist_id === playlist.id,
+            );
+            const owner = ownersData.find((o) => o.id === playlist.user_id);
+            return {
+              ...playlist,
+              is_collaborative: true,
+              user_permission: collaboration?.permission,
+              owner: owner || null,
+            };
+          },
+        );
       }
 
       // Combine and deduplicate playlists

@@ -22,18 +22,15 @@ export default function BlockedUsersScreen() {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const { profile } = useAuth();
-  
-  const { 
-    blockedUsers, 
-    loading, 
-    refreshing, 
-    refresh 
-  } = useBlockUser();
+
+  const { blockedUsers, loading, refreshing, refresh } = useBlockUser();
 
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredBlockedUsers = blockedUsers.filter((blocked) =>
-    blocked.blocked_profile?.full_name?.toLowerCase().includes(searchQuery.toLowerCase())
+    blocked.blocked_profile?.full_name
+      ?.toLowerCase()
+      .includes(searchQuery.toLowerCase()),
   );
 
   const handleUnblockUser = useCallback(() => {
@@ -74,8 +71,8 @@ export default function BlockedUsersScreen() {
         <View className="p-6 border-b border-border">
           <H3 className="mb-2">Privacy & Safety</H3>
           <P className="text-muted-foreground">
-            When you block someone, they won't be able to see your content or 
-            interact with you. You also won't see their reviews, playlists, or 
+            When you block someone, they won't be able to see your content or
+            interact with you. You also won't see their reviews, playlists, or
             other content throughout the app.
           </P>
         </View>
@@ -88,22 +85,23 @@ export default function BlockedUsersScreen() {
             </View>
           ) : blockedUsers.length === 0 ? (
             <View className="items-center py-12">
-              <Shield 
-                size={48} 
-                color={colorScheme === "dark" ? "#666" : "#999"} 
+              <Shield
+                size={48}
+                color={colorScheme === "dark" ? "#666" : "#999"}
                 className="mb-4"
               />
               <H3 className="text-center mb-2">No Blocked Users</H3>
               <P className="text-center text-muted-foreground">
-                You haven't blocked anyone yet. When you block someone, 
-                they'll appear here and you can manage them.
+                You haven't blocked anyone yet. When you block someone, they'll
+                appear here and you can manage them.
               </P>
             </View>
           ) : (
             <View className="gap-4">
               <View className="flex-row items-center justify-between mb-4">
                 <Text className="text-lg font-medium">
-                  {blockedUsers.length} blocked user{blockedUsers.length !== 1 ? 's' : ''}
+                  {blockedUsers.length} blocked user
+                  {blockedUsers.length !== 1 ? "s" : ""}
                 </Text>
               </View>
 
@@ -111,9 +109,11 @@ export default function BlockedUsersScreen() {
                 <BlockedUserCard
                   key={blockedUser.id}
                   userId={blockedUser.blocked_id}
-                  userName={blockedUser.blocked_profile?.full_name || 'Unknown User'}
+                  userName={
+                    blockedUser.blocked_profile?.full_name || "Unknown User"
+                  }
                   userAvatar={blockedUser.blocked_profile?.avatar_url}
-                  blockedAt={blockedUser.blocked_at || ''}
+                  blockedAt={blockedUser.blocked_at || ""}
                   reason={blockedUser.reason}
                   onUnblock={handleUnblockUser}
                 />
@@ -134,25 +134,29 @@ export default function BlockedUsersScreen() {
         <View className="p-6 border-t border-border mt-8">
           <H3 className="mb-3">Need Help?</H3>
           <View className="gap-3">
-            <Pressable 
+            <Pressable
               className="p-4 bg-muted rounded-lg"
-              onPress={() => Alert.alert(
-                "Reporting Users", 
-                "If someone is harassing you or violating our terms, you can report them through their profile or contact our support team."
-              )}
+              onPress={() =>
+                Alert.alert(
+                  "Reporting Users",
+                  "If someone is harassing you or violating our terms, you can report them through their profile or contact our support team.",
+                )
+              }
             >
               <Text className="font-medium mb-1">Report Harassment</Text>
               <Muted className="text-sm">
                 Learn how to report users who are bothering you
               </Muted>
             </Pressable>
-            
-            <Pressable 
+
+            <Pressable
               className="p-4 bg-muted rounded-lg"
-              onPress={() => Alert.alert(
-                "Privacy Controls", 
-                "In addition to blocking, you can adjust your privacy settings to control who can see your content and interact with you."
-              )}
+              onPress={() =>
+                Alert.alert(
+                  "Privacy Controls",
+                  "In addition to blocking, you can adjust your privacy settings to control who can see your content and interact with you.",
+                )
+              }
             >
               <Text className="font-medium mb-1">Privacy Settings</Text>
               <Muted className="text-sm">

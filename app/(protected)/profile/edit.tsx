@@ -50,13 +50,13 @@ const profileEditSchema = z.object({
           maxLength: 50,
           minLength: 2,
           checkProfanity: true,
-          fieldName: "name"
+          fieldName: "name",
         });
         return validation.isValid;
       },
       {
         message: "Please use appropriate language in your name",
-      }
+      },
     ),
   email: z.string().email("Please enter a valid email address").toLowerCase(),
   phone_number: z
