@@ -65,6 +65,7 @@ export default function RestaurantReviewsScreen() {
     RATING_FILTER_OPTIONS,
     handleLikeReview,
     handleWriteReview,
+    handleDeleteReview,
     handleSortChange,
     handleRatingChange,
     handleFilterToggle,
@@ -140,6 +141,7 @@ export default function RestaurantReviewsScreen() {
                 key={review.id}
                 review={review}
                 onLike={() => handleLikeReview(review.id)}
+                onDelete={() => handleDeleteReview(review.id)}
                 showActions={isMounted}
                 restaurantId={restaurantId}
               />

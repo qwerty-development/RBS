@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Pressable } from "react-native";
+import { View, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import {
   Star,
@@ -199,6 +199,42 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
     );
   };
 
+  const openOwnerActions = () => {
+    if (!showActions || !isCurrentUserOwner) return;
+
+    const buttons = [
+      onEdit
+        ? {
+            text: "Edit",
+            onPress: () => onEdit?.(),
+          }
+        : undefined,
+      onDelete
+        ? {
+            text: "Delete",
+            style: "destructive" as const,
+            onPress: () => {
+              Alert.alert(
+                "Delete review?",
+                "This action cannot be undone.",
+                [
+                  { text: "Cancel", style: "cancel" },
+                  {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: () => onDelete?.(),
+                  },
+                ],
+              );
+            },
+          }
+        : undefined,
+      { text: "Cancel", style: "cancel" as const },
+    ].filter(Boolean) as { text: string; onPress?: () => void; style?: any }[];
+
+    Alert.alert("Review options", undefined, buttons);
+  };
+
   return (
     <View className="bg-card border border-border rounded-lg p-4 mb-3">
       {/* Header */}
@@ -233,7 +269,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
         </Pressable>
 
         {showActions && isCurrentUserOwner && (
-          <Pressable className="p-1">
+          <Pressable className="p-1" onPress={openOwnerActions}>
             <MoreVertical size={16} color="#666" />
           </Pressable>
         )}

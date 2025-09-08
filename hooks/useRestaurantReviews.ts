@@ -180,6 +180,40 @@ export const useRestaurantReviews = (restaurantId: string) => {
     }
   }, []);
 
+  const handleDeleteReview = useCallback(
+    async (reviewId: string) => {
+      if (!profile?.id) {
+        Alert.alert("Sign In Required", "Please sign in to delete a review");
+        return;
+      }
+
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+        const { error } = await supabase
+          .from("reviews")
+          .delete()
+          .eq("id", reviewId)
+          .eq("user_id", profile.id);
+
+        if (error) {
+          console.error("Error deleting review:", error);
+          Alert.alert(
+            "Unable to delete",
+            "We couldn't delete your review right now. Please try again.",
+          );
+          return;
+        }
+
+        setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+      } catch (err) {
+        console.error("Error in handleDeleteReview:", err);
+        Alert.alert("Error", "Something went wrong. Please try again.");
+      }
+    },
+    [profile?.id],
+  );
+
   const handleWriteReview = useCallback(async () => {
     if (!profile?.id) {
       Alert.alert("Sign In Required", "Please sign in to write a review");
@@ -367,6 +401,7 @@ export const useRestaurantReviews = (restaurantId: string) => {
     // Handlers
     handleLikeReview,
     handleWriteReview,
+    handleDeleteReview,
     handleSortChange,
     handleRatingChange,
     handleFilterToggle,

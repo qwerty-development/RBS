@@ -27,31 +27,58 @@ export const useBlockUser = (options: UseBlockUserOptions = {}) => {
 
   const { onBlockSuccess, onUnblockSuccess, onError } = options;
 
-  // Fetch blocked users for current user
+  // Fetch blocked users for current user (robust: separate profile fetch)
   const fetchBlockedUsers = useCallback(async () => {
     if (!profile?.id) return;
 
     try {
       setLoading(true);
 
-      const { data, error } = await supabase
+      // 1) Fetch raw blocked rows
+      const { data: blockedRows, error: blockedErr } = await supabase
         .from("blocked_users")
-        .select(
-          `
-          *,
-          blocked_profile:profiles!blocked_users_blocked_id_fkey (
-            id,
-            full_name,
-            avatar_url
-          )
-        `,
-        )
+        .select("*")
         .eq("blocker_id", profile.id)
         .order("blocked_at", { ascending: false });
 
-      if (error) throw error;
+      if (blockedErr) throw blockedErr;
 
-      setBlockedUsers(data || []);
+      const rows = blockedRows || [];
+      if (rows.length === 0) {
+        setBlockedUsers([]);
+        return;
+      }
+
+      // 2) Fetch related profiles in one query
+      const blockedIds = Array.from(new Set(rows.map((r) => r.blocked_id)));
+      const { data: profilesData, error: profilesErr } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url")
+        .in("id", blockedIds);
+
+      if (profilesErr) {
+        // If profile fetch fails, still show raw blocked entries
+        console.warn("Failed to fetch blocked profiles, showing IDs only");
+        setBlockedUsers(rows as BlockedUser[]);
+        return;
+      }
+
+      const idToProfile = new Map(
+        (profilesData || []).map((p) => [p.id, p]),
+      );
+
+      const merged: BlockedUser[] = rows.map((r) => ({
+        ...r,
+        blocked_profile: idToProfile.get(r.blocked_id)
+          ? {
+              id: idToProfile.get(r.blocked_id)!.id,
+              full_name: idToProfile.get(r.blocked_id)!.full_name,
+              avatar_url: idToProfile.get(r.blocked_id)!.avatar_url,
+            }
+          : undefined,
+      }));
+
+      setBlockedUsers(merged);
     } catch (error) {
       console.error("Error fetching blocked users:", error);
       onError?.(error as Error);
@@ -199,14 +226,14 @@ export const useBlockUser = (options: UseBlockUserOptions = {}) => {
 
         if (error) throw error;
 
-        // Update local state
-        setBlockedUsers((prev) =>
-          prev.filter((blocked) => blocked.blocked_id !== userId),
-        );
+        // Update local state optimistically
+        setBlockedUsers((prev) => prev.filter((b) => b.blocked_id !== userId));
 
         Alert.alert("Success", "User has been unblocked successfully");
         onUnblockSuccess?.(userId);
 
+        // Ensure list reflects server truth
+        await fetchBlockedUsers();
         return true;
       } catch (error) {
         console.error("Error unblocking user:", error);
