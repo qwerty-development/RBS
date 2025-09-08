@@ -17,6 +17,11 @@ type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
   outdoor_seating?: boolean | null;
   average_rating?: number | null;
   total_reviews?: number | null;
+  phone_number?: string | null;
+  whatsapp_number?: string | null;
+  location?: any;
+  cuisine_type?: string | null;
+  address?: string | null;
   review_summary?: {
     total_reviews: number;
     average_rating: number;
@@ -420,14 +425,29 @@ export function useRestaurant(
         .order("created_at", { ascending: false })
         .limit(20);
 
+      // Filter out reviews from blocked users client-side if user is authenticated
+      let filteredReviews = reviewsData || [];
+      if (profile?.id && reviewsData) {
+        // Get blocked user IDs
+        const { data: blockedData } = await supabase
+          .from("blocked_users")
+          .select("blocked_id")
+          .eq("blocker_id", profile.id);
+
+        if (blockedData?.length) {
+          const blockedUserIds = new Set(blockedData.map(b => b.blocked_id));
+          filteredReviews = reviewsData.filter(review => !blockedUserIds.has(review.user_id));
+        }
+      }
+
       if (reviewsError) {
         console.warn("Reviews fetch error:", reviewsError);
       } else {
-        console.log("Reviews fetched:", reviewsData?.length || 0);
-        setReviews(reviewsData || []);
+        console.log("Reviews fetched:", filteredReviews.length, "filtered from", reviewsData?.length || 0);
+        setReviews(filteredReviews);
 
-        // Calculate review summary from actual reviews data
-        const calculatedSummary = calculateReviewSummary(reviewsData || []);
+        // Calculate review summary from filtered reviews data
+        const calculatedSummary = calculateReviewSummary(filteredReviews);
         if (calculatedSummary) {
           const updatedRestaurant = {
             ...restaurantData,
