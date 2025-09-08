@@ -435,15 +435,22 @@ export function useRestaurant(
           .eq("blocker_id", profile.id);
 
         if (blockedData?.length) {
-          const blockedUserIds = new Set(blockedData.map(b => b.blocked_id));
-          filteredReviews = reviewsData.filter(review => !blockedUserIds.has(review.user_id));
+          const blockedUserIds = new Set(blockedData.map((b) => b.blocked_id));
+          filteredReviews = reviewsData.filter(
+            (review) => !blockedUserIds.has(review.user_id),
+          );
         }
       }
 
       if (reviewsError) {
         console.warn("Reviews fetch error:", reviewsError);
       } else {
-        console.log("Reviews fetched:", filteredReviews.length, "filtered from", reviewsData?.length || 0);
+        console.log(
+          "Reviews fetched:",
+          filteredReviews.length,
+          "filtered from",
+          reviewsData?.length || 0,
+        );
         setReviews(filteredReviews);
 
         // Calculate review summary from filtered reviews data

@@ -14,6 +14,11 @@ export type ReportReason =
   | "fake_review"
   | "hate_speech"
   | "harassment"
+  | "misinformation"
+  | "privacy_violation"
+  | "copyright_violation"
+  | "off_topic"
+  | "duplicate_review"
   | "other";
 
 export const REPORT_REASONS: {
@@ -45,6 +50,32 @@ export const REPORT_REASONS: {
     value: "harassment",
     label: "Harassment",
     description: "Targets or harasses individuals or groups",
+  },
+  {
+    value: "misinformation",
+    label: "Misinformation",
+    description:
+      "Contains false or misleading information about the restaurant",
+  },
+  {
+    value: "privacy_violation",
+    label: "Privacy Violation",
+    description: "Shares personal information without consent",
+  },
+  {
+    value: "copyright_violation",
+    label: "Copyright Violation",
+    description: "Contains copyrighted content used without permission",
+  },
+  {
+    value: "off_topic",
+    label: "Off Topic",
+    description: "Not related to the restaurant or dining experience",
+  },
+  {
+    value: "duplicate_review",
+    label: "Duplicate Review",
+    description: "Multiple reviews from the same user for the same visit",
   },
   {
     value: "other",

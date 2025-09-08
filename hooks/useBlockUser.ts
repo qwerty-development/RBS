@@ -63,9 +63,7 @@ export const useBlockUser = (options: UseBlockUserOptions = {}) => {
         return;
       }
 
-      const idToProfile = new Map(
-        (profilesData || []).map((p) => [p.id, p]),
-      );
+      const idToProfile = new Map((profilesData || []).map((p) => [p.id, p]));
 
       const merged: BlockedUser[] = rows.map((r) => ({
         ...r,

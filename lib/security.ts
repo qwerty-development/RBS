@@ -724,6 +724,7 @@ const PROFANITY_WORDS = [
   "karen",
   "boomer",
   "zoomer",
+  'boobs',
 
   // Gambling references (App Store sensitive)
   "gambling",
@@ -856,12 +857,7 @@ const CONTEXT_SENSITIVE_WORDS = [
   },
   {
     word: "gay",
-    whitelist: [
-      "gaya",
-      "gayly",
-      "legacy",
-      "fugay",
-    ],
+    whitelist: ["gaya", "gayly", "legacy", "fugay"],
   },
   {
     word: "sex",
@@ -966,7 +962,7 @@ const INAPPROPRIATE_PHRASES = [
   "fuck you",
   "screw you",
   "piss off",
-  
+
   // Discriminatory phrases
   "white trash",
   "trailer trash",
@@ -977,7 +973,7 @@ const INAPPROPRIATE_PHRASES = [
   "illegal alien",
   "sand nigger",
   "towel head",
-  
+
   // Threats and violence
   "i will kill",
   "gonna kill",
@@ -993,7 +989,7 @@ const INAPPROPRIATE_PHRASES = [
   "blow up",
   "bomb this place",
   "terrorist attack",
-  
+
   // Sexual harassment
   "show me your",
   "send nudes",
@@ -1003,7 +999,7 @@ const INAPPROPRIATE_PHRASES = [
   "lick my",
   "touch yourself",
   "get naked",
-  
+
   // Drug related phrases
   "sell drugs",
   "buy drugs",
@@ -1013,8 +1009,8 @@ const INAPPROPRIATE_PHRASES = [
   "snort cocaine",
   "shoot heroin",
   "crystal meth",
-  
-  // Gambling phrases  
+
+  // Gambling phrases
   "place bets",
   "gambling site",
   "online casino",
@@ -1023,7 +1019,7 @@ const INAPPROPRIATE_PHRASES = [
   "win money",
   "easy money",
   "quick cash",
-  
+
   // Spam and scam phrases
   "make money fast",
   "get rich quick",
@@ -1033,7 +1029,7 @@ const INAPPROPRIATE_PHRASES = [
   "act now",
   "free money",
   "guaranteed winner",
-  
+
   // Inappropriate requests
   "hook up",
   "one night stand",
