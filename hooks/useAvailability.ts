@@ -27,6 +27,9 @@ interface AvailabilityState {
   selectedTime: string | null;
   slotOptionsLoading: boolean;
 
+  // Restaurant tier
+  restaurantTier: string | null;
+
   // General state
   error: string | null;
   lastUpdate: number;
@@ -47,6 +50,7 @@ export function useAvailability({
     selectedSlotOptions: null,
     selectedTime: null,
     slotOptionsLoading: false,
+    restaurantTier: null,
     error: null,
     lastUpdate: 0,
   });
@@ -133,10 +137,47 @@ export function useAvailability({
     ],
   );
 
+  // Function to fetch restaurant tier
+  const fetchRestaurantTier = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!restaurantId) return;
+
+      try {
+        const tier = await availabilityService.getRestaurantTier(restaurantId);
+
+        if (signal?.aborted) return;
+
+        setState((prev) => ({
+          ...prev,
+          restaurantTier: tier,
+        }));
+      } catch (error) {
+        console.error("Error fetching restaurant tier:", error);
+        // Default to 'pro' if error occurs
+        setState((prev) => ({
+          ...prev,
+          restaurantTier: "pro",
+        }));
+      }
+    },
+    [restaurantId, availabilityService],
+  );
+
   // Optimized fetch slot options with debouncing
   const fetchSlotOptions = useCallback(
     async (time: string) => {
       if (!restaurantId || !time) return;
+
+      // For basic tier restaurants, skip table options and return immediately
+      if (state.restaurantTier === "basic") {
+        setState((prev) => ({
+          ...prev,
+          selectedTime: time,
+          selectedSlotOptions: null, // Basic tier doesn't need table options
+          slotOptionsLoading: false,
+        }));
+        return;
+      }
 
       // Cancel any existing request
       if (abortControllerRef.current) {
@@ -186,7 +227,7 @@ export function useAvailability({
         }));
       }
     },
-    [restaurantId, date, partySize, availabilityService],
+    [restaurantId, date, partySize, availabilityService, state.restaurantTier],
   );
 
   // Optimized clear function
@@ -247,6 +288,18 @@ export function useAvailability({
     };
   }, [mode, paramsKey]); // Use paramsKey instead of individual params
 
+  // Fetch restaurant tier when restaurantId changes
+  useEffect(() => {
+    if (restaurantId) {
+      const controller = new AbortController();
+      fetchRestaurantTier(controller.signal);
+
+      return () => {
+        controller.abort();
+      };
+    }
+  }, [restaurantId, fetchRestaurantTier]);
+
   // Use the new real-time availability hook
   useRealtimeAvailability(restaurantId, {
     enabled: enableRealtime,
@@ -277,7 +330,9 @@ export function useAvailability({
   const computedValues = useMemo(
     () => ({
       hasTimeSlots: state.timeSlots.length > 0,
-      hasSelectedSlot: !!state.selectedSlotOptions,
+      hasSelectedSlot:
+        !!state.selectedSlotOptions ||
+        (state.restaurantTier === "basic" && !!state.selectedTime),
       isLoading: state.timeSlotsLoading || state.slotOptionsLoading,
       experienceCount: state.selectedSlotOptions?.options?.length || 0,
       hasMultipleExperiences:
@@ -287,6 +342,12 @@ export function useAvailability({
       isEmpty: !state.timeSlotsLoading && state.timeSlots.length === 0,
       hasError: !!state.error,
       isStale: Date.now() - state.lastUpdate > 300000, // 5 minutes
+      // Restaurant tier information
+      restaurantTier: state.restaurantTier,
+      isBasicTier: state.restaurantTier === "basic",
+      requiresTableSelection: state.restaurantTier !== "basic",
+      showExperienceStep:
+        state.restaurantTier !== "basic" && !!state.selectedSlotOptions,
     }),
     [state],
   );
@@ -352,7 +413,7 @@ export function useAvailability({
     refresh,
     findSlot,
 
-    // Computed values (memoized)
+    // Computed values (memoized) - includes tier information
     ...computedValues,
   };
 }

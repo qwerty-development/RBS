@@ -130,8 +130,10 @@ async function sendMessageToRestoAI(
 ): Promise<ChatMessage> {
   try {
     // Get current user session for JWT authentication
-    const { data: { session } } = await supabase.auth.getSession();
-    
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
     // Get last 10 message pairs (20 messages total) for context
     const recentHistory = conversationHistory.slice(-20);
 
@@ -165,9 +167,13 @@ async function sendMessageToRestoAI(
 
     if (!response.ok) {
       if (response.status === 401) {
-        throw new Error(`Authentication failed: Your session may have expired. Please log in again.`);
+        throw new Error(
+          `Authentication failed: Your session may have expired. Please log in again.`,
+        );
       } else if (response.status === 403) {
-        throw new Error(`Access denied: You don't have permission to access this feature.`);
+        throw new Error(
+          `Access denied: You don't have permission to access this feature.`,
+        );
       }
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -293,7 +299,7 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
         const session = data.session;
         setUserId(session?.user?.id);
         setIsAuthenticated(!!session?.access_token);
-        
+
         if (session?.user?.id) {
           console.log("User authenticated:", session.user.id);
         } else {
@@ -372,19 +378,31 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
 
       if (error instanceof Error) {
         // Check for authentication errors
-        if (error.message.includes("Authentication failed") || error.message.includes("401")) {
-          errorMessage = "Your session has expired. Please log in again to continue using personalized features.";
+        if (
+          error.message.includes("Authentication failed") ||
+          error.message.includes("401")
+        ) {
+          errorMessage =
+            "Your session has expired. Please log in again to continue using personalized features.";
           Alert.alert(
             "Session Expired",
             "Your session has expired. Please log in again to access personalized AI features.",
-            [{ text: "OK" }]
+            [{ text: "OK" }],
           );
-        } else if (error.message.includes("Access denied") || error.message.includes("403")) {
-          errorMessage = "You don't have permission to access this feature. Please contact support if you believe this is an error.";
-        } else if (error.message.includes("fetch") || error.message.includes("Network")) {
+        } else if (
+          error.message.includes("Access denied") ||
+          error.message.includes("403")
+        ) {
+          errorMessage =
+            "You don't have permission to access this feature. Please contact support if you believe this is an error.";
+        } else if (
+          error.message.includes("fetch") ||
+          error.message.includes("Network")
+        ) {
           // Connection error
           setApiConnected(false);
-          errorMessage = "Sorry, I'm having trouble connecting to the server. Please check if the RestoAI backend is running and try again.";
+          errorMessage =
+            "Sorry, I'm having trouble connecting to the server. Please check if the RestoAI backend is running and try again.";
         }
       }
 
@@ -415,8 +433,10 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
   const resetChat = useCallback(async () => {
     try {
       // Get current user session for JWT authentication
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       // Prepare headers with JWT authentication
       const headers: Record<string, string> = {
         "Content-Type": "application/json",
@@ -522,22 +542,26 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
                 I can help you find restaurants, make reservations, get
                 recommendations, and answer questions about dining options.
               </Text>
-              
+
               {/* Authentication status message */}
               {isAuthenticated ? (
                 <View className="bg-green-100 p-3 rounded-lg mb-4">
                   <Text className="text-sm text-green-700 text-center">
-                    ✅ You're signed in! I can provide personalized recommendations based on your preferences and booking history.
+                    ✅ You're signed in! I can provide personalized
+                    recommendations based on your preferences and booking
+                    history.
                   </Text>
                 </View>
               ) : (
                 <View className="bg-blue-100 p-3 rounded-lg mb-4">
                   <Text className="text-sm text-blue-700 text-center">
-                    💡 Sign in for personalized recommendations and booking features. I can still help with general restaurant information!
+                    💡 Sign in for personalized recommendations and booking
+                    features. I can still help with general restaurant
+                    information!
                   </Text>
                 </View>
               )}
-              
+
               <View className="bg-muted p-3 rounded-lg">
                 <Text className="text-sm text-muted-foreground text-center">
                   Try asking: "Show me Italian restaurants" or "Find places with

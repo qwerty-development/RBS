@@ -218,11 +218,12 @@ export class AvailabilityService {
     }
 
     try {
-      const [restaurant, vipBenefits] = await Promise.all([
+      const [restaurant, vipBenefits, restaurantTier] = await Promise.all([
         this.getRestaurantConfig(restaurantId),
         userId
           ? this.getVIPBenefits(restaurantId, userId)
           : Promise.resolve(null),
+        this.getRestaurantTier(restaurantId),
       ]);
 
       if (!restaurant) return [];
@@ -278,13 +279,30 @@ export class AvailabilityService {
         date,
       );
 
-      const availableSlots = await this.batchQuickAvailabilityChecks(
-        restaurantId,
-        date,
-        uniqueSlots,
-        turnTime,
-        partySize,
-      );
+      // For basic tier restaurants, return all time slots without availability checking
+      let availableSlots: TimeSlotBasic[];
+      if (restaurantTier === "basic") {
+        // Filter out slots that are less than 15 minutes from now
+        const now = new Date();
+        const minimumBookingTime = new Date(now.getTime() + 15 * 60 * 1000);
+        const dateStr = date.toISOString().split("T")[0];
+
+        availableSlots = uniqueSlots
+          .filter((slot) => {
+            const startTime = new Date(`${dateStr}T${slot.time}:00`);
+            return startTime > minimumBookingTime;
+          })
+          .map((slot) => ({ time: slot.time, available: true }));
+      } else {
+        // For pro and higher tiers, use real availability checking
+        availableSlots = await this.batchQuickAvailabilityChecks(
+          restaurantId,
+          date,
+          uniqueSlots,
+          turnTime,
+          partySize,
+        );
+      }
 
       this.timeSlotsCache.set(cacheKey, availableSlots);
 
@@ -305,6 +323,13 @@ export class AvailabilityService {
     time: string,
     partySize: number,
   ): Promise<SlotTableOptions | null> {
+    // Check restaurant tier first - basic tier restaurants don't need table options
+    const restaurantTier = await this.getRestaurantTier(restaurantId);
+    if (restaurantTier === "basic") {
+      // For basic tier restaurants, return null since they don't use table options
+      return null;
+    }
+
     const dateStr = date.toISOString().split("T")[0];
     const cacheKey = `table-options:${restaurantId}:${dateStr}:${time}:${partySize}`;
 
@@ -571,6 +596,25 @@ export class AvailabilityService {
 
     this.restaurantConfigCache.set(cacheKey, config);
     return config;
+  }
+
+  async getRestaurantTier(restaurantId: string): Promise<string> {
+    const cacheKey = `restaurant-tier:${restaurantId}`;
+    let cached = this.restaurantConfigCache.get(cacheKey);
+
+    if (cached?.tier) return cached.tier;
+
+    const { data, error } = await supabase
+      .from("restaurants")
+      .select("tier")
+      .eq("id", restaurantId)
+      .single();
+
+    if (error || !data) return "pro"; // Default to pro if error
+
+    // Cache the tier for future use
+    this.restaurantConfigCache.set(cacheKey, { tier: data.tier });
+    return data.tier;
   }
 
   // FIXED: Updated getOperatingHoursForDate to handle multiple shifts
@@ -1410,12 +1454,23 @@ export class AvailabilityService {
     userId?: string,
   ): Promise<TimeSlot[]> {
     try {
-      const timeSlots = await this.getAvailableTimeSlots(
-        restaurantId,
-        date,
-        partySize,
-        userId,
-      );
+      const [timeSlots, restaurantTier] = await Promise.all([
+        this.getAvailableTimeSlots(restaurantId, date, partySize, userId),
+        this.getRestaurantTier(restaurantId),
+      ]);
+
+      // For basic tier restaurants, return simple time slots without complex table allocation
+      if (restaurantTier === "basic") {
+        return timeSlots.map((slot) => ({
+          time: slot.time,
+          available: slot.available,
+          tables: [], // Basic tier doesn't need table details
+          requiresCombination: false,
+          totalCapacity: partySize, // Simple capacity matching
+        }));
+      }
+
+      // For pro and higher tiers, use the full table options logic
       const fullSlots: TimeSlot[] = [];
 
       const batchSize = 5;

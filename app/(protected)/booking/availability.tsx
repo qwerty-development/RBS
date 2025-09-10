@@ -657,6 +657,11 @@ export default function AvailabilitySelectionScreen() {
     primaryExperience,
     isLoading,
     refresh,
+    // Restaurant tier information
+    restaurantTier,
+    isBasicTier,
+    requiresTableSelection,
+    showExperienceStep,
   } = useAvailability({
     restaurantId: params.restaurantId || "",
     date: selectedDate,
@@ -813,14 +818,107 @@ export default function AvailabilitySelectionScreen() {
       }
 
       try {
-        // Fetch options and transition to experience step
+        // Fetch options for all tiers (needed for booking logic)
         await fetchSlotOptions(time);
 
-        // Smooth transition with haptic feedback
-        stepTransitionRef.current = setTimeout(() => {
-          setCurrentStep("experience");
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        }, 200);
+        // For basic tier restaurants, skip experience step and directly confirm booking
+        if (isBasicTier) {
+          stepTransitionRef.current = setTimeout(() => {
+            // Show confirmation dialog for basic tier
+            Alert.alert(
+              "Confirm Booking",
+              `Are you sure you want to book a table for ${partySize} guest${partySize > 1 ? "s" : ""} at ${restaurant?.name} on ${formatSelectedDate(selectedDate)} at ${time}?`,
+              [
+                {
+                  text: "Cancel",
+                  style: "cancel",
+                  onPress: () => {
+                    // Stay on time step for basic tier
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  },
+                },
+                {
+                  text: "Confirm",
+                  onPress: async () => {
+                    // For basic tier, construct booking time directly from the selected time
+                    if (!restaurant) {
+                      Alert.alert("Error", "Restaurant information missing");
+                      return;
+                    }
+
+                    // Construct booking date time directly from the time parameter
+                    let bookingTime: Date;
+                    try {
+                      const dt = new Date(selectedDate);
+                      const [h, m] = time.split(":");
+                      dt.setHours(parseInt(h), parseInt(m), 0, 0);
+                      bookingTime = dt;
+                    } catch (error) {
+                      console.error("Error constructing booking time:", error);
+                      Alert.alert("Error", "Invalid time selected");
+                      return;
+                    }
+
+                    setIsConfirmingBooking(true);
+                    try {
+                      const success = await confirmBooking({
+                        restaurantId: params.restaurantId,
+                        bookingTime: bookingTime,
+                        partySize: partySize,
+                        specialRequests: undefined,
+                        occasion: undefined,
+                        dietaryNotes: undefined,
+                        tablePreferences: undefined,
+                        bookingPolicy: (restaurant as any).booking_policy as
+                          | "instant"
+                          | "request",
+                        expectedLoyaltyPoints: selectedLoyaltyPoints?.available
+                          ? selectedLoyaltyPoints.pointsToAward
+                          : 0,
+                        appliedOfferId: preselectedOffer?.id,
+                        loyaltyRuleId: selectedLoyaltyPoints?.available
+                          ? selectedLoyaltyPoints.ruleId
+                          : undefined,
+                        // For basic tier, use empty tableIds array
+                        tableIds: JSON.stringify([]),
+                        requiresCombination: false,
+                      });
+
+                      if (success) {
+                        Haptics.notificationAsync(
+                          Haptics.NotificationFeedbackType.Success,
+                        );
+                        await refresh(true);
+                        clearSelectedSlot();
+                        setCurrentStep("time");
+                        setSelectedLoyaltyPoints(null);
+                      }
+                    } catch (error) {
+                      console.error(
+                        "Error confirming basic tier booking:",
+                        error,
+                      );
+                      Alert.alert(
+                        "Error",
+                        "Failed to confirm booking. Please try again.",
+                      );
+                    } finally {
+                      setTimeout(() => {
+                        setIsConfirmingBooking(false);
+                      }, 2000);
+                    }
+                  },
+                },
+              ],
+            );
+          }, 200);
+        } else {
+          // For pro tier restaurants, proceed to experience step
+          stepTransitionRef.current = setTimeout(() => {
+            setCurrentStep("experience");
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          }, 200);
+        }
       } catch (error) {
         console.error("Error fetching slot options:", error);
         Alert.alert(
@@ -829,7 +927,20 @@ export default function AvailabilitySelectionScreen() {
         );
       }
     },
-    [fetchSlotOptions],
+    [
+      fetchSlotOptions,
+      isBasicTier,
+      partySize,
+      restaurant,
+      selectedDate,
+      params.restaurantId,
+      selectedLoyaltyPoints,
+      preselectedOffer,
+      confirmBooking,
+      refresh,
+      clearSelectedSlot,
+      formatSelectedDate,
+    ],
   );
 
   const handleBackToTimeSelection = useCallback(() => {
