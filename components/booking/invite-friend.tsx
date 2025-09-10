@@ -28,6 +28,7 @@ import { Text } from "@/components/ui/text";
 import { H3, P, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
+import { InputValidator } from "@/lib/security";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 
@@ -148,6 +149,21 @@ export function InviteFriends({
         "Please select at least one friend to invite.",
       );
       return;
+    }
+
+    // Validate invite message for profanity if provided
+    if (inviteMessage && inviteMessage.trim()) {
+      const validation = InputValidator.validateContent(inviteMessage.trim(), {
+        maxLength: 200,
+        minLength: 0,
+        checkProfanity: true,
+        fieldName: "invite message",
+      });
+
+      if (!validation.isValid) {
+        Alert.alert("Content Issue", validation.errors.join("\n"));
+        return;
+      }
     }
 
     setSending(true);
@@ -445,27 +461,41 @@ export function InviteFriends({
 export const FriendsInvitationSection: React.FC<
   FriendsInvitationSectionProps
 > = ({
-  invitedFriends,
-  restaurantName,
-  bookingTime,
-  partySize,
+  invitedFriends = [],
+  restaurantName = "",
+  bookingTime = "",
+  partySize = 2,
   onInvitesSent,
 }) => {
   const { colorScheme } = useColorScheme();
   const isDark = colorScheme === "dark";
 
+  // Early return if required props are missing
+  if (!restaurantName || !onInvitesSent) {
+    console.warn("FriendsInvitationSection: Missing required props");
+    return null;
+  }
+
   const handleInviteFriends = () => {
-    // Navigate to friends selection screen
-    router.push({
-      pathname: "/friends",
-      params: {
-        mode: "invite",
-        restaurantName,
-        bookingTime,
-        partySize: partySize.toString(),
-        currentInvites: JSON.stringify(invitedFriends),
-      },
-    });
+    try {
+      // Navigate to friends selection screen
+      router.push({
+        pathname: "/(protected)/friends",
+        params: {
+          mode: "invite",
+          restaurantName,
+          bookingTime,
+          partySize: partySize.toString(),
+          currentInvites: JSON.stringify(invitedFriends),
+        },
+      });
+    } catch (error) {
+      console.error("Navigation error:", error);
+      Alert.alert(
+        "Error",
+        "Unable to open friends selection. Please try again.",
+      );
+    }
   };
 
   const totalGuests = partySize + invitedFriends.length;

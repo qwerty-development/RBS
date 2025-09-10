@@ -36,6 +36,7 @@ import {
   Timer,
   Search,
   X,
+  UserPlus,
 } from "lucide-react-native";
 import { Calendar as RNCalendar } from "react-native-calendars";
 import * as Haptics from "expo-haptics";
@@ -72,6 +73,9 @@ import {
   TimeRangeResult,
 } from "@/components/booking/TimeRangeSelector";
 import { useTimeRangeSearch } from "@/hooks/useTimeRangeSearch";
+
+// Friend invitation imports
+import { InviteFriendsModal } from "@/components/booking/InviteFriendsModal";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -624,6 +628,19 @@ export default function AvailabilitySelectionScreen() {
   const [selectedLoyaltyPoints, setSelectedLoyaltyPoints] =
     useState<PotentialLoyaltyPoints | null>(null);
 
+  // Friend invitation state
+  const [invitedFriends, setInvitedFriends] = useState<string[]>([]);
+  const [invitedFriendsDetails, setInvitedFriendsDetails] = useState<
+    { id: string; full_name: string; avatar_url: string | null }[]
+  >([]);
+  const [showInviteFriendsModal, setShowInviteFriendsModal] = useState(false);
+
+  // Calculate total party size including invited friends
+  const totalPartySize = useMemo(
+    () => partySize + invitedFriends.length,
+    [partySize, invitedFriends],
+  );
+
   // Time Range Search state
   const [showTimeRangeSelector, setShowTimeRangeSelector] = useState(false);
   const { createSearchFunction } = useTimeRangeSearch();
@@ -665,7 +682,7 @@ export default function AvailabilitySelectionScreen() {
   } = useAvailability({
     restaurantId: params.restaurantId || "",
     date: selectedDate,
-    partySize,
+    partySize: totalPartySize,
     enableRealtime: true,
     mode: "time-first",
     preloadNext: true,
@@ -691,9 +708,9 @@ export default function AvailabilitySelectionScreen() {
   // Preload restaurant data
   useEffect(() => {
     if (params.restaurantId) {
-      preloadRestaurant(params.restaurantId, [2, 4, partySize]);
+      preloadRestaurant(params.restaurantId, [2, 4, totalPartySize]);
     }
-  }, [params.restaurantId, preloadRestaurant, partySize]);
+  }, [params.restaurantId, preloadRestaurant, totalPartySize]);
 
   // Initialize preselected offer with validation
   useEffect(() => {
@@ -774,7 +791,7 @@ export default function AvailabilitySelectionScreen() {
   // Reset loyalty points when date/time/party size changes
   useEffect(() => {
     setSelectedLoyaltyPoints(null);
-  }, [selectedDate, selectedTime, partySize]);
+  }, [selectedDate, selectedTime, totalPartySize]);
 
   // Optimized event handlers
   const handleDateChange = useCallback(
@@ -785,13 +802,15 @@ export default function AvailabilitySelectionScreen() {
       setCurrentStep("time");
       clearSelectedSlot();
       setSelectedLoyaltyPoints(null); // Reset loyalty points
+      setInvitedFriends([]); // Reset invited friends when date changes
+      setInvitedFriendsDetails([]); // Reset invited friends details
 
       // Clear any pending transitions
       if (stepTransitionRef.current) {
         clearTimeout(stepTransitionRef.current);
       }
     },
-    [selectedDate, clearSelectedSlot],
+    [selectedDate, clearSelectedSlot, setInvitedFriends],
   );
 
   const handlePartySizeChange = useCallback(
@@ -802,12 +821,14 @@ export default function AvailabilitySelectionScreen() {
       setCurrentStep("time");
       clearSelectedSlot();
       setSelectedLoyaltyPoints(null); // Reset loyalty points
+      setInvitedFriends([]); // Reset invited friends when party size changes
+      setInvitedFriendsDetails([]); // Reset invited friends details
 
       if (stepTransitionRef.current) {
         clearTimeout(stepTransitionRef.current);
       }
     },
-    [partySize, clearSelectedSlot],
+    [partySize, clearSelectedSlot, setInvitedFriends],
   );
 
   const handleTimeSelect = useCallback(
@@ -948,6 +969,7 @@ export default function AvailabilitySelectionScreen() {
     clearSelectedSlot();
     setSelectedLoyaltyPoints(null); // Reset loyalty points
     setIsConfirmingBooking(false); // Reset confirming state
+    // Don't reset invited friends when going back to time selection
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, [clearSelectedSlot]);
 
@@ -970,7 +992,7 @@ export default function AvailabilitySelectionScreen() {
         const success = await confirmBooking({
           restaurantId: params.restaurantId,
           bookingTime: bookingDateTime,
-          partySize: partySize,
+          partySize: totalPartySize,
           specialRequests: undefined,
           occasion: undefined,
           dietaryNotes: undefined,
@@ -985,6 +1007,7 @@ export default function AvailabilitySelectionScreen() {
             : undefined,
           tableIds: JSON.stringify(tableIds),
           requiresCombination: selectedOption.requiresCombination,
+          invitedFriends: invitedFriends,
         });
 
         if (success) {
@@ -1017,13 +1040,14 @@ export default function AvailabilitySelectionScreen() {
       restaurant,
       bookingDateTime,
       params.restaurantId,
-      partySize,
+      totalPartySize,
       selectedLoyaltyPoints,
       preselectedOffer,
       confirmBooking,
       refresh,
       clearSelectedSlot,
       isConfirmingBooking,
+      invitedFriends,
     ],
   );
 
@@ -1086,6 +1110,53 @@ export default function AvailabilitySelectionScreen() {
     },
     [fetchSlotOptions],
   );
+
+  // Handle friend invitations
+  const handleInvitesSent = useCallback(
+    (
+      friendIds: string[],
+      friendDetails: {
+        id: string;
+        full_name: string;
+        avatar_url: string | null;
+      }[],
+    ) => {
+      console.log("Invites sent:", friendIds, friendDetails);
+      setInvitedFriends(friendIds);
+      setInvitedFriendsDetails(friendDetails);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    },
+    [],
+  );
+
+  // Handle removing a specific friend
+  const handleRemoveFriend = useCallback((friendId: string) => {
+    setInvitedFriends((prev) => prev.filter((id) => id !== friendId));
+    setInvitedFriendsDetails((prev) =>
+      prev.filter((friend) => friend.id !== friendId),
+    );
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
+
+  // Handle clearing all invitations
+  const handleClearAllInvitations = useCallback(() => {
+    Alert.alert(
+      "Clear All Invitations",
+      "Are you sure you want to remove all invited friends?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear All",
+          style: "destructive",
+          onPress: () => {
+            setInvitedFriends([]);
+            setInvitedFriendsDetails([]);
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          },
+        },
+      ],
+    );
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -1184,6 +1255,94 @@ export default function AvailabilitySelectionScreen() {
           {/* Step 1: Time Selection */}
           {currentStep === "time" && (
             <>
+              {/* Friends Invitation Section - Modal approach */}
+              <View className="bg-card border border-border rounded-xl p-4 mb-4">
+                <View className="flex-row items-center justify-between mb-3">
+                  <View className="flex-row items-center gap-3 flex-1">
+                    <Users size={20} color="#3b82f6" />
+                    <View className="flex-1">
+                      <Text className="font-semibold text-lg">
+                        Invite Friends
+                      </Text>
+                      <Text className="text-sm text-muted-foreground">
+                        Make it a group experience! (Optional)
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                <Pressable
+                  onPress={() => setShowInviteFriendsModal(true)}
+                  className="p-4 rounded-xl border-2 border-dashed border-muted-foreground/30 bg-muted/20 flex-row items-center justify-center"
+                >
+                  <UserPlus size={24} color="#6b7280" />
+                  <Text className="ml-2 font-medium text-muted-foreground">
+                    {invitedFriends.length > 0
+                      ? "Manage Invitations"
+                      : "Invite Friends"}
+                  </Text>
+                </Pressable>
+
+                {/* Invited Friends Showcase */}
+                {invitedFriendsDetails.length > 0 && (
+                  <View className="mt-4 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl">
+                    <View className="flex-row items-center justify-between mb-3">
+                      <Text className="font-semibold text-green-800 dark:text-green-200">
+                        {invitedFriendsDetails.length} Friend
+                        {invitedFriendsDetails.length > 1 ? "s" : ""} Invited
+                      </Text>
+                      <View className="bg-green-200 dark:bg-green-800 rounded-full px-3 py-1">
+                        <Text className="text-green-800 dark:text-green-200 text-xs font-bold">
+                          Party of {totalPartySize}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Friends List */}
+                    <View className="flex-row flex-wrap gap-2 mb-3">
+                      {invitedFriendsDetails.map((friend) => (
+                        <Pressable
+                          key={friend.id}
+                          onPress={() => handleRemoveFriend(friend.id)}
+                          className="flex-row items-center bg-green-100 dark:bg-green-800/50 rounded-full pl-1 pr-2 py-1 border border-green-200 dark:border-green-700"
+                        >
+                          <Image
+                            source={{
+                              uri:
+                                friend.avatar_url ||
+                                `https://ui-avatars.com/api/?name=${friend.full_name}`,
+                            }}
+                            className="w-6 h-6 rounded-full bg-gray-100 mr-2"
+                          />
+                          <Text className="text-green-800 dark:text-green-200 text-sm font-medium mr-1">
+                            {friend.full_name.split(" ")[0]}
+                          </Text>
+                          <View className="w-4 h-4 bg-green-200 dark:bg-green-700 rounded-full items-center justify-center">
+                            <X size={10} color="#059669" />
+                          </View>
+                        </Pressable>
+                      ))}
+                    </View>
+
+                    {/* Action Buttons */}
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-xs text-green-700 dark:text-green-300 flex-1">
+                        Your friends will receive booking invitations once
+                        confirmed
+                      </Text>
+                      <Pressable
+                        onPress={handleClearAllInvitations}
+                        className="ml-3 px-3 py-1 bg-green-200 dark:bg-green-800 rounded-full"
+                      >
+                        <Text className="text-green-800 dark:text-green-200 text-xs font-medium">
+                          Clear All
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                )}
+              </View>
+
               <TimeSlots
                 slots={timeSlots}
                 selectedTime={selectedTime}
@@ -1244,7 +1403,7 @@ export default function AvailabilitySelectionScreen() {
                 <LoyaltyPointsDisplay
                   restaurantId={params.restaurantId}
                   bookingTime={bookingDateTime}
-                  partySize={partySize}
+                  partySize={totalPartySize}
                   onPointsCalculated={setSelectedLoyaltyPoints}
                 />
               )}
@@ -1286,7 +1445,7 @@ export default function AvailabilitySelectionScreen() {
                 <LoyaltyPointsDisplay
                   restaurantId={params.restaurantId}
                   bookingTime={bookingDateTime}
-                  partySize={partySize}
+                  partySize={totalPartySize}
                   onPointsCalculated={setSelectedLoyaltyPoints}
                 />
               )}
@@ -1400,7 +1559,9 @@ export default function AvailabilitySelectionScreen() {
             </Text>
             <View className="flex-row items-center gap-2 flex-wrap">
               <Text className="text-sm text-muted-foreground">
-                Party of {partySize}
+                Party of {totalPartySize}
+                {invitedFriends.length > 0 &&
+                  ` (${partySize} + ${invitedFriends.length} friends)`}
                 {!isRequestBooking &&
                   selectedLoyaltyPoints?.available &&
                   ` • Earn ${selectedLoyaltyPoints.pointsToAward} points`}
@@ -1464,6 +1625,20 @@ export default function AvailabilitySelectionScreen() {
         selectedDate={selectedDate}
         restaurantName={restaurant?.name || "Restaurant"}
         restaurantId={params.restaurantId || ""}
+      />
+
+      {/* Invite Friends Modal */}
+      <InviteFriendsModal
+        visible={showInviteFriendsModal}
+        onClose={() => setShowInviteFriendsModal(false)}
+        onInvite={handleInvitesSent}
+        restaurantName={restaurant?.name}
+        bookingTime={
+          selectedTime
+            ? `${formatSelectedDate(selectedDate)} at ${selectedTime}`
+            : `${formatSelectedDate(selectedDate)}`
+        }
+        currentlyInvited={invitedFriends}
       />
     </SafeAreaView>
   );

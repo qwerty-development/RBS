@@ -9,6 +9,7 @@ import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
 import { REVIEW_VALIDATION, REVIEW_POINTS } from "@/constants/reviewConstants";
+import { InputValidator } from "@/lib/security";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 type Booking = Database["public"]["Tables"]["bookings"]["Row"];
@@ -20,8 +21,8 @@ interface ReviewFormData {
   serviceRating: number;
   ambianceRating: number;
   valueRating: number;
-  recommendToFriend: boolean;
-  visitAgain: boolean;
+  recommendToFriend?: boolean;
+  visitAgain?: boolean;
   tags: string[];
   photos: string[];
 }
@@ -46,7 +47,21 @@ const reviewSchema = z.object({
       REVIEW_VALIDATION.MIN_COMMENT_LENGTH,
       `Please write at least ${REVIEW_VALIDATION.MIN_COMMENT_LENGTH} characters`,
     )
-    .max(REVIEW_VALIDATION.MAX_COMMENT_LENGTH, "Review too long"),
+    .max(REVIEW_VALIDATION.MAX_COMMENT_LENGTH, "Review too long")
+    .refine(
+      (text) => {
+        const validation = InputValidator.validateContent(text, {
+          maxLength: REVIEW_VALIDATION.MAX_COMMENT_LENGTH,
+          minLength: REVIEW_VALIDATION.MIN_COMMENT_LENGTH,
+          checkProfanity: true,
+          fieldName: "review",
+        });
+        return validation.isValid;
+      },
+      {
+        message: "Please review your text for inappropriate language or spam",
+      },
+    ),
   foodRating: z.number().min(1, "Food rating is required").max(5),
   serviceRating: z.number().min(1, "Service rating is required").max(5),
   ambianceRating: z.number().min(1, "Ambiance rating is required").max(5),
@@ -326,7 +341,8 @@ export function useReviewCreate({
           return true;
 
         case 3: // Comment
-          const commentLength = form.getValues("comment")?.length || 0;
+          const comment = form.getValues("comment") || "";
+          const commentLength = comment.length;
           if (commentLength < REVIEW_VALIDATION.MIN_COMMENT_LENGTH) {
             Alert.alert(
               "Required",
@@ -334,6 +350,20 @@ export function useReviewCreate({
             );
             return false;
           }
+
+          // Check for profanity and spam
+          const contentValidation = InputValidator.validateContent(comment, {
+            maxLength: REVIEW_VALIDATION.MAX_COMMENT_LENGTH,
+            minLength: REVIEW_VALIDATION.MIN_COMMENT_LENGTH,
+            checkProfanity: true,
+            fieldName: "review",
+          });
+
+          if (!contentValidation.isValid) {
+            Alert.alert("Content Issue", contentValidation.errors.join("\n"));
+            return false;
+          }
+
           return true;
 
         default:

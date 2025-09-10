@@ -6,6 +6,7 @@ import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
 import { playlistEventEmitter, PLAYLIST_EVENTS } from "@/lib/eventEmitter";
+import { addBlockedUsersFilter } from "@/utils/blockingUtils";
 
 export type Playlist = {
   id: string;
@@ -126,9 +127,19 @@ export const usePlaylists = () => {
           throw collabPlaylistsError;
         }
 
+        // Filter out playlists from blocked users
+        let filteredCollabPlaylists = collabPlaylistsData || [];
+        if (profile?.id) {
+          const { getBlockedUserIds } = await import("@/utils/blockingUtils");
+          const blockedUserIds = await getBlockedUserIds(profile.id);
+          filteredCollabPlaylists = filteredCollabPlaylists.filter(
+            (playlist) => !blockedUserIds.includes(playlist.user_id),
+          );
+        }
+
         // Fetch owner data for collaborative playlists
         const ownerIds = [
-          ...new Set(collabPlaylistsData?.map((p) => p.user_id) || []),
+          ...new Set(filteredCollabPlaylists?.map((p) => p.user_id) || []),
         ];
         let ownersData: any[] = [];
 
@@ -146,18 +157,20 @@ export const usePlaylists = () => {
         }
 
         // Add collaborative metadata to each playlist
-        collaborativePlaylists = (collabPlaylistsData || []).map((playlist) => {
-          const collaboration = collaborations.find(
-            (c) => c.playlist_id === playlist.id,
-          );
-          const owner = ownersData.find((o) => o.id === playlist.user_id);
-          return {
-            ...playlist,
-            is_collaborative: true,
-            user_permission: collaboration?.permission,
-            owner: owner || null,
-          };
-        });
+        collaborativePlaylists = (filteredCollabPlaylists || []).map(
+          (playlist) => {
+            const collaboration = collaborations.find(
+              (c) => c.playlist_id === playlist.id,
+            );
+            const owner = ownersData.find((o) => o.id === playlist.user_id);
+            return {
+              ...playlist,
+              is_collaborative: true,
+              user_permission: collaboration?.permission,
+              owner: owner || null,
+            };
+          },
+        );
       }
 
       // Combine and deduplicate playlists

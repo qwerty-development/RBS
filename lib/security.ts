@@ -319,21 +319,46 @@ export class InputSanitizer {
   /**
    * Sanitize text input to prevent XSS and injection attacks
    */
-  static sanitizeText(input: string): string {
+  static sanitizeText(
+    input: string,
+    options: {
+      removeProfanity?: boolean;
+      maxLength?: number;
+    } = {},
+  ): string {
     if (typeof input !== "string") {
       return "";
     }
+
+    const {
+      removeProfanity = false,
+      maxLength = SECURITY_CONFIG.maxInputLength,
+    } = options;
 
     // Remove null bytes
     let sanitized = input.replace(/\0/g, "");
 
     // Limit length
-    if (sanitized.length > SECURITY_CONFIG.maxInputLength) {
-      sanitized = sanitized.substring(0, SECURITY_CONFIG.maxInputLength);
+    if (sanitized.length > maxLength) {
+      sanitized = sanitized.substring(0, maxLength);
     }
 
     // Remove potentially dangerous characters for SQL injection
     sanitized = sanitized.replace(/[<>'";&\\]/g, "");
+
+    // Optional profanity removal (for filtering rather than blocking)
+    if (removeProfanity) {
+      const profanityCheck = InputValidator.containsProfanity(sanitized);
+      if (profanityCheck.hasProfanity && profanityCheck.foundWords) {
+        for (const word of profanityCheck.foundWords) {
+          const regex = new RegExp(
+            word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+            "gi",
+          );
+          sanitized = sanitized.replace(regex, "*".repeat(word.length));
+        }
+      }
+    }
 
     // Normalize whitespace
     sanitized = sanitized.replace(/\s+/g, " ").trim();
@@ -429,9 +454,768 @@ export class InputSanitizer {
 }
 
 /**
+ * Profanity filter word list for Apple App Store compliance
+ */
+// Profanity words for Apple App Store compliance
+const PROFANITY_WORDS = [
+  // Common profanity
+  "fuck",
+  "fucking",
+  "fucked",
+  "fucker",
+  "fucks",
+  "shit",
+  "shitting",
+  "shitty",
+  "shits",
+  "damn",
+  "damned",
+  "hell",
+  "hellish",
+  "bitch",
+  "bitches",
+  "bitching",
+  "bastard",
+  "bastards",
+  "ass",
+  "asses",
+  "asshole",
+  "assholes",
+  "crap",
+  "crappy",
+  "craps",
+  "piss",
+  "pissed",
+  "pissing",
+  "cock",
+  "cocks",
+  "dick",
+  "dicks",
+  "dickhead",
+  "pussy",
+  "pussies",
+  "whore",
+  "whores",
+  "slut",
+  "sluts",
+  "slutty",
+  "fag",
+  "faggot",
+  "faggots",
+  "nigger",
+  "niggers",
+  "nigga",
+  "retard",
+  "retarded",
+  "retards",
+  "homo",
+  "homos",
+  "gay",
+  "lesbian",
+  "dyke",
+
+  // Strong profanity variations
+  "motherfucker",
+  "motherfucking",
+  "bullshit",
+  "horseshit",
+  "chickenshit",
+  "dipshit",
+  "jackass",
+  "dumbass",
+  "smartass",
+  "badass",
+  "hardass",
+  "fatass",
+  "douchebag",
+  "douche",
+  "turd",
+  "turds",
+  "prick",
+  "pricks",
+  "twat",
+  "twats",
+  "cunt",
+  "cunts",
+  "wanker",
+
+  // Offensive terms and hate speech
+  "nazi",
+  "nazis",
+  "hitler",
+  "terrorist",
+  "terrorists",
+  "terrorism",
+  "bomb",
+  "bombed",
+  "bombing",
+  "bomber",
+  "kill",
+  "killing",
+  "killed",
+  "killer",
+  "killers",
+  "murder",
+  "murdered",
+  "murderer",
+  "die",
+  "death",
+  "dead",
+  "suicide",
+  "hate",
+  "hated",
+  "hating",
+  "hater",
+  "stupid",
+  "stupidity",
+  "idiot",
+  "idiotic",
+  "idiots",
+  "moron",
+  "moronic",
+  "morons",
+  "dumb",
+  "dumber",
+  "dumbest",
+  "ugly",
+  "uglier",
+  "ugliest",
+  "loser",
+  "losers",
+
+  // Racial and discriminatory slurs
+  "spic",
+  "spics",
+  "wetback",
+  "wetbacks",
+  "chink",
+  "chinks",
+  "gook",
+  "gooks",
+  "kike",
+  "kikes",
+  "towelhead",
+  "raghead",
+  "cracker",
+  "crackers",
+  "honky",
+  "gringo",
+
+  // Drug references
+  "drug",
+  "drugs",
+  "cocaine",
+  "coke",
+  "heroin",
+  "marijuana",
+  "weed",
+  "pot",
+  "high",
+  "stoned",
+  "junkie",
+  "junkies",
+  "addict",
+  "addicts",
+  "crack",
+  "meth",
+  "methhead",
+  "dealer",
+  "dealers",
+  "dealing",
+  "dope",
+  "joint",
+  "joints",
+  "blunt",
+  "blunts",
+
+  // Sexual content
+  "sex",
+  "sexual",
+  "sexy",
+  "porn",
+  "porno",
+  "pornography",
+  "naked",
+  "nude",
+  "nudity",
+  "boobs",
+  "tits",
+  "titties",
+  "breast",
+  "breasts",
+  "nipple",
+  "nipples",
+  "vagina",
+  "penis",
+  "orgasm",
+  "masturbate",
+  "masturbation",
+  "horny",
+  "erection",
+  "boner",
+
+  // Violence and threats
+  "violence",
+  "violent",
+  "attack",
+  "attacking",
+  "attacked",
+  "attacker",
+  "assault",
+  "assaulting",
+  "assaulted",
+  "beat",
+  "beating",
+  "beaten",
+  "punch",
+  "punching",
+  "punched",
+  "stab",
+  "stabbing",
+  "stabbed",
+  "shoot",
+  "shooting",
+  "shot",
+  "gun",
+  "guns",
+  "weapon",
+  "weapons",
+  "knife",
+  "knives",
+  "threat",
+  "threaten",
+  "threatening",
+  "threatened",
+
+  // Bathroom and body references (inappropriate context)
+  "poop",
+  "pooping",
+  "pooped",
+  "fart",
+  "farting",
+  "farted",
+  "farts",
+  "burp",
+  "burping",
+  "vomit",
+  "vomiting",
+  "puke",
+  "puking",
+  "puked",
+  "snot",
+  "booger",
+  "boogers",
+
+  // Internet slang and modern profanity
+  "wtf",
+  "stfu",
+  "omfg",
+  "lmfao",
+  "af",
+  "thot",
+  "simp",
+  "simping",
+  "incel",
+  "cuck",
+  "cucks",
+  "cucked",
+  "beta",
+  "chad",
+  "karen",
+  "boomer",
+  "zoomer",
+  'boobs',
+
+  // Gambling references (App Store sensitive)
+  "gambling",
+  "gamble",
+  "gambled",
+  "gambler",
+  "bet",
+  "betting",
+  "bets",
+  "casino",
+  "poker",
+  "blackjack",
+  "slots",
+  "lottery",
+  "jackpot",
+];
+
+// Special handling for words that need context or are high-risk false positives
+const CONTEXT_SENSITIVE_WORDS = [
+  {
+    word: "ass",
+    whitelist: [
+      "bass",
+      "class",
+      "classes",
+      "classic",
+      "classical",
+      "glass",
+      "glasses",
+      "grass",
+      "mass",
+      "masses",
+      "pass",
+      "passed",
+      "passing",
+      "assault",
+      "assaulted",
+      "assess",
+      "assessment",
+      "massive",
+      "ambassador",
+      "embassy",
+      "passenger",
+      "passage",
+      "password",
+    ],
+  },
+  {
+    word: "kill",
+    whitelist: [
+      "skill",
+      "skilled",
+      "skills",
+      "skillful",
+      "killed",
+      "killer",
+      "killing",
+      "skillfully",
+      "upskill",
+      "reskill",
+    ],
+  },
+  {
+    word: "die",
+    whitelist: [
+      "died",
+      "diet",
+      "diets",
+      "dietary",
+      "diesel",
+      "audience",
+      "audiences",
+      "indie",
+      "ladies",
+      "studies",
+      "studied",
+      "candies",
+      "odies",
+    ],
+  },
+  {
+    word: "high",
+    whitelist: [
+      "highly",
+      "highlight",
+      "highlights",
+      "highlighted",
+      "highway",
+      "highways",
+      "right",
+      "rights",
+      "night",
+      "nights",
+      "light",
+      "lights",
+      "lighting",
+      "sight",
+      "sights",
+      "fight",
+      "fights",
+      "fighting",
+      "might",
+      "mighty",
+      "tight",
+      "bright",
+      "flight",
+      "height",
+      "weight",
+    ],
+  },
+  {
+    word: "pot",
+    whitelist: [
+      "spot",
+      "spots",
+      "spotted",
+      "spotting",
+      "potatoes",
+      "potato",
+      "pottery",
+      "potter",
+      "despot",
+      "depot",
+      "potential",
+      "potent",
+      "opotamus",
+      "teapot",
+      "hotspot",
+    ],
+  },
+  {
+    word: "gay",
+    whitelist: ["gaya", "gayly", "legacy", "fugay"],
+  },
+  {
+    word: "sex",
+    whitelist: [
+      "sixteen",
+      "sixth",
+      "sixty",
+      "sexual", // Allow in appropriate contexts
+      "sextet",
+      "sextant",
+      "unisex",
+      "sussex",
+      "middlesex",
+    ],
+  },
+  {
+    word: "beat",
+    whitelist: [
+      "beats",
+      "beaten",
+      "beating",
+      "upbeat",
+      "offbeat",
+      "heartbeat",
+      "beatiful", // common misspelling
+      "beatles",
+    ],
+  },
+  {
+    word: "shot",
+    whitelist: [
+      "shots",
+      "shooting",
+      "photo",
+      "photos",
+      "photographer",
+      "photography",
+      "snapshot",
+      "screenshot",
+      "longshot",
+      "shotgun", // context dependent
+    ],
+  },
+  {
+    word: "crack",
+    whitelist: [
+      "cracks",
+      "cracked",
+      "cracking",
+      "cracker",
+      "crackers",
+      "firecracker",
+      "nutcracker",
+    ],
+  },
+  {
+    word: "dope",
+    whitelist: [
+      "dopey",
+      "doped",
+      "doping",
+      "antidote",
+      "horoscope",
+      "stethoscope",
+      "periscope",
+      "kaleidoscope",
+    ],
+  },
+  {
+    word: "joint",
+    whitelist: [
+      "joints",
+      "jointed",
+      "jointing",
+      "adjointed",
+      "disjoint",
+      "conjoint",
+    ],
+  },
+];
+
+// Inappropriate phrases and sentences for comprehensive filtering
+const INAPPROPRIATE_PHRASES = [
+  // Hate speech phrases
+  "i hate",
+  "hate this",
+  "hate that",
+  "hate you",
+  "hate them",
+  "go kill yourself",
+  "kill yourself",
+  "kys",
+  "go die",
+  "drop dead",
+  "hope you die",
+  "piece of shit",
+  "piece of crap",
+  "son of a bitch",
+  "go to hell",
+  "burn in hell",
+  "fuck off",
+  "fuck you",
+  "screw you",
+  "piss off",
+
+  // Discriminatory phrases
+  "white trash",
+  "trailer trash",
+  "ghetto trash",
+  "you people",
+  "those people",
+  "dirty immigrant",
+  "illegal alien",
+  "sand nigger",
+  "towel head",
+
+  // Threats and violence
+  "i will kill",
+  "gonna kill",
+  "going to kill",
+  "want to kill",
+  "should die",
+  "deserve to die",
+  "beat you up",
+  "kick your ass",
+  "punch you",
+  "shoot you",
+  "stab you",
+  "blow up",
+  "bomb this place",
+  "terrorist attack",
+
+  // Sexual harassment
+  "show me your",
+  "send nudes",
+  "want to fuck",
+  "suck my",
+  "eat my",
+  "lick my",
+  "touch yourself",
+  "get naked",
+
+  // Drug related phrases
+  "sell drugs",
+  "buy drugs",
+  "drug dealer",
+  "get high",
+  "smoke weed",
+  "snort cocaine",
+  "shoot heroin",
+  "crystal meth",
+
+  // Gambling phrases
+  "place bets",
+  "gambling site",
+  "online casino",
+  "poker game",
+  "sports betting",
+  "win money",
+  "easy money",
+  "quick cash",
+
+  // Spam and scam phrases
+  "make money fast",
+  "get rich quick",
+  "work from home",
+  "click here now",
+  "limited time offer",
+  "act now",
+  "free money",
+  "guaranteed winner",
+
+  // Inappropriate requests
+  "hook up",
+  "one night stand",
+  "friends with benefits",
+  "sugar daddy",
+  "sugar mommy",
+  "escort service",
+  "massage parlor",
+];
+
+/**
  * Input validation utilities
  */
 export class InputValidator {
+  /**
+   * Check if text contains profanity (Apple App Store compliance)
+   */
+  static containsProfanity(text: string): {
+    hasProfanity: boolean;
+    foundWords?: string[];
+  } {
+    if (typeof text !== "string" || !text.trim()) {
+      return { hasProfanity: false };
+    }
+
+    const normalizedText = text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ") // Replace special chars with spaces
+      .replace(/\s+/g, " ") // Normalize whitespace
+      .trim();
+
+    const foundWords: string[] = [];
+
+    // Check for direct profanity words
+    for (const word of PROFANITY_WORDS) {
+      // Create a pattern that matches the word with potential character substitutions
+      const pattern = word
+        .split("")
+        .map((char) => {
+          switch (char.toLowerCase()) {
+            case "a":
+              return "[a@*4]";
+            case "e":
+              return "[e3*]";
+            case "i":
+              return "[i1!*]";
+            case "o":
+              return "[o0*]";
+            case "u":
+              return "[u*]";
+            case "s":
+              return "[s$5*]";
+            case "c":
+              return "[c*]";
+            case "k":
+              return "[k*]";
+            default:
+              return `[${char}*]`;
+          }
+        })
+        .join("");
+
+      // Check for whole word matches and substring matches (for substitutions)
+      const wordRegex = new RegExp(`\\b${pattern}\\b`, "gi");
+      const substringRegex = new RegExp(pattern, "gi");
+
+      if (wordRegex.test(text) || substringRegex.test(text)) {
+        // Check if this word has context-sensitive exceptions
+        const contextSensitive = CONTEXT_SENSITIVE_WORDS.find(
+          (cs) => cs.word === word,
+        );
+        if (contextSensitive) {
+          // Check if it's in a whitelisted context
+          const isWhitelisted = contextSensitive.whitelist.some((whiteWord) => {
+            const whiteRegex = new RegExp(`\\b${whiteWord}\\b`, "i");
+            return whiteRegex.test(normalizedText);
+          });
+
+          if (!isWhitelisted) {
+            foundWords.push(word);
+          }
+        } else {
+          // No context restrictions, add it
+          foundWords.push(word);
+        }
+      }
+    }
+
+    // Check for inappropriate phrases
+    for (const phrase of INAPPROPRIATE_PHRASES) {
+      if (normalizedText.includes(phrase.toLowerCase())) {
+        foundWords.push(`phrase: "${phrase}"`);
+      }
+    }
+
+    return {
+      hasProfanity: foundWords.length > 0,
+      foundWords: foundWords.length > 0 ? foundWords : undefined,
+    };
+  }
+
+  /**
+   * Validate text input for profanity and other content issues
+   */
+  static validateContent(
+    text: string,
+    options: {
+      maxLength?: number;
+      minLength?: number;
+      checkProfanity?: boolean;
+      fieldName?: string;
+    } = {},
+  ): {
+    isValid: boolean;
+    errors: string[];
+  } {
+    const {
+      maxLength = SECURITY_CONFIG.maxInputLength,
+      minLength = 0,
+      checkProfanity = true,
+      fieldName = "text",
+    } = options;
+
+    const errors: string[] = [];
+
+    // Length validation
+    if (text.length < minLength) {
+      errors.push(`${fieldName} must be at least ${minLength} characters`);
+    }
+    if (text.length > maxLength) {
+      errors.push(`${fieldName} must be less than ${maxLength} characters`);
+    }
+
+    // Profanity check for Apple App Store compliance
+    if (checkProfanity) {
+      const profanityCheck = this.containsProfanity(text);
+      if (profanityCheck.hasProfanity) {
+        errors.push("Please review your text for inappropriate language");
+      }
+    }
+
+    // Check for spam patterns (excessive repetition)
+    if (this.isSpamText(text)) {
+      errors.push("Text appears to contain spam or excessive repetition");
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
+  }
+
+  /**
+   * Detect spam patterns in text
+   */
+  static isSpamText(text: string): boolean {
+    if (!text || text.length < 10) return false;
+
+    const words = text.toLowerCase().split(/\s+/);
+
+    // Check for excessive repetition of the same word
+    const wordCounts = new Map<string, number>();
+    for (const word of words) {
+      if (word.length > 2) {
+        // Only count meaningful words
+        wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
+      }
+    }
+
+    // Flag as spam if any single word appears more than 30% of the time
+    const totalWords = words.filter((w) => w.length > 2).length;
+    for (const count of wordCounts.values()) {
+      if (count > 3 && count / totalWords > 0.3) {
+        return true;
+      }
+    }
+
+    // Check for excessive special characters or numbers
+    const specialCharCount = (text.match(/[^a-zA-Z0-9\s.,!?'-]/g) || []).length;
+    if (specialCharCount / text.length > 0.2) {
+      return true;
+    }
+
+    return false;
+  }
+
   /**
    * Validate email format
    */
@@ -946,13 +1730,26 @@ export class SecurityMonitor {
 }
 
 /**
- * Hook for secure input handling
+ * Hook for secure input handling with profanity filtering
  */
 export function useSecureInput() {
   const validateAndSanitize = (
     input: string,
     type: "text" | "email" | "phone" | "url" | "password" = "text",
+    options: {
+      checkProfanity?: boolean;
+      maxLength?: number;
+      minLength?: number;
+      fieldName?: string;
+    } = {},
   ) => {
+    const {
+      checkProfanity = true,
+      maxLength = SECURITY_CONFIG.maxInputLength,
+      minLength = 0,
+      fieldName = "field",
+    } = options;
+
     // Sanitize first
     let sanitized: string;
     switch (type) {
@@ -966,7 +1763,7 @@ export function useSecureInput() {
         sanitized = InputSanitizer.sanitizeUrl(input);
         break;
       default:
-        sanitized = InputSanitizer.sanitizeText(input);
+        sanitized = InputSanitizer.sanitizeText(input, { maxLength });
     }
 
     // Validate
@@ -991,12 +1788,24 @@ export function useSecureInput() {
         isValid = passwordValidation.isValid;
         errors = passwordValidation.errors;
         break;
+      default:
+        // Use the new content validation for text fields
+        const contentValidation = InputValidator.validateContent(sanitized, {
+          maxLength,
+          minLength,
+          checkProfanity,
+          fieldName,
+        });
+        isValid = contentValidation.isValid;
+        errors = contentValidation.errors;
     }
 
     return {
       sanitized,
       isValid,
       errors,
+      originalLength: input.length,
+      sanitizedLength: sanitized.length,
     };
   };
 

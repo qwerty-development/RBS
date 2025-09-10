@@ -21,6 +21,7 @@ import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { H2, H3, P, Muted } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
+import { BlockButton } from "@/components/ui/block-button";
 import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
@@ -48,7 +49,8 @@ interface FriendRequest {
 
 export default function UserProfileScreen() {
   const router = useRouter();
-  const { userId } = useLocalSearchParams();
+  const { userId: rawUserId } = useLocalSearchParams();
+  const userId = Array.isArray(rawUserId) ? rawUserId[0] : rawUserId;
   const { profile: currentUser } = useAuth();
   const { colorScheme } = useColorScheme();
 
@@ -403,6 +405,14 @@ export default function UserProfileScreen() {
                 <Text>Message</Text>
               </View>
             </Button>
+
+            {/* Block/Unblock Button */}
+            <BlockButton
+              userId={userId}
+              userName={userProfile.full_name}
+              variant="destructive"
+              size="sm"
+            />
           </View>
         )}
       </ScrollView>

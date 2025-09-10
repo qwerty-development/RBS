@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Stack } from "expo-router";
 import { useAuth } from "@/context/supabase-provider";
 import { GlobalChatTab } from "@/components/ui/global-chat-tab";
+import { NotificationManager } from "@/components/notifications/NotificationManager";
 import { View, ActivityIndicator, Text } from "react-native";
 import { NetworkStatusBanner } from "@/components/network/NetworkStatusBanner";
 import { useColorScheme } from "@/lib/useColorScheme";
@@ -140,14 +141,22 @@ export default function ProtectedLayout() {
         <Stack.Screen name="playlist/join" />
         <Stack.Screen name="restaurant/[id]" />
         <Stack.Screen name="booking/availability" />
+        <Stack.Screen name="booking/create" />
+        <Stack.Screen name="booking/request-sent" />
+        <Stack.Screen name="booking/success" />
+        <Stack.Screen name="booking/[id]" />
         <Stack.Screen name="cuisine/[cuisineId]" />
         <Stack.Screen name="profile/loyalty" />
         <Stack.Screen name="profile/insights" />
         <Stack.Screen name="profile/notifications" />
+        <Stack.Screen name="invitations" />
+        <Stack.Screen name="friends/index" />
+        <Stack.Screen name="friends/[id]" />
         <Stack.Screen name="legal/index" />
         <Stack.Screen name="legal/[documentType]" />
       </Stack>
       {!isGuest && <GlobalChatTab />}
+      {!isGuest && <NotificationManager />}
     </View>
   );
 }

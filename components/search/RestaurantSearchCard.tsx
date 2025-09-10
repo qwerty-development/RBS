@@ -2,6 +2,7 @@
 import React from "react";
 import { View, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
 import {
   Star,
   DollarSign,
@@ -31,8 +32,8 @@ type Restaurant = {
   address: string;
   booking_policy: "instant" | "request";
   price_range: number;
-  average_rating?: number;
-  total_reviews?: number;
+  average_rating?: number | null;
+  total_reviews?: number | null;
   distance?: number | null;
   isAvailable?: boolean;
   tags?: string[] | null;
@@ -80,24 +81,50 @@ interface PlaylistScreenProps {
   onDirections?: never;
 }
 
-type RestaurantSearchCardProps = SearchScreenProps | PlaylistScreenProps;
+// Additional interface for search with restaurant prop and separate handlers
+interface SearchWithRestaurantProps {
+  restaurant: Restaurant;
+  isFavorite: boolean;
+  onPress?: () => void;
+  onToggleFavorite: () => Promise<void>;
+  onOpenDirections: () => Promise<void>;
+  variant?: never;
+  showActions?: never;
+  disabled?: never;
+  className?: never;
+  onDelete?: never;
+  isDeleting?: never;
+  showDeleteButton?: never;
+  item?: never;
+  bookingFilters?: never;
+  favorites?: never;
+  onDirections?: never;
+}
+
+type RestaurantSearchCardProps =
+  | SearchScreenProps
+  | PlaylistScreenProps
+  | SearchWithRestaurantProps;
 
 export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
   const router = useRouter();
 
   // Determine which props pattern we're using
   const isSearchScreen = "item" in props && props.item !== undefined;
+  const isSearchWithRestaurant =
+    "isFavorite" in props && "onToggleFavorite" in props;
+  const isActualSearchScreen = isSearchScreen || isSearchWithRestaurant;
 
   // Extract the restaurant data based on props pattern
   const restaurant = isSearchScreen ? props.item : props.restaurant;
-  const variant = isSearchScreen ? "default" : props.variant || "default";
-  const showActions = isSearchScreen ? true : props.showActions !== false;
-  const disabled = isSearchScreen ? false : props.disabled || false;
-  const className = isSearchScreen ? "" : props.className || "";
-  const showDeleteButton = isSearchScreen
+  const variant = isActualSearchScreen ? "default" : props.variant || "default";
+  const showActions = isActualSearchScreen ? true : props.showActions !== false;
+  const disabled = isActualSearchScreen ? false : props.disabled || false;
+  const className = isActualSearchScreen ? "" : props.className || "";
+  const showDeleteButton = isActualSearchScreen
     ? false
     : props.showDeleteButton || false;
-  const isDeleting = isSearchScreen ? false : props.isDeleting || false;
+  const isDeleting = isActualSearchScreen ? false : props.isDeleting || false;
 
   // Safety check
   if (!restaurant) {
@@ -114,10 +141,15 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
     }
   };
 
-  const handleFavoritePress = (e: any) => {
+  const handleFavoritePress = async (e: any) => {
     e.stopPropagation();
+    // Add haptic feedback for better UX
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
     if (isSearchScreen && props.onToggleFavorite) {
       props.onToggleFavorite(restaurant.id);
+    } else if (isSearchWithRestaurant && props.onToggleFavorite) {
+      props.onToggleFavorite();
     }
   };
 
@@ -125,6 +157,8 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
     e.stopPropagation();
     if (isSearchScreen && props.onDirections) {
       props.onDirections(restaurant);
+    } else if (isSearchWithRestaurant && props.onOpenDirections) {
+      props.onOpenDirections();
     }
   };
 
@@ -137,7 +171,9 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
 
   const isFavorite = isSearchScreen
     ? props.favorites?.has(restaurant.id)
-    : false;
+    : isSearchWithRestaurant
+      ? props.isFavorite
+      : false;
 
   return (
     <Pressable
@@ -158,22 +194,31 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
         />
 
         {/* Favorite button overlay - only show in search screen */}
-        {isSearchScreen && showActions && (
+        {isActualSearchScreen && showActions && (
           <Pressable
             onPress={handleFavoritePress}
-            className="absolute top-3 right-3 bg-white/80 rounded-full p-2"
+            className="absolute top-3 right-3 rounded-full p-2 active:scale-90 transition-transform"
+            style={{
+              backgroundColor: "rgba(0, 0, 0, 0.3)",
+              shadowColor: "#000",
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.15,
+              shadowRadius: 4,
+              elevation: 3,
+            }}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Heart
-              size={20}
-              color={isFavorite ? "#ef4444" : "#666"}
+              size={17}
+              color={isFavorite ? "#ef4444" : "#ffffff"}
               fill={isFavorite ? "#ef4444" : "transparent"}
+              strokeWidth={isFavorite ? 2 : 1.5}
             />
           </Pressable>
         )}
 
         {/* Delete button overlay - only show in playlist context */}
-        {!isSearchScreen && showDeleteButton && (
+        {!isActualSearchScreen && showDeleteButton && (
           <Pressable
             onPress={handleDeletePress}
             disabled={isDeleting}

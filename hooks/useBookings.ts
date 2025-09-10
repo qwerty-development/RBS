@@ -6,17 +6,68 @@ import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { useBookingsStore } from "@/stores";
-import { Database } from "@/types/supabase";
 
-type Booking = Database["public"]["Tables"]["bookings"]["Row"] & {
-  restaurant: Database["public"]["Tables"]["restaurants"]["Row"];
-};
+// Enhanced booking type that includes invitation info
+interface EnhancedBooking {
+  id: string;
+  user_id: string;
+  restaurant_id: string;
+  booking_time: string;
+  party_size: number;
+  status: string;
+  special_requests?: string;
+  occasion?: string;
+  dietary_notes?: string[];
+  confirmation_code?: string;
+  table_preferences?: string[];
+  reminder_sent?: boolean;
+  checked_in_at?: string;
+  loyalty_points_earned?: number;
+  created_at?: string;
+  updated_at?: string;
+  applied_offer_id?: string;
+  expected_loyalty_points?: number;
+  guest_name?: string;
+  guest_email?: string;
+  guest_phone?: string;
+  is_group_booking?: boolean;
+  organizer_id?: string;
+  attendees?: number;
+  turn_time_minutes: number;
+  applied_loyalty_rule_id?: string;
+  actual_end_time?: string;
+  seated_at?: string;
+  meal_progress?: any;
+  request_expires_at?: string;
+  auto_declined?: boolean;
+  acceptance_attempted_at?: string;
+  acceptance_failed_reason?: string;
+  suggested_alternative_time?: string;
+  suggested_alternative_tables?: string[];
+  source: string;
+  is_shared_booking?: boolean;
+  restaurant: {
+    id: string;
+    name: string;
+    main_image_url?: string;
+    address?: string;
+    [key: string]: any;
+  };
+  // Invitation-related fields for bookings where user was invited
+  invitation_id?: string;
+  invited_by?: {
+    id: string;
+    full_name: string;
+    avatar_url?: string;
+  };
+  is_invitee?: boolean;
+}
 
 type TabType = "upcoming" | "past";
 
 export function useBookings() {
   const router = useRouter();
-  const { profile, user, isGuest } = useAuth();
+  const { user, isGuest } = useAuth();
 
   // Use store instead of local state
   const {
@@ -147,8 +198,14 @@ export function useBookings() {
       setError(null);
       const now = new Date().toISOString();
 
-      // Use Promise.allSettled to handle errors gracefully and prevent crashes
-      const [upcomingResult, pastResult] = await Promise.allSettled([
+      // Fetch both owned bookings and accepted invitations
+      const [
+        upcomingResult,
+        pastResult,
+        invitedUpcomingResult,
+        invitedPastResult,
+      ] = await Promise.allSettled([
+        // Owned upcoming bookings
         supabase
           .from("bookings")
           .select(
@@ -162,6 +219,7 @@ export function useBookings() {
           .gte("booking_time", now)
           .order("booking_time", { ascending: true }),
 
+        // Owned past bookings
         supabase
           .from("bookings")
           .select(
@@ -176,47 +234,183 @@ export function useBookings() {
           )
           .order("booking_time", { ascending: false })
           .limit(50),
+
+        // Accepted invitations - upcoming bookings
+        supabase
+          .from("booking_invites")
+          .select(
+            `
+            id,
+            booking_id,
+            from_user_id,
+            from_user:profiles!booking_invites_from_user_id_fkey (
+              id,
+              full_name,
+              avatar_url
+            ),
+            booking:bookings!inner (
+              *,
+              restaurant:restaurants (*)
+            )
+          `,
+          )
+          .eq("to_user_id", userId)
+          .eq("status", "accepted")
+          .gte("booking.booking_time", now)
+          .in("booking.status", ["pending", "confirmed"])
+          .order("booking.booking_time", { ascending: true }),
+
+        // Accepted invitations - past bookings
+        supabase
+          .from("booking_invites")
+          .select(
+            `
+            id,
+            booking_id,
+            from_user_id,
+            from_user:profiles!booking_invites_from_user_id_fkey (
+              id,
+              full_name,
+              avatar_url
+            ),
+            booking:bookings!inner (
+              *,
+              restaurant:restaurants (*)
+            )
+          `,
+          )
+          .eq("to_user_id", userId)
+          .eq("status", "accepted")
+          .or(
+            `booking.booking_time.lt.${now},booking.status.in.(completed,cancelled_by_user,declined_by_restaurant,no_show)`,
+          )
+          .order("booking.booking_time", { ascending: false })
+          .limit(25),
       ]);
 
-      // Handle upcoming bookings result
-      let upcomingData = [];
-      if (upcomingResult.status === "fulfilled") {
-        if (upcomingResult.value.error) {
-          console.error(
-            "Error fetching upcoming bookings:",
-            upcomingResult.value.error,
-          );
-        } else {
-          upcomingData = upcomingResult.value.data || [];
-        }
+      // Process all results and combine data
+      let upcomingData: EnhancedBooking[] = [];
+      let pastData: EnhancedBooking[] = [];
+
+      // Handle owned upcoming bookings
+      if (
+        upcomingResult.status === "fulfilled" &&
+        !upcomingResult.value.error
+      ) {
+        const ownedUpcoming = upcomingResult.value.data || [];
+        upcomingData.push(
+          ...ownedUpcoming.map(
+            (booking: any): EnhancedBooking => ({
+              ...booking,
+              invitation_id: null,
+              invited_by: null,
+              is_invitee: false,
+            }),
+          ),
+        );
       } else {
         console.error(
-          "Upcoming bookings request failed:",
-          upcomingResult.reason,
+          "Error fetching owned upcoming bookings:",
+          upcomingResult.status === "fulfilled"
+            ? upcomingResult.value.error
+            : upcomingResult.reason,
         );
       }
 
-      // Handle past bookings result
-      let pastData = [];
-      if (pastResult.status === "fulfilled") {
-        if (pastResult.value.error) {
-          console.error(
-            "Error fetching past bookings:",
-            pastResult.value.error,
-          );
-        } else {
-          pastData = pastResult.value.data || [];
-        }
+      // Handle owned past bookings
+      if (pastResult.status === "fulfilled" && !pastResult.value.error) {
+        const ownedPast = pastResult.value.data || [];
+        pastData.push(
+          ...ownedPast.map(
+            (booking: any): EnhancedBooking => ({
+              ...booking,
+              invitation_id: null,
+              invited_by: null,
+              is_invitee: false,
+            }),
+          ),
+        );
       } else {
-        console.error("Past bookings request failed:", pastResult.reason);
+        console.error(
+          "Error fetching owned past bookings:",
+          pastResult.status === "fulfilled"
+            ? pastResult.value.error
+            : pastResult.reason,
+        );
       }
 
-      // Update store with fetched data (even if partially failed)
+      // Handle invited upcoming bookings
+      if (
+        invitedUpcomingResult.status === "fulfilled" &&
+        !invitedUpcomingResult.value.error
+      ) {
+        const invitedUpcoming = invitedUpcomingResult.value.data || [];
+        upcomingData.push(
+          ...invitedUpcoming.map(
+            (invite: any): EnhancedBooking => ({
+              ...invite.booking,
+              invitation_id: invite.id,
+              invited_by: Array.isArray(invite.from_user)
+                ? invite.from_user[0]
+                : invite.from_user,
+              is_invitee: true,
+            }),
+          ),
+        );
+      } else {
+        console.error(
+          "Error fetching invited upcoming bookings:",
+          invitedUpcomingResult.status === "fulfilled"
+            ? invitedUpcomingResult.value.error
+            : invitedUpcomingResult.reason,
+        );
+      }
+
+      // Handle invited past bookings
+      if (
+        invitedPastResult.status === "fulfilled" &&
+        !invitedPastResult.value.error
+      ) {
+        const invitedPast = invitedPastResult.value.data || [];
+        pastData.push(
+          ...invitedPast.map(
+            (invite: any): EnhancedBooking => ({
+              ...invite.booking,
+              invitation_id: invite.id,
+              invited_by: Array.isArray(invite.from_user)
+                ? invite.from_user[0]
+                : invite.from_user,
+              is_invitee: true,
+            }),
+          ),
+        );
+      } else {
+        console.error(
+          "Error fetching invited past bookings:",
+          invitedPastResult.status === "fulfilled"
+            ? invitedPastResult.value.error
+            : invitedPastResult.reason,
+        );
+      }
+
+      // Sort combined data
+      upcomingData.sort(
+        (a, b) =>
+          new Date(a.booking_time).getTime() -
+          new Date(b.booking_time).getTime(),
+      );
+      pastData.sort(
+        (a, b) =>
+          new Date(b.booking_time).getTime() -
+          new Date(a.booking_time).getTime(),
+      );
+
+      // Update store with combined data
       setUpcomingBookings(upcomingData);
       setPastBookings(pastData);
 
       console.log(
-        `Fetched ${upcomingData.length} upcoming and ${pastData.length} past bookings`,
+        `Fetched ${upcomingData.length} upcoming and ${pastData.length} past bookings (including invitations)`,
       );
 
       // Only throw error if both requests failed
@@ -246,6 +440,7 @@ export function useBookings() {
     setUpcomingBookings,
     setPastBookings,
     setBookingsLoading,
+    refreshing,
   ]);
 
   // Navigation Functions with error handling
@@ -340,8 +535,83 @@ export function useBookings() {
     [updateBooking, user?.id],
   );
 
+  const leaveBooking = useCallback(
+    async (booking: EnhancedBooking) => {
+      if (!user?.id) {
+        Alert.alert("Error", "Please log in to leave bookings");
+        return;
+      }
+
+      if (!booking.is_invitee || !booking.invitation_id) {
+        Alert.alert("Error", "You can only leave bookings you were invited to");
+        return;
+      }
+
+      Alert.alert(
+        "Leave Booking",
+        `Are you sure you want to leave this booking at ${booking.restaurant?.name}?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Yes, Leave",
+            style: "destructive",
+            onPress: async () => {
+              setProcessingBookingId(booking.id);
+
+              try {
+                // Update invitation status to declined
+                const { error: inviteError } = await supabase
+                  .from("booking_invites")
+                  .update({
+                    status: "declined",
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq("id", booking.invitation_id)
+                  .eq("to_user_id", user.id);
+
+                if (inviteError) throw inviteError;
+
+                // Decrease party size by 1
+                const { error: bookingError } = await supabase
+                  .from("bookings")
+                  .update({
+                    party_size: booking.party_size - 1,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq("id", booking.id);
+
+                if (bookingError) throw bookingError;
+
+                await Haptics.notificationAsync(
+                  Haptics.NotificationFeedbackType.Success,
+                );
+
+                Alert.alert(
+                  "Success",
+                  "You have left the booking successfully",
+                );
+
+                // Refresh bookings to reflect changes
+                await fetchBookings();
+              } catch (err) {
+                console.error("Error leaving booking:", err);
+                Alert.alert(
+                  "Error",
+                  "Failed to leave booking. Please try again.",
+                );
+              } finally {
+                setProcessingBookingId(null);
+              }
+            },
+          },
+        ],
+      );
+    },
+    [user?.id, fetchBookings],
+  );
+
   const rebookRestaurant = useCallback(
-    (booking: Booking) => {
+    (booking: EnhancedBooking) => {
       if (!booking?.restaurant) {
         console.error("Invalid booking data for rebooking");
         return;
@@ -365,7 +635,7 @@ export function useBookings() {
   );
 
   const reviewBooking = useCallback(
-    (booking: Booking) => {
+    (booking: EnhancedBooking) => {
       if (!booking?.restaurant) {
         console.error("Invalid booking data for review");
         return;
@@ -436,6 +706,7 @@ export function useBookings() {
     navigateToRestaurant,
     navigateToSearch,
     cancelBooking,
+    leaveBooking,
     rebookRestaurant,
     reviewBooking,
   };

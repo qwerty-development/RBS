@@ -5,6 +5,10 @@ import { useRouter } from "expo-router";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
+import {
+  getBlockedUserIds,
+  addBlockedUsersFilter,
+} from "@/utils/blockingUtils";
 
 // Type definitions
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
@@ -144,7 +148,17 @@ export const useRestaurantReviews = (restaurantId: string) => {
           await reviewsQuery.limit(50);
 
         if (reviewsError) throw reviewsError;
-        setReviews(reviewsData || []);
+
+        // Filter out blocked users on client side
+        let filteredReviews = reviewsData || [];
+        if (profile?.id) {
+          const blockedUserIds = await getBlockedUserIds(profile.id);
+          filteredReviews = filteredReviews.filter(
+            (review) => !blockedUserIds.includes(review.user_id),
+          );
+        }
+
+        setReviews(filteredReviews);
       } catch (error) {
         console.error("Error fetching data:", error);
         Alert.alert("Error", "Failed to load reviews");
@@ -166,14 +180,39 @@ export const useRestaurantReviews = (restaurantId: string) => {
     }
   }, []);
 
-  const handleReportReview = useCallback((reviewId: string) => {
-    Alert.alert("Report Review", "Why are you reporting this review?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Inappropriate content", onPress: () => {} },
-      { text: "Spam", onPress: () => {} },
-      { text: "Fake review", onPress: () => {} },
-    ]);
-  }, []);
+  const handleDeleteReview = useCallback(
+    async (reviewId: string) => {
+      if (!profile?.id) {
+        Alert.alert("Sign In Required", "Please sign in to delete a review");
+        return;
+      }
+
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+
+        const { error } = await supabase
+          .from("reviews")
+          .delete()
+          .eq("id", reviewId)
+          .eq("user_id", profile.id);
+
+        if (error) {
+          console.error("Error deleting review:", error);
+          Alert.alert(
+            "Unable to delete",
+            "We couldn't delete your review right now. Please try again.",
+          );
+          return;
+        }
+
+        setReviews((prev) => prev.filter((r) => r.id !== reviewId));
+      } catch (err) {
+        console.error("Error in handleDeleteReview:", err);
+        Alert.alert("Error", "Something went wrong. Please try again.");
+      }
+    },
+    [profile?.id],
+  );
 
   const handleWriteReview = useCallback(async () => {
     if (!profile?.id) {
@@ -361,8 +400,8 @@ export const useRestaurantReviews = (restaurantId: string) => {
 
     // Handlers
     handleLikeReview,
-    handleReportReview,
     handleWriteReview,
+    handleDeleteReview,
     handleSortChange,
     handleRatingChange,
     handleFilterToggle,

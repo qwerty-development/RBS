@@ -999,6 +999,45 @@ export type Database = {
           },
         ];
       };
+      blocked_users: {
+        Row: {
+          blocked_at: string | null;
+          blocked_id: string;
+          blocker_id: string;
+          id: string;
+          reason: string | null;
+        };
+        Insert: {
+          blocked_at?: string | null;
+          blocked_id: string;
+          blocker_id: string;
+          id?: string;
+          reason?: string | null;
+        };
+        Update: {
+          blocked_at?: string | null;
+          blocked_id?: string;
+          blocker_id?: string;
+          id?: string;
+          reason?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "blocked_users_blocker_id_fkey";
+            columns: ["blocker_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "blocked_users_blocked_id_fkey";
+            columns: ["blocked_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       kitchen_assignments: {
         Row: {
           assigned_at: string | null;

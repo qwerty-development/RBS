@@ -14,3 +14,4 @@ export { BookingMapSection } from "./BookingMapSection";
 export { BookingContactSection } from "./BookingContactSection";
 export { BookingSpecialRequests } from "./BookingSpecialRequests";
 export { AppliedOfferCard } from "./AppliedOfferCard";
+export { BookingInvitationsSection } from "./BookingInvitationsSection";

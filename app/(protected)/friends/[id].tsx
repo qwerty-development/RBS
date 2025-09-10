@@ -23,6 +23,7 @@ import {
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
+import { BlockButton } from "@/components/ui/block-button";
 import { Text } from "@/components/ui/text";
 import { H2, H3, P, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
@@ -411,6 +412,16 @@ export default function FriendProfileScreen() {
                 No dining preferences shared
               </Muted>
             )}
+        </View>
+
+        {/* Action Buttons */}
+        <View className="p-4 gap-3">
+          <BlockButton
+            userId={friendProfile.id}
+            userName={friendProfile.full_name}
+            variant="destructive"
+            size="sm"
+          />
         </View>
       </ScrollView>
     </SafeAreaView>

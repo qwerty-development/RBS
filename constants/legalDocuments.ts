@@ -297,38 +297,47 @@ We are committed to addressing your privacy concerns promptly and transparently.
 export const TERMS_OF_SERVICE: LegalDocument = {
   id: "terms_of_service",
   title: "Terms and Conditions",
-  lastUpdated: "2025-01-01",
-  effectiveDate: "2025-01-01",
-  version: "1.0",
+  lastUpdated: "2025-09-01",
+  effectiveDate: "2025-09-01",
+  version: "2.0",
   sections: [
     {
       id: "acceptance_of_terms",
-      title: "Acceptance of Terms",
-      content: `Welcome to Plate ("we," "us," "our," or the "App"), a restaurant reservation platform operated by Qwerty App. By downloading, installing, accessing, or using Plate, you ("you," "your," or "User") agree to be bound by these Terms and Conditions ("Terms"). If you do not agree to these Terms, please do not use our App.`,
-    },
-    {
-      id: "eligibility",
-      title: "Eligibility",
-      content: `• You must be at least 18 years old to use Plate
+      title: "1. ACCEPTANCE OF TERMS",
+      content: `Welcome to Plate ("we," "us," "our," or the "App"), a restaurant reservation platform operated by Qwerty SAL. By downloading, installing, accessing, or using Plate, you ("you," "your," or "User") agree to be bound by these Terms and Conditions ("Terms"). If you do not agree to these Terms, please do not use our App.`,
+      subsections: [
+        {
+          id: "eligibility",
+          title: "1.1 Eligibility",
+          content: `• You must be at least 18 years old to use Plate
 • You must have the legal capacity to enter into binding contracts
 • You must provide accurate, current, and complete information during registration
 • You are responsible for maintaining the confidentiality of your account credentials`,
-    },
-    {
-      id: "account_types",
-      title: "Account Types",
-      content: `Plate offers the following account types:
-
-• Registered Users: Full access to all features with authenticated account
+        },
+        {
+          id: "account_types",
+          title: "1.2 Account Types",
+          content: `Plate offers the following account types:
+• Registered Users: Full access to all features with an authenticated account
 • Guest Users: Limited access to browse restaurants without booking capabilities
 • OAuth Users: Authenticated via Google or Apple Sign-In`,
+        },
+        {
+          id: "license_to_use",
+          title: "1.3 License to Use",
+          content: `• Limited License. Subject to these Terms, we grant you a personal, non-exclusive, non-transferable, revocable license to use the App for personal, non-commercial purposes.`,
+        },
+      ],
     },
     {
       id: "services_provided",
-      title: "Services Provided",
-      content: `Plate provides the following services:
-
-Core Services:
+      title: "2. SERVICES PROVIDED",
+      content: "Plate provides comprehensive restaurant reservation services:",
+      subsections: [
+        {
+          id: "core_services",
+          title: "2.1 Core Services",
+          content: `Plate provides the following services:
 • Restaurant discovery and search
 • Real-time table reservation booking
 • Restaurant information, menus, and reviews
@@ -337,314 +346,435 @@ Core Services:
 • Loyalty program with points and tier benefits
 • Special offers and promotional deals
 • Group booking coordination
-• Waitlist management
-
-Service Availability:
-• Services are provided "as is" and "as available"
-• We do not guarantee uninterrupted or error-free service`,
-    },
-    {
-      id: "user_accounts",
-      title: "User Accounts and Registration",
-      content:
-        "To use certain features of our Service, you must create an account:",
-      subsections: [
-        {
-          id: "account_creation",
-          title: "Account Creation",
-          content: `• You must provide accurate, current, and complete information
-• You must be at least 13 years old to create an account
-• You are responsible for maintaining the confidentiality of your account credentials
-• You must notify us immediately of any unauthorized access to your account
-• One person may not maintain more than one account`,
+• Waitlist management`,
         },
         {
-          id: "account_security",
-          title: "Account Security",
-          content: `• Use a strong, unique password for your account
-• Do not share your login credentials with others
-• Log out of your account when using shared devices
-• Enable two-factor authentication when available
-• Report suspicious activity immediately`,
-        },
-        {
-          id: "account_termination",
-          title: "Account Termination",
-          content: `• You may close your account at any time through the app settings
-• We may suspend or terminate your account for violations of these Terms
-• Upon termination, your right to use the Service ceases immediately
-• We may retain certain information as required by law or legitimate business interests`,
+          id: "service_availability",
+          title: "2.2 Service Availability",
+          content: `• Services are provided "as is" and "as available"
+• We do not guarantee uninterrupted or error-free service
+• We reserve the right to modify, suspend, or discontinue services at any time
+• Scheduled maintenance may temporarily affect service availability`,
         },
       ],
     },
     {
-      id: "reservations_and_bookings",
-      title: "Reservations and Bookings",
-      content: "Our reservation system is subject to the following terms:",
+      id: "user_responsibilities",
+      title: "3. USER RESPONSIBILITIES",
+      content: "Users have specific obligations when using our platform:",
       subsections: [
         {
-          id: "booking_process",
-          title: "Booking Process",
-          content: `• Reservations are subject to restaurant availability and confirmation
-• We do not guarantee that reservation requests will be accepted
-• Restaurants may have their own policies regarding reservations
-• Special requests are forwarded to restaurants but not guaranteed
-• Confirmation details are sent via email and in-app notifications`,
+          id: "account_management",
+          title: "3.1 Account Management",
+          content: `You agree to:
+• Provide accurate and complete registration information
+• Update your information to keep it current
+• Maintain the security of your account credentials
+• Notify us immediately of any unauthorized account access
+• Accept responsibility for all activities under your account`,
         },
         {
-          id: "booking_modifications",
-          title: "Modifications and Cancellations",
-          content: `• You may modify or cancel reservations according to restaurant policies
-• Some restaurants may charge fees for late cancellations or no-shows
-• We are not responsible for cancellation fees imposed by restaurants
-• Changes must be made through the app or by contacting the restaurant directly
-• We reserve the right to cancel bookings in case of technical issues or force majeure`,
+          id: "reservation_obligations",
+          title: "3.2 Reservation Obligations",
+          content: `When making reservations, you agree to:
+• Provide accurate party size and contact information
+• Honor confirmed reservations or cancel within the specified timeframe
+• Arrive on time for your reservation
+• Comply with restaurant-specific policies and dress codes
+• Pay any required deposits or cancellation fees`,
         },
         {
-          id: "no_show_policy",
-          title: "No-Show Policy",
-          content: `• Failure to arrive for confirmed reservations may result in:
-  - Restaurant-imposed fees or penalties
-  - Negative impact on your booking history
-  - Potential restrictions on future bookings
-• Multiple no-shows may result in account limitations
-• Contact the restaurant directly if you're running late`,
-        },
-      ],
-    },
-    {
-      id: "payments_and_fees",
-      title: "Payments and Fees",
-      content: "Payment terms for using our Service:",
-      subsections: [
-        {
-          id: "service_fees",
-          title: "Service Fees",
-          content: `• Basic reservation services are currently free for users
-• Premium features may require subscription fees
-• Some restaurants may charge booking deposits or prepayment
-• We may introduce service fees with 30 days' notice
-• All fees are clearly disclosed before payment`,
-        },
-        {
-          id: "payment_processing",
-          title: "Payment Processing",
-          content: `• Payments are processed through secure, third-party providers
-• We do not store your complete payment information
-• You authorize us to charge your selected payment method
-• Payment disputes should be reported immediately
-• Refunds are subject to restaurant and our refund policies`,
-        },
-        {
-          id: "refund_policy",
-          title: "Refund Policy",
-          content: `• Refunds for restaurant deposits are subject to individual restaurant policies
-• Service fee refunds are considered on a case-by-case basis
-• Refund requests must be submitted within 30 days
-• Processing time for approved refunds is 5-10 business days
-• Chargebacks may result in account suspension`,
-        },
-      ],
-    },
-    {
-      id: "user_conduct",
-      title: "User Conduct and Prohibited Activities",
-      content: "You agree to use our Service responsibly and lawfully:",
-      subsections: [
-        {
-          id: "acceptable_use",
-          title: "Acceptable Use",
-          content: `• Use the Service only for its intended purposes
-• Provide accurate information in your profile and bookings
-• Respect restaurant staff and other users
-• Follow restaurant policies and local laws
-• Maintain civility in reviews and communications`,
-        },
-        {
-          id: "prohibited_activities",
-          title: "Prohibited Activities",
-          content: `You may not:
+          id: "prohibited_conduct",
+          title: "3.3 Prohibited Conduct",
+          content: `You shall not:
 • Make false or fraudulent reservations
-• Use the Service for commercial purposes without authorization
-• Attempt to circumvent security measures
-• Create fake accounts or impersonate others
-• Post inappropriate, defamatory, or illegal content
-• Attempt to hack, damage, or disrupt the Service
-• Use automated systems to access the Service (bots, scrapers)
-• Violate any applicable laws or regulations`,
-        },
-        {
-          id: "consequences",
-          title: "Consequences of Violations",
-          content: `Violations may result in:
-• Warning notifications
-• Temporary account suspension
-• Permanent account termination
-• Legal action for severe violations
-• Reporting to relevant authorities
-• Forfeiture of unused credits or rewards`,
+• Create multiple accounts to circumvent restrictions
+• Resell or commercially exploit reservations
+• Use automated systems or bots to make bookings
+• Harass, abuse, or harm other users or restaurant staff
+• Post false, misleading, or defamatory reviews
+• Violate any applicable laws or regulations
+• Attempt to gain unauthorized access to our systems
+• Reverse engineer or decompile the App`,
         },
       ],
     },
     {
-      id: "content_and_reviews",
-      title: "User Content and Reviews",
-      content: "Guidelines for content you submit to our platform:",
+      id: "booking_policies",
+      title: "4. BOOKING POLICIES",
+      content:
+        "Our reservation system operates under comprehensive booking policies:",
       subsections: [
         {
-          id: "content_ownership",
-          title: "Content Ownership and License",
-          content: `• You retain ownership of content you submit
-• You grant us a worldwide, royalty-free license to use your content
-• This license includes the right to display, modify, and distribute your content
-• You represent that you have the right to grant this license
-• You may request removal of your content at any time`,
+          id: "reservation_confirmation",
+          title: "4.1 Reservation Confirmation",
+          content: `• Bookings are subject to restaurant availability
+• Confirmation is sent via app notification and/or email
+• Each booking receives a unique confirmation code
+• Some restaurants may require credit card details to secure bookings`,
+        },
+        {
+          id: "cancellation_policy",
+          title: "4.2 Cancellation Policy",
+          content: `• Restaurant-Defined Policy. Each Restaurant sets its own cancellation and no-show terms (notice period, grace period, and any fees). The applicable policy is shown during booking, on the Restaurant page, and in your confirmation.
+• Notice Period. Users must cancel no later than the Restaurant's stated notice period before the scheduled booking time (Restaurant's local time). Cancellations made after that are Late Cancellations.
+• Card Guarantee & Charges. If a card guarantee is required, you authorize a pre-authorization and, where applicable, the Late Cancellation/No-Show fee set by the Restaurant (per cover, fixed amount, or percentage), plus applicable taxes/processing. Plate collects such amounts as an agent for the Restaurant.
+• Modifications. Changes to date, time, or party size inside the notice period may be treated as a cancellation under the Restaurant's policy.
+• No-Show. A No-Show occurs when you fail to arrive or check in within the Restaurant's grace period. Repeated no-shows may limit booking privileges and/or loyalty eligibility.
+• How to Cancel. Use "Cancel Reservation" in the app. The effective cancellation time is the timestamp recorded by our system in the Restaurant's local time zone.
+• Special Events. Set menus, ticketed events, or holidays may have stricter policies or deposits; those terms will be displayed and will prevail in case of conflict.`,
+        },
+        {
+          id: "modifications",
+          title: "4.3 Modifications",
+          content: `• Reservation modifications are subject to availability
+• Changes must be made within the cancellation window
+• Party size changes may affect table availability`,
+        },
+        {
+          id: "group_bookings",
+          title: "4.4 Group Bookings",
+          content: `• Large group bookings may have special requirements
+• Organizers are responsible for coordinating attendees
+• Deposits may be required for large parties`,
+        },
+      ],
+    },
+    {
+      id: "loyalty_program",
+      title: "5. LOYALTY PROGRAM",
+      content: "Our comprehensive loyalty program rewards frequent users:",
+      subsections: [
+        {
+          id: "points_system",
+          title: "5.1 Points System",
+          content: `• Users earn loyalty points for completed bookings
+• Points calculation based on booking value and frequency
+• Points may expire after 12 months of inactivity
+• Points have no cash value and cannot be transferred
+• We may deduct points credited in error, earned by fraud/abuse, or tied to refunded/invalidated bookings.`,
+        },
+        {
+          id: "membership_tiers",
+          title: "5.2 Membership Tiers",
+          content: `Our loyalty program includes four tiers:
+• Bronze: Entry level (0-499 points)
+• Silver: Enhanced benefits (500-1,499 points)
+• Gold: Premium perks (1,500-2,999 points)
+• Platinum: Exclusive privileges (3,000+ points)`,
+        },
+        {
+          id: "tier_benefits",
+          title: "5.3 Tier Benefits",
+          content: `Benefits may include, but are not limited to:
+• Priority reservations
+• Exclusive restaurant access
+• Special discounts and offers
+• Complimentary upgrades
+• Birthday rewards
+• Cash Rewards`,
+        },
+      ],
+    },
+    {
+      id: "reviews_and_content",
+      title: "6. REVIEWS AND CONTENT",
+      content:
+        "Comprehensive guidelines for user-generated content and reviews:",
+      subsections: [
+        {
+          id: "user_generated_content",
+          title: "6.1 User-Generated Content",
+          content: `By posting reviews, photos, or other content, you:
+• Grant us a non-exclusive, worldwide, royalty-free license to use your content
+• Represent that you own or have rights to the content
+• Agree that content must be accurate and not misleading
+• Acknowledge that we may moderate or remove content at our discretion`,
         },
         {
           id: "review_guidelines",
-          title: "Review Guidelines",
-          content: `Reviews must be:
-• Based on genuine dining experiences
-• Honest and factual
-• Respectful and constructive
-• Free from personal attacks or discriminatory language
-• Related to the restaurant and dining experience
-• Not incentivized by restaurants or third parties`,
+          title: "6.2 Review Guidelines",
+          content: `Reviews must:
+• Be based on actual dining experiences
+• Be honest and constructive
+• Not contain offensive or inappropriate language
+• Do not include personal information of others
+• Comply with our community standards`,
         },
         {
-          id: "content_moderation",
-          title: "Content Moderation",
-          content: `• We reserve the right to review and remove content
-• Automated systems may flag inappropriate content
-• Appeals can be submitted for removed content
-• Repeated violations may result in account restrictions
-• We do not guarantee the accuracy of user-generated content`,
+          id: "objectionable_content_policy",
+          title: "6.3 Objectionable Content and Abuse Policy",
+          content: `• Plate has zero tolerance for objectionable content or abusive conduct.
+• Objectionable content includes, but is not limited to:
+  • Hate speech, threats, harassment, or bullying
+  • Sexually explicit, obscene, or violent material
+  • Content promoting illegal activity, self-harm, or dangerous behavior
+  • Spam, scams, or deceptive content
+• Users who post, share, or otherwise engage in objectionable content or abusive behavior may have their accounts suspended or terminated without notice.
+• We reserve the right to remove any user-generated content that we determine, in our sole discretion, to be objectionable or in violation of these Terms.
+• By using Plate, you agree to comply with this policy and acknowledge that violations may result in loss of access to the App and referral to appropriate authorities where required by law.`,
+        },
+        {
+          id: "moderation_reporting",
+          title: "6.4 Moderation, Reporting, and Blocking",
+          content: `• Plate implements automated filters and manual review to reduce objectionable content.
+• Users can flag or report any content they believe is abusive, offensive, fraudulent, or otherwise in violation of these Terms, using the in-app reporting feature.
+• Users may also block or mute other users to prevent further unwanted interaction.
+• All reports are reviewed, and appropriate action will be taken within 24 hours, including removal of content and suspension or termination of accounts.
+• We reserve the right to cooperate with law enforcement or regulatory authorities where required.`,
+        },
+      ],
+    },
+    {
+      id: "payment_terms",
+      title: "7. PAYMENT TERMS",
+      content: "Comprehensive payment policies and procedures:",
+      subsections: [
+        {
+          id: "payment_processing",
+          title: "7.1 Payment Processing",
+          content: `• We do not directly process restaurant payments
+• Deposits or prepayments may be required by restaurants
+• Payment information is encrypted and securely stored
+• You authorize charges for confirmed bookings requiring payment`,
+        },
+        {
+          id: "refunds",
+          title: "7.2 Refunds",
+          content: `• Refund policies vary by restaurant
+• Cancellation fees may be non-refundable
+• Disputes should first be resolved with the restaurant
+• We are not liable for refunds`,
+        },
+      ],
+    },
+    {
+      id: "privacy_data_protection",
+      title: "8. PRIVACY AND DATA PROTECTION",
+      content: "Our commitment to protecting your privacy and personal data:",
+      subsections: [
+        {
+          id: "data_collection",
+          title: "8.1 Data Collection",
+          content: `We collect and process personal data as outlined in our Privacy Policy, including:
+• Account information (name, email, phone)
+• Location data for restaurant recommendations
+• Booking history and preferences
+• Device and usage information`,
+        },
+        {
+          id: "data_security",
+          title: "8.2 Data Security",
+          content: `• We implement industry-standard security measures
+• Data is encrypted in transit and at rest
+• Regular security audits are conducted
+• Users are responsible for account security`,
+        },
+      ],
+    },
+    {
+      id: "third_party_services",
+      title: "9. THIRD-PARTY SERVICES",
+      content: "Integration with external services and partnerships:",
+      subsections: [
+        {
+          id: "restaurant_partners",
+          title: "9.1 Restaurant Partners",
+          content: `• Restaurants are independent businesses
+• We are not responsible for restaurant services or food quality
+• Disputes should be resolved directly with restaurants
+• Restaurant terms and conditions may apply`,
+        },
+        {
+          id: "external_services",
+          title: "9.2 External Services",
+          content: `Our App integrates with:
+• Google Maps for location services
+• Apple/Google for authentication
+• Payment processors for transactions
+• Analytics services for app improvement`,
+        },
+        {
+          id: "restaurant_widgets",
+          title: "9.3 Restaurant Websites & Widgets",
+          content: `Some bookings are made via Plate's widget on third-party sites (Restaurant websites, Instagram, etc.). Those sites are not controlled by Plate. The Restaurant's policy still applies; Plate is not responsible for content or downtime on third-party sites.`,
         },
       ],
     },
     {
       id: "intellectual_property",
-      title: "Intellectual Property",
-      content: `The Service and its original content, features, and functionality are owned by Table Reserve Lebanon S.A.L. and are protected by international copyright, trademark, patent, trade secret, and other intellectual property laws.
-
-You may not:
+      title: "10. INTELLECTUAL PROPERTY",
+      content: "Protection of intellectual property rights:",
+      subsections: [
+        {
+          id: "ownership",
+          title: "10.1 Ownership",
+          content: `• The App and its original content are owned by Qwerty SAL
+• Trademarks, logos, and branding are our property
+• Restaurant information establishments own restaurant information
+• User content remains owned by users with license granted to us`,
+        },
+        {
+          id: "restrictions",
+          title: "10.2 Restrictions",
+          content: `You may not:
 • Copy, modify, or distribute our proprietary content
-• Use our trademarks or logos without permission
-• Reverse engineer or decompile the app
-• Create derivative works based on our Service
-• Remove or alter copyright notices
-
-Restaurant information, menus, and photos are provided by restaurant partners and may be subject to their own intellectual property rights.`,
+• Use our trademarks without permission
+• Create derivative works based on the App
+• Remove copyright or proprietary notices`,
+        },
+        {
+          id: "ip_complaints",
+          title: "10.3 IP Complaints",
+          content: `To report alleged infringement, email support@notqwerty.com with: your contact details, a description of the work, the allegedly infringing URL, and a statement under penalty of perjury that you are authorized to act.`,
+        },
+      ],
     },
     {
-      id: "disclaimers",
-      title: "Disclaimers and Limitations",
-      content: `IMPORTANT DISCLAIMERS:
-
-• The Service is provided "as is" without warranties of any kind
-• We do not guarantee the accuracy of restaurant information
-• We are not responsible for dining experiences or food quality
-• Restaurant availability and information may change without notice
-• We do not warrant that the Service will be uninterrupted or error-free
-• Your use of the Service is at your own risk
-
-LIMITATION OF LIABILITY:
-To the fullest extent permitted by law, Table Reserve Lebanon S.A.L. shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or goodwill.`,
-    },
-    {
-      id: "indemnification",
-      title: "Indemnification",
-      content: `You agree to indemnify, defend, and hold harmless Table Reserve Lebanon S.A.L., its officers, directors, employees, agents, and affiliates from and against any claims, damages, obligations, losses, liabilities, costs, and expenses arising from:
-
-• Your use of the Service
-• Your violation of these Terms
-• Your violation of any third-party rights
-• Your conduct in connection with the Service
-• Any content you submit to the platform
-
-This indemnification obligation will survive termination of these Terms and your use of the Service.`,
+      id: "disclaimers_limitations",
+      title: "11. DISCLAIMERS AND LIMITATIONS",
+      content: "Important legal disclaimers and limitations of liability:",
+      subsections: [
+        {
+          id: "service_disclaimer",
+          title: "11.1 Service Disclaimer",
+          content: `THE APP IS PROVIDED "AS IS" WITHOUT WARRANTIES OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.`,
+        },
+        {
+          id: "limitation_of_liability",
+          title: "11.2 Limitation of Liability",
+          content: `TO THE MAXIMUM EXTENT PERMITTED BY LAW:
+• We are not liable for indirect, incidental, or consequential damages
+• Our total liability shall not exceed $100 or fees paid in the last 12 months
+• We are not responsible for restaurant service quality or issues
+• We do not guarantee reservation availability`,
+        },
+        {
+          id: "indemnification",
+          title: "11.3 Indemnification",
+          content: `You agree to indemnify and hold harmless Qwerty SAL, its affiliates, and their respective officers, directors, employees, and agents from any claims, damages, losses, or expenses arising from your use of the App or violation of these Terms.`,
+        },
+        {
+          id: "force_majeure",
+          title: "11.4 Force Majeure",
+          content: `Neither party is liable for delays or failures caused by events beyond reasonable control (e.g., network outages, strikes, regulatory actions, extreme weather, or acts of God).`,
+        },
+      ],
     },
     {
       id: "dispute_resolution",
-      title: "Dispute Resolution",
-      content: `MANDATORY ARBITRATION:
-Any disputes arising out of or relating to these Terms or the Service shall be resolved through binding arbitration in accordance with Lebanese law, rather than in court.
-
-GOVERNING LAW:
-These Terms shall be governed by and construed in accordance with the laws of the Republic of Lebanon, without regard to conflict of law principles.
-
-JURISDICTION:
-Any legal action or proceeding shall be brought exclusively in the courts of Beirut, Lebanon.
-
-CLASS ACTION WAIVER:
-You agree that any arbitration or legal proceeding shall be limited to the dispute between you and us individually. You waive any right to participate in class action lawsuits or class-wide arbitration.`,
+      title: "12. DISPUTE RESOLUTION",
+      content: "Legal framework for resolving disputes:",
+      subsections: [
+        {
+          id: "governing_law",
+          title: "12.1 Governing Law",
+          content: `These Terms are governed by the laws of Lebanon, without regard to conflict of law principles.`,
+        },
+        {
+          id: "class_action_waiver",
+          title: "12.2 Class Action Waiver",
+          content: `You waive any right to participate in class action lawsuits against us.`,
+        },
+      ],
     },
     {
-      id: "changes_to_terms",
-      title: "Changes to Terms",
-      content: `We may modify these Terms at any time by posting the updated Terms in the app. Changes are effective immediately upon posting unless otherwise specified.
-
-Material changes will be communicated through:
-• In-app notifications
-• Email notifications to registered users
-• Prominent notices on the login screen
-
-Your continued use of the Service after changes are posted constitutes your acceptance of the updated Terms. If you do not agree to the changes, you must stop using the Service.`,
+      id: "modifications",
+      title: "13. MODIFICATIONS",
+      content: "How we handle changes to these terms:",
+      subsections: [
+        {
+          id: "changes_to_terms",
+          title: "13.1 Changes to Terms",
+          content: `• We may modify these Terms at any time
+• Material changes will be notified via the App or email
+• Continued use after changes constitutes acceptance
+• Previous versions will be archived`,
+        },
+        {
+          id: "feature_updates",
+          title: "13.2 Feature Updates",
+          content: `• App features may be added, modified, or removed
+• We strive to improve services continuously
+• Major changes will be communicated to users`,
+        },
+      ],
     },
     {
       id: "termination",
-      title: "Termination",
-      content: `Either party may terminate this agreement at any time:
-
-USER TERMINATION:
-• You may delete your account at any time through app settings
-• Account deletion is permanent and cannot be undone
-• You remain liable for any outstanding obligations
-
-COMPANY TERMINATION:
-• We may suspend or terminate your account for violations of these Terms
-• We may terminate the Service entirely with reasonable notice
-• We may terminate your account immediately for serious violations
-
-EFFECT OF TERMINATION:
-• Your right to use the Service ceases immediately
-• Outstanding reservations may be honored at restaurant discretion
-• Certain provisions of these Terms survive termination`,
+      title: "14. TERMINATION",
+      content: "Account termination policies and procedures:",
+      subsections: [
+        {
+          id: "user_termination",
+          title: "14.1 User Termination",
+          content: `• You may terminate your account at any time
+• Deletion requests will be processed within 30 days
+• Some information may be retained for legal compliance`,
+        },
+        {
+          id: "our_termination_rights",
+          title: "14.2 Our Termination Rights",
+          content: `We may suspend or terminate accounts for:
+• Violation of these Terms
+• Fraudulent or illegal activity
+• Extended inactivity
+• Repeated policy violations`,
+        },
+      ],
     },
     {
-      id: "general_provisions",
-      title: "General Provisions",
-      content: `ENTIRE AGREEMENT:
-These Terms constitute the entire agreement between you and Table Reserve Lebanon S.A.L. regarding the Service.
-
-SEVERABILITY:
-If any provision of these Terms is held to be invalid or unenforceable, the remaining provisions will remain in full force and effect.
-
-WAIVER:
-Our failure to enforce any right or provision of these Terms will not be deemed a waiver of such right or provision.
-
-ASSIGNMENT:
-You may not assign your rights under these Terms. We may assign our rights and obligations without restriction.
-
-FORCE MAJEURE:
-We are not liable for any failure to perform due to causes beyond our reasonable control, including natural disasters, war, terrorism, strikes, or government actions.`,
+      id: "accessibility",
+      title: "15. ACCESSIBILITY",
+      content: `We are committed to making Plate accessible to all users, including those with disabilities. The App includes:
+• Screen reader compatibility
+• Adjustable text sizes
+• High contrast modes`,
     },
     {
       id: "contact_information",
-      title: "Contact Information",
-      content: `For questions about these Terms of Service, please contact us:
-
-Qwerty App
-Legal Department
-Address: Beirut, Lebanon
-Email: legal@plate-app.com
-Phone: +961 1 234 567
-
-For urgent legal matters:
-Email: urgent@plate-app.com
-
-Last Updated: January 1, 2025
-Effective Date: January 1, 2025`,
+      title: "16. CONTACT INFORMATION",
+      content: `For questions about these Terms, please contact us:
+Qwerty SAL
+Email: Support@notqwerty.com`,
+    },
+    {
+      id: "miscellaneous",
+      title: "17. MISCELLANEOUS",
+      content: "Additional legal provisions:",
+      subsections: [
+        {
+          id: "entire_agreement",
+          title: "17.1 Entire Agreement",
+          content: `These Terms constitute the entire agreement between you and Qwerty SAL regarding Plate.`,
+        },
+        {
+          id: "severability",
+          title: "17.2 Severability",
+          content: `If any provision is found unenforceable, the remaining provisions shall continue in effect.`,
+        },
+        {
+          id: "no_waiver",
+          title: "17.3 No Waiver",
+          content: `Our failure to enforce any right or provision shall not constitute a waiver.`,
+        },
+        {
+          id: "assignment",
+          title: "17.4 Assignment",
+          content: `We may assign these Terms; you may not assign them without our consent.`,
+        },
+      ],
+    },
+    {
+      id: "survival",
+      title: "18. Survival",
+      content: `Sections concerning IP, payments, cancellations/no-show fees, limitations of liability, dispute resolution, and any accrued obligations survive termination.`,
+    },
+    {
+      id: "acknowledgment",
+      title:
+        "By using Plate, you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.",
+      content: `Effective Date: September 1, 2025`,
     },
   ],
 };

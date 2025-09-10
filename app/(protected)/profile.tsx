@@ -90,13 +90,8 @@ interface MenuItem {
 export default function ProfileScreen() {
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-  const {
-    profile,
-    signOut,
-    loading: authLoading,
-    isGuest,
-    convertGuestToUser,
-  } = useAuth();
+  const { profile, signOut, initialized, isGuest, convertGuestToUser } =
+    useAuth();
 
   // --- Guest View ---
   // If the user is a guest, display a call-to-action screen.
@@ -301,18 +296,19 @@ export default function ProfileScreen() {
       title: "Social",
       items: [
         {
-          id: "my-posts",
-          title: "My Posts",
-          subtitle: "Manage your shared experiences",
-          icon: "Camera",
-          onPress: () => router.push("/(protected)/social/my-posts"),
-        },
-        {
           id: "friends",
           title: "Friends",
           subtitle: "Manage your connections",
           icon: "Users",
           onPress: () => router.push("/friends"),
+        },
+
+        {
+          id: "blocked-users",
+          title: "Blocked Users",
+          subtitle: "Manage blocked accounts",
+          icon: "Shield",
+          onPress: () => router.push("/profile/blocked-users"),
         },
       ],
     },
@@ -395,7 +391,7 @@ export default function ProfileScreen() {
     );
   };
 
-  if (authLoading || userRating.loading) {
+  if (!initialized || userRating.loading) {
     return <ProfileScreenSkeleton />;
   }
 

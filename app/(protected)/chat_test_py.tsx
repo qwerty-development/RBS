@@ -19,6 +19,7 @@ import { router } from "expo-router";
 import { supabase } from "@/config/supabase";
 import { RESTO_AI_BASE_URL } from "@/config/ai";
 import { OptimizedList } from "@/components/ui/optimized-list";
+import { InputValidator } from "@/lib/security";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -325,6 +326,19 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
   const handleSend = useCallback(async () => {
     const trimmedInput = input.trim();
     if (!trimmedInput) return;
+
+    // Validate content for profanity and inappropriate language
+    const validation = InputValidator.validateContent(trimmedInput, {
+      maxLength: 500,
+      minLength: 1,
+      checkProfanity: true,
+      fieldName: "message",
+    });
+
+    if (!validation.isValid) {
+      Alert.alert("Content Issue", validation.errors.join("\n"));
+      return;
+    }
 
     if (apiConnected === false) {
       // Re-try health check just-in-time before blocking send
