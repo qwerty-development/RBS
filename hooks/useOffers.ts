@@ -2,7 +2,8 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
-import { Database } from "@/types/supabase";
+import { Database } from "@/types/supabase-generated";
+import { realtimeSubscriptionService } from "@/lib/RealtimeSubscriptionService";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 type SpecialOffer = Database["public"]["Tables"]["special_offers"]["Row"] & {
@@ -508,6 +509,62 @@ export function useOffers() {
     const interval = setInterval(expireOldOffers, 60000); // Check every minute
     return () => clearInterval(interval);
   }, [expireOldOffers]);
+
+  // Real-time subscription for offers
+  useEffect(() => {
+    if (!profile?.id) return;
+
+    const unsubscribe = realtimeSubscriptionService.subscribeToUser({
+      userId: profile.id,
+      onUserOfferChange: (payload) => {
+        console.log("User offer real-time update:", payload);
+
+        if (payload.eventType === "INSERT" && payload.new && payload.new.user_id === profile.id) {
+          // User claimed new offer - refetch to get complete data
+          fetchOffers();
+          
+        } else if (payload.eventType === "UPDATE" && payload.new && payload.new.user_id === profile.id) {
+          // User offer updated (e.g., used)
+          const newUserOffer = payload.new as UserOfferData;
+          setUserOffers(prev => {
+            const updated = new Map(prev);
+            updated.set(newUserOffer.offer_id, newUserOffer);
+            return updated;
+          });
+
+        } else if (payload.eventType === "DELETE" && payload.old && payload.old.user_id === profile.id) {
+          // User offer removed
+          setUserOffers(prev => {
+            const updated = new Map(prev);
+            updated.delete(payload.old!.offer_id);
+            return updated;
+          });
+        }
+      }
+    });
+
+    return unsubscribe;
+  }, [profile?.id, fetchOffers]);
+
+  // Also subscribe to general special offers updates
+  useEffect(() => {
+    const unsubscribeOffers = realtimeSubscriptionService.subscribeToTable(
+      'special_offers',
+      (payload) => {
+        console.log("Special offer real-time update:", payload);
+        
+        // For any special offer change, refetch data to maintain consistency
+        // This ensures we have the complete EnrichedOffer type with all computed properties
+        fetchOffers();
+      },
+      {
+        channelId: 'special_offers_general',
+        event: '*'
+      }
+    );
+
+    return unsubscribeOffers;
+  }, [fetchOffers]);
 
   return {
     // Data

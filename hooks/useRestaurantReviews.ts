@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
+import { realtimeSubscriptionService } from "@/lib/RealtimeSubscriptionService";
 import {
   getBlockedUserIds,
   addBlockedUsersFilter,
@@ -361,6 +362,24 @@ export const useRestaurantReviews = (restaurantId: string) => {
   useEffect(() => {
     fetchData();
   }, [selectedSort, selectedRating]);
+
+  // Real-time subscription for reviews
+  useEffect(() => {
+    if (!restaurantId) return;
+
+    const unsubscribe = realtimeSubscriptionService.subscribeToRestaurant({
+      restaurantId,
+      onReviewChange: (payload) => {
+        console.log("Review real-time update:", payload);
+
+        // For any review change, refetch the data to maintain consistency
+        // This ensures we have the complete Review type with user data
+        fetchData(true);
+      }
+    });
+
+    return unsubscribe;
+  }, [restaurantId, fetchData]);
 
   // Filtered and sorted reviews
   const displayReviews = useMemo(() => {

@@ -6,6 +6,7 @@ import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Alert } from "react-native";
 import type { Database } from "@/types/supabase";
+import { realtimeSubscriptionService } from "@/lib/RealtimeSubscriptionService";
 
 type WaitlistRow = Database["public"]["Tables"]["waitlist"]["Row"];
 
@@ -266,55 +267,44 @@ export const useWaitlist = () => {
     }
   }, [user, getMyWaitlist]);
 
-  // Listen for real-time updates
+  // Listen for real-time updates using centralized service
   useEffect(() => {
     if (!user) return;
 
-    const subscription = supabase
-      .channel(`waitlist:${user.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "waitlist",
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          console.log("Waitlist update:", payload);
+    const unsubscribe = realtimeSubscriptionService.subscribeToUser({
+      userId: user.id,
+      onWaitlistChange: (payload: any) => {
+        console.log("Waitlist update:", payload);
 
-          // Handle different events
-          if (payload.eventType === "UPDATE") {
-            const newStatus = payload.new.status;
-            const oldStatus = payload.old?.status;
+        // Handle different events
+        if (payload.eventType === "UPDATE") {
+          const newStatus = payload.new.status;
+          const oldStatus = payload.old?.status;
 
-            if (oldStatus === "active" && newStatus === "notified") {
-              Alert.alert(
-                "🎉 Table Available!",
-                "A table is now available! You have 15 minutes to confirm.",
-                [
-                  { text: "View Details", onPress: () => getMyWaitlist() },
-                  { text: "OK" },
-                ],
-              );
-            } else if (newStatus === "expired") {
-              Alert.alert(
-                "Waitlist Expired",
-                "Your waitlist entry has expired.",
-                [{ text: "OK" }],
-              );
-            }
+          if (oldStatus === "active" && newStatus === "notified") {
+            Alert.alert(
+              "🎉 Table Available!",
+              "A table is now available! You have 15 minutes to confirm.",
+              [
+                { text: "View Details", onPress: () => getMyWaitlist() },
+                { text: "OK" },
+              ],
+            );
+          } else if (newStatus === "expired") {
+            Alert.alert(
+              "Waitlist Expired",
+              "Your waitlist entry has expired.",
+              [{ text: "OK" }],
+            );
           }
+        }
 
-          // Refresh the list
-          getMyWaitlist();
-        },
-      )
-      .subscribe();
+        // Refresh the list
+        getMyWaitlist();
+      },
+    });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return unsubscribe;
   }, [user, getMyWaitlist]);
 
   return {

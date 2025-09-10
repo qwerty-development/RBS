@@ -6,6 +6,8 @@ import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { useBookingsStore } from "@/stores";
+import { realtimeSubscriptionService } from "@/lib/RealtimeSubscriptionService";
+import type { Database } from "@/types/supabase";
 
 // Enhanced booking type that includes invitation info
 interface EnhancedBooking {
@@ -687,6 +689,51 @@ export function useBookings() {
     setUpcomingBookings,
     setPastBookings,
   ]);
+
+  // Real-time subscriptions for bookings
+  useEffect(() => {
+    if (!user?.id || isGuest) {
+      return;
+    }
+
+    console.log("Setting up real-time subscriptions for user:", user.id);
+
+    const unsubscribe = realtimeSubscriptionService.subscribeToUser({
+      userId: user.id,
+      onBookingChange: (payload) => {
+        console.log("Real-time booking change:", payload.eventType, payload.new);
+        
+        if (payload.eventType === 'INSERT' && payload.new) {
+          // New booking created - refresh data to get complete booking with restaurant info
+          handleRefresh();
+        } else if (payload.eventType === 'UPDATE' && payload.new) {
+          // Booking updated - update in store
+          updateBooking(payload.new.id, payload.new);
+          
+          // If status changed significantly, refresh to ensure data consistency
+          if (payload.old?.status !== payload.new.status) {
+            handleRefresh();
+          }
+        } else if (payload.eventType === 'DELETE' && payload.old) {
+          // Booking deleted - refresh to remove from lists
+          handleRefresh();
+        }
+      },
+      onBookingInviteChange: (payload) => {
+        console.log("Real-time booking invite change:", payload.eventType, payload.new);
+        
+        // Booking invitations affect bookings list, refresh to get updated data
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE' || payload.eventType === 'DELETE') {
+          handleRefresh();
+        }
+      }
+    });
+
+    return () => {
+      console.log("Cleaning up booking real-time subscriptions for user:", user.id);
+      unsubscribe();
+    };
+  }, [user?.id, isGuest, handleRefresh, updateBooking]);
 
   return {
     // State
