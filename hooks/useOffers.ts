@@ -519,28 +519,38 @@ export function useOffers() {
       onUserOfferChange: (payload) => {
         console.log("User offer real-time update:", payload);
 
-        if (payload.eventType === "INSERT" && payload.new && payload.new.user_id === profile.id) {
+        if (
+          payload.eventType === "INSERT" &&
+          payload.new &&
+          payload.new.user_id === profile.id
+        ) {
           // User claimed new offer - refetch to get complete data
           fetchOffers();
-          
-        } else if (payload.eventType === "UPDATE" && payload.new && payload.new.user_id === profile.id) {
+        } else if (
+          payload.eventType === "UPDATE" &&
+          payload.new &&
+          payload.new.user_id === profile.id
+        ) {
           // User offer updated (e.g., used)
           const newUserOffer = payload.new as UserOfferData;
-          setUserOffers(prev => {
+          setUserOffers((prev) => {
             const updated = new Map(prev);
             updated.set(newUserOffer.offer_id, newUserOffer);
             return updated;
           });
-
-        } else if (payload.eventType === "DELETE" && payload.old && payload.old.user_id === profile.id) {
+        } else if (
+          payload.eventType === "DELETE" &&
+          payload.old &&
+          payload.old.user_id === profile.id
+        ) {
           // User offer removed
-          setUserOffers(prev => {
+          setUserOffers((prev) => {
             const updated = new Map(prev);
             updated.delete(payload.old!.offer_id);
             return updated;
           });
         }
-      }
+      },
     });
 
     return unsubscribe;
@@ -549,18 +559,18 @@ export function useOffers() {
   // Also subscribe to general special offers updates
   useEffect(() => {
     const unsubscribeOffers = realtimeSubscriptionService.subscribeToTable(
-      'special_offers',
+      "special_offers",
       (payload) => {
         console.log("Special offer real-time update:", payload);
-        
+
         // For any special offer change, refetch data to maintain consistency
         // This ensures we have the complete EnrichedOffer type with all computed properties
         fetchOffers();
       },
       {
-        channelId: 'special_offers_general',
-        event: '*'
-      }
+        channelId: "special_offers_general",
+        event: "*",
+      },
     );
 
     return unsubscribeOffers;

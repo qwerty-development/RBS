@@ -375,7 +375,7 @@ export const useRestaurantReviews = (restaurantId: string) => {
         // For any review change, refetch the data to maintain consistency
         // This ensures we have the complete Review type with user data
         fetchData(true);
-      }
+      },
     });
 
     return unsubscribe;

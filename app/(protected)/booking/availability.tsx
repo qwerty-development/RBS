@@ -44,7 +44,6 @@ import * as Haptics from "expo-haptics";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { H3, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { getMaxBookingWindow } from "@/lib/tableManagementUtils";
@@ -77,7 +76,8 @@ import { useTimeRangeSearch } from "@/hooks/useTimeRangeSearch";
 // Friend invitation imports
 import { InviteFriendsModal } from "@/components/booking/InviteFriendsModal";
 
-type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
+// Restaurant type import
+import type { Restaurant } from "@/types/restaurant";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -88,15 +88,17 @@ const RestaurantInfoCard = React.memo<{
   <View className="mx-4 mt-4 p-4 bg-card rounded-xl border border-border shadow-sm">
     <View className="flex-row gap-3">
       <Image
-        source={{ uri: restaurant.main_image_url }}
+        source={{
+          uri: restaurant.main_image_url || restaurant.image_url || "",
+        }}
         className="w-16 h-16 rounded-lg"
         contentFit="cover"
         placeholder="Restaurant"
       />
       <View className="flex-1">
-        <H3 className="mb-1" numberOfLines={1}>
+        <Text className="font-semibold text-lg mb-1" numberOfLines={1}>
           {restaurant.name}
-        </H3>
+        </Text>
         <View className="flex-row items-center gap-2 mb-1">
           <Star size={14} color="#f59e0b" fill="#f59e0b" />
           <Text className="text-sm font-medium">
@@ -745,13 +747,13 @@ export default function AvailabilitySelectionScreen() {
           const days = await getMaxBookingWindow(
             profile.id,
             restaurant.id,
-            restaurant.booking_window_days || 30,
+            (restaurant as any).booking_window_days || 30,
           );
           console.log(
             "Max booking days calculated:",
             days,
             "Restaurant default:",
-            restaurant.booking_window_days,
+            (restaurant as any).booking_window_days,
           );
           setMaxBookingDays(days);
         } catch (error) {
@@ -761,7 +763,7 @@ export default function AvailabilitySelectionScreen() {
       }
     }
     fetchMaxDays();
-  }, [profile?.id, restaurant?.id, restaurant?.booking_window_days]);
+  }, [profile?.id, restaurant?.id, (restaurant as any)?.booking_window_days]);
 
   const availableOffers = useMemo(() => {
     return offers.filter(
@@ -831,6 +833,81 @@ export default function AvailabilitySelectionScreen() {
     [partySize, clearSelectedSlot, setInvitedFriends],
   );
 
+  // Handle basic tier booking confirmation
+  const handleBasicTierBooking = useCallback(async () => {
+    if (!restaurant || !selectedTime) {
+      Alert.alert("Error", "Restaurant information or time missing");
+      return;
+    }
+
+    // Construct booking date time from selected time
+    let bookingTime: Date;
+    try {
+      const dt = new Date(selectedDate);
+      const [h, m] = selectedTime.split(":");
+      dt.setHours(parseInt(h), parseInt(m), 0, 0);
+      bookingTime = dt;
+    } catch (error) {
+      console.error("Error constructing booking time:", error);
+      Alert.alert("Error", "Invalid time selected");
+      return;
+    }
+
+    setIsConfirmingBooking(true);
+    try {
+      const success = await confirmBooking({
+        restaurantId: params.restaurantId,
+        bookingTime: bookingTime,
+        partySize: partySize,
+        specialRequests: undefined,
+        occasion: undefined,
+        dietaryNotes: undefined,
+        tablePreferences: undefined,
+        bookingPolicy: (restaurant as any).booking_policy as
+          | "instant"
+          | "request",
+        expectedLoyaltyPoints: selectedLoyaltyPoints?.available
+          ? selectedLoyaltyPoints.pointsToAward
+          : 0,
+        appliedOfferId: preselectedOffer?.id,
+        loyaltyRuleId: selectedLoyaltyPoints?.available
+          ? selectedLoyaltyPoints.ruleId
+          : undefined,
+        // For basic tier, use empty tableIds array
+        tableIds: JSON.stringify([]),
+        requiresCombination: false,
+        invitedFriends: invitedFriends,
+      });
+
+      if (success) {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await refresh(true);
+        clearSelectedSlot();
+        setCurrentStep("time");
+        setSelectedLoyaltyPoints(null);
+      }
+    } catch (error) {
+      console.error("Error confirming basic tier booking:", error);
+      Alert.alert("Error", "Failed to confirm booking. Please try again.");
+    } finally {
+      setTimeout(() => {
+        setIsConfirmingBooking(false);
+      }, 2000);
+    }
+  }, [
+    restaurant,
+    selectedTime,
+    selectedDate,
+    params.restaurantId,
+    partySize,
+    selectedLoyaltyPoints,
+    preselectedOffer,
+    confirmBooking,
+    refresh,
+    clearSelectedSlot,
+    invitedFriends,
+  ]);
+
   const handleTimeSelect = useCallback(
     async (time: string) => {
       // Clear any existing timeout
@@ -842,97 +919,10 @@ export default function AvailabilitySelectionScreen() {
         // Fetch options for all tiers (needed for booking logic)
         await fetchSlotOptions(time);
 
-        // For basic tier restaurants, skip experience step and directly confirm booking
+        // For basic tier restaurants, just stay on time step - booking will happen via bottom CTA
         if (isBasicTier) {
-          stepTransitionRef.current = setTimeout(() => {
-            // Show confirmation dialog for basic tier
-            Alert.alert(
-              "Confirm Booking",
-              `Are you sure you want to book a table for ${partySize} guest${partySize > 1 ? "s" : ""} at ${restaurant?.name} on ${formatSelectedDate(selectedDate)} at ${time}?`,
-              [
-                {
-                  text: "Cancel",
-                  style: "cancel",
-                  onPress: () => {
-                    // Stay on time step for basic tier
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                  },
-                },
-                {
-                  text: "Confirm",
-                  onPress: async () => {
-                    // For basic tier, construct booking time directly from the selected time
-                    if (!restaurant) {
-                      Alert.alert("Error", "Restaurant information missing");
-                      return;
-                    }
-
-                    // Construct booking date time directly from the time parameter
-                    let bookingTime: Date;
-                    try {
-                      const dt = new Date(selectedDate);
-                      const [h, m] = time.split(":");
-                      dt.setHours(parseInt(h), parseInt(m), 0, 0);
-                      bookingTime = dt;
-                    } catch (error) {
-                      console.error("Error constructing booking time:", error);
-                      Alert.alert("Error", "Invalid time selected");
-                      return;
-                    }
-
-                    setIsConfirmingBooking(true);
-                    try {
-                      const success = await confirmBooking({
-                        restaurantId: params.restaurantId,
-                        bookingTime: bookingTime,
-                        partySize: partySize,
-                        specialRequests: undefined,
-                        occasion: undefined,
-                        dietaryNotes: undefined,
-                        tablePreferences: undefined,
-                        bookingPolicy: (restaurant as any).booking_policy as
-                          | "instant"
-                          | "request",
-                        expectedLoyaltyPoints: selectedLoyaltyPoints?.available
-                          ? selectedLoyaltyPoints.pointsToAward
-                          : 0,
-                        appliedOfferId: preselectedOffer?.id,
-                        loyaltyRuleId: selectedLoyaltyPoints?.available
-                          ? selectedLoyaltyPoints.ruleId
-                          : undefined,
-                        // For basic tier, use empty tableIds array
-                        tableIds: JSON.stringify([]),
-                        requiresCombination: false,
-                      });
-
-                      if (success) {
-                        Haptics.notificationAsync(
-                          Haptics.NotificationFeedbackType.Success,
-                        );
-                        await refresh(true);
-                        clearSelectedSlot();
-                        setCurrentStep("time");
-                        setSelectedLoyaltyPoints(null);
-                      }
-                    } catch (error) {
-                      console.error(
-                        "Error confirming basic tier booking:",
-                        error,
-                      );
-                      Alert.alert(
-                        "Error",
-                        "Failed to confirm booking. Please try again.",
-                      );
-                    } finally {
-                      setTimeout(() => {
-                        setIsConfirmingBooking(false);
-                      }, 2000);
-                    }
-                  },
-                },
-              ],
-            );
-          }, 200);
+          // Just provide haptic feedback for selection
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         } else {
           // For pro tier restaurants, proceed to experience step
           stepTransitionRef.current = setTimeout(() => {
@@ -948,20 +938,7 @@ export default function AvailabilitySelectionScreen() {
         );
       }
     },
-    [
-      fetchSlotOptions,
-      isBasicTier,
-      partySize,
-      restaurant,
-      selectedDate,
-      params.restaurantId,
-      selectedLoyaltyPoints,
-      preselectedOffer,
-      confirmBooking,
-      refresh,
-      clearSelectedSlot,
-      formatSelectedDate,
-    ],
+    [fetchSlotOptions, isBasicTier],
   );
 
   const handleBackToTimeSelection = useCallback(() => {
@@ -997,7 +974,9 @@ export default function AvailabilitySelectionScreen() {
           occasion: undefined,
           dietaryNotes: undefined,
           tablePreferences: undefined,
-          bookingPolicy: restaurant.booking_policy as "instant" | "request",
+          bookingPolicy: (restaurant as any).booking_policy as
+            | "instant"
+            | "request",
           expectedLoyaltyPoints: selectedLoyaltyPoints?.available
             ? selectedLoyaltyPoints.pointsToAward
             : 0,
@@ -1184,7 +1163,7 @@ export default function AvailabilitySelectionScreen() {
     );
   }
 
-  const isRequestBooking = restaurant?.booking_policy === "request";
+  const isRequestBooking = (restaurant as any)?.booking_policy === "request";
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
@@ -1203,9 +1182,9 @@ export default function AvailabilitySelectionScreen() {
               ? "Select Date & Time"
               : "Choose Your Experience"}
           </Text>
-          <Muted className="text-center text-sm" numberOfLines={1}>
+          <Text className="text-center text-sm text-muted-foreground" numberOfLines={1}>
             {restaurant.name}
-          </Muted>
+          </Text>
         </View>
         <View className="w-10" />
       </View>
@@ -1219,7 +1198,7 @@ export default function AvailabilitySelectionScreen() {
       />
 
       {/* Restaurant Info Card */}
-      <RestaurantInfoCard restaurant={restaurant} />
+      <RestaurantInfoCard restaurant={restaurant as any} />
 
       <ScrollView
         className="flex-1"
@@ -1498,10 +1477,11 @@ export default function AvailabilitySelectionScreen() {
                       <Text className="text-sm text-muted-foreground">
                         • You'll be notified once confirmed
                       </Text>
-                      {restaurant.cancellation_window_hours && (
+                      {(restaurant as any).cancellation_window_hours && (
                         <Text className="text-sm text-muted-foreground">
                           • Free cancellation up to{" "}
-                          {restaurant.cancellation_window_hours} hours before
+                          {(restaurant as any).cancellation_window_hours} hours
+                          before
                         </Text>
                       )}
                     </>
@@ -1510,10 +1490,11 @@ export default function AvailabilitySelectionScreen() {
                       <Text className="text-sm text-muted-foreground">
                         • Instant confirmation
                       </Text>
-                      {restaurant.cancellation_window_hours && (
+                      {(restaurant as any).cancellation_window_hours && (
                         <Text className="text-sm text-muted-foreground">
                           • Free cancellation up to{" "}
-                          {restaurant.cancellation_window_hours} hours before
+                          {(restaurant as any).cancellation_window_hours} hours
+                          before
                         </Text>
                       )}
                       <Text className="text-sm text-muted-foreground">
@@ -1581,23 +1562,49 @@ export default function AvailabilitySelectionScreen() {
 
           {/* Dynamic CTA based on step */}
           {currentStep === "time" ? (
-            <View className="items-end ml-4">
-              <Text className="text-xs text-muted-foreground mb-1 text-right">
-                {isLoading
-                  ? "Loading times..."
-                  : hasTimeSlots
-                    ? "Select time above"
-                    : "No times available"}
-              </Text>
-              <View className="w-20 h-10 bg-muted/50 rounded-lg items-center justify-center">
-                {isLoading && <ActivityIndicator size="small" />}
-                {!isLoading && !hasTimeSlots && (
-                  <Pressable onPress={() => refresh(true)}>
-                    <Text className="text-xs text-primary">Retry</Text>
-                  </Pressable>
+            // Show different CTAs based on restaurant tier and time selection
+            isBasicTier && selectedTime ? (
+              // Basic tier with time selected - show Book Now button
+              <Button
+                onPress={handleBasicTierBooking}
+                disabled={isConfirmingBooking || confirmingBooking}
+                className="bg-primary min-w-[120px]"
+              >
+                {isConfirmingBooking || confirmingBooking ? (
+                  <View className="flex-row items-center gap-2">
+                    <ActivityIndicator size="small" color="white" />
+                    <Text className="text-primary-foreground font-medium">
+                      Booking...
+                    </Text>
+                  </View>
+                ) : (
+                  <Text className="text-primary-foreground font-medium">
+                    Book Now
+                  </Text>
                 )}
+              </Button>
+            ) : (
+              // Default time step CTA (pro tier or no time selected)
+              <View className="items-end ml-4">
+                <Text className="text-xs text-muted-foreground mb-1 text-right">
+                  {isLoading
+                    ? "Loading times..."
+                    : hasTimeSlots
+                      ? isBasicTier
+                        ? "Select time above"
+                        : "Select time above"
+                      : "No times available"}
+                </Text>
+                <View className="w-20 h-10 bg-muted/50 rounded-lg items-center justify-center">
+                  {isLoading && <ActivityIndicator size="small" />}
+                  {!isLoading && !hasTimeSlots && (
+                    <Pressable onPress={() => refresh(true)}>
+                      <Text className="text-xs text-primary">Retry</Text>
+                    </Pressable>
+                  )}
+                </View>
               </View>
-            </View>
+            )
           ) : (
             <View className="items-end ml-4">
               <Text className="text-xs text-muted-foreground mb-1 text-right">

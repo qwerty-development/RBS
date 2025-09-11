@@ -724,7 +724,7 @@ const PROFANITY_WORDS = [
   "karen",
   "boomer",
   "zoomer",
-  'boobs',
+  "boobs",
 
   // Gambling references (App Store sensitive)
   "gambling",

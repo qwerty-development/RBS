@@ -42,12 +42,12 @@ export class RealtimeSubscriptionService {
 
   private initialize(): void {
     if (this.isInitialized) return;
-    
+
     // Listen for app lifecycle events
     if (typeof global !== "undefined" && global.addEventListener) {
       global.addEventListener("beforeunload", this.cleanup.bind(this));
     }
-    
+
     this.isInitialized = true;
   }
 
@@ -57,7 +57,7 @@ export class RealtimeSubscriptionService {
   subscribe<T = any>(
     table: TableName,
     handler: SubscriptionHandler<T>,
-    options: SubscriptionOptions = {}
+    options: SubscriptionOptions = {},
   ): () => void {
     const {
       event = "*",
@@ -75,14 +75,14 @@ export class RealtimeSubscriptionService {
 
     // Get or create subscription
     let subscription = this.subscriptions.get(subscriptionKey);
-    
+
     if (!subscription) {
       subscription = this.createSubscription(
         table,
         subscriptionKey,
         event,
         filter,
-        { ...options, debounceMs, enableLogging }
+        { ...options, debounceMs, enableLogging },
       );
       this.subscriptions.set(subscriptionKey, subscription);
     }
@@ -103,16 +103,12 @@ export class RealtimeSubscriptionService {
     table: TableName,
     userId: string,
     handler: SubscriptionHandler<T>,
-    options: Omit<SubscriptionOptions, "filter"> = {}
+    options: Omit<SubscriptionOptions, "filter"> = {},
   ): () => void {
-    return this.subscribe(
-      table,
-      handler,
-      {
-        ...options,
-        filter: `user_id=eq.${userId}`,
-      }
-    );
+    return this.subscribe(table, handler, {
+      ...options,
+      filter: `user_id=eq.${userId}`,
+    });
   }
 
   /**
@@ -122,16 +118,12 @@ export class RealtimeSubscriptionService {
     table: TableName,
     restaurantId: string,
     handler: SubscriptionHandler<T>,
-    options: Omit<SubscriptionOptions, "filter"> = {}
+    options: Omit<SubscriptionOptions, "filter"> = {},
   ): () => void {
-    return this.subscribe(
-      table,
-      handler,
-      {
-        ...options,
-        filter: `restaurant_id=eq.${restaurantId}`,
-      }
-    );
+    return this.subscribe(table, handler, {
+      ...options,
+      filter: `restaurant_id=eq.${restaurantId}`,
+    });
   }
 
   /**
@@ -139,8 +131,10 @@ export class RealtimeSubscriptionService {
    */
   subscribeToUserBookings(
     userId: string,
-    handler: SubscriptionHandler<Database["public"]["Tables"]["bookings"]["Row"]>,
-    options: SubscriptionOptions = {}
+    handler: SubscriptionHandler<
+      Database["public"]["Tables"]["bookings"]["Row"]
+    >,
+    options: SubscriptionOptions = {},
   ): () => void {
     return this.subscribeToUser("bookings", userId, handler, options);
   }
@@ -150,8 +144,10 @@ export class RealtimeSubscriptionService {
    */
   subscribeToUserWaitlist(
     userId: string,
-    handler: SubscriptionHandler<Database["public"]["Tables"]["waitlist"]["Row"]>,
-    options: SubscriptionOptions = {}
+    handler: SubscriptionHandler<
+      Database["public"]["Tables"]["waitlist"]["Row"]
+    >,
+    options: SubscriptionOptions = {},
   ): () => void {
     return this.subscribeToUser("waitlist", userId, handler, options);
   }
@@ -162,12 +158,17 @@ export class RealtimeSubscriptionService {
   subscribeToRestaurantAvailability(
     restaurantId: string,
     handler: SubscriptionHandler,
-    options: SubscriptionOptions = {}
+    options: SubscriptionOptions = {},
   ): () => void {
     // Subscribe to multiple tables that affect availability
     const unsubscribers = [
       this.subscribeToRestaurant("bookings", restaurantId, handler, options),
-      this.subscribeToRestaurant("restaurant_tables", restaurantId, handler, options),
+      this.subscribeToRestaurant(
+        "restaurant_tables",
+        restaurantId,
+        handler,
+        options,
+      ),
       this.subscribe(
         "booking_tables",
         {
@@ -176,12 +177,12 @@ export class RealtimeSubscriptionService {
             await this.checkBookingRestaurant(payload, restaurantId, handler);
           },
         },
-        options
+        options,
       ),
     ];
 
     return () => {
-      unsubscribers.forEach(unsubscribe => unsubscribe());
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
   }
 
@@ -190,8 +191,10 @@ export class RealtimeSubscriptionService {
    */
   subscribeToUserNotifications(
     userId: string,
-    handler: SubscriptionHandler<Database["public"]["Tables"]["notifications"]["Row"]>,
-    options: SubscriptionOptions = {}
+    handler: SubscriptionHandler<
+      Database["public"]["Tables"]["notifications"]["Row"]
+    >,
+    options: SubscriptionOptions = {},
   ): () => void {
     return this.subscribeToUser("notifications", userId, handler, options);
   }
@@ -201,25 +204,25 @@ export class RealtimeSubscriptionService {
    */
   subscribeToUserInvitations(
     userId: string,
-    handler: SubscriptionHandler<Database["public"]["Tables"]["booking_invites"]["Row"]>,
-    options: SubscriptionOptions = {}
+    handler: SubscriptionHandler<
+      Database["public"]["Tables"]["booking_invites"]["Row"]
+    >,
+    options: SubscriptionOptions = {},
   ): () => void {
     // Subscribe to both sent and received invitations
     const unsubscribers = [
-      this.subscribe(
-        "booking_invites",
-        handler,
-        { ...options, filter: `from_user_id=eq.${userId}` }
-      ),
-      this.subscribe(
-        "booking_invites",
-        handler,
-        { ...options, filter: `to_user_id=eq.${userId}` }
-      ),
+      this.subscribe("booking_invites", handler, {
+        ...options,
+        filter: `from_user_id=eq.${userId}`,
+      }),
+      this.subscribe("booking_invites", handler, {
+        ...options,
+        filter: `to_user_id=eq.${userId}`,
+      }),
     ];
 
     return () => {
-      unsubscribers.forEach(unsubscribe => unsubscribe());
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
   }
 
@@ -228,24 +231,24 @@ export class RealtimeSubscriptionService {
    */
   subscribeToUserFriendRequests(
     userId: string,
-    handler: SubscriptionHandler<Database["public"]["Tables"]["friend_requests"]["Row"]>,
-    options: SubscriptionOptions = {}
+    handler: SubscriptionHandler<
+      Database["public"]["Tables"]["friend_requests"]["Row"]
+    >,
+    options: SubscriptionOptions = {},
   ): () => void {
     const unsubscribers = [
-      this.subscribe(
-        "friend_requests",
-        handler,
-        { ...options, filter: `from_user_id=eq.${userId}` }
-      ),
-      this.subscribe(
-        "friend_requests",
-        handler,
-        { ...options, filter: `to_user_id=eq.${userId}` }
-      ),
+      this.subscribe("friend_requests", handler, {
+        ...options,
+        filter: `from_user_id=eq.${userId}`,
+      }),
+      this.subscribe("friend_requests", handler, {
+        ...options,
+        filter: `to_user_id=eq.${userId}`,
+      }),
     ];
 
     return () => {
-      unsubscribers.forEach(unsubscribe => unsubscribe());
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
   }
 
@@ -254,7 +257,7 @@ export class RealtimeSubscriptionService {
     subscriptionKey: string,
     event: RealtimeEvent | "*",
     filter: string | undefined,
-    options: SubscriptionOptions
+    options: SubscriptionOptions,
   ): ActiveSubscription {
     const { enableLogging } = options;
 
@@ -273,7 +276,7 @@ export class RealtimeSubscriptionService {
             console.log(`Real-time change in ${table}:`, payload);
           }
           this.handleRealtimeChange(subscriptionKey, payload);
-        }
+        },
       )
       .subscribe((status) => {
         this.handleSubscriptionStatus(subscriptionKey, status, enableLogging);
@@ -289,7 +292,7 @@ export class RealtimeSubscriptionService {
   private createSubscriptionKey(
     table: TableName,
     event: RealtimeEvent | "*",
-    filter?: string
+    filter?: string,
   ): string {
     return `${table}:${event}${filter ? `:${filter}` : ""}`;
   }
@@ -340,7 +343,7 @@ export class RealtimeSubscriptionService {
   private handleSubscriptionStatus(
     subscriptionKey: string,
     status: string,
-    enableLogging?: boolean
+    enableLogging?: boolean,
   ): void {
     if (enableLogging) {
       console.log(`Subscription ${subscriptionKey} status: ${status}`);
@@ -380,7 +383,7 @@ export class RealtimeSubscriptionService {
 
   private unsubscribeHandler(
     subscriptionKey: string,
-    handler: SubscriptionHandler
+    handler: SubscriptionHandler,
   ): void {
     const subscription = this.subscriptions.get(subscriptionKey);
     if (!subscription) return;
@@ -404,7 +407,7 @@ export class RealtimeSubscriptionService {
   private async checkBookingRestaurant(
     payload: any,
     restaurantId: string,
-    handler: SubscriptionHandler
+    handler: SubscriptionHandler,
   ): Promise<void> {
     try {
       const bookingId = payload.new?.booking_id || payload.old?.booking_id;

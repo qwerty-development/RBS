@@ -31,11 +31,13 @@ export function useSocial() {
     try {
       const { data, error } = await supabase
         .from("friend_requests")
-        .select(`
+        .select(
+          `
           *,
           from_user:profiles!friend_requests_from_user_id_fkey(id, full_name, avatar_url),
           to_user:profiles!friend_requests_to_user_id_fkey(id, full_name, avatar_url)
-        `)
+        `,
+        )
         .or(`from_user_id.eq.${profile.id},to_user_id.eq.${profile.id}`)
         .eq("status", "pending")
         .order("created_at", { ascending: false });
@@ -54,12 +56,14 @@ export function useSocial() {
     try {
       const { data, error } = await supabase
         .from("booking_invites")
-        .select(`
+        .select(
+          `
           *,
           from_user:profiles!booking_invites_from_user_id_fkey(id, full_name, avatar_url),
           to_user:profiles!booking_invites_to_user_id_fkey(id, full_name, avatar_url),
           booking:bookings(id, restaurant_id, booking_date, booking_time, party_size, restaurant:restaurants(name))
-        `)
+        `,
+        )
         .or(`from_user_id.eq.${profile.id},to_user_id.eq.${profile.id}`)
         .eq("status", "pending")
         .order("created_at", { ascending: false });
@@ -79,31 +83,40 @@ export function useSocial() {
       userId: profile.id,
       onFriendRequestChange: (payload: any) => {
         console.log("Friend request update:", payload);
-        
+
         // Show notifications for new requests
-        if (payload.eventType === "INSERT" && payload.new.to_user_id === profile.id) {
+        if (
+          payload.eventType === "INSERT" &&
+          payload.new.to_user_id === profile.id
+        ) {
           Alert.alert(
             "New Friend Request",
             "You have received a new friend request!",
-            [{ text: "OK" }]
+            [{ text: "OK" }],
           );
         }
-        
+
         // Reload friend requests
         loadFriendRequests();
       },
       onBookingInviteChange: (payload: any) => {
         console.log("Booking invite update:", payload);
-        
+
         // Show notifications for new invites
-        if (payload.eventType === "INSERT" && payload.new.to_user_id === profile.id) {
+        if (
+          payload.eventType === "INSERT" &&
+          payload.new.to_user_id === profile.id
+        ) {
           Alert.alert(
             "New Booking Invitation",
             "You have been invited to join a booking!",
-            [{ text: "View", onPress: () => loadBookingInvites() }, { text: "OK" }]
+            [
+              { text: "View", onPress: () => loadBookingInvites() },
+              { text: "OK" },
+            ],
           );
         }
-        
+
         // Reload booking invites
         loadBookingInvites();
       },
@@ -171,28 +184,31 @@ export function useSocial() {
   );
 
   // Accept friend request
-  const acceptFriendRequest = useCallback(async (requestId: string) => {
-    setLoading(true);
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  const acceptFriendRequest = useCallback(
+    async (requestId: string) => {
+      setLoading(true);
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
-      const { error } = await supabase
-        .from("friend_requests")
-        .update({ status: "accepted" })
-        .eq("id", requestId);
+        const { error } = await supabase
+          .from("friend_requests")
+          .update({ status: "accepted" })
+          .eq("id", requestId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      // Reload friend requests after accepting
-      await loadFriendRequests();
+        // Reload friend requests after accepting
+        await loadFriendRequests();
 
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: "Failed to accept request" };
-    } finally {
-      setLoading(false);
-    }
-  }, [loadFriendRequests]);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: "Failed to accept request" };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loadFriendRequests],
+  );
 
   // Create a post
   const createPost = useCallback(
@@ -376,66 +392,75 @@ export function useSocial() {
   }, [profile?.id]);
 
   // Decline friend request
-  const declineFriendRequest = useCallback(async (requestId: string) => {
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from("friend_requests")
-        .update({ status: "declined" })
-        .eq("id", requestId);
+  const declineFriendRequest = useCallback(
+    async (requestId: string) => {
+      setLoading(true);
+      try {
+        const { error } = await supabase
+          .from("friend_requests")
+          .update({ status: "declined" })
+          .eq("id", requestId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      await loadFriendRequests();
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: "Failed to decline request" };
-    } finally {
-      setLoading(false);
-    }
-  }, [loadFriendRequests]);
+        await loadFriendRequests();
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: "Failed to decline request" };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loadFriendRequests],
+  );
 
   // Accept booking invite
-  const acceptBookingInvite = useCallback(async (inviteId: string) => {
-    setLoading(true);
-    try {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+  const acceptBookingInvite = useCallback(
+    async (inviteId: string) => {
+      setLoading(true);
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
-      const { error } = await supabase
-        .from("booking_invites")
-        .update({ status: "accepted" })
-        .eq("id", inviteId);
+        const { error } = await supabase
+          .from("booking_invites")
+          .update({ status: "accepted" })
+          .eq("id", inviteId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      await loadBookingInvites();
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: "Failed to accept invite" };
-    } finally {
-      setLoading(false);
-    }
-  }, [loadBookingInvites]);
+        await loadBookingInvites();
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: "Failed to accept invite" };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loadBookingInvites],
+  );
 
   // Decline booking invite
-  const declineBookingInvite = useCallback(async (inviteId: string) => {
-    setLoading(true);
-    try {
-      const { error } = await supabase
-        .from("booking_invites")
-        .update({ status: "declined" })
-        .eq("id", inviteId);
+  const declineBookingInvite = useCallback(
+    async (inviteId: string) => {
+      setLoading(true);
+      try {
+        const { error } = await supabase
+          .from("booking_invites")
+          .update({ status: "declined" })
+          .eq("id", inviteId);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      await loadBookingInvites();
-      return { success: true };
-    } catch (error) {
-      return { success: false, error: "Failed to decline invite" };
-    } finally {
-      setLoading(false);
-    }
-  }, [loadBookingInvites]);
+        await loadBookingInvites();
+        return { success: true };
+      } catch (error) {
+        return { success: false, error: "Failed to decline invite" };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [loadBookingInvites],
+  );
 
   return {
     loading,

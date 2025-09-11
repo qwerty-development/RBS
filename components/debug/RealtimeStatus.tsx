@@ -1,7 +1,7 @@
 // components/debug/RealtimeStatus.tsx
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import { realtimeSubscriptionService } from '@/lib/RealtimeSubscriptionService';
+import React, { useState, useEffect } from "react";
+import { View, Text, TouchableOpacity, ScrollView, Alert } from "react-native";
+import { realtimeSubscriptionService } from "@/lib/RealtimeSubscriptionService";
 
 export const RealtimeStatus: React.FC = () => {
   const [isVisible, setIsVisible] = useState(false);
@@ -27,15 +27,15 @@ export const RealtimeStatus: React.FC = () => {
       "Are you sure you want to clear all real-time statistics?",
       [
         { text: "Cancel", style: "cancel" },
-        { 
-          text: "Clear", 
+        {
+          text: "Clear",
           style: "destructive",
           onPress: () => {
             // Note: We don't have a clearStats method yet, but we can add it
             updateStatus();
-          }
-        }
-      ]
+          },
+        },
+      ],
     );
   };
 
@@ -46,7 +46,9 @@ export const RealtimeStatus: React.FC = () => {
       status: sub.status,
       error: sub.lastError,
       events: sub.eventCount || 0,
-      lastEvent: sub.lastEventTime ? new Date(sub.lastEventTime).toLocaleTimeString() : 'Never'
+      lastEvent: sub.lastEventTime
+        ? new Date(sub.lastEventTime).toLocaleTimeString()
+        : "Never",
     };
   };
 
@@ -59,8 +61,11 @@ export const RealtimeStatus: React.FC = () => {
       <TouchableOpacity
         onPress={() => setIsVisible(!isVisible)}
         className={`px-3 py-1 rounded-full ${
-          status?.isHealthy === false ? 'bg-red-500' : 
-          stats?.totalSubscriptions > 0 ? 'bg-green-500' : 'bg-yellow-500'
+          status?.isHealthy === false
+            ? "bg-red-500"
+            : stats?.totalSubscriptions > 0
+              ? "bg-green-500"
+              : "bg-yellow-500"
         }`}
       >
         <Text className="text-white text-xs font-semibold">
@@ -85,10 +90,14 @@ export const RealtimeStatus: React.FC = () => {
               <Text className="font-semibold mb-2 text-gray-900 dark:text-white">
                 Service Health
               </Text>
-              <Text className={`text-sm ${
-                status?.isHealthy === false ? 'text-red-500' : 'text-green-500'
-              }`}>
-                Status: {status?.isHealthy === false ? 'Unhealthy' : 'Healthy'}
+              <Text
+                className={`text-sm ${
+                  status?.isHealthy === false
+                    ? "text-red-500"
+                    : "text-green-500"
+                }`}
+              >
+                Status: {status?.isHealthy === false ? "Unhealthy" : "Healthy"}
               </Text>
               {status?.connectionStatus && (
                 <Text className="text-sm text-gray-600 dark:text-gray-300">
@@ -116,53 +125,67 @@ export const RealtimeStatus: React.FC = () => {
                   Error Count: {stats.errorCount}
                 </Text>
                 <Text className="text-sm text-gray-600 dark:text-gray-300">
-                  Last Activity: {stats.lastActivity ? new Date(stats.lastActivity).toLocaleTimeString() : 'None'}
+                  Last Activity:{" "}
+                  {stats.lastActivity
+                    ? new Date(stats.lastActivity).toLocaleTimeString()
+                    : "None"}
                 </Text>
               </View>
             )}
 
             {/* Active Subscriptions */}
-            {status?.subscriptions && Object.keys(status.subscriptions).length > 0 && (
-              <View className="mb-4">
-                <Text className="font-semibold mb-2 text-gray-900 dark:text-white">
-                  Active Subscriptions
-                </Text>
-                {Object.entries(status.subscriptions).map(([channelId, sub]: [string, any]) => {
-                  const formatted = formatSubscription(sub);
-                  return (
-                    <View key={channelId} className="mb-2 p-2 bg-gray-50 dark:bg-gray-700 rounded">
-                      <Text className="text-xs font-mono text-gray-900 dark:text-white">
-                        {formatted.id}
-                      </Text>
-                      <View className="flex-row justify-between">
-                        <Text className="text-xs text-gray-600 dark:text-gray-300">
-                          Table: {formatted.table}
-                        </Text>
-                        <Text className={`text-xs ${
-                          formatted.status === 'connected' ? 'text-green-500' : 
-                          formatted.status === 'error' ? 'text-red-500' : 'text-yellow-500'
-                        }`}>
-                          {formatted.status}
-                        </Text>
-                      </View>
-                      <View className="flex-row justify-between">
-                        <Text className="text-xs text-gray-600 dark:text-gray-300">
-                          Events: {formatted.events}
-                        </Text>
-                        <Text className="text-xs text-gray-600 dark:text-gray-300">
-                          Last: {formatted.lastEvent}
-                        </Text>
-                      </View>
-                      {formatted.error && (
-                        <Text className="text-xs text-red-500 mt-1">
-                          Error: {formatted.error}
-                        </Text>
-                      )}
-                    </View>
-                  );
-                })}
-              </View>
-            )}
+            {status?.subscriptions &&
+              Object.keys(status.subscriptions).length > 0 && (
+                <View className="mb-4">
+                  <Text className="font-semibold mb-2 text-gray-900 dark:text-white">
+                    Active Subscriptions
+                  </Text>
+                  {Object.entries(status.subscriptions).map(
+                    ([channelId, sub]: [string, any]) => {
+                      const formatted = formatSubscription(sub);
+                      return (
+                        <View
+                          key={channelId}
+                          className="mb-2 p-2 bg-gray-50 dark:bg-gray-700 rounded"
+                        >
+                          <Text className="text-xs font-mono text-gray-900 dark:text-white">
+                            {formatted.id}
+                          </Text>
+                          <View className="flex-row justify-between">
+                            <Text className="text-xs text-gray-600 dark:text-gray-300">
+                              Table: {formatted.table}
+                            </Text>
+                            <Text
+                              className={`text-xs ${
+                                formatted.status === "connected"
+                                  ? "text-green-500"
+                                  : formatted.status === "error"
+                                    ? "text-red-500"
+                                    : "text-yellow-500"
+                              }`}
+                            >
+                              {formatted.status}
+                            </Text>
+                          </View>
+                          <View className="flex-row justify-between">
+                            <Text className="text-xs text-gray-600 dark:text-gray-300">
+                              Events: {formatted.events}
+                            </Text>
+                            <Text className="text-xs text-gray-600 dark:text-gray-300">
+                              Last: {formatted.lastEvent}
+                            </Text>
+                          </View>
+                          {formatted.error && (
+                            <Text className="text-xs text-red-500 mt-1">
+                              Error: {formatted.error}
+                            </Text>
+                          )}
+                        </View>
+                      );
+                    },
+                  )}
+                </View>
+              )}
 
             {/* Recent Errors */}
             {status?.recentErrors && status.recentErrors.length > 0 && (
@@ -170,25 +193,31 @@ export const RealtimeStatus: React.FC = () => {
                 <Text className="font-semibold mb-2 text-red-500">
                   Recent Errors
                 </Text>
-                {status.recentErrors.slice(0, 3).map((error: any, index: number) => (
-                  <View key={index} className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 rounded">
-                    <Text className="text-xs text-red-700 dark:text-red-300">
-                      {new Date(error.timestamp).toLocaleTimeString()}: {error.message}
-                    </Text>
-                    {error.channelId && (
-                      <Text className="text-xs text-red-500 font-mono">
-                        Channel: {error.channelId}
+                {status.recentErrors
+                  .slice(0, 3)
+                  .map((error: any, index: number) => (
+                    <View
+                      key={index}
+                      className="mb-2 p-2 bg-red-50 dark:bg-red-900/20 rounded"
+                    >
+                      <Text className="text-xs text-red-700 dark:text-red-300">
+                        {new Date(error.timestamp).toLocaleTimeString()}:{" "}
+                        {error.message}
                       </Text>
-                    )}
-                  </View>
-                ))}
+                      {error.channelId && (
+                        <Text className="text-xs text-red-500 font-mono">
+                          Channel: {error.channelId}
+                        </Text>
+                      )}
+                    </View>
+                  ))}
               </View>
             )}
 
             {/* Instructions */}
             <View className="mt-4 p-2 bg-blue-50 dark:bg-blue-900/20 rounded">
               <Text className="text-xs text-blue-700 dark:text-blue-300">
-                💡 This debug panel shows real-time subscription status.{'\n'}
+                💡 This debug panel shows real-time subscription status.{"\n"}
                 Green dot = Healthy, Yellow = Connecting, Red = Error
               </Text>
             </View>

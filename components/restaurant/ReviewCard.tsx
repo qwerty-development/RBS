@@ -214,18 +214,14 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
             text: "Delete",
             style: "destructive" as const,
             onPress: () => {
-              Alert.alert(
-                "Delete review?",
-                "This action cannot be undone.",
-                [
-                  { text: "Cancel", style: "cancel" },
-                  {
-                    text: "Delete",
-                    style: "destructive",
-                    onPress: () => onDelete?.(),
-                  },
-                ],
-              );
+              Alert.alert("Delete review?", "This action cannot be undone.", [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Delete",
+                  style: "destructive",
+                  onPress: () => onDelete?.(),
+                },
+              ]);
             },
           }
         : undefined,
