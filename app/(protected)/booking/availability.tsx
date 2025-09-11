@@ -1352,34 +1352,36 @@ export default function AvailabilitySelectionScreen() {
                 error={error}
               />
 
-              {/* Time Range Search Button */}
-              <View className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
-                <View className="flex-row items-center justify-between mb-3">
-                  <View className="flex-row items-center gap-3 flex-1">
-                    <Search size={20} color="#3b82f6" />
-                    <View className="flex-1">
-                      <Text className="font-semibold text-lg text-blue-800 dark:text-blue-200">
-                        Advanced Time Search
-                      </Text>
-                      <Text className="text-sm text-blue-700 dark:text-blue-300">
-                        Search within a time range and filter by table types
-                      </Text>
+              {/* Time Range Search Button - Only show for pro plan restaurants */}
+              {!isBasicTier && (
+                <View className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
+                  <View className="flex-row items-center justify-between mb-3">
+                    <View className="flex-row items-center gap-3 flex-1">
+                      <Search size={20} color="#3b82f6" />
+                      <View className="flex-1">
+                        <Text className="font-semibold text-lg text-blue-800 dark:text-blue-200">
+                          Advanced Time Search
+                        </Text>
+                        <Text className="text-sm text-blue-700 dark:text-blue-300">
+                          Search within a time range and filter by table types
+                        </Text>
+                      </View>
                     </View>
                   </View>
-                </View>
 
-                <Button
-                  onPress={handleOpenTimeRangeSearch}
-                  disabled={timeSlotsLoading}
-                  variant="outline"
-                  className="flex-row items-center justify-center gap-2 border-blue-300 dark:border-blue-700"
-                >
-                  <Clock size={16} color="#3b82f6" />
-                  <Text className="text-blue-700 dark:text-blue-300 font-medium">
-                    Search Time Range
-                  </Text>
-                </Button>
-              </View>
+                  <Button
+                    onPress={handleOpenTimeRangeSearch}
+                    disabled={timeSlotsLoading}
+                    variant="outline"
+                    className="flex-row items-center justify-center gap-2 border-blue-300 dark:border-blue-700"
+                  >
+                    <Clock size={16} color="#3b82f6" />
+                    <Text className="text-blue-700 dark:text-blue-300 font-medium">
+                      Search Time Range
+                    </Text>
+                  </Button>
+                </View>
+              )}
 
               {/* Error message */}
               {error && (
