@@ -181,9 +181,7 @@ function BookingsScreenContent() {
             <View className="flex-1 justify-center py-20">
               {activeTab === "upcoming" ? (
                 <EmptyState
-                  icon={
-                    <Calendar size={48} className="text-muted-foreground" />
-                  }
+                  icon={Calendar}
                   title="No Upcoming Bookings"
                   subtitle="Discover amazing restaurants and make your next reservation"
                   actionLabel="Explore Restaurants"
@@ -191,7 +189,7 @@ function BookingsScreenContent() {
                 />
               ) : (
                 <EmptyState
-                  icon={<Clock size={48} className="text-muted-foreground" />}
+                  icon={Clock}
                   title="No Past Bookings"
                   subtitle="Your completed bookings will appear here"
                 />

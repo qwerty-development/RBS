@@ -34,7 +34,7 @@ import * as Calendar from "expo-calendar";
 
 import { Image } from "@/components/image";
 import { Text } from "@/components/ui/text";
-import { H3 } from "@/components/ui/typography";
+import { H3, Muted } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { Database } from "@/types/supabase";
 import { supabase } from "@/config/supabase";
