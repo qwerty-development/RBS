@@ -8,39 +8,74 @@ type SpecialOffer = Database["public"]["Tables"]["special_offers"]["Row"] & {
   restaurant: Restaurant;
 };
 
+interface RestaurantWithCoordinates extends Restaurant {
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+}
+
 interface UseRestaurantsOptions {
   location?: { latitude: number; longitude: number } | null;
   limit?: number;
+  featured?: boolean;
+  cuisineType?: string;
+  minRating?: number;
 }
 
 export function useRestaurants(options: UseRestaurantsOptions = {}) {
-  const { location, limit = 10 } = options;
+  const { location, limit = 10, featured, cuisineType, minRating } = options;
 
-  const [featuredRestaurants, setFeaturedRestaurants] = useState<Restaurant[]>(
-    [],
-  );
-  const [recentlyBooked, setRecentlyBooked] = useState<Restaurant[]>([]);
+  const [featuredRestaurants, setFeaturedRestaurants] = useState<
+    RestaurantWithCoordinates[]
+  >([]);
+  const [recentlyBooked, setRecentlyBooked] = useState<
+    RestaurantWithCoordinates[]
+  >([]);
   const [specialOffers, setSpecialOffers] = useState<SpecialOffer[]>([]);
+  const [allRestaurants, setAllRestaurants] = useState<
+    RestaurantWithCoordinates[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchFeaturedRestaurants = useCallback(async () => {
     try {
-      const { data, error } = await supabase
-        .from("restaurants")
-        .select("*")
-        .eq("featured", true)
-        .gte("average_rating", 4.0)
-        .order("average_rating", { ascending: false })
-        .limit(limit);
+      const { data, error } = await supabase.rpc(
+        "get_restaurants_with_coordinates",
+        {
+          p_limit: limit,
+          p_featured: featured,
+          p_cuisine_type: cuisineType,
+          p_min_rating: minRating,
+        },
+      );
 
       if (error) throw error;
-      setFeaturedRestaurants(data || []);
+
+      // Transform data to include coordinates property
+      const transformedData =
+        (data as any[])?.map((restaurant: any) => ({
+          ...restaurant,
+          coordinates:
+            restaurant.latitude && restaurant.longitude
+              ? {
+                  latitude: restaurant.latitude,
+                  longitude: restaurant.longitude,
+                }
+              : undefined,
+        })) || [];
+
+      if (featured || cuisineType || minRating) {
+        setAllRestaurants(transformedData);
+      } else {
+        setFeaturedRestaurants(transformedData);
+      }
     } catch (err) {
-      console.error("Error fetching featured restaurants:", err);
-      setError("Failed to load featured restaurants");
+      console.error("Error fetching restaurants:", err);
+      setError("Failed to load restaurants");
     }
-  }, [limit]);
+  }, [limit, featured, cuisineType, minRating]);
 
   const fetchRecentlyBooked = useCallback(async (userId: string) => {
     try {
@@ -112,6 +147,7 @@ export function useRestaurants(options: UseRestaurantsOptions = {}) {
     featuredRestaurants,
     recentlyBooked,
     specialOffers,
+    allRestaurants, // Added this for direct restaurant queries
     loading,
     error,
     refetch,

@@ -6,7 +6,8 @@ import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { useBookingsStore } from "@/stores";
-import { Database, BookingEligibilityResult } from "@/types/supabase";
+import { Database } from "@/types/supabase";
+import { BookingEligibilityResult } from "@/types/database-functions";
 import {
   isValidDate,
   parseDate,

@@ -2,10 +2,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
-import type {
+import type { Database } from "@/types/supabase";
+import {
   BookingEligibilityResult,
   UserRatingTierResult,
-} from "@/types/supabase";
+} from "@/types/database-functions";
 
 // Types
 interface UserRatingStats {

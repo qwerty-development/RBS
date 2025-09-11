@@ -5,22 +5,10 @@ import * as Location from "expo-location";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAuth } from "@/context/supabase-provider";
 import { supabase } from "@/config/supabase";
+import { Database } from "@/types/supabase";
 
-// Type definitions
-interface Restaurant {
-  id: string;
-  name: string;
-  cuisine_type: string;
-  main_image_url: string;
-  tags: string[];
-  average_rating: number;
-  total_reviews: number;
-  address: string;
-  price_range: number;
-  booking_policy: "instant" | "request";
-  created_at?: string;
-  featured?: boolean;
-}
+// Use actual database types instead of hardcoded interface
+type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
 interface LocationData {
   latitude?: number;
@@ -176,8 +164,8 @@ export function useHomeScreenLogic() {
         .select("*")
         .eq("featured", true)
         .eq("status", "active")
-        .gte("average_rating", 4.0)
         .order("average_rating", { ascending: false })
+        .order("total_reviews", { ascending: false })
         .limit(8);
 
       if (error) throw error;
@@ -189,13 +177,10 @@ export function useHomeScreenLogic() {
 
   const fetchNewRestaurants = useCallback(async () => {
     try {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
       const { data, error } = await supabase
         .from("restaurants")
         .select("*")
-        .gte("created_at", thirtyDaysAgo.toISOString())
+        .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(6);
 
@@ -211,8 +196,7 @@ export function useHomeScreenLogic() {
       const { data, error } = await supabase
         .from("restaurants")
         .select("*")
-        .gte("average_rating", 4.5)
-        .gte("total_reviews", 10)
+        .eq("status", "active")
         .order("average_rating", { ascending: false })
         .order("total_reviews", { ascending: false })
         .limit(6);
@@ -229,9 +213,9 @@ export function useHomeScreenLogic() {
       const { data, error } = await supabase
         .from("restaurants")
         .select("*")
-        .gte("average_rating", 4.0)
-        .gte("total_reviews", 5)
+        .eq("status", "active")
         .order("total_reviews", { ascending: false })
+        .order("average_rating", { ascending: false })
         .limit(6);
 
       if (error) throw error;
@@ -246,7 +230,8 @@ export function useHomeScreenLogic() {
       const { data, error } = await supabase
         .from("restaurants")
         .select("*")
-        .order("average_rating", { ascending: false })
+        .eq("status", "active")
+        .order("created_at", { ascending: false })
         .limit(6);
 
       if (error) throw error;

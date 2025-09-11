@@ -1,4 +1,4 @@
-import { SpecialOffer } from "@/types/restaurant";
+import { SpecialOffer } from "@/types/database-functions";
 import {
   CheckCircle,
   Clock,
@@ -141,7 +141,7 @@ export const OfferCard: React.FC<{
       </View>
 
       {/* Terms */}
-      {offer.minimum_party_size > 1 && (
+      {offer.minimum_party_size && offer.minimum_party_size > 1 && (
         <View className="flex-row items-center mb-3">
           <Users size={14} color="#666" />
           <Text className="text-xs text-muted-foreground ml-1">

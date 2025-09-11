@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { Star, Heart, FolderPlus, Award } from "lucide-react-native";
+import { Star, Heart, FolderPlus, Award, MapPin } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { format } from "date-fns";
 
@@ -100,43 +100,80 @@ export function RestaurantCard({
     setPlaylistModalVisible(false);
   };
 
-  const renderStars = (rating: number) => (
-    <View className="flex-row items-center gap-1.5">
-      <View className="flex-row items-center gap-0.5">
-        <Star
-          size={variant === "compact" ? 12 : 14}
-          color="#F2B25F"
-          fill="#F2B25F"
-        />
+  const renderStars = (rating: number) => {
+    // Handle case when there are no reviews (rating is 0)
+    if (!rating || rating === 0) {
+      return (
+        <View className="flex-row items-center gap-1.5">
+          <Text
+            className={cn(
+              "text-muted-foreground",
+              variant === "compact" ? "text-xs" : "text-sm",
+            )}
+          >
+            No reviews yet
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View className="flex-row items-center gap-1.5">
+        <View className="flex-row items-center gap-0.5">
+          <Star
+            size={variant === "compact" ? 12 : 14}
+            color="#F2B25F"
+            fill="#F2B25F"
+          />
+          <Text
+            className={cn(
+              "font-semibold",
+              variant === "compact" ? "text-xs" : "text-sm",
+            )}
+          >
+            {rating.toFixed(1)}
+          </Text>
+        </View>
+      </View>
+    );
+  };
+
+  const renderPriceRange = (priceRange?: number | null) => {
+    if (!priceRange) return null; // Don't show anything if no price range data
+
+    return (
+      <View className="bg-muted px-2 py-1 rounded-full">
         <Text
           className={cn(
-            "font-semibold",
+            "text-muted-foreground font-medium",
             variant === "compact" ? "text-xs" : "text-sm",
           )}
         >
-          {rating?.toFixed(1) || "N/A"}
+          {"$".repeat(priceRange)}
         </Text>
       </View>
-      {variant !== "compact" && (
-        <Text className="text-xs text-muted-foreground">
-          ({restaurantData.total_reviews || 0} reviews)
-        </Text>
-      )}
-    </View>
-  );
+    );
+  };
 
-  const renderPriceRange = (priceRange: number) => (
-    <View className="bg-muted px-2 py-1 rounded-full">
-      <Text
-        className={cn(
-          "text-muted-foreground font-medium",
-          variant === "compact" ? "text-xs" : "text-sm",
-        )}
-      >
-        {"$".repeat(priceRange || 1)}
-      </Text>
-    </View>
-  );
+  // Render location with MapPin icon
+  const renderLocation = (address?: string) => {
+    if (!address) return null;
+
+    return (
+      <View className="flex-row items-center gap-1.5 mt-1">
+        <MapPin size={variant === "compact" ? 12 : 14} color="#6B7280" />
+        <Text
+          className={cn(
+            "text-muted-foreground",
+            variant === "compact" ? "text-xs" : "text-sm",
+          )}
+          numberOfLines={1}
+        >
+          {address}
+        </Text>
+      </View>
+    );
+  };
 
   // Check if restaurant is currently open
   const isRestaurantOpen = () => {
@@ -190,7 +227,11 @@ export function RestaurantCard({
           >
             <View className="relative">
               <Image
-                source={{ uri: restaurantData.main_image_url }}
+                source={{
+                  uri:
+                    restaurantData.main_image_url ||
+                    "@/assets/default-avatar.jpeg",
+                }}
                 className="w-full h-32"
                 contentFit="cover"
               />
@@ -231,9 +272,12 @@ export function RestaurantCard({
 
               {/* Rating and Price */}
               <View className="flex-row items-center justify-between mb-2">
-                {renderStars(restaurantData.average_rating)}
+                {renderStars(restaurantData.average_rating || 0)}
                 {renderPriceRange(restaurantData.price_range)}
               </View>
+
+              {/* Location */}
+              {renderLocation(restaurantData.address)}
 
               {/* Loyalty indicator */}
               {renderLoyaltyIndicator()}
@@ -261,7 +305,11 @@ export function RestaurantCard({
           >
             <View className="relative">
               <Image
-                source={{ uri: restaurantData.main_image_url }}
+                source={{
+                  uri:
+                    restaurantData.main_image_url ||
+                    "@/assets/default-avatar.jpeg",
+                }}
                 className="w-full h-48"
                 contentFit="cover"
               />
@@ -330,9 +378,12 @@ export function RestaurantCard({
 
               {/* Rating and Price */}
               <View className="flex-row items-center justify-between mb-3">
-                {renderStars(restaurantData.average_rating)}
+                {renderStars(restaurantData.average_rating || 0)}
                 {renderPriceRange(restaurantData.price_range)}
               </View>
+
+              {/* Location */}
+              {renderLocation(restaurantData.address)}
 
               {/* Loyalty indicator */}
               {renderLoyaltyIndicator()}
@@ -359,7 +410,11 @@ export function RestaurantCard({
             <View className="flex-row">
               <View className="relative">
                 <Image
-                  source={{ uri: restaurantData.main_image_url }}
+                  source={{
+                    uri:
+                      restaurantData.main_image_url ||
+                      "@/assets/default-avatar.jpeg",
+                  }}
                   className="w-32 h-32 rounded-l-lg"
                   contentFit="cover"
                 />
@@ -400,9 +455,12 @@ export function RestaurantCard({
 
                 {/* Rating and Price */}
                 <View className="flex-row items-center justify-between mb-2">
-                  {renderStars(restaurantData.average_rating)}
+                  {renderStars(restaurantData.average_rating || 0)}
                   {renderPriceRange(restaurantData.price_range)}
                 </View>
+
+                {/* Location */}
+                {renderLocation(restaurantData.address)}
 
                 {/* Loyalty indicator */}
                 {renderLoyaltyIndicator()}

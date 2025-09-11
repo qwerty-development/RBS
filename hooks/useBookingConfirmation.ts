@@ -7,7 +7,7 @@ import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { AvailabilityService } from "@/lib/AvailabilityService";
 import { useUserRating } from "@/hooks/useUserRating";
-import type { BookingEligibilityResult } from "@/types/supabase";
+import type { BookingEligibilityResult } from "@/types/database-functions";
 
 interface BookingConfirmationProps {
   restaurantId: string;

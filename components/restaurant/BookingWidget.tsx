@@ -346,7 +346,9 @@ const QuickStats = React.memo<{
         <View className="flex-row items-center gap-1">
           <Trophy size={12} color="#10b981" />
           <Text className="text-lg font-bold text-green-600">
-            {restaurant.average_rating?.toFixed(1) || "4.5"}
+            {restaurant.average_rating && restaurant.average_rating > 0
+              ? restaurant.average_rating.toFixed(1)
+              : "No rating"}
           </Text>
         </View>
         <Text className="text-xs text-muted-foreground">Rating</Text>

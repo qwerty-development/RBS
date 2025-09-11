@@ -1182,7 +1182,10 @@ export default function AvailabilitySelectionScreen() {
               ? "Select Date & Time"
               : "Choose Your Experience"}
           </Text>
-          <Text className="text-center text-sm text-muted-foreground" numberOfLines={1}>
+          <Text
+            className="text-center text-sm text-muted-foreground"
+            numberOfLines={1}
+          >
             {restaurant.name}
           </Text>
         </View>

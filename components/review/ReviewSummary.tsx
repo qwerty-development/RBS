@@ -1,3 +1,4 @@
+import React from "react";
 import { Star, ThumbsUp } from "lucide-react-native";
 import { View, Text } from "react-native";
 import { Muted } from "../ui/typography";

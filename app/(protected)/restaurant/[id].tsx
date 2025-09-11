@@ -100,7 +100,7 @@ type Coordinates = {
 };
 
 // Custom hook for restaurant location - Updated to handle different location formats
-const useRestaurantLocation = (location: any) => {
+const useRestaurantLocation = (location: any, restaurant?: Restaurant) => {
   const [address, setAddress] = useState<string>("Loading...");
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -121,11 +121,14 @@ const useRestaurantLocation = (location: any) => {
       });
     }
 
-    // For now, use a simple address display
-    // In a real app, you might want to reverse geocode the coordinates
-    setAddress("Restaurant Location");
+    // Use the actual restaurant address instead of placeholder text
+    if (restaurant?.address) {
+      setAddress(restaurant.address);
+    } else {
+      setAddress("Address not available");
+    }
     setIsLoading(false);
-  }, [location]);
+  }, [location, restaurant]);
 
   return { address, coordinates, isLoading };
 };
@@ -332,7 +335,7 @@ const RestaurantHeaderInfo: React.FC<{
   restaurant: Restaurant;
   restaurantId: string;
 }> = ({ restaurant, restaurantId }) => {
-  const { address, isLoading } = useRestaurantLocation(restaurant.location);
+  const { address, isLoading } = useRestaurantLocation(restaurant.location, restaurant);
   const { checkAvailability } = useRestaurantAvailability(restaurantId);
 
   // Use the new availability check
@@ -388,16 +391,6 @@ const RestaurantHeaderInfo: React.FC<{
           </Text>
         </View>
       </View>
-
-      {restaurant.ambiance_tags && restaurant.ambiance_tags.length > 0 && (
-        <View className="flex-row flex-wrap gap-2">
-          {restaurant.ambiance_tags.slice(0, 3).map((tag, index) => (
-            <View key={index} className="bg-muted/50 px-2 py-1 rounded-full">
-              <Text className="text-xs text-muted-foreground">{tag}</Text>
-            </View>
-          ))}
-        </View>
-      )}
     </View>
   );
 };
@@ -550,6 +543,7 @@ const LocationMap: React.FC<{
 }> = ({ restaurant }) => {
   const { address, coordinates, isLoading } = useRestaurantLocation(
     restaurant.location,
+    restaurant,
   );
 
   // Default coordinates for Beirut
@@ -646,30 +640,35 @@ const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
       <View className="flex-row items-center gap-4 mb-4 p-3 bg-muted/20 rounded-xl">
         <View className="items-center">
           <Text className="text-2xl font-bold text-foreground">
-            {restaurant.average_rating?.toFixed(1) || "4.5"}
+            {restaurant.average_rating && restaurant.average_rating > 0
+              ? restaurant.average_rating.toFixed(1)
+              : "No rating"}
           </Text>
           <View className="flex-row mb-1">
-            {[1, 2, 3, 4, 5].map((star) => (
-              <Star
-                key={star}
-                size={14}
-                color="#f59e0b"
-                fill={
-                  star <= (restaurant.average_rating || 4.5)
-                    ? "#f59e0b"
-                    : "none"
-                }
-              />
-            ))}
+            {restaurant.average_rating && restaurant.average_rating > 0 ? (
+              [1, 2, 3, 4, 5].map((star) => (
+                <Star
+                  key={star}
+                  size={14}
+                  color="#f59e0b"
+                  fill={star <= restaurant.average_rating ? "#f59e0b" : "none"}
+                />
+              ))
+            ) : (
+              <Text className="text-muted-foreground text-sm">
+                No reviews yet
+              </Text>
+            )}
           </View>
-          <Text className="text-xs text-muted-foreground">
-            {restaurant.total_reviews || 0} reviews
+          <Text className="text-muted-foreground text-sm text-center">
+            ({restaurant.total_reviews || 0} review
+            {restaurant.total_reviews === 1 ? "" : "s"})
           </Text>
         </View>
 
         <View className="flex-1">
           <Text className="text-xs text-muted-foreground mb-1">
-            {restaurant.review_summary?.recommendation_percentage || 95}%
+            {restaurant.review_summary?.recommendation_percentage || 0}%
             recommend
           </Text>
           <View className="bg-border rounded-full h-1.5">
@@ -677,7 +676,7 @@ const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
               className="bg-green-500 h-1.5 rounded-full"
               style={{
                 width: `${
-                  restaurant.review_summary?.recommendation_percentage || 95
+                  restaurant.review_summary?.recommendation_percentage || 0
                 }%`,
               }}
             />
