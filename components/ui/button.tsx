@@ -1,9 +1,11 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 import { Pressable } from "react-native";
+import * as Haptics from "expo-haptics";
 import { cn } from "@/lib/utils";
 import { TextClassContext } from "@/components/ui/text";
 import { useButtonAccessibility } from "@/hooks/useAccessibility";
+import { useHapticPress } from "@/hooks/useHapticPress";
 
 const buttonVariants = cva(
   "group flex items-center justify-center rounded-3xl web:ring-offset-background web:transition-colors web:focus-visible:outline-none web:focus-visible:ring-2 web:focus-visible:ring-ring web:focus-visible:ring-offset-2 shadow-sm",
@@ -81,6 +83,21 @@ type ButtonProps = React.ComponentPropsWithoutRef<typeof Pressable> &
      * Whether this is a destructive action
      */
     destructive?: boolean;
+    /**
+     * Whether to enable haptic feedback
+     * @default true
+     */
+    enableHaptic?: boolean;
+    /**
+     * Whether to enable double-click prevention
+     * @default true
+     */
+    enableDebounce?: boolean;
+    /**
+     * Debounce delay in milliseconds
+     * @default 300
+     */
+    debounceMs?: number;
   };
 
 const Button = React.forwardRef<
@@ -96,12 +113,22 @@ const Button = React.forwardRef<
       accessibilityHint,
       loading,
       destructive,
+      enableHaptic = true,
+      enableDebounce = true,
+      debounceMs = 300,
       children,
+      onPress,
       ...props
     },
     ref,
   ) => {
     const { getButtonProps } = useButtonAccessibility();
+    const { handlePress: handleHapticPress } = useHapticPress({
+      hapticStyle: destructive ? Haptics.ImpactFeedbackStyle.Heavy : Haptics.ImpactFeedbackStyle.Medium,
+      debounceMs,
+      enableHaptic,
+      enableDebounce,
+    });
 
     // Determine button label from children if not provided
     const buttonLabel =
@@ -115,6 +142,13 @@ const Button = React.forwardRef<
       destructive: destructive || variant === "destructive",
       hint: accessibilityHint,
     });
+
+    // Handle press with haptic feedback and double-click prevention
+    const handlePress = React.useCallback(() => {
+      if (onPress && !props.disabled && !loading) {
+        handleHapticPress(() => onPress());
+      }
+    }, [onPress, props.disabled, loading, handleHapticPress]);
 
     return (
       <TextClassContext.Provider
@@ -131,6 +165,7 @@ const Button = React.forwardRef<
           )}
           ref={ref}
           role="button"
+          onPress={handlePress}
           {...accessibilityProps}
           {...props}
         >

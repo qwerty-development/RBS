@@ -2,6 +2,7 @@
 import React from "react";
 import { View, Pressable, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
+import { useNavigationModal } from "@/context/modal-provider";
 import * as Haptics from "expo-haptics";
 import {
   Star,
@@ -108,6 +109,7 @@ type RestaurantSearchCardProps =
 
 export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
   const router = useRouter();
+  const { openNavigationModal, isAnyModalOpen } = useNavigationModal();
 
   // Determine which props pattern we're using
   const isSearchScreen = "item" in props && props.item !== undefined;
@@ -134,11 +136,20 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
   const handleRestaurantPress = () => {
     if (disabled) return;
 
-    if (props.onPress) {
-      props.onPress();
-    } else {
-      router.push(`/restaurant/${restaurant.id}`);
+    // Check if any modal is already open
+    if (isAnyModalOpen) {
+      console.log(`Restaurant ${restaurant.id} press blocked - modal already open`);
+      return;
     }
+
+    // Use navigation modal to prevent multiple modals
+    openNavigationModal(`restaurant-${restaurant.id}`, () => {
+      if (props.onPress) {
+        props.onPress();
+      } else {
+        router.push(`/restaurant/${restaurant.id}`);
+      }
+    });
   };
 
   const handleFavoritePress = async (e: any) => {
@@ -276,22 +287,18 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
             {/* Compact row with rating, price, and distance with dot dividers */}
             <View className="flex-row items-center flex-wrap">
               {/* Rating */}
-              {(restaurant.average_rating || 0) > 0 && (
-                <>
-                  <View className="flex-row items-center">
-                    <Star size={12} color="#f59e0b" fill="#f59e0b" />
-                    <Text className="text-xs font-medium ml-1">
-                      {restaurant.average_rating?.toFixed(1)}
-                    </Text>
-                    <Text className="text-xs text-muted-foreground ml-1">
-                      ({restaurant.total_reviews || 0})
-                    </Text>
-                  </View>
+              <View className="flex-row items-center">
+                <Star size={12} color="#f59e0b" fill="#f59e0b" />
+                <Text className="text-xs font-medium ml-1">
+                  {restaurant.average_rating && restaurant.average_rating > 0 ? restaurant.average_rating.toFixed(1) : "-"}
+                </Text>
+                <Text className="text-xs text-muted-foreground ml-1">
+                  ({restaurant.total_reviews || 0})
+                </Text>
+              </View>
 
-                  {/* Dot divider */}
-                  <Text className="text-muted-foreground mx-2 text-xs">•</Text>
-                </>
-              )}
+              {/* Dot divider */}
+              <Text className="text-muted-foreground mx-2 text-xs">•</Text>
 
               {/* Price */}
               <View className="flex-row items-center">

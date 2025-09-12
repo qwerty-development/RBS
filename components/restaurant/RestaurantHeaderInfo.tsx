@@ -106,7 +106,7 @@ export const RestaurantHeaderInfo: React.FC<RestaurantHeaderInfoProps> = ({
                 <Text className="font-bold text-lg">
                   {restaurant.average_rating.toFixed(1)}
                 </Text>
-                {restaurant.total_reviews && (
+                {restaurant.total_reviews && restaurant.total_reviews > 0 && (
                   <Text className="text-sm text-muted-foreground ml-1">
                     ({restaurant.total_reviews})
                   </Text>

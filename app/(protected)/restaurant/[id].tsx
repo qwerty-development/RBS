@@ -51,6 +51,7 @@ import { useRestaurant } from "@/hooks/useRestaurant";
 import { useRestaurantReviews } from "@/hooks/useRestaurantReviews";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
+import { useBookingPress, useQuickActionPress, useModalPress } from "@/hooks/useHapticPress";
 
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 import RestaurantDetailsScreenSkeleton from "@/components/skeletons/RestaurantDetailsScreenSkeleton";
@@ -149,19 +150,22 @@ const ImageGalleryModal: React.FC<{
     setCurrentIndex(initialIndex);
   }, [initialIndex]);
 
+  const { handlePress: handleModalPress } = useModalPress();
+
   const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    handleModalPress(() => {
+      setCurrentIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+    });
   };
 
   const goToNext = () => {
-    setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    handleModalPress(() => {
+      setCurrentIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+    });
   };
 
   const handleClose = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    onClose();
+    handleModalPress(onClose);
   };
 
   if (!visible || images.length === 0) return null;
@@ -361,7 +365,7 @@ const RestaurantHeaderInfo: React.FC<{
           <View className="flex-row items-center gap-1 mb-1">
             <Star size={16} color="#f59e0b" fill="#f59e0b" />
             <Text className="font-semibold">
-              {restaurant.average_rating?.toFixed(1) || "4.5"}
+              {restaurant.average_rating && restaurant.average_rating > 0 ? restaurant.average_rating.toFixed(1) : "-"}
             </Text>
             <Text className="text-muted-foreground">
               ({restaurant.total_reviews || 0})
@@ -642,34 +646,26 @@ const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
           <Text className="text-2xl font-bold text-foreground">
             {restaurant.average_rating && restaurant.average_rating > 0
               ? restaurant.average_rating.toFixed(1)
-              : "No rating"}
+              : "-"}
           </Text>
           <View className="flex-row mb-1">
-            {restaurant.average_rating && restaurant.average_rating > 0 ? (
-              [1, 2, 3, 4, 5].map((star) => (
-                <Star
-                  key={star}
-                  size={14}
-                  color="#f59e0b"
-                  fill={star <= restaurant.average_rating ? "#f59e0b" : "none"}
-                />
-              ))
-            ) : (
-              <Text className="text-muted-foreground text-sm">
-                No reviews yet
-              </Text>
-            )}
+            {[1, 2, 3, 4, 5].map((star) => (
+              <Star
+                key={star}
+                size={14}
+                color="#f59e0b"
+                fill={star <= (restaurant.average_rating || 0) ? "#f59e0b" : "none"}
+              />
+            ))}
           </View>
-          <Text className="text-muted-foreground text-sm text-center">
-            ({restaurant.total_reviews || 0} review
-            {restaurant.total_reviews === 1 ? "" : "s"})
-          </Text>
         </View>
 
         <View className="flex-1">
           <Text className="text-xs text-muted-foreground mb-1">
-            {restaurant.review_summary?.recommendation_percentage || 0}%
-            recommend
+            {restaurant.review_summary?.recommendation_percentage && restaurant.review_summary.recommendation_percentage > 0 
+              ? `${restaurant.review_summary.recommendation_percentage}% recommend`
+              : "No recommendation yet"
+            }
           </Text>
           <View className="bg-border rounded-full h-1.5">
             <View
@@ -771,22 +767,32 @@ export default function RestaurantDetailsScreen() {
   const { handleWriteReview: handleWriteReviewFromReviews } =
     useRestaurantReviews(id!);
 
+  // Haptic press hooks
+  const { handlePress: handleBookingPress } = useBookingPress();
+  const { handlePress: handleQuickActionPress } = useQuickActionPress();
+
   // Action Handlers with Guest Guard
   const handleToggleFavorite = useCallback(() => {
-    runProtectedAction(toggleFavorite, "save restaurants");
-  }, [runProtectedAction, toggleFavorite]);
+    handleQuickActionPress(() => {
+      runProtectedAction(toggleFavorite, "save restaurants");
+    });
+  }, [runProtectedAction, toggleFavorite, handleQuickActionPress]);
 
   const handleAddToPlaylist = useCallback(() => {
-    runProtectedAction(
-      () => setShowAddToPlaylist(true),
-      "add restaurants to a playlist",
-    );
-  }, [runProtectedAction]);
+    handleQuickActionPress(() => {
+      runProtectedAction(
+        () => setShowAddToPlaylist(true),
+        "add restaurants to a playlist",
+      );
+    });
+  }, [runProtectedAction, handleQuickActionPress]);
 
   const handleWriteReview = useCallback(() => {
     if (!restaurant) return;
-    runProtectedAction(() => handleWriteReviewFromReviews(), "write a review");
-  }, [runProtectedAction, handleWriteReviewFromReviews, restaurant]);
+    handleQuickActionPress(() => {
+      runProtectedAction(() => handleWriteReviewFromReviews(), "write a review");
+    });
+  }, [runProtectedAction, handleWriteReviewFromReviews, restaurant, handleQuickActionPress]);
 
   // FIXED: Navigate to availability screen instead of using BookingWidget
   const handleBookTable = useCallback(() => {
@@ -801,8 +807,10 @@ export default function RestaurantDetailsScreen() {
   }, [router, id, restaurant]);
 
   const handleAttemptBooking = useCallback(() => {
-    runProtectedAction(handleBookTable, "book a table");
-  }, [runProtectedAction, handleBookTable]);
+    handleBookingPress(() => {
+      runProtectedAction(handleBookTable, "book a table");
+    });
+  }, [runProtectedAction, handleBookTable, handleBookingPress]);
 
   const handleAddToPlaylistSuccess = useCallback(
     (playlistName: string) => {
@@ -833,28 +841,37 @@ export default function RestaurantDetailsScreen() {
   }, [restaurant]);
 
   const handleWebsite = useCallback(() => {
-    if ((restaurant as any)?.website_url) {
-      Linking.openURL((restaurant as any).website_url);
-    }
-  }, [(restaurant as any)?.website_url]);
+    handleQuickActionPress(() => {
+      if ((restaurant as any)?.website_url) {
+        Linking.openURL((restaurant as any).website_url);
+      }
+    });
+  }, [(restaurant as any)?.website_url, handleQuickActionPress]);
 
   const handleViewAllReviews = useCallback(() => {
-    router.push({
-      pathname: "/restaurant/[id]/reviews",
-      params: { id: id! },
+    handleQuickActionPress(() => {
+      router.push({
+        pathname: "/restaurant/[id]/reviews",
+        params: { id: id! },
+      });
     });
-  }, [router, id]);
+  }, [router, id, handleQuickActionPress]);
 
   const handleViewMenu = useCallback(() => {
     if (!restaurant) return;
-    router.push(`/restaurant/menu/${restaurant.id}`);
-  }, [router, restaurant?.id]);
+    handleQuickActionPress(() => {
+      router.push(`/restaurant/menu/${restaurant.id}`);
+    });
+  }, [router, restaurant?.id, handleQuickActionPress]);
+
+  const { handlePress: handleModalPress } = useModalPress();
 
   const handleImagePress = useCallback((index: number) => {
-    setSelectedImageIndex(index);
-    setShowImageGallery(true);
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, []);
+    handleModalPress(() => {
+      setSelectedImageIndex(index);
+      setShowImageGallery(true);
+    });
+  }, [handleModalPress]);
 
   // Loading and Error States
   if (loading) {

@@ -97,4 +97,9 @@ export const CUISINE_CATEGORIES: CuisineCategory[] = [
     label: "Seafood",
     image: require("@/assets/cuisine-categories/seafood.png"),
   },
+  {
+    id: "mediterranean",
+    label: "Mediterranean",
+    image: require("@/assets/cuisine-categories/mediterranean.png"),
+  },
 ];

@@ -1,6 +1,8 @@
 import React from "react";
 import { View, Pressable, Image } from "react-native";
 import { Text } from "@/components/ui/text";
+import { useHapticPress } from "@/hooks/useHapticPress";
+import { useNavigationModal } from "@/context/modal-provider";
 
 interface CuisineItem {
   id: string;
@@ -15,8 +17,27 @@ interface CuisineCategoryProps {
 }
 
 export function CuisineCategory({ cuisine, onPress }: CuisineCategoryProps) {
+  const { handlePress: handleHapticPress } = useHapticPress({
+    debounceMs: 500, // Longer debounce for navigation
+    enableHaptic: true,
+    enableDebounce: true,
+  });
+  
+  const { openNavigationModal, isAnyModalOpen } = useNavigationModal();
+
   const handlePress = () => {
-    onPress(cuisine.id);
+    handleHapticPress(() => {
+      // Check if any modal is already open
+      if (isAnyModalOpen) {
+        console.log(`Cuisine ${cuisine.id} press blocked - modal already open`);
+        return;
+      }
+
+      // Use navigation modal to prevent multiple modals
+      openNavigationModal(`cuisine-${cuisine.id}`, () => {
+        onPress(cuisine.id);
+      });
+    });
   };
 
   return (

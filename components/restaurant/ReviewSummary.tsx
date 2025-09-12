@@ -57,7 +57,7 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
         </View>
 
         <Text className="text-xs text-muted-foreground w-8 text-right">
-          {count || 0}
+          {count > 0 ? count : "-"}
         </Text>
       </View>
     );
@@ -76,9 +76,9 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
           <Star
             size={20}
             color="#f59e0b"
-            fill={avgRating > 0 ? "#f59e0b" : "transparent"}
+            fill="#f59e0b"
           />
-          <Text className="font-bold text-lg">{avgRating.toFixed(1)}</Text>
+          <Text className="font-bold text-lg">{avgRating > 0 ? avgRating.toFixed(1) : "-"}</Text>
           <Text className="text-muted-foreground">({totalReviews})</Text>
         </View>
       </View>
@@ -87,7 +87,7 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
         {/* Overall Rating */}
         <View className="items-center mb-6">
           <Text className="text-4xl font-bold mb-2">
-            {avgRating.toFixed(1)}
+            {avgRating > 0 ? avgRating.toFixed(1) : "-"}
           </Text>
           {renderStars(Math.round(avgRating), 24)}
           <Text className="text-muted-foreground mt-2">

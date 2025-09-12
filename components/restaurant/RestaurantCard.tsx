@@ -3,7 +3,6 @@ import React, { useState } from "react";
 import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Star, Heart, FolderPlus, Award, MapPin } from "lucide-react-native";
-import * as Haptics from "expo-haptics";
 import { format } from "date-fns";
 
 import { Image } from "@/components/image";
@@ -15,6 +14,8 @@ import { AddToPlaylistModal } from "@/components/playlists/AddToPlaylistModal"; 
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
 import { useRestaurantLoyalty } from "@/hooks/useRestaurantLoyalty";
+import { useRestaurantPress, useQuickActionPress } from "@/hooks/useHapticPress";
+import { useNavigationModal } from "@/context/modal-provider";
 
 type BaseRestaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -60,6 +61,13 @@ export function RestaurantCard({
 }: RestaurantCardProps) {
   const router = useRouter();
   const [isPlaylistModalVisible, setPlaylistModalVisible] = useState(false);
+  
+  // Haptic press hooks
+  const { handlePress: handleRestaurantPress } = useRestaurantPress();
+  const { handlePress: handleQuickActionPress } = useQuickActionPress();
+  
+  // Modal state management
+  const { openNavigationModal, isAnyModalOpen } = useNavigationModal();
 
   // Support both restaurant and item props for backward compatibility
   const restaurantData = restaurant || item;
@@ -79,19 +87,31 @@ export function RestaurantCard({
   }
 
   const handlePress = () => {
-    if (onPress) {
-      onPress(restaurantData.id);
-    } else {
-      router.push({
-        pathname: "/restaurant/[id]",
-        params: { id: restaurantData.id },
+    handleRestaurantPress(() => {
+      // Check if any modal is already open
+      if (isAnyModalOpen) {
+        console.log(`Restaurant ${restaurantData.id} press blocked - modal already open`);
+        return;
+      }
+
+      // Use navigation modal to prevent multiple modals
+      openNavigationModal(`restaurant-${restaurantData.id}`, () => {
+        if (onPress) {
+          onPress(restaurantData.id);
+        } else {
+          router.push({
+            pathname: "/restaurant/[id]",
+            params: { id: restaurantData.id },
+          });
+        }
       });
-    }
+    });
   };
 
-  const handleAddToPlaylistPress = async () => {
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setPlaylistModalVisible(true);
+  const handleAddToPlaylistPress = () => {
+    handleQuickActionPress(() => {
+      setPlaylistModalVisible(true);
+    });
   };
 
   const handlePlaylistSuccess = (playlistName: string) => {
@@ -101,22 +121,6 @@ export function RestaurantCard({
   };
 
   const renderStars = (rating: number) => {
-    // Handle case when there are no reviews (rating is 0)
-    if (!rating || rating === 0) {
-      return (
-        <View className="flex-row items-center gap-1.5">
-          <Text
-            className={cn(
-              "text-muted-foreground",
-              variant === "compact" ? "text-xs" : "text-sm",
-            )}
-          >
-            No reviews yet
-          </Text>
-        </View>
-      );
-    }
-
     return (
       <View className="flex-row items-center gap-1.5">
         <View className="flex-row items-center gap-0.5">
@@ -131,7 +135,7 @@ export function RestaurantCard({
               variant === "compact" ? "text-xs" : "text-sm",
             )}
           >
-            {rating.toFixed(1)}
+            {rating && rating > 0 ? rating.toFixed(1) : "-"}
           </Text>
         </View>
       </View>
@@ -155,23 +159,19 @@ export function RestaurantCard({
     );
   };
 
-  // Render location with MapPin icon
-  const renderLocation = (address?: string) => {
-    if (!address) return null;
-
+  // Render status dot (green for open, red for closed)
+  const renderStatusDot = () => {
+    if (!showAvailability || availabilityLoading) return null;
+    
+    const isOpen = checkAvailability(new Date(), format(new Date(), "HH:mm")).isOpen;
+    
     return (
-      <View className="flex-row items-center gap-1.5 mt-1">
-        <MapPin size={variant === "compact" ? 12 : 14} color="#6B7280" />
-        <Text
-          className={cn(
-            "text-muted-foreground",
-            variant === "compact" ? "text-xs" : "text-sm",
-          )}
-          numberOfLines={1}
-        >
-          {address}
-        </Text>
-      </View>
+      <View
+        className={cn(
+          "w-2 h-2 rounded-full",
+          isOpen ? "bg-green-500" : "bg-red-500"
+        )}
+      />
     );
   };
 
@@ -181,9 +181,9 @@ export function RestaurantCard({
     return checkAvailability(new Date(), format(new Date(), "HH:mm")).isOpen;
   };
 
-  // Get card opacity based on availability
+  // Remove graying out effect - always show full opacity
   const getCardOpacity = () => {
-    return isRestaurantOpen() ? "opacity-100" : "opacity-60";
+    return "opacity-100";
   };
 
   // Render loyalty indicator
@@ -238,7 +238,7 @@ export function RestaurantCard({
               {/* Favorite button overlay */}
               {showFavorite && onFavoritePress && (
                 <Pressable
-                  onPress={onFavoritePress}
+                  onPress={() => handleQuickActionPress(onFavoritePress)}
                   className="absolute top-2 right-2 bg-black/60 rounded-full p-1.5"
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
@@ -254,12 +254,15 @@ export function RestaurantCard({
             <View className="p-3">
               {/* Name and Cuisine in a row */}
               <View className="flex-row items-center justify-between mb-2">
-                <Text
-                  className="font-bold text-base flex-1 mr-2"
-                  numberOfLines={1}
-                >
-                  {restaurantData.name}
-                </Text>
+                <View className="flex-row items-center gap-2 flex-1 mr-2">
+                  <Text
+                    className="font-bold text-base flex-1"
+                    numberOfLines={1}
+                  >
+                    {restaurantData.name}
+                  </Text>
+                  {renderStatusDot()}
+                </View>
                 <View className="bg-primary/10 px-2.5 py-1 rounded-full">
                   <Text
                     className="text-xs font-medium text-primary"
@@ -275,9 +278,6 @@ export function RestaurantCard({
                 {renderStars(restaurantData.average_rating || 0)}
                 {renderPriceRange(restaurantData.price_range)}
               </View>
-
-              {/* Location */}
-              {renderLocation(restaurantData.address)}
 
               {/* Loyalty indicator */}
               {renderLoyaltyIndicator()}
@@ -336,7 +336,7 @@ export function RestaurantCard({
                 )}
                 {showFavorite && onFavoritePress && (
                   <Pressable
-                    onPress={onFavoritePress}
+                    onPress={() => handleQuickActionPress(onFavoritePress)}
                     className="bg-black/50 rounded-full p-2"
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
@@ -360,12 +360,15 @@ export function RestaurantCard({
             <View className="p-4">
               {/* Name and Cuisine in a row */}
               <View className="flex-row items-center justify-between mb-3">
-                <Text
-                  className="font-bold text-lg flex-1 mr-3"
-                  numberOfLines={1}
-                >
-                  {restaurantData.name}
-                </Text>
+                <View className="flex-row items-center gap-2 flex-1 mr-3">
+                  <Text
+                    className="font-bold text-lg flex-1"
+                    numberOfLines={1}
+                  >
+                    {restaurantData.name}
+                  </Text>
+                  {renderStatusDot()}
+                </View>
                 <View className="bg-primary/10 px-3 py-1.5 rounded-full">
                   <Text
                     className="text-sm font-medium text-primary"
@@ -381,9 +384,6 @@ export function RestaurantCard({
                 {renderStars(restaurantData.average_rating || 0)}
                 {renderPriceRange(restaurantData.price_range)}
               </View>
-
-              {/* Location */}
-              {renderLocation(restaurantData.address)}
 
               {/* Loyalty indicator */}
               {renderLoyaltyIndicator()}
@@ -421,7 +421,7 @@ export function RestaurantCard({
                 {/* Favorite button overlay */}
                 {showFavorite && onFavoritePress && (
                   <Pressable
-                    onPress={onFavoritePress}
+                    onPress={() => handleQuickActionPress(onFavoritePress)}
                     className="absolute top-2 right-2 bg-black/60 rounded-full p-1"
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                   >
@@ -437,12 +437,15 @@ export function RestaurantCard({
               <View className="flex-1 p-3">
                 {/* Name and Cuisine */}
                 <View className="flex-row items-center justify-between mb-2">
-                  <Text
-                    className="font-bold text-base flex-1 mr-2"
-                    numberOfLines={1}
-                  >
-                    {restaurantData.name}
-                  </Text>
+                  <View className="flex-row items-center gap-2 flex-1 mr-2">
+                    <Text
+                      className="font-bold text-base flex-1"
+                      numberOfLines={1}
+                    >
+                      {restaurantData.name}
+                    </Text>
+                    {renderStatusDot()}
+                  </View>
                   <View className="bg-primary/10 px-2.5 py-1 rounded-full">
                     <Text
                       className="text-xs font-medium text-primary"
@@ -458,9 +461,6 @@ export function RestaurantCard({
                   {renderStars(restaurantData.average_rating || 0)}
                   {renderPriceRange(restaurantData.price_range)}
                 </View>
-
-                {/* Location */}
-                {renderLocation(restaurantData.address)}
 
                 {/* Loyalty indicator */}
                 {renderLoyaltyIndicator()}
