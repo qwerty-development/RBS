@@ -332,20 +332,16 @@ export function BookingCard({
     e.stopPropagation();
     onNavigateToRestaurant?.(booking.restaurant_id);
   };
-  const handleCancelBooking = (e: any) => {
-    e.stopPropagation();
+  const handleCancelBooking = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onCancel?.(booking.id);
   };
 
-  const handleLeaveBooking = (e: any) => {
-    e.stopPropagation();
+  const handleLeaveBooking = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onLeave?.(booking);
   };
-  const handleQuickCall = async (e: any) => {
-    e.stopPropagation();
-
+  const handleQuickCall = async () => {
     if (!booking.restaurant.phone) {
       Alert.alert(
         "No Phone Number",
@@ -368,9 +364,7 @@ export function BookingCard({
       Alert.alert("Error", "Unable to make phone call");
     }
   };
-  const handleDirections = async (e: any) => {
-    e.stopPropagation();
-
+  const handleDirections = async () => {
     if (!booking.restaurant) return;
 
     // Extract coordinates from restaurant location
@@ -401,9 +395,7 @@ export function BookingCard({
       }
     }
   };
-  const handleCopyConfirmation = async (e: any) => {
-    e.stopPropagation();
-
+  const handleCopyConfirmation = async () => {
     if (!booking.confirmation_code) return;
 
     try {
@@ -416,9 +408,7 @@ export function BookingCard({
     }
   };
 
-  const handleAddToCalendar = async (e: any) => {
-    e.stopPropagation();
-
+  const handleAddToCalendar = async () => {
     if (isAddingToCalendar) return;
 
     try {
@@ -599,12 +589,10 @@ export function BookingCard({
     // But keeping it for backward compatibility
     await openCalendarUIWithEvent();
   };
-  const handleReview = (e: any) => {
-    e.stopPropagation();
+  const handleReview = () => {
     onReview?.(booking);
   };
-  const handleRebook = (e: any) => {
-    e.stopPropagation();
+  const handleRebook = () => {
     onRebook?.(booking);
   };
 
