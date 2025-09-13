@@ -28,9 +28,7 @@
       },
       "bundleIdentifier": "com.notqwerty.plate",
       "splash": {
-        "image": "./assets/text-plate.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#00000000"
+        "backgroundColor": "#ffece2"
       },
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Plate uses your location to find nearby restaurants and provide personalized recommendations.",
@@ -91,9 +89,7 @@
         "android.permission.WRITE_CALENDAR"
       ],
       "splash": {
-        "image": "./assets/text-plate.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#00000000"
+        "backgroundColor": "#ffece2"
       },
       "intentFilters": [
         {
