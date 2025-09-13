@@ -30,7 +30,7 @@
       "splash": {
         "image": "./assets/text-plate.png",
         "resizeMode": "contain",
-        "backgroundColor": "transparent"
+        "backgroundColor": "#00000000"
       },
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Plate uses your location to find nearby restaurants and provide personalized recommendations.",
@@ -93,7 +93,7 @@
       "splash": {
         "image": "./assets/text-plate.png",
         "resizeMode": "contain",
-        "backgroundColor": "transparent"
+        "backgroundColor": "#00000000"
       },
       "intentFilters": [
         {
