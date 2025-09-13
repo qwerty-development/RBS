@@ -19,6 +19,8 @@ import * as Clipboard from "expo-clipboard";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
+import { colors } from "@/constants/colors";
+import { useColorScheme } from "@/lib/useColorScheme";
 
 interface BookingActionsBarProps {
   booking: {
@@ -69,6 +71,7 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
   onNavigateToOffers,
   onEdit,
 }) => {
+  const { colorScheme } = useColorScheme();
   const callRestaurant = async () => {
     if (!booking.restaurant.phone_number) return;
 
@@ -195,10 +198,14 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
         {/* Book Again for Completed/Cancelled */}
         {(booking.status === "completed" ||
           booking.status === "cancelled_by_user") && (
-          <Button variant="secondary" onPress={onBookAgain} className="flex-1">
+          <Button 
+            variant="default" 
+            onPress={onBookAgain} 
+            className="flex-1 bg-primary"
+          >
             <View className="flex-row items-center gap-2">
-              <Calendar size={16} />
-              <Text>Book Again</Text>
+              <Calendar size={16} color={colors[colorScheme].primaryForeground} />
+              <Text className="text-primary-foreground">Book Again</Text>
             </View>
           </Button>
         )}

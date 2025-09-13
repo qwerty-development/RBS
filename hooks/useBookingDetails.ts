@@ -81,6 +81,33 @@ export const useBookingDetails = (bookingId: string) => {
         throw new Error("Booking not found");
       }
 
+      // Check if this is an expired pending booking and update it
+      const now = new Date();
+      if (bookingData.status === "pending" && new Date(bookingData.booking_time) < now) {
+        console.log(`Found expired pending booking ${bookingId}, updating to declined_by_restaurant`);
+        
+        try {
+          const { error: updateError } = await supabase
+            .from("bookings")
+            .update({ 
+              status: "declined_by_restaurant",
+              updated_at: new Date().toISOString()
+            })
+            .eq("id", bookingId);
+
+          if (updateError) {
+            console.error(`Error updating expired booking ${bookingId}:`, updateError);
+          } else {
+            console.log(`Successfully updated booking ${bookingId} from pending to declined_by_restaurant`);
+            // Update the local booking data
+            bookingData.status = "declined_by_restaurant";
+            bookingData.updated_at = new Date().toISOString();
+          }
+        } catch (error) {
+          console.error(`Error updating expired booking ${bookingId}:`, error);
+        }
+      }
+
       setBooking(bookingData);
 
       // NEW: Fetch assigned tables

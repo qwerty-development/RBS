@@ -200,6 +200,67 @@ export function useBookings() {
       setError(null);
       const now = new Date().toISOString();
 
+      // First, find and update any expired pending bookings
+      console.log("Checking for expired pending bookings to update...");
+      console.log("Current time:", now);
+      
+      // Debug: Let's see ALL pending bookings first
+      const { data: allPendingBookings, error: allPendingError } = await supabase
+        .from("bookings")
+        .select("id, booking_time, status")
+        .eq("user_id", userId)
+        .eq("status", "pending");
+        
+      if (allPendingBookings && allPendingBookings.length > 0) {
+        console.log("All pending bookings:", allPendingBookings.map(b => ({ 
+          id: b.id, 
+          time: b.booking_time, 
+          isExpired: new Date(b.booking_time) < new Date(now) 
+        })));
+      } else {
+        console.log("No pending bookings found at all");
+      }
+      
+      const { data: expiredPendingBookings, error: expiredError } = await supabase
+        .from("bookings")
+        .select("id, booking_time, status")
+        .eq("user_id", userId)
+        .eq("status", "pending")
+        .lt("booking_time", now);
+
+      if (expiredError) {
+        console.error("Error fetching expired pending bookings:", expiredError);
+      } else if (expiredPendingBookings && expiredPendingBookings.length > 0) {
+        console.log(`Found ${expiredPendingBookings.length} expired pending bookings to update:`, 
+          expiredPendingBookings.map(b => ({ id: b.id, time: b.booking_time })));
+
+        // Update all expired pending bookings
+        const updatePromises = expiredPendingBookings.map(async (booking) => {
+          try {
+            console.log(`Updating expired booking ${booking.id} from pending to declined_by_restaurant`);
+            const { error: updateError } = await supabase
+              .from("bookings")
+              .update({ 
+                status: "declined_by_restaurant",
+                updated_at: new Date().toISOString()
+              })
+              .eq("id", booking.id);
+
+            if (updateError) {
+              console.error(`Error updating booking ${booking.id}:`, updateError);
+            } else {
+              console.log(`✅ Successfully updated booking ${booking.id} from pending to declined_by_restaurant`);
+            }
+          } catch (error) {
+            console.error(`Error updating expired booking ${booking.id}:`, error);
+          }
+        });
+
+        await Promise.allSettled(updatePromises);
+      } else {
+        console.log("No expired pending bookings found");
+      }
+
       // Fetch both owned bookings and accepted invitations
       const [
         upcomingResult,
@@ -293,6 +354,65 @@ export function useBookings() {
       // Process all results and combine data
       let upcomingData: EnhancedBooking[] = [];
       let pastData: EnhancedBooking[] = [];
+
+      // Helper function to update expired pending bookings to declined_by_restaurant
+      const updateExpiredPendingBookings = async (bookings: any[]) => {
+        const now = new Date();
+        
+        // Debug: Log all bookings and their status/time
+        console.log("Checking bookings for expired pending status:");
+        bookings.forEach((booking, index) => {
+          const bookingTime = new Date(booking.booking_time);
+          const isExpired = bookingTime < now;
+          console.log(`Booking ${index}: ID=${booking.id}, Status=${booking.status}, Time=${booking.booking_time}, IsExpired=${isExpired}, CurrentTime=${now.toISOString()}`);
+        });
+        
+        const expiredPendingBookings = bookings.filter(
+          (booking) => {
+            const bookingTime = new Date(booking.booking_time);
+            const isExpired = bookingTime < now;
+            const isPending = booking.status === "pending";
+            console.log(`Booking ${booking.id}: isPending=${isPending}, isExpired=${isExpired}, bookingTime=${bookingTime.toISOString()}, now=${now.toISOString()}`);
+            return isPending && isExpired;
+          }
+        );
+
+        console.log(`Found ${expiredPendingBookings.length} expired pending bookings to update:`, expiredPendingBookings.map(b => ({ id: b.id, time: b.booking_time })));
+
+        if (expiredPendingBookings.length > 0) {
+          console.log(`Updating ${expiredPendingBookings.length} expired pending bookings to declined_by_restaurant`);
+          
+          // Update each expired pending booking
+          const updatePromises = expiredPendingBookings.map(async (booking) => {
+            try {
+              console.log(`Attempting to update booking ${booking.id} from pending to declined_by_restaurant`);
+              const { error } = await supabase
+                .from("bookings")
+                .update({ 
+                  status: "declined_by_restaurant",
+                  updated_at: new Date().toISOString()
+                })
+                .eq("id", booking.id);
+
+              if (error) {
+                console.error(`Error updating booking ${booking.id}:`, error);
+              } else {
+                console.log(`✅ Successfully updated booking ${booking.id} from pending to declined_by_restaurant`);
+                // Update the local booking object
+                booking.status = "declined_by_restaurant";
+                booking.updated_at = new Date().toISOString();
+              }
+            } catch (error) {
+              console.error(`Error updating expired booking ${booking.id}:`, error);
+            }
+          });
+
+          // Wait for all updates to complete
+          await Promise.allSettled(updatePromises);
+        } else {
+          console.log("No expired pending bookings found to update");
+        }
+      };
 
       // Handle owned upcoming bookings
       if (
@@ -396,6 +516,10 @@ export function useBookings() {
       }
 
       // Sort combined data
+        // Update expired pending bookings before sorting (check both upcoming and past data)
+        await updateExpiredPendingBookings(upcomingData);
+        await updateExpiredPendingBookings(pastData);
+
       upcomingData.sort(
         (a, b) =>
           new Date(a.booking_time).getTime() -
@@ -620,13 +744,26 @@ export function useBookings() {
       }
 
       try {
+        // Calculate a future date/time based on the original booking
+        const originalDate = new Date(booking.booking_time);
+        const now = new Date();
+        
+        // If the original booking time is in the past, schedule for the same time next week
+        // If it's in the future, use the original time
+        let suggestedDate = originalDate;
+        if (originalDate < now) {
+          suggestedDate = new Date(originalDate);
+          suggestedDate.setDate(suggestedDate.getDate() + 7); // Same time next week
+        }
+
         router.push({
-          pathname: "/booking/create",
+          pathname: "/booking/availability",
           params: {
             restaurantId: booking.restaurant_id,
             restaurantName: booking.restaurant.name,
             partySize: booking.party_size.toString(),
-            quickBook: "true",
+            suggestedDate: suggestedDate.toISOString(),
+            originalDate: originalDate.toISOString(),
           },
         });
       } catch (err) {

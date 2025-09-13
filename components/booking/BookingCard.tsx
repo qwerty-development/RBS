@@ -40,6 +40,8 @@ import { Database } from "@/types/supabase";
 import { supabase } from "@/config/supabase";
 import { cn } from "@/lib/utils";
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
+import { colors } from "@/constants/colors";
+import { useColorScheme } from "@/lib/useColorScheme";
 
 // Enhanced booking type that includes invitation info
 interface EnhancedBooking {
@@ -114,7 +116,7 @@ interface BookingCardProps {
 // --- Status Configuration (Enhanced) ---
 const BOOKING_STATUS_CONFIG = {
   pending: {
-    label: "Awaiting Confirmation",
+    label: "Awaiting Restaurant Confirmation",
     icon: Timer, // Using Timer for pending
     color: "#f97316", // Orange
     description: "Waiting for restaurant confirmation",
@@ -126,13 +128,13 @@ const BOOKING_STATUS_CONFIG = {
     description: "Your table is reserved",
   },
   cancelled_by_user: {
-    label: "Cancelled",
+    label: "Cancelled by You",
     icon: XCircle,
     color: "#6b7280", // Gray
     description: "You cancelled this booking",
   },
   declined_by_restaurant: {
-    label: "Declined",
+    label: "Restaurant Could Not Accommodate",
     icon: XCircle,
     color: "#ef4444", // Red
     description: "Restaurant couldn't accommodate this request",
@@ -220,6 +222,7 @@ export function BookingCard({
   const [hasReview, setHasReview] = useState(false);
   const [isAddingToCalendar, setIsAddingToCalendar] = useState(false);
   const [addedToCalendar, setAddedToCalendar] = useState(false);
+  const { colorScheme } = useColorScheme();
 
   // Early return AFTER hooks for invalid booking data
   if (!booking || !booking.id || !booking.booking_time || !booking.restaurant) {
@@ -231,12 +234,6 @@ export function BookingCard({
     });
     return null;
   }
-
-  const statusConfig =
-    BOOKING_STATUS_CONFIG[
-      booking.status as keyof typeof BOOKING_STATUS_CONFIG
-    ] || BOOKING_STATUS_CONFIG.pending;
-  const StatusIcon = statusConfig.icon;
 
   // Safe date parsing with error handling
   let bookingDate: Date;
@@ -279,6 +276,29 @@ export function BookingCard({
   const isDeclined = booking.status === "declined_by_restaurant";
   const isCompleted = booking.status === "completed";
   const isConfirmed = booking.status === "confirmed";
+
+  // Check if pending booking has passed its time (should be treated as declined)
+  const isPendingAndPassed = isPending && bookingDate < new Date();
+  
+  // Use declined status for pending bookings that have passed their time
+  const effectiveStatus = isPendingAndPassed ? "declined_by_restaurant" : booking.status;
+  
+  // Debug logging for status
+  console.log(`BookingCard Debug - ID: ${booking.id}, Original Status: ${booking.status}, Effective Status: ${effectiveStatus}, IsPendingAndPassed: ${isPendingAndPassed}`);
+  
+  const statusConfig =
+    BOOKING_STATUS_CONFIG[
+      effectiveStatus as keyof typeof BOOKING_STATUS_CONFIG
+    ] || BOOKING_STATUS_CONFIG.pending;
+  
+  // Debug logging to help identify problematic status values
+  if (!statusConfig) {
+    console.warn("Unknown booking status:", effectiveStatus, "Available statuses:", Object.keys(BOOKING_STATUS_CONFIG));
+  }
+  
+  // Ensure we have a valid status config with proper fallback
+  const finalStatusConfig = statusConfig || BOOKING_STATUS_CONFIG.pending;
+  const StatusIcon = finalStatusConfig.icon;
 
   // Calculate time since request for pending bookings with safe date handling
   let timeSinceRequest = null;
@@ -572,7 +592,7 @@ export function BookingCard({
           onPress: () => {
             setIsAddingToCalendar(false);
             setTimeout(
-              () => handleAddToCalendar({ stopPropagation: () => {} }),
+              () => handleAddToCalendar(),
               100,
             );
           },
@@ -601,61 +621,62 @@ export function BookingCard({
       <Pressable
         onPress={handlePress}
         className={cn(
-          "bg-card rounded-xl overflow-hidden mb-4 border border-border shadow-sm",
+          "bg-card rounded-lg overflow-hidden mb-3 border border-border shadow-sm",
           className,
         )}
       >
         {/* Restaurant Header */}
-        <View className="flex-row p-4">
+        <View className="flex-row p-3">
           <Image
             source={{
               uri:
+                booking.restaurant?.main_image_url ||
                 booking.restaurant?.image_url ||
-                "https://via.placeholder.com/80x80?text=No+Image",
+                "https://via.placeholder.com/60x60?text=No+Image",
             }}
-            className="w-20 h-20 rounded-lg bg-muted"
+            className="w-16 h-16 rounded-lg bg-muted"
             contentFit="cover"
             onError={(error) => {
               console.warn("Error loading restaurant image:", error);
             }}
-            placeholder="https://via.placeholder.com/80x80?text=Loading"
+            placeholder="https://via.placeholder.com/60x60?text=Loading"
             transition={200}
           />
-          <View className="flex-1 ml-4">
+          <View className="flex-1 ml-3">
             <Pressable
               onPress={handleRestaurantPress}
               className="flex-row items-start justify-between"
             >
               <View className="flex-1">
-                <H3 className="mb-1 text-lg">
+                <H3 className="mb-1 text-base">
                   {booking.restaurant.name || "Restaurant"}
                 </H3>
 
                 {/* Invitation Indicator */}
                 {booking.is_invitee && booking.invited_by && (
                   <View className="flex-row items-center gap-1 mb-1">
-                    <UserPlus size={12} color="#10b981" />
+                    <UserPlus size={10} color="#10b981" />
                     <Text className="text-xs text-green-600 font-medium">
                       Invited by {booking.invited_by.full_name}
                     </Text>
                   </View>
                 )}
 
-                <Text className="text-muted-foreground text-sm">
+                <Text className="text-muted-foreground text-xs">
                   {booking.restaurant.cuisine_type || "Cuisine"}
                 </Text>
               </View>
-              <ChevronRight size={20} color="#666" />
+              <ChevronRight size={16} color="#666" />
             </Pressable>
 
             {/* Status Badge */}
-            <View className="flex-row items-center gap-2 mt-2">
-              <StatusIcon size={16} color={statusConfig.color} />
+            <View className="flex-row items-center gap-1 mt-1">
+              <StatusIcon size={14} color={finalStatusConfig.color} />
               <Text
-                className="text-sm font-medium"
-                style={{ color: statusConfig.color }}
+                className="text-xs font-medium"
+                style={{ color: finalStatusConfig.color }}
               >
-                {statusConfig.label}
+                {finalStatusConfig.label}
               </Text>
               {isPending && timeSinceRequest && (
                 <Text className="text-xs text-muted-foreground">
@@ -666,32 +687,14 @@ export function BookingCard({
           </View>
         </View>
 
-        {/* Booking Details */}
-        <View className="px-4 pb-4">
-          {/* --- Contextual Messages for Pending/Declined --- */}
-          {isPending && (
-            <View className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 mb-3 border border-orange-200">
-              <Text className="text-sm text-center text-orange-800 dark:text-orange-200">
-                The restaurant will confirm your request shortly. We'll notify
-                you as soon as they respond.
-              </Text>
-            </View>
-          )}
-          {isDeclined && (
-            <View className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 mb-3 border border-red-200">
-              <Text className="text-sm text-center text-red-800 dark:text-red-200">
-                Unfortunately, the restaurant couldn't accommodate this request.
-                Please try another time.
-              </Text>
-            </View>
-          )}
-
-          {/* --- Core Details Section --- */}
-          <View className="bg-muted/50 rounded-lg p-3 mb-3">
+        {/* Booking Details - Compact Layout */}
+        <View className="px-3 pb-3">
+          {/* --- Core Details Section - More Prominent --- */}
+          <View className="bg-primary/5 rounded-lg p-3 mb-3 border border-primary/10">
             <View className="flex-row justify-between items-center mb-2">
               <View className="flex-row items-center gap-2">
-                <CalendarIcon size={16} color="#666" />
-                <Text className="font-medium text-sm">
+                <CalendarIcon size={14} color={colors[colorScheme].primary} />
+                <Text className="font-semibold text-sm text-primary dark:text-white">
                   {isToday
                     ? "Today"
                     : isTomorrow
@@ -699,13 +702,12 @@ export function BookingCard({
                       : bookingDate.toLocaleDateString(undefined, {
                           month: "short",
                           day: "numeric",
-                          year: "numeric",
                         })}
                 </Text>
               </View>
               <View className="flex-row items-center gap-2">
-                <Clock size={16} color="#666" />
-                <Text className="font-medium text-sm">
+                <Clock size={14} color={colors[colorScheme].primary} />
+                <Text className="font-semibold text-sm text-primary dark:text-white">
                   {bookingDate.toLocaleTimeString([], {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -715,8 +717,8 @@ export function BookingCard({
             </View>
             <View className="flex-row justify-between items-center">
               <View className="flex-row items-center gap-2">
-                <Users size={16} color="#666" />
-                <Text className="text-sm text-muted-foreground">
+                <Users size={14} color={colors[colorScheme].primary} />
+                <Text className="text-sm font-medium text-primary dark:text-white">
                   {booking.party_size || 1}{" "}
                   {(booking.party_size || 1) === 1 ? "Guest" : "Guests"}
                 </Text>
@@ -724,11 +726,11 @@ export function BookingCard({
               {booking.confirmation_code && !isPending && (
                 <Pressable
                   onPress={handleCopyConfirmation}
-                  className="flex-row items-center gap-2 bg-background px-2 py-1 rounded border border-border"
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  className="flex-row items-center gap-1 bg-background px-2 py-1 rounded border border-border"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Copy size={14} color="#666" />
-                  <Text className="text-sm font-mono font-medium">
+                  <Copy size={12} color="#666" />
+                  <Text className="text-xs font-mono font-medium">
                     {booking.confirmation_code || "N/A"}
                   </Text>
                 </Pressable>
@@ -738,37 +740,67 @@ export function BookingCard({
 
           {/* Special Requests / Notes Preview */}
           {(booking.special_requests || booking.occasion) && (
-            <View className="bg-muted/30 rounded-lg p-3 mb-3">
+            <View className="bg-muted/30 rounded-lg p-2 mb-2">
               {/* ... original implementation ... */}
             </View>
           )}
 
-          {/* --- Quick Action Buttons (with updated logic) --- */}
+          {/* --- Contextual Messages for Pending/Declined --- */}
+
+
+          {/* --- Quick Action Buttons - Compact Layout --- */}
           {showQuickActions && (
-            <View className="flex-row gap-2 flex-wrap">
-              {/* Add to Calendar: Show for confirmed or pending */}
-              {!isPast && (isConfirmed || isPending) && (
+            <View className="flex-row gap-2">
+              {/* Add to Calendar: Show for confirmed or pending (not expired) */}
+              {!isPast && (isConfirmed || (isPending && !isPendingAndPassed)) && (
                 <Button
                   size="sm"
                   variant={addedToCalendar ? "secondary" : "outline"}
                   onPress={handleAddToCalendar}
                   disabled={isAddingToCalendar}
-                  className="flex-1 min-w-[100px]"
+                  className="flex-1"
                 >
                   {isAddingToCalendar ? (
-                    <View className="flex-row items-center gap-1">
-                      <ActivityIndicator size="small" color="#3b82f6" />
-                      <Text className="text-xs">Opening...</Text>
-                    </View>
+                    <ActivityIndicator size="small" color="#3b82f6" />
                   ) : addedToCalendar ? (
                     <View className="flex-row items-center gap-1">
-                      <CheckCircle size={14} color="#10b981" />
+                      <CheckCircle size={12} color="#10b981" />
                       <Text className="text-xs">Added ✓</Text>
                     </View>
                   ) : (
                     <View className="flex-row items-center gap-1">
-                      <CalendarPlus size={14} color="#3b82f6" />
-                      <Text className="text-xs">Add to Calendar</Text>
+                      <CalendarPlus size={12} color="#3b82f6" />
+                      <Text className="text-xs">Calendar</Text>
+                    </View>
+                  )}
+                </Button>
+              )}
+
+              {/* Cancel/Leave: Show for pending (not expired) or confirmed */}
+              {!isPast && (isConfirmed || (isPending && !isPendingAndPassed)) && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onPress={
+                    booking.is_invitee
+                      ? handleLeaveBooking
+                      : handleCancelBooking
+                  }
+                  disabled={isProcessing}
+                  className="flex-1"
+                >
+                  {isProcessing ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <View className="flex-row items-center gap-1">
+                      <XCircle size={12} color="#fff" />
+                      <Text className="text-xs text-white">
+                        {booking.is_invitee
+                          ? "Leave"
+                          : isPending
+                            ? "Cancel"
+                            : "Cancel"}
+                      </Text>
                     </View>
                   )}
                 </Button>
@@ -777,7 +809,7 @@ export function BookingCard({
               {/* Directions & Call: Show only for confirmed */}
               {!isPast && isConfirmed && (
                 <>
-                  <View className="flex-1 min-w-[100px]">
+                  <View className="flex-1">
                     <DirectionsButton
                       restaurant={booking.restaurant}
                       variant="button"
@@ -794,10 +826,10 @@ export function BookingCard({
                       size="sm"
                       variant="outline"
                       onPress={handleQuickCall}
-                      className="flex-1 min-w-[100px]"
+                      className="flex-1"
                     >
                       <View className="flex-row items-center gap-1">
-                        <Phone size={14} color="#10b981" />
+                        <Phone size={12} color="#10b981" />
                         <Text className="text-xs">Call</Text>
                       </View>
                     </Button>
@@ -805,38 +837,8 @@ export function BookingCard({
                 </>
               )}
 
-              {/* Cancel/Leave: Show for pending or confirmed */}
-              {!isPast && (isConfirmed || isPending) && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onPress={
-                    booking.is_invitee
-                      ? handleLeaveBooking
-                      : handleCancelBooking
-                  }
-                  disabled={isProcessing}
-                  className="flex-1 min-w-[100px]"
-                >
-                  {isProcessing ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <View className="flex-row items-center gap-1">
-                      <XCircle size={14} color="#fff" />
-                      <Text className="text-xs text-white">
-                        {booking.is_invitee
-                          ? "Leave Booking"
-                          : isPending
-                            ? "Cancel Request"
-                            : "Cancel Booking"}
-                      </Text>
-                    </View>
-                  )}
-                </Button>
-              )}
-
               {/* Actions for Past / Declined Bookings */}
-              {isPast && isCompleted && !hasReview && onReview && (
+              {(isPast || isPendingAndPassed) && isCompleted && !hasReview && onReview && (
                 <Button
                   size="sm"
                   variant="default"
@@ -844,33 +846,26 @@ export function BookingCard({
                   className="flex-1"
                 >
                   <View className="flex-row items-center gap-1">
-                    <Star size={14} color="#fff" />
-                    <Text className="text-xs text-white">Rate Experience</Text>
+                    <Star size={12} color="#fff" />
+                    <Text className="text-xs text-white">Rate</Text>
                   </View>
                 </Button>
               )}
-              {(isPast || isDeclined) && onRebook && (
+              {(isPast || isDeclined || isPendingAndPassed) && onRebook && (
                 <Button
                   size="sm"
-                  variant="secondary"
+                  variant="default"
                   onPress={handleRebook}
-                  className="flex-1"
+                  className="flex-1 bg-primary"
                 >
                   <View className="flex-row items-center gap-1">
-                    <RotateCcw size={14} color="#000" />
-                    <Text className="text-xs">Book Again</Text>
+                    <RotateCcw size={12} color={colors[colorScheme].primaryForeground} />
+                    <Text className="text-xs text-primary-foreground">Book Again</Text>
                   </View>
                 </Button>
               )}
             </View>
           )}
-
-          {/* Tap for Details Hint */}
-          <View className="mt-3 pt-3 border-t border-border">
-            <Text className="text-xs text-center text-muted-foreground">
-              Tap for full booking details
-            </Text>
-          </View>
         </View>
       </Pressable>
     </>

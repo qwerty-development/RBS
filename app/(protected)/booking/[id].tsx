@@ -238,7 +238,7 @@ export default function BookingDetailsScreen() {
   }, [booking?.applied_loyalty_rule_id, booking?.status, booking?.id]);
 
   // Additional state for pending bookings
-  const isPending = booking?.status === "pending";
+  const isPending = booking?.status === "pending" && !isPendingAndPassed;
   const isDeclined = booking?.status === "declined_by_restaurant";
   const isCancelled =
     booking?.status === "cancelled_by_user" ||
@@ -284,12 +284,27 @@ export default function BookingDetailsScreen() {
 
   const bookAgain = () => {
     if (!booking) return;
+    
+    // Calculate a future date/time based on the original booking
+    const originalDate = new Date(booking.booking_time);
+    const now = new Date();
+    
+    // If the original booking time is in the past, schedule for the same time next week
+    // If it's in the future, use the original time
+    let suggestedDate = originalDate;
+    if (originalDate < now) {
+      suggestedDate = new Date(originalDate);
+      suggestedDate.setDate(suggestedDate.getDate() + 7); // Same time next week
+    }
+    
     router.push({
       pathname: "/booking/availability",
       params: {
         restaurantId: booking.restaurant_id,
         restaurantName: booking.restaurant.name,
         partySize: booking.party_size.toString(),
+        suggestedDate: suggestedDate.toISOString(),
+        originalDate: originalDate.toISOString(),
       },
     });
   };
@@ -394,10 +409,21 @@ export default function BookingDetailsScreen() {
     );
   }
 
-  const statusConfig =
-    BOOKING_STATUS_CONFIG[booking.status as keyof typeof BOOKING_STATUS_CONFIG];
-  const StatusIcon = statusConfig.icon;
   const bookingDate = new Date(booking.booking_time);
+  
+  // Check if pending booking has passed its time (should be treated as declined)
+  const isPendingAndPassed = booking.status === "pending" && bookingDate < new Date();
+  
+  // Use declined status for pending bookings that have passed their time
+  const effectiveStatus = isPendingAndPassed ? "declined_by_restaurant" : booking.status;
+  
+  const statusConfig =
+    BOOKING_STATUS_CONFIG[effectiveStatus as keyof typeof BOOKING_STATUS_CONFIG] || 
+    BOOKING_STATUS_CONFIG.pending;
+  
+  // Ensure we have a valid status config with proper fallback
+  const finalStatusConfig = statusConfig || BOOKING_STATUS_CONFIG.pending;
+  const StatusIcon = finalStatusConfig.icon;
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
@@ -425,19 +451,19 @@ export default function BookingDetailsScreen() {
         <View className="p-4 border-b border-border">
           <View
             className="p-4 rounded-lg"
-            style={{ backgroundColor: statusConfig.bgColor }}
+            style={{ backgroundColor: finalStatusConfig.bgColor }}
           >
             <View className="flex-row items-center gap-3 mb-2">
-              <StatusIcon size={24} color={statusConfig.color} />
+              <StatusIcon size={24} color={finalStatusConfig.color} />
               <Text
                 className="font-bold text-lg"
-                style={{ color: statusConfig.color }}
+                style={{ color: finalStatusConfig.color }}
               >
-                {statusConfig.label}
+                {finalStatusConfig.label}
               </Text>
             </View>
-            <Text className="text-sm" style={{ color: statusConfig.color }}>
-              {statusConfig.description}
+            <Text className="text-sm" style={{ color: finalStatusConfig.color }}>
+              {finalStatusConfig.description}
             </Text>
           </View>
 
