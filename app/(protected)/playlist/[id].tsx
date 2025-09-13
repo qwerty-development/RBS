@@ -72,7 +72,6 @@ export default function PlaylistDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showShareOptions, setShowShareOptions] = useState(false);
-  const [showPlaylistOptions, setShowPlaylistOptions] = useState(false);
 
   const { updatePlaylist } = usePlaylists();
   const { deletePlaylist } = useDeletePlaylist({
@@ -199,6 +198,25 @@ export default function PlaylistDetailScreen() {
       ],
     );
   }, [playlist, deletePlaylist, router]);
+
+  const handleSettingsPress = useCallback(() => {
+    Alert.alert(
+      "Playlist Options",
+      "What would you like to do with this playlist?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Edit",
+          onPress: () => setShowEditModal(true),
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: handleDeletePlaylist,
+        },
+      ],
+    );
+  }, [handleDeletePlaylist]);
 
   const handleTogglePublic = useCallback(async () => {
     if (!playlist) return;
@@ -349,61 +367,18 @@ export default function PlaylistDetailScreen() {
           </View>
           {isOwner && (
             <Pressable
-              onPress={() => setShowPlaylistOptions(!showPlaylistOptions)}
-              className={cn(
-                "w-10 h-10 items-center justify-center rounded-full transition-colors",
-                showPlaylistOptions 
-                  ? "bg-primary" 
-                  : "bg-muted active:bg-muted/80"
-              )}
+              onPress={handleSettingsPress}
+              className="w-10 h-10 items-center justify-center rounded-full bg-muted active:bg-muted/80"
             >
               <Settings
                 size={20}
-                color={
-                  showPlaylistOptions 
-                    ? (colorScheme === "dark" ? "#fff" : "#fff")
-                    : (colorScheme === "dark" ? "#fff" : "#000")
-                }
+                color={colorScheme === "dark" ? "#fff" : "#000"}
               />
             </Pressable>
           )}
         </View>
       </View>
 
-      {/* Playlist Options Modal */}
-      {isOwner && showPlaylistOptions && (
-        <View className="absolute inset-0 z-40">
-          {/* Backdrop */}
-          <Pressable 
-            className="flex-1" 
-            onPress={() => setShowPlaylistOptions(false)}
-          />
-          
-          {/* Options Menu */}
-          <View className="absolute top-20 right-4 bg-card border border-border rounded-lg shadow-lg p-2 z-50">
-            <Pressable
-              onPress={() => {
-                setShowPlaylistOptions(false);
-                setShowEditModal(true);
-              }}
-              className="flex-row items-center gap-3 px-3 py-2 rounded-lg active:bg-muted"
-            >
-              <Edit3 size={18} color={colorScheme === "dark" ? "#fff" : "#000"} />
-              <Text className="text-foreground">Edit Playlist</Text>
-            </Pressable>
-            <Pressable
-              onPress={() => {
-                setShowPlaylistOptions(false);
-                handleDeletePlaylist();
-              }}
-              className="flex-row items-center gap-3 px-3 py-2 rounded-lg active:bg-muted"
-            >
-              <Trash2 size={18} color="#ef4444" />
-              <Text className="text-red-600 dark:text-red-400">Delete Playlist</Text>
-            </Pressable>
-          </View>
-        </View>
-      )}
 
       {/* Stats Bar */}
       <View className="flex-row items-center justify-between px-4 py-3 bg-muted/30">
