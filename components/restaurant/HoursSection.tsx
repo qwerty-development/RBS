@@ -5,6 +5,8 @@ import { Text } from "@/components/ui/text";
 import { H3 } from "@/components/ui/typography";
 import { Database } from "@/types/supabase";
 import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
+import { useColorScheme } from "@/lib/useColorScheme";
+import { colors } from "@/constants/colors";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
   happy_hour_times?: { start: string; end: string };
@@ -15,6 +17,7 @@ interface HoursSectionProps {
 }
 
 export const HoursSection = ({ restaurant }: HoursSectionProps) => {
+  const { colorScheme } = useColorScheme();
   const {
     formatOperatingHours,
     checkAvailability,
@@ -34,15 +37,19 @@ export const HoursSection = ({ restaurant }: HoursSectionProps) => {
               size={20}
               color={availability.isOpen ? "#10b981" : "#ef4444"}
             />
-            <Text className="font-medium">Today: {formatOperatingHours()}</Text>
+            <Text className="font-medium text-foreground">Today: {formatOperatingHours()}</Text>
             <View
               className={`px-2 py-1 rounded-full ml-auto ${
-                availability.isOpen ? "bg-green-100" : "bg-red-100"
+                availability.isOpen 
+                  ? "bg-green-100 dark:bg-green-900/30" 
+                  : "bg-red-100 dark:bg-red-900/30"
               }`}
             >
               <Text
                 className={`text-xs font-medium ${
-                  availability.isOpen ? "text-green-800" : "text-red-800"
+                  availability.isOpen 
+                    ? "text-green-800 dark:text-green-300" 
+                    : "text-red-800 dark:text-red-300"
                 }`}
               >
                 {availability.isOpen ? "Open" : "Closed"}
@@ -52,7 +59,7 @@ export const HoursSection = ({ restaurant }: HoursSectionProps) => {
         )}
         {restaurant.happy_hour_times && (
           <View className="flex-row items-center gap-2 mt-2 pt-2 border-t border-border">
-            <DollarSign size={20} color="#10b981" />
+            <DollarSign size={20} color={colors[colorScheme].foreground} />
             <Text className="text-green-600 dark:text-green-400">
               Happy Hour: {restaurant.happy_hour_times.start} -{" "}
               {restaurant.happy_hour_times.end}

@@ -10,8 +10,6 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
-  ChevronLeft,
-  Share2,
   Copy,
   Calendar,
   Clock,
@@ -22,6 +20,7 @@ import {
   RefreshCw,
   Trophy,
   AlertCircle,
+  Info,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
@@ -29,10 +28,12 @@ import * as Clipboard from "expo-clipboard";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { H2, H3, P } from "@/components/ui/typography";
+import { H3, P } from "@/components/ui/typography";
+import { NavigationHeader } from "@/components/ui/navigation-header";
 import { LoyaltyPointsCard } from "@/components/ui/loyalty-points-card";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { supabase } from "@/config/supabase";
+import { colors } from "@/constants/colors";
 
 // Import components
 import {
@@ -179,6 +180,9 @@ export default function BookingDetailsScreen() {
   const [restaurantLoyaltyRule, setRestaurantLoyaltyRule] =
     useState<LoyaltyRuleDetails | null>(null);
   const [wasLoyaltyRefunded, setWasLoyaltyRefunded] = useState<boolean>(false);
+  
+  // Declined explanation state
+  const [showDeclinedExplanation, setShowDeclinedExplanation] = useState(false);
 
   // Use custom hook for all booking logic
   const {
@@ -428,15 +432,12 @@ export default function BookingDetailsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
-        <Pressable onPress={() => router.back()} className="p-2 -ml-2">
-          <ChevronLeft size={24} />
-        </Pressable>
-        <H2>Booking Details</H2>
-        <Pressable onPress={shareBooking} className="p-2 -mr-2">
-          <Share2 size={24} />
-        </Pressable>
-      </View>
+      <NavigationHeader
+        title="Booking Details"
+        onBack={() => router.back()}
+        onShare={shareBooking}
+        showShare={true}
+      />
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Restaurant Header */}
@@ -448,19 +449,26 @@ export default function BookingDetailsScreen() {
         />
 
         {/* Status Section */}
-        <View className="p-4 border-b border-border">
+        <View className="px-4 py-4 border-b border-border">
           <View
             className="p-4 rounded-lg"
             style={{ backgroundColor: finalStatusConfig.bgColor }}
           >
-            <View className="flex-row items-center gap-3 mb-2">
-              <StatusIcon size={24} color={finalStatusConfig.color} />
-              <Text
-                className="font-bold text-lg"
-                style={{ color: finalStatusConfig.color }}
-              >
-                {finalStatusConfig.label}
-              </Text>
+            <View className="flex-row items-center justify-between mb-2">
+              <View className="flex-row items-center gap-3">
+                <StatusIcon size={24} color={finalStatusConfig.color} />
+                <Text
+                  className="font-bold text-lg"
+                  style={{ color: finalStatusConfig.color }}
+                >
+                  {finalStatusConfig.label}
+                </Text>
+              </View>
+              {isDeclined && (
+                <Pressable onPress={() => setShowDeclinedExplanation(!showDeclinedExplanation)}>
+                  <Info size={16} color={finalStatusConfig.color} />
+                </Pressable>
+              )}
             </View>
             <Text className="text-sm" style={{ color: finalStatusConfig.color }}>
               {finalStatusConfig.description}
@@ -469,9 +477,9 @@ export default function BookingDetailsScreen() {
 
           {/* Pending Status Extra Info */}
           {isPending && (
-            <View className="mt-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
+            <View className="mt-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
               <View className="flex-row items-center gap-2 mb-2">
-                <Timer size={20} color="#f97316" />
+                <Timer size={20} color={colors[colorScheme].primary} />
                 <Text className="font-semibold text-orange-800 dark:text-orange-200">
                   Response Expected Soon
                 </Text>
@@ -481,7 +489,7 @@ export default function BookingDetailsScreen() {
                 minutes. We'll notify you immediately when they confirm.
               </Text>
               <View className="flex-row items-center gap-2 mt-3">
-                <Bell size={16} color="#f97316" />
+                <Bell size={16} color={colors[colorScheme].primary} />
                 <Text className="text-xs text-orange-600 dark:text-orange-400">
                   Push notifications enabled
                 </Text>
@@ -490,23 +498,12 @@ export default function BookingDetailsScreen() {
           )}
 
           {/* Declined Status Extra Info */}
-          {isDeclined && (
-            <View className="mt-3 bg-red-50 dark:bg-red-900/20 rounded-lg p-4">
-              <Text className="text-sm text-red-700 dark:text-red-300 mb-3">
+          {isDeclined && showDeclinedExplanation && (
+            <View className="mt-3 bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
+              <Text className="text-sm text-red-700 dark:text-red-300">
                 The restaurant couldn't accommodate your request at this time.
                 This could be due to full capacity or special events.
               </Text>
-              <Button
-                variant="default"
-                size="sm"
-                onPress={bookAgain}
-                className="w-full"
-              >
-                <RefreshCw size={16} color="white" />
-                <Text className="ml-2 text-white font-medium">
-                  Try Different Time
-                </Text>
-              </Button>
             </View>
           )}
         </View>
@@ -518,86 +515,142 @@ export default function BookingDetailsScreen() {
           wasRefunded={wasLoyaltyRefunded}
         />
 
-        {/* Rewards Section - Only show for confirmed bookings */}
-        {booking.status === "confirmed" && (
-          <View className="p-4">
+        {/* Rewards Section - Only show for confirmed bookings with rewards */}
+        {booking.status === "confirmed" && appliedOfferDetails && (
+          <View className="px-4 py-4 border-b border-border">
+            <H3 className="mb-4 text-foreground">Your Rewards</H3>
             {/* Applied Offer Card */}
-            {appliedOfferDetails && (
-              <AppliedOfferCard
-                offerDetails={appliedOfferDetails}
-                onCopyCode={copyOfferCode}
-                onViewOffers={navigateToOffers}
-                onShareOffer={shareAppliedOffer}
-              />
-            )}
+            <AppliedOfferCard
+              offerDetails={appliedOfferDetails}
+              onCopyCode={copyOfferCode}
+              onViewOffers={navigateToOffers}
+              onShareOffer={shareAppliedOffer}
+            />
           </View>
         )}
 
         {/* Booking Information */}
-        <View className="p-4 border-b border-border">
-          <H3 className="mb-4">Booking Information</H3>
+        <View className="px-4 py-4">
+          <H3 className="mb-4 text-foreground">Booking Information</H3>
 
-          <View className="bg-muted/50 rounded-lg p-4 mb-4">
-            <View className="flex-row justify-between items-center mb-3">
-              <View className="flex-row items-center gap-2">
-                <Calendar size={20} color="#666" />
-                <Text className="font-medium text-lg">
-                  {isToday
-                    ? "Today"
-                    : isTomorrow
-                      ? "Tomorrow"
-                      : bookingDate.toLocaleDateString("en-US", {
-                          weekday: "long",
-                          month: "long",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
+          {/* Main Booking Details Card */}
+          <View className="bg-primary/5 rounded-lg p-3 mb-3 border border-primary/10">
+            {/* Date and Time Row */}
+            <View className="flex-row items-start justify-between mb-3">
+              <View className="flex-row items-center gap-3 flex-1 mr-3">
+                <Calendar size={18} color={colors[colorScheme].primary} />
+                <View className="flex-1">
+                  <Text className="font-semibold text-base text-primary dark:text-white">
+                    {isToday
+                      ? "Today"
+                      : isTomorrow
+                        ? "Tomorrow"
+                        : bookingDate.toLocaleDateString("en-US", {
+                            weekday: "short",
+                            month: "short",
+                            day: "numeric",
+                          })}
+                    {!isToday && !isTomorrow && (
+                      <Text className="text-sm text-muted-foreground">
+                        {", "}{bookingDate.getFullYear()}
+                      </Text>
+                    )}
+                  </Text>
+                  <Text className="text-sm text-muted-foreground">
+                    {bookingDate.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </Text>
+                </View>
+              </View>
+              
+              <View className="flex-row items-center gap-2 flex-shrink-0">
+                <Users size={16} color={colors[colorScheme].primary} />
+                <Text className="font-medium text-primary dark:text-white text-sm">
+                  {booking.party_size} {booking.party_size === 1 ? "Guest" : "Guests"}
                 </Text>
               </View>
             </View>
 
-            <View className="flex-row justify-between items-center mb-3">
-              <View className="flex-row items-center gap-2">
-                <Clock size={20} color="#666" />
-                <Text className="font-medium text-lg">
-                  {bookingDate.toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </Text>
+            {/* Special Notes and Occasion Section */}
+            {(booking.occasion || booking.special_requests || booking.dietary_notes?.length) && (
+              <View className="border-t border-primary/20 pt-3 mb-3">
+                {booking.occasion && (
+                  <View className="mb-3">
+                    <Text className="text-sm font-medium text-muted-foreground mb-1">
+                      Occasion
+                    </Text>
+                    <Text className="text-primary dark:text-white font-medium">
+                      {booking.occasion}
+                    </Text>
+                  </View>
+                )}
+                
+                {booking.special_requests && (
+                  <View className="mb-3">
+                    <Text className="text-sm font-medium text-muted-foreground mb-1">
+                      Special Requests
+                    </Text>
+                    <Text className="text-primary dark:text-white">
+                      {booking.special_requests}
+                    </Text>
+                  </View>
+                )}
+                
+                {booking.dietary_notes && booking.dietary_notes.length > 0 && (
+                  <View className="mb-3">
+                    <Text className="text-sm font-medium text-muted-foreground mb-1">
+                      Dietary Notes
+                    </Text>
+                    <Text className="text-primary dark:text-white">
+                      {booking.dietary_notes.join(", ")}
+                    </Text>
+                  </View>
+                )}
               </View>
-            </View>
+            )}
 
-            <View className="flex-row justify-between items-center">
-              <View className="flex-row items-center gap-2">
-                <Users size={20} color="#666" />
-                <Text className="font-medium">
-                  {booking.party_size}{" "}
-                  {booking.party_size === 1 ? "Guest" : "Guests"}
+            {/* Guest Information Section */}
+            {(booking.guest_name || booking.guest_email) && (
+              <View className="border-t border-primary/20 pt-3 mb-3">
+                <Text className="text-sm font-medium text-muted-foreground mb-2">
+                  Guest Information
                 </Text>
+                {booking.guest_name && (
+                  <Text className="text-primary dark:text-white mb-1">
+                    Name: {booking.guest_name}
+                  </Text>
+                )}
+                {booking.guest_email && (
+                  <Text className="text-primary dark:text-white">
+                    Email: {booking.guest_email}
+                  </Text>
+                )}
               </View>
-            </View>
-          </View>
+            )}
 
-          <View className="bg-card border border-border rounded-lg p-4">
-            <Text className="font-medium mb-2">
-              {isPending ? "Reference Code" : "Confirmation Code"}
-            </Text>
-            <Pressable
-              onPress={copyConfirmationCode}
-              className="flex-row items-center justify-between bg-muted rounded-lg p-3"
-            >
-              <Text className="font-mono font-bold text-xl tracking-wider">
-                {booking.confirmation_code}
+            {/* Confirmation Code Section */}
+            <View className="border-t border-primary/20 pt-3">
+              <Text className="font-semibold mb-3 text-foreground">
+                {isPending ? "Reference Code" : "Confirmation Code"}
               </Text>
-              <Copy size={20} color="#666" />
-            </Pressable>
-            <Text className="text-xs text-muted-foreground mt-2">
-              Tap to copy •{" "}
-              {isPending
-                ? "Use this code to reference your request"
-                : "Show this code at the restaurant"}
-            </Text>
+              <Pressable
+                onPress={copyConfirmationCode}
+                className="flex-row items-center justify-between bg-background rounded-lg p-3 border border-border"
+              >
+                <Text className="font-mono font-bold text-xl tracking-wider text-foreground">
+                  {booking.confirmation_code}
+                </Text>
+                <Copy size={20} color={colors[colorScheme].mutedForeground} />
+              </Pressable>
+              <Text className="text-xs text-muted-foreground mt-2">
+                Tap to copy •{" "}
+                {isPending
+                  ? "Use this code to reference your request"
+                  : "Show this code at the restaurant"}
+              </Text>
+            </View>
           </View>
         </View>
 
@@ -607,8 +660,8 @@ export default function BookingDetailsScreen() {
           bookingUserId={booking.user_id}
         />
 
-        {/* Table Assignment - Only show for confirmed bookings */}
-        {booking.status === "confirmed" && (
+        {/* Table Assignment - Only show for confirmed bookings and non-basic tier restaurants */}
+        {booking.status === "confirmed" && booking.restaurant?.tier !== "basic" && (
           <BookingTableInfo
             tables={assignedTables}
             partySize={booking.party_size}
@@ -626,11 +679,9 @@ export default function BookingDetailsScreen() {
           loyaltyActivity={loyaltyActivity}
         />
 
-        {/* Map Section */}
-        <BookingMapSection restaurant={booking.restaurant} />
 
         {/* Bottom padding */}
-        <View className="h-20" />
+        <View className="h-24" />
       </ScrollView>
 
       {/* Actions Bar */}

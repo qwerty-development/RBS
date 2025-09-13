@@ -12,6 +12,8 @@ interface OptimizedListProps<T> {
   onRefresh?: () => void;
   refreshing?: boolean;
   listProps?: Partial<FlatListProps<T>>;
+  ListHeaderComponent?: React.ComponentType<any> | React.ReactElement | null;
+  contentContainerStyle?: any;
 }
 
 export function OptimizedList<T>({
@@ -22,6 +24,8 @@ export function OptimizedList<T>({
   onRefresh,
   refreshing,
   listProps,
+  ListHeaderComponent,
+  contentContainerStyle,
 }: OptimizedListProps<T>) {
   const viewabilityConfig = useRef({
     minimumViewTime: 50,
@@ -61,6 +65,8 @@ export function OptimizedList<T>({
         offset: 120 * index,
         index,
       })}
+      ListHeaderComponent={ListHeaderComponent}
+      contentContainerStyle={contentContainerStyle}
       {...(listProps as object)}
     />
   );

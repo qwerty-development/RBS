@@ -9,13 +9,13 @@ import {
   Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowLeft, Search, Check, Plus, Heart } from "lucide-react-native";
+import { Search, Check, Plus, Heart, SlidersHorizontal } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { H3, Muted } from "@/components/ui/typography";
+import { Muted } from "@/components/ui/typography";
 import { RestaurantSearchCard } from "@/components/search/RestaurantSearchCard";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
@@ -25,6 +25,8 @@ import { usePlaylistItems } from "@/hooks/usePlaylistItems";
 import { useFavorites } from "@/hooks/useFavorites";
 import { AddRestaurantSkeleton } from "@/components/skeletons/AddRestaurantSkeleton";
 import { OptimizedList } from "@/components/ui/optimized-list";
+import { NavigationHeader } from "@/components/ui/navigation-header";
+import { cn } from "@/lib/utils";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -51,6 +53,8 @@ export default function AddRestaurantsScreen() {
     new Set(),
   );
   const [addingRestaurants, setAddingRestaurants] = useState(false);
+  const [sortBy, setSortBy] = useState<"rating" | "name" | "distance">("rating");
+  const [showSortOptions, setShowSortOptions] = useState(false);
 
   const { addRestaurant, isRestaurantInPlaylist } =
     usePlaylistItems(playlistId);
@@ -61,10 +65,7 @@ export default function AddRestaurantsScreen() {
     try {
       setLoading(true);
 
-      let query = supabase
-        .from("restaurants")
-        .select("*")
-        .order("average_rating", { ascending: false });
+      let query = supabase.from("restaurants").select("*");
 
       if (searchQuery.trim()) {
         query = query.or(
@@ -78,6 +79,20 @@ export default function AddRestaurantsScreen() {
         }
       }
 
+      // Apply sorting
+      switch (sortBy) {
+        case "rating":
+          query = query.order("average_rating", { ascending: false });
+          break;
+        case "name":
+          query = query.order("name", { ascending: true });
+          break;
+        case "distance":
+          // For distance, we'll need to calculate it on the client side
+          query = query.order("name", { ascending: true }); // fallback to name
+          break;
+      }
+
       const { data, error } = await query.limit(50);
 
       if (error) throw error;
@@ -89,7 +104,7 @@ export default function AddRestaurantsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, favorites]);
+  }, [searchQuery, favorites, sortBy]);
 
   useEffect(() => {
     fetchRestaurants();
@@ -144,41 +159,48 @@ export default function AddRestaurantsScreen() {
       const isAlreadyInPlaylist = isRestaurantInPlaylist(item.id);
       const isFavorite = favorites.some((f) => f.restaurant_id === item.id);
 
+      const handlePress = () => {
+        if (!isAlreadyInPlaylist) {
+          toggleRestaurantSelection(item.id);
+        }
+      };
+
       return (
-        <View className="mb-3 relative">
+        <Pressable
+          onPress={handlePress}
+          disabled={isAlreadyInPlaylist}
+          className={cn(
+            "mb-3 relative rounded-lg overflow-hidden",
+            isAlreadyInPlaylist && "opacity-50",
+            isSelected ? "border-2 border-primary" : "border-2 border-transparent",
+            "active:scale-[0.98] transition-all duration-200"
+          )}
+        >
           <RestaurantSearchCard
             restaurant={item}
-            onPress={() => {
-              if (!isAlreadyInPlaylist) {
-                toggleRestaurantSelection(item.id);
-              }
-            }}
             variant="compact"
             showActions={false}
-            disabled={isAlreadyInPlaylist}
-            className={
-              isAlreadyInPlaylist
-                ? "opacity-50"
-                : isSelected
-                  ? "border-2 border-primary"
-                  : ""
-            }
+            disabled={true}
+            className={cn(
+              "border-0 shadow-none",
+              isSelected && "bg-primary/5"
+            )}
           />
 
           {/* Selection indicator */}
           <View className="absolute top-3 right-3">
             {isAlreadyInPlaylist ? (
-              <View className="bg-gray-500 rounded-full p-1">
-                <Check size={16} color="#fff" />
+              <View className="bg-gray-500 rounded-full p-1.5">
+                <Check size={14} color="#fff" />
               </View>
             ) : isSelected ? (
-              <View className="bg-primary rounded-full p-1">
-                <Check size={16} color="#fff" />
+              <View className="bg-primary rounded-full p-1.5">
+                <Check size={14} color="#fff" />
               </View>
             ) : (
-              <View className="bg-gray-200 dark:bg-gray-700 rounded-full p-1">
+              <View className="bg-gray-200 dark:bg-gray-700 rounded-full p-1.5">
                 <Plus
-                  size={16}
+                  size={14}
                   color={colorScheme === "dark" ? "#fff" : "#000"}
                 />
               </View>
@@ -188,10 +210,10 @@ export default function AddRestaurantsScreen() {
           {/* Favorite indicator */}
           {isFavorite && (
             <View className="absolute top-3 left-3">
-              <Heart size={16} color="#dc2626" fill="#dc2626" />
+              <Heart size={14} color="#dc2626" fill="#dc2626" />
             </View>
           )}
-        </View>
+        </Pressable>
       );
     },
     [
@@ -206,49 +228,90 @@ export default function AddRestaurantsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
-      <View className="bg-white dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center flex-1">
-            <Pressable onPress={() => router.back()} className="p-2 -ml-2">
-              <ArrowLeft
-                size={24}
-                color={colorScheme === "dark" ? "#fff" : "#000"}
-              />
-            </Pressable>
+      <NavigationHeader
+        title="Add to Playlist"
+        onBack={() => router.back()}
+      />
 
-            <H3 className="ml-2">Add to Playlist</H3>
-          </View>
-
-          {selectedRestaurants.size > 0 && (
-            <Button
-              size="sm"
-              onPress={handleAddRestaurants}
-              disabled={addingRestaurants}
-            >
-              {addingRestaurants ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Text className="text-white">
-                  Add ({selectedRestaurants.size})
-                </Text>
-              )}
-            </Button>
-          )}
-        </View>
-      </View>
 
       {/* Search Bar */}
-      <View className="bg-white dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-        <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-4 py-2">
-          <Search size={20} color="#6b7280" />
-          <TextInput
-            placeholder="Search restaurants..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            className="flex-1 ml-2 text-base text-gray-900 dark:text-white"
-            placeholderTextColor="#6b7280"
-          />
+      <View className="px-4 py-3 border-b border-border bg-background">
+        <View className="flex-row items-center gap-3">
+          {/* Search Input */}
+          <View className="flex-1 flex-row items-center bg-muted rounded-lg px-3 py-2">
+            <Search size={18} color={colorScheme === "dark" ? "#9ca3af" : "#6b7280"} />
+            <TextInput
+              placeholder="Search restaurants..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              className="flex-1 ml-2 text-base text-foreground"
+              placeholderTextColor={colorScheme === "dark" ? "#9ca3af" : "#6b7280"}
+            />
+          </View>
+
+          {/* Sort Button */}
+          <Pressable
+            onPress={() => setShowSortOptions(!showSortOptions)}
+            className={cn(
+              "p-2 rounded-lg border",
+              showSortOptions 
+                ? "bg-primary border-primary" 
+                : "bg-background border-border"
+            )}
+          >
+            <SlidersHorizontal 
+              size={18} 
+              color={showSortOptions ? "#fff" : (colorScheme === "dark" ? "#fff" : "#000")} 
+            />
+          </Pressable>
         </View>
+
+        {/* Sort Options */}
+        {showSortOptions && (
+          <View className="mt-3 p-3 bg-card border border-border rounded-lg">
+            <Text className="text-sm font-medium text-foreground mb-2">Sort by:</Text>
+            <View className="flex-row gap-2">
+              <Pressable
+                onPress={() => {
+                  setSortBy("rating");
+                  setShowSortOptions(false);
+                }}
+                className={cn(
+                  "px-3 py-2 rounded-lg border",
+                  sortBy === "rating" 
+                    ? "bg-primary border-primary" 
+                    : "bg-background border-border"
+                )}
+              >
+                <Text className={cn(
+                  "text-sm",
+                  sortBy === "rating" ? "text-primary-foreground" : "text-foreground"
+                )}>
+                  Rating
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  setSortBy("name");
+                  setShowSortOptions(false);
+                }}
+                className={cn(
+                  "px-3 py-2 rounded-lg border",
+                  sortBy === "name" 
+                    ? "bg-primary border-primary" 
+                    : "bg-background border-border"
+                )}
+              >
+                <Text className={cn(
+                  "text-sm",
+                  sortBy === "name" ? "text-primary-foreground" : "text-foreground"
+                )}>
+                  Name
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        )}
       </View>
 
       {/* Restaurant List */}
@@ -280,6 +343,23 @@ export default function AddRestaurantsScreen() {
           </Text>
         </View>
       )}
+
+      {/* Bottom Action Bar */}
+      <View className="p-4 border-t border-border bg-background">
+        <Button
+          onPress={handleAddRestaurants}
+          disabled={addingRestaurants || selectedRestaurants.size === 0}
+          className="w-full rounded-lg"
+        >
+          {addingRestaurants ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <Text className="text-white">
+              Add {selectedRestaurants.size > 0 ? `${selectedRestaurants.size} Restaurant${selectedRestaurants.size > 1 ? 's' : ''}` : 'Restaurants'}
+            </Text>
+          )}
+        </Button>
+      </View>
     </SafeAreaView>
   );
 }

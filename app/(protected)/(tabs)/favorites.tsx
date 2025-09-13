@@ -164,7 +164,7 @@ export default function FavoritesScreen() {
           <Button
             onPress={convertGuestToUser}
             size="lg"
-            className="w-full max-w-xs"
+            className="w-full max-w-xs rounded-lg"
           >
             <UserPlus size={20} color="#fff" />
             <Text className="ml-2 font-bold text-white">
@@ -176,7 +176,7 @@ export default function FavoritesScreen() {
             onPress={() => router.push("/(protected)/(tabs)/search")}
             size="lg"
             variant="ghost"
-            className="w-full max-w-xs mt-2"
+            className="w-full max-w-xs mt-2 rounded-lg"
           >
             <Text>Browse Restaurants</Text>
           </Button>
@@ -457,7 +457,7 @@ export default function FavoritesScreen() {
           <Text className="text-center text-muted-foreground mb-6">
             There was an issue loading your playlists. Please try again.
           </Text>
-          <Button onPress={() => handleTabSwitch("favorites")}>
+          <Button onPress={() => handleTabSwitch("favorites")} className="rounded-lg">
             <Text className="text-white">Go to Favorites</Text>
           </Button>
         </View>
@@ -558,7 +558,7 @@ export default function FavoritesScreen() {
               Please try switching back to favorites and then to playlists
               again.
             </Text>
-            <Button onPress={() => handleTabSwitch("favorites")}>
+            <Button onPress={() => handleTabSwitch("favorites")} className="rounded-lg">
               <Text className="text-white">Go to Favorites</Text>
             </Button>
           </View>
@@ -610,37 +610,13 @@ export default function FavoritesScreen() {
             )
           ) : // Playlists content
           (playlists?.length || 0) === 0 ? (
-            <View className="flex-1 items-center justify-center px-8 pt-6">
+            <View className="flex-1 items-center justify-start px-8 pt-20">
               <FolderPlus size={64} color="#6b7280" className="mb-4" />
               <H3 className="text-center mb-2">No Playlists Yet</H3>
-              <Text className="text-center text-muted-foreground mb-6">
+              <Text className="text-center text-muted-foreground">
                 Create playlists to organize your favorite restaurants by theme,
                 occasion, or any way you like!
               </Text>
-              <View className="flex-row gap-3">
-                <Button
-                  variant="outline"
-                  onPress={navigateToJoinPlaylist}
-                  className="flex-1"
-                >
-                  <View className="flex-row items-center justify-center gap-2">
-                    <UserPlus
-                      size={16}
-                      color={colorScheme === "dark" ? "#fff" : "#000"}
-                    />
-                    <Text className="text-foreground">Join Playlist</Text>
-                  </View>
-                </Button>
-                <Button
-                  onPress={() => setShowCreatePlaylist(true)}
-                  className="flex-1"
-                >
-                  <View className="flex-row items-center justify-center gap-2">
-                    <Plus size={16} color="#fff" />
-                    <Text className="text-white">Create Playlist</Text>
-                  </View>
-                </Button>
-              </View>
             </View>
           ) : (
             <View className="pb-24 pt-7">

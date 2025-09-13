@@ -758,7 +758,7 @@ export function BookingCard({
                   variant={addedToCalendar ? "secondary" : "outline"}
                   onPress={handleAddToCalendar}
                   disabled={isAddingToCalendar}
-                  className="flex-1"
+                  className="flex-1 h-8 rounded-lg"
                 >
                   {isAddingToCalendar ? (
                     <ActivityIndicator size="small" color="#3b82f6" />
@@ -776,61 +776,31 @@ export function BookingCard({
                 </Button>
               )}
 
-              {/* Cancel/Leave: Show for pending (not expired) or confirmed */}
+              {/* Directions & Call: Show for pending (not expired) or confirmed */}
               {!isPast && (isConfirmed || (isPending && !isPendingAndPassed)) && (
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onPress={
-                    booking.is_invitee
-                      ? handleLeaveBooking
-                      : handleCancelBooking
-                  }
-                  disabled={isProcessing}
-                  className="flex-1"
-                >
-                  {isProcessing ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                  ) : (
-                    <View className="flex-row items-center gap-1">
-                      <XCircle size={12} color="#fff" />
-                      <Text className="text-xs text-white">
-                        {booking.is_invitee
-                          ? "Leave"
-                          : isPending
-                            ? "Cancel"
-                            : "Cancel"}
-                      </Text>
-                    </View>
-                  )}
-                </Button>
-              )}
-
-              {/* Directions & Call: Show only for confirmed */}
-              {!isPast && isConfirmed && (
                 <>
                   <View className="flex-1">
                     <DirectionsButton
                       restaurant={booking.restaurant}
                       variant="button"
                       size="sm"
-                      className="w-full h-8 justify-center"
-                      backgroundColor="bg-background"
-                      borderColor="border-border"
-                      iconColor="#3b82f6"
-                      textColor="text-primary"
+                      className="w-full h-8 justify-center rounded-lg"
+                      backgroundColor="bg-primary"
+                      borderColor="border-primary"
+                      iconColor={colors[colorScheme].primaryForeground}
+                      textColor="text-primary-foreground"
                     />
                   </View>
                   {booking.restaurant.phone && (
                     <Button
                       size="sm"
-                      variant="outline"
+                      variant="default"
                       onPress={handleQuickCall}
-                      className="flex-1"
+                      className="flex-1 bg-primary h-8 rounded-lg"
                     >
                       <View className="flex-row items-center gap-1">
-                        <Phone size={12} color="#10b981" />
-                        <Text className="text-xs">Call</Text>
+                        <Phone size={12} color={colors[colorScheme].primaryForeground} />
+                        <Text className="text-xs text-primary-foreground">Call</Text>
                       </View>
                     </Button>
                   )}
@@ -843,7 +813,7 @@ export function BookingCard({
                   size="sm"
                   variant="default"
                   onPress={handleReview}
-                  className="flex-1"
+                  className="flex-1 rounded-lg"
                 >
                   <View className="flex-row items-center gap-1">
                     <Star size={12} color="#fff" />
@@ -856,7 +826,7 @@ export function BookingCard({
                   size="sm"
                   variant="default"
                   onPress={handleRebook}
-                  className="flex-1 bg-primary"
+                  className="flex-1 bg-primary rounded-lg"
                 >
                   <View className="flex-row items-center gap-1">
                     <RotateCcw size={12} color={colors[colorScheme].primaryForeground} />

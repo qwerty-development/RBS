@@ -11,6 +11,8 @@ import {
 import { format, isToday, isTomorrow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
+import { useColorScheme } from "@/lib/useColorScheme";
+import { colors } from "@/constants/colors";
 
 interface RestaurantHoursDisplayProps {
   restaurantId: string;
@@ -21,6 +23,7 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
   restaurantId,
   className,
 }) => {
+  const { colorScheme } = useColorScheme();
   const [showFullSchedule, setShowFullSchedule] = useState(false);
   const {
     loading,
@@ -82,8 +85,8 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
       {/* Current Status */}
       <View className="flex-row items-center justify-between mb-3">
         <View className="flex-row items-center gap-2">
-          <Clock size={20} color="#666" />
-          <Text className="text-base font-medium dark:text-white">Hours</Text>
+          <Clock size={20} color={colors[colorScheme].mutedForeground} />
+          <Text className="text-base font-medium text-foreground">Hours</Text>
         </View>
         <View className="flex-1 items-end">
           <View className="flex-row items-center gap-2 mb-1">
@@ -126,9 +129,9 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
       {/* Next open time if currently closed */}
       {!todayStatus.isOpen && todayStatus.nextOpenTime && (
         <View className="bg-muted/50 rounded-lg p-3 mb-3">
-          <Text className="text-sm">
+          <Text className="text-sm text-foreground">
             Next open:{" "}
-            <Text className="font-medium">
+            <Text className="font-medium text-foreground">
               {isToday(todayStatus.nextOpenTime.date)
                 ? `Today at ${formatTime(todayStatus.nextOpenTime.time)}`
                 : isTomorrow(todayStatus.nextOpenTime.date)
@@ -211,7 +214,7 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
               <View className="flex-row items-start justify-between">
                 <Text
                   className={cn(
-                    "text-sm capitalize",
+                    "text-sm capitalize text-foreground",
                     !isOpen && "text-muted-foreground",
                   )}
                 >

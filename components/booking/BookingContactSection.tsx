@@ -63,19 +63,15 @@ export const BookingContactSection: React.FC<BookingContactSectionProps> = ({
     }
   };
 
+  // Only show if there's WhatsApp or loyalty/offer info to display
+  if (!restaurant.whatsapp_number && !appliedOfferDetails && !loyaltyActivity) {
+    return null;
+  }
+
   return (
     <View className="p-4 border-b border-border">
       <H3 className="mb-3">Contact Restaurant</H3>
       <View className="gap-2">
-        {restaurant.phone_number && (
-          <Button variant="outline" onPress={callRestaurant} className="w-full">
-            <View className="flex-row items-center gap-2">
-              <Phone size={20} color="#10b981" />
-              <Text>Call Restaurant</Text>
-            </View>
-          </Button>
-        )}
-
         {restaurant.whatsapp_number && (
           <Button
             variant="outline"
