@@ -457,7 +457,10 @@ export default function FavoritesScreen() {
           <Text className="text-center text-muted-foreground mb-6">
             There was an issue loading your playlists. Please try again.
           </Text>
-          <Button onPress={() => handleTabSwitch("favorites")} className="rounded-lg">
+          <Button
+            onPress={() => handleTabSwitch("favorites")}
+            className="rounded-lg"
+          >
             <Text className="text-white">Go to Favorites</Text>
           </Button>
         </View>
@@ -558,7 +561,10 @@ export default function FavoritesScreen() {
               Please try switching back to favorites and then to playlists
               again.
             </Text>
-            <Button onPress={() => handleTabSwitch("favorites")} className="rounded-lg">
+            <Button
+              onPress={() => handleTabSwitch("favorites")}
+              className="rounded-lg"
+            >
               <Text className="text-white">Go to Favorites</Text>
             </Button>
           </View>

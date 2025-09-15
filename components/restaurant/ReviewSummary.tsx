@@ -73,12 +73,10 @@ export const ReviewSummary = ({ reviewSummary }: ReviewSummaryProps) => {
       <View className="flex-row items-center justify-between mb-4">
         <H3>Reviews & Ratings</H3>
         <View className="flex-row items-center gap-1">
-          <Star
-            size={20}
-            color="#f59e0b"
-            fill="#f59e0b"
-          />
-          <Text className="font-bold text-lg">{avgRating > 0 ? avgRating.toFixed(1) : "-"}</Text>
+          <Star size={20} color="#f59e0b" fill="#f59e0b" />
+          <Text className="font-bold text-lg">
+            {avgRating > 0 ? avgRating.toFixed(1) : "-"}
+          </Text>
           <Text className="text-muted-foreground">({totalReviews})</Text>
         </View>
       </View>

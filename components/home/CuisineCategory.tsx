@@ -22,7 +22,7 @@ export function CuisineCategory({ cuisine, onPress }: CuisineCategoryProps) {
     enableHaptic: true,
     enableDebounce: true,
   });
-  
+
   const { openNavigationModal, isAnyModalOpen } = useNavigationModal();
 
   const handlePress = () => {

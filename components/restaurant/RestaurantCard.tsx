@@ -14,7 +14,10 @@ import { AddToPlaylistModal } from "@/components/playlists/AddToPlaylistModal"; 
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
 import { useRestaurantLoyalty } from "@/hooks/useRestaurantLoyalty";
-import { useRestaurantPress, useQuickActionPress } from "@/hooks/useHapticPress";
+import {
+  useRestaurantPress,
+  useQuickActionPress,
+} from "@/hooks/useHapticPress";
 import { useNavigationModal } from "@/context/modal-provider";
 
 type BaseRestaurant = Database["public"]["Tables"]["restaurants"]["Row"];
@@ -61,11 +64,11 @@ export function RestaurantCard({
 }: RestaurantCardProps) {
   const router = useRouter();
   const [isPlaylistModalVisible, setPlaylistModalVisible] = useState(false);
-  
+
   // Haptic press hooks
   const { handlePress: handleRestaurantPress } = useRestaurantPress();
   const { handlePress: handleQuickActionPress } = useQuickActionPress();
-  
+
   // Modal state management
   const { openNavigationModal, isAnyModalOpen } = useNavigationModal();
 
@@ -90,7 +93,9 @@ export function RestaurantCard({
     handleRestaurantPress(() => {
       // Check if any modal is already open
       if (isAnyModalOpen) {
-        console.log(`Restaurant ${restaurantData.id} press blocked - modal already open`);
+        console.log(
+          `Restaurant ${restaurantData.id} press blocked - modal already open`,
+        );
         return;
       }
 
@@ -162,14 +167,17 @@ export function RestaurantCard({
   // Render status dot (green for open, red for closed)
   const renderStatusDot = () => {
     if (!showAvailability || availabilityLoading) return null;
-    
-    const isOpen = checkAvailability(new Date(), format(new Date(), "HH:mm")).isOpen;
-    
+
+    const isOpen = checkAvailability(
+      new Date(),
+      format(new Date(), "HH:mm"),
+    ).isOpen;
+
     return (
       <View
         className={cn(
           "w-2 h-2 rounded-full",
-          isOpen ? "bg-green-500" : "bg-red-500"
+          isOpen ? "bg-green-500" : "bg-red-500",
         )}
       />
     );
@@ -361,10 +369,7 @@ export function RestaurantCard({
               {/* Name and Cuisine in a row */}
               <View className="flex-row items-center justify-between mb-3">
                 <View className="flex-row items-center gap-2 flex-1 mr-3">
-                  <Text
-                    className="font-bold text-lg flex-1"
-                    numberOfLines={1}
-                  >
+                  <Text className="font-bold text-lg flex-1" numberOfLines={1}>
                     {restaurantData.name}
                   </Text>
                   {renderStatusDot()}

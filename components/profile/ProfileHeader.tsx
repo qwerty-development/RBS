@@ -1,14 +1,10 @@
 import React from "react";
 import { View, Pressable, ActivityIndicator } from "react-native";
 import { Edit3, Calendar } from "lucide-react-native";
-import * as ImagePicker from "expo-image-picker";
-import * as Haptics from "expo-haptics";
 
 import { Text } from "@/components/ui/text";
 import { H2, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
-import { supabase } from "@/config/supabase";
-import { useAuth } from "@/context/supabase-provider";
 import { UserRatingBadge } from "@/components/rating/UserRatingBadge";
 
 interface ProfileHeaderProps {
@@ -65,6 +61,16 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
       <H2 className="mt-3">{profile?.full_name}</H2>
       <Muted>{user?.email}</Muted>
+      {profile?.date_of_birth && (
+        <Muted className="text-xs">
+          Born{" "}
+          {new Date(profile.date_of_birth).toLocaleDateString("en-US", {
+            month: "long",
+            day: "numeric",
+            year: "numeric",
+          })}
+        </Muted>
+      )}
 
       {/* Member Since Badge with Rating */}
       <View className="flex-row items-center gap-3 mt-3">

@@ -34,6 +34,13 @@ import {
 import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
 import { TimeSlots, TableOptions } from "@/components/booking/TimeSlots";
 import { TableOption } from "@/lib/AvailabilityService";
+import { useAuth } from "@/context/supabase-provider";
+import { verifyAgeForBooking } from "@/utils/ageVerification";
+import { AgeRestrictionBanner } from "./AgeRestrictionBanner";
+import { useRouter } from "expo-router";
+import { useBookingEligibility } from "@/hooks/useBookingEligibility";
+import { useBookingDOBPrompt } from "@/hooks/useDateOfBirthPrompt";
+import { DateOfBirthPrompt } from "../auth/DateOfBirthPrompt";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -363,6 +370,10 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
   initialDate,
   initialPartySize = 2,
 }) => {
+  // Auth context for age verification
+  const { profile, isGuest } = useAuth();
+  const router = useRouter();
+
   // State management with better defaults
   const [selectedDate, setSelectedDate] = useState(
     () => initialDate || new Date(),
@@ -374,6 +385,17 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
 
   // Refs for optimization
   const stepTransitionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Booking eligibility (includes age verification and guest handling)
+  const bookingEligibility = useBookingEligibility(restaurant);
+
+  // DOB prompt for booking flow
+  const dobPrompt = useBookingDOBPrompt();
+
+  // Backward compatibility - keep ageVerification for existing AgeRestrictionBanner
+  const ageVerification = useMemo(() => {
+    return verifyAgeForBooking(restaurant, profile);
+  }, [restaurant, profile]);
 
   // Preloader hook for better performance
   const { preloadRestaurant } = useAvailabilityPreloader();
@@ -498,6 +520,21 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
 
   // Step progression with optimized transitions
   const handleContinueToTimeSelection = useCallback(() => {
+    // Check booking eligibility (includes age verification)
+    if (!bookingEligibility.isEligible) {
+      if (bookingEligibility.requiresDateOfBirth) {
+        dobPrompt.showPrompt();
+        return;
+      }
+
+      // Show appropriate alert for other restrictions
+      Alert.alert(
+        "Booking Not Available",
+        bookingEligibility.blockedReason || "Unable to proceed with booking",
+      );
+      return;
+    }
+
     // Check if the selected date is available according to restaurant hours
     const dateStatus = getDateStatus(selectedDate);
     if (dateStatus?.type === "closed") {
@@ -512,7 +549,13 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
 
     setCurrentStep("time");
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-  }, [hasTimeSlots, getDateStatus, selectedDate]);
+  }, [
+    hasTimeSlots,
+    getDateStatus,
+    selectedDate,
+    bookingEligibility,
+    dobPrompt,
+  ]);
 
   const handleTimeSelect = useCallback(
     async (time: string) => {
@@ -589,6 +632,14 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
     <View className="mx-4 mb-6 p-4 bg-card rounded-xl shadow-sm border border-border">
       <H3 className="mb-4">Reserve Your Experience</H3>
 
+      {/* Age Restriction Banner */}
+      <AgeRestrictionBanner
+        ageVerification={ageVerification}
+        isGuest={isGuest}
+        onSignUp={() => router.push("/sign-up")}
+        onUpdateProfile={() => router.push("/profile/edit")}
+      />
+
       {/* Step Indicator */}
       <StepIndicator
         currentStep={currentStep}
@@ -627,11 +678,17 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
           <Button
             onPress={handleContinueToTimeSelection}
             className="w-full"
-            disabled={timeSlotsLoading || hoursLoading}
+            disabled={
+              timeSlotsLoading || hoursLoading || !bookingEligibility.isEligible
+            }
           >
             <CalendarIcon size={20} color="white" />
             <Text className="text-white font-semibold ml-2">
-              {timeSlotsLoading ? "Loading..." : "Find Available Times"}
+              {!bookingEligibility.isEligible
+                ? bookingEligibility.actionText || "Not Available"
+                : timeSlotsLoading
+                  ? "Loading..."
+                  : "Find Available Times"}
             </Text>
           </Button>
         </>
@@ -737,6 +794,22 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
           </Text>
         </View>
       </View>
+
+      {/* Date of Birth Prompt */}
+      <DateOfBirthPrompt
+        visible={dobPrompt.isVisible}
+        onComplete={() => {
+          dobPrompt.hidePrompt();
+          // Continue with booking flow after DOB is set
+          setTimeout(() => {
+            if (!hasTimeSlots) return;
+            setCurrentStep("time");
+          }, 500);
+        }}
+        mandatory={true}
+        title="Age Verification Required"
+        description={`This venue requires guests to be at least ${restaurant.minimum_age} years old. Please provide your date of birth to continue with your booking.`}
+      />
     </View>
   );
 };

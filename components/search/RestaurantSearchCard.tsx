@@ -138,7 +138,9 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
 
     // Check if any modal is already open
     if (isAnyModalOpen) {
-      console.log(`Restaurant ${restaurant.id} press blocked - modal already open`);
+      console.log(
+        `Restaurant ${restaurant.id} press blocked - modal already open`,
+      );
       return;
     }
 
@@ -290,7 +292,9 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
               <View className="flex-row items-center">
                 <Star size={12} color="#f59e0b" fill="#f59e0b" />
                 <Text className="text-xs font-medium ml-1">
-                  {restaurant.average_rating && restaurant.average_rating > 0 ? restaurant.average_rating.toFixed(1) : "-"}
+                  {restaurant.average_rating && restaurant.average_rating > 0
+                    ? restaurant.average_rating.toFixed(1)
+                    : "-"}
                 </Text>
                 <Text className="text-xs text-muted-foreground ml-1">
                   ({restaurant.total_reviews || 0})

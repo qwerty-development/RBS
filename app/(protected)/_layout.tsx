@@ -9,6 +9,7 @@ import { NetworkStatusBanner } from "@/components/network/NetworkStatusBanner";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
 import { getThemedColors, getActivityIndicatorColor } from "@/lib/utils";
+import { DOBOnboarding } from "@/components/onboarding/DOBOnboarding";
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -25,7 +26,7 @@ export default function ProtectedLayout() {
     hasAccess: boolean;
   }>({ initialized: false, hasAccess: false });
 
-  const authCheckTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const authCheckTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
   useEffect(() => {
     console.log("🔐 Auth State Change:", {
@@ -157,6 +158,7 @@ export default function ProtectedLayout() {
       </Stack>
       {!isGuest && <GlobalChatTab />}
       {!isGuest && <NotificationManager />}
+      {!isGuest && <DOBOnboarding />}
     </View>
   );
 }

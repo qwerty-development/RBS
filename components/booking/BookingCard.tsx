@@ -279,23 +279,32 @@ export function BookingCard({
 
   // Check if pending booking has passed its time (should be treated as declined)
   const isPendingAndPassed = isPending && bookingDate < new Date();
-  
+
   // Use declined status for pending bookings that have passed their time
-  const effectiveStatus = isPendingAndPassed ? "declined_by_restaurant" : booking.status;
-  
+  const effectiveStatus = isPendingAndPassed
+    ? "declined_by_restaurant"
+    : booking.status;
+
   // Debug logging for status
-  console.log(`BookingCard Debug - ID: ${booking.id}, Original Status: ${booking.status}, Effective Status: ${effectiveStatus}, IsPendingAndPassed: ${isPendingAndPassed}`);
-  
+  console.log(
+    `BookingCard Debug - ID: ${booking.id}, Original Status: ${booking.status}, Effective Status: ${effectiveStatus}, IsPendingAndPassed: ${isPendingAndPassed}`,
+  );
+
   const statusConfig =
     BOOKING_STATUS_CONFIG[
       effectiveStatus as keyof typeof BOOKING_STATUS_CONFIG
     ] || BOOKING_STATUS_CONFIG.pending;
-  
+
   // Debug logging to help identify problematic status values
   if (!statusConfig) {
-    console.warn("Unknown booking status:", effectiveStatus, "Available statuses:", Object.keys(BOOKING_STATUS_CONFIG));
+    console.warn(
+      "Unknown booking status:",
+      effectiveStatus,
+      "Available statuses:",
+      Object.keys(BOOKING_STATUS_CONFIG),
+    );
   }
-  
+
   // Ensure we have a valid status config with proper fallback
   const finalStatusConfig = statusConfig || BOOKING_STATUS_CONFIG.pending;
   const StatusIcon = finalStatusConfig.icon;
@@ -591,10 +600,7 @@ export function BookingCard({
           text: "Try Again",
           onPress: () => {
             setIsAddingToCalendar(false);
-            setTimeout(
-              () => handleAddToCalendar(),
-              100,
-            );
+            setTimeout(() => handleAddToCalendar(), 100);
           },
         },
         { text: "Cancel", style: "cancel" },
@@ -747,80 +753,89 @@ export function BookingCard({
 
           {/* --- Contextual Messages for Pending/Declined --- */}
 
-
           {/* --- Quick Action Buttons - Compact Layout --- */}
           {showQuickActions && (
             <View className="flex-row gap-2">
               {/* Add to Calendar: Show for confirmed or pending (not expired) */}
-              {!isPast && (isConfirmed || (isPending && !isPendingAndPassed)) && (
-                <Button
-                  size="sm"
-                  variant={addedToCalendar ? "secondary" : "outline"}
-                  onPress={handleAddToCalendar}
-                  disabled={isAddingToCalendar}
-                  className="flex-1 h-8 rounded-lg"
-                >
-                  {isAddingToCalendar ? (
-                    <ActivityIndicator size="small" color="#3b82f6" />
-                  ) : addedToCalendar ? (
-                    <View className="flex-row items-center gap-1">
-                      <CheckCircle size={12} color="#10b981" />
-                      <Text className="text-xs">Added ✓</Text>
-                    </View>
-                  ) : (
-                    <View className="flex-row items-center gap-1">
-                      <CalendarPlus size={12} color="#3b82f6" />
-                      <Text className="text-xs">Calendar</Text>
-                    </View>
-                  )}
-                </Button>
-              )}
+              {!isPast &&
+                (isConfirmed || (isPending && !isPendingAndPassed)) && (
+                  <Button
+                    size="sm"
+                    variant={addedToCalendar ? "secondary" : "outline"}
+                    onPress={handleAddToCalendar}
+                    disabled={isAddingToCalendar}
+                    className="flex-1 h-8 rounded-lg"
+                  >
+                    {isAddingToCalendar ? (
+                      <ActivityIndicator size="small" color="#3b82f6" />
+                    ) : addedToCalendar ? (
+                      <View className="flex-row items-center gap-1">
+                        <CheckCircle size={12} color="#10b981" />
+                        <Text className="text-xs">Added ✓</Text>
+                      </View>
+                    ) : (
+                      <View className="flex-row items-center gap-1">
+                        <CalendarPlus size={12} color="#3b82f6" />
+                        <Text className="text-xs">Calendar</Text>
+                      </View>
+                    )}
+                  </Button>
+                )}
 
               {/* Directions & Call: Show for pending (not expired) or confirmed */}
-              {!isPast && (isConfirmed || (isPending && !isPendingAndPassed)) && (
-                <>
-                  <View className="flex-1">
-                    <DirectionsButton
-                      restaurant={booking.restaurant}
-                      variant="button"
-                      size="sm"
-                      className="w-full h-8 justify-center rounded-lg"
-                      backgroundColor="bg-primary"
-                      borderColor="border-primary"
-                      iconColor={colors[colorScheme].primaryForeground}
-                      textColor="text-primary-foreground"
-                    />
-                  </View>
-                  {booking.restaurant.phone && (
-                    <Button
-                      size="sm"
-                      variant="default"
-                      onPress={handleQuickCall}
-                      className="flex-1 bg-primary h-8 rounded-lg"
-                    >
-                      <View className="flex-row items-center gap-1">
-                        <Phone size={12} color={colors[colorScheme].primaryForeground} />
-                        <Text className="text-xs text-primary-foreground">Call</Text>
-                      </View>
-                    </Button>
-                  )}
-                </>
-              )}
+              {!isPast &&
+                (isConfirmed || (isPending && !isPendingAndPassed)) && (
+                  <>
+                    <View className="flex-1">
+                      <DirectionsButton
+                        restaurant={booking.restaurant}
+                        variant="button"
+                        size="sm"
+                        className="w-full h-8 justify-center rounded-lg"
+                        backgroundColor="bg-primary"
+                        borderColor="border-primary"
+                        iconColor={colors[colorScheme].primaryForeground}
+                        textColor="text-primary-foreground"
+                      />
+                    </View>
+                    {booking.restaurant.phone && (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        onPress={handleQuickCall}
+                        className="flex-1 bg-primary h-8 rounded-lg"
+                      >
+                        <View className="flex-row items-center gap-1">
+                          <Phone
+                            size={12}
+                            color={colors[colorScheme].primaryForeground}
+                          />
+                          <Text className="text-xs text-primary-foreground">
+                            Call
+                          </Text>
+                        </View>
+                      </Button>
+                    )}
+                  </>
+                )}
 
               {/* Actions for Past / Declined Bookings */}
-              {(isPast || isPendingAndPassed) && isCompleted && !hasReview && onReview && (
-                <Button
-                  size="sm"
-                  variant="default"
-                  onPress={handleReview}
-                  className="flex-1 rounded-lg"
-                >
-                  <View className="flex-row items-center gap-1">
-                    <Star size={12} color="#fff" />
-                    <Text className="text-xs text-white">Rate</Text>
-                  </View>
-                </Button>
-              )}
+              {(isPast || isPendingAndPassed) &&
+                isCompleted &&
+                !hasReview &&
+                onReview && (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onPress={handleReview}
+                    className="flex-1 rounded-lg"
+                  >
+                    <View className="flex-row items-center gap-1">
+                      <Star size={12} color="#fff" />
+                      <Text className="text-xs text-white">Rate</Text>
+                    </View>
+                  </Button>
+                )}
               {(isPast || isDeclined || isPendingAndPassed) && onRebook && (
                 <Button
                   size="sm"
@@ -829,8 +844,13 @@ export function BookingCard({
                   className="flex-1 bg-primary rounded-lg"
                 >
                   <View className="flex-row items-center gap-1">
-                    <RotateCcw size={12} color={colors[colorScheme].primaryForeground} />
-                    <Text className="text-xs text-primary-foreground">Book Again</Text>
+                    <RotateCcw
+                      size={12}
+                      color={colors[colorScheme].primaryForeground}
+                    />
+                    <Text className="text-xs text-primary-foreground">
+                      Book Again
+                    </Text>
                   </View>
                 </Button>
               )}

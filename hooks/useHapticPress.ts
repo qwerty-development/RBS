@@ -1,6 +1,6 @@
 // hooks/useHapticPress.ts
-import { useCallback, useRef } from 'react';
-import * as Haptics from 'expo-haptics';
+import { useCallback, useRef } from "react";
+import * as Haptics from "expo-haptics";
 
 export interface HapticPressOptions {
   /**
@@ -67,7 +67,7 @@ export function useHapticPress(options: HapticPressOptions = {}) {
         // Execute callback
         await callback();
       } catch (error) {
-        console.error('Error in haptic press handler:', error);
+        console.error("Error in haptic press handler:", error);
       } finally {
         if (enableDebounce) {
           // Reset processing flag after a short delay
@@ -77,7 +77,7 @@ export function useHapticPress(options: HapticPressOptions = {}) {
         }
       }
     },
-    [hapticStyle, debounceMs, enableHaptic, enableDebounce]
+    [hapticStyle, debounceMs, enableHaptic, enableDebounce],
   );
 
   return { handlePress };

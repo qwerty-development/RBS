@@ -180,7 +180,7 @@ export default function BookingDetailsScreen() {
   const [restaurantLoyaltyRule, setRestaurantLoyaltyRule] =
     useState<LoyaltyRuleDetails | null>(null);
   const [wasLoyaltyRefunded, setWasLoyaltyRefunded] = useState<boolean>(false);
-  
+
   // Declined explanation state
   const [showDeclinedExplanation, setShowDeclinedExplanation] = useState(false);
 
@@ -288,11 +288,11 @@ export default function BookingDetailsScreen() {
 
   const bookAgain = () => {
     if (!booking) return;
-    
+
     // Calculate a future date/time based on the original booking
     const originalDate = new Date(booking.booking_time);
     const now = new Date();
-    
+
     // If the original booking time is in the past, schedule for the same time next week
     // If it's in the future, use the original time
     let suggestedDate = originalDate;
@@ -300,7 +300,7 @@ export default function BookingDetailsScreen() {
       suggestedDate = new Date(originalDate);
       suggestedDate.setDate(suggestedDate.getDate() + 7); // Same time next week
     }
-    
+
     router.push({
       pathname: "/booking/availability",
       params: {
@@ -414,17 +414,21 @@ export default function BookingDetailsScreen() {
   }
 
   const bookingDate = new Date(booking.booking_time);
-  
+
   // Check if pending booking has passed its time (should be treated as declined)
-  const isPendingAndPassed = booking.status === "pending" && bookingDate < new Date();
-  
+  const isPendingAndPassed =
+    booking.status === "pending" && bookingDate < new Date();
+
   // Use declined status for pending bookings that have passed their time
-  const effectiveStatus = isPendingAndPassed ? "declined_by_restaurant" : booking.status;
-  
+  const effectiveStatus = isPendingAndPassed
+    ? "declined_by_restaurant"
+    : booking.status;
+
   const statusConfig =
-    BOOKING_STATUS_CONFIG[effectiveStatus as keyof typeof BOOKING_STATUS_CONFIG] || 
-    BOOKING_STATUS_CONFIG.pending;
-  
+    BOOKING_STATUS_CONFIG[
+      effectiveStatus as keyof typeof BOOKING_STATUS_CONFIG
+    ] || BOOKING_STATUS_CONFIG.pending;
+
   // Ensure we have a valid status config with proper fallback
   const finalStatusConfig = statusConfig || BOOKING_STATUS_CONFIG.pending;
   const StatusIcon = finalStatusConfig.icon;
@@ -465,12 +469,19 @@ export default function BookingDetailsScreen() {
                 </Text>
               </View>
               {isDeclined && (
-                <Pressable onPress={() => setShowDeclinedExplanation(!showDeclinedExplanation)}>
+                <Pressable
+                  onPress={() =>
+                    setShowDeclinedExplanation(!showDeclinedExplanation)
+                  }
+                >
                   <Info size={16} color={finalStatusConfig.color} />
                 </Pressable>
               )}
             </View>
-            <Text className="text-sm" style={{ color: finalStatusConfig.color }}>
+            <Text
+              className="text-sm"
+              style={{ color: finalStatusConfig.color }}
+            >
               {finalStatusConfig.description}
             </Text>
           </View>
@@ -552,7 +563,8 @@ export default function BookingDetailsScreen() {
                           })}
                     {!isToday && !isTomorrow && (
                       <Text className="text-sm text-muted-foreground">
-                        {", "}{bookingDate.getFullYear()}
+                        {", "}
+                        {bookingDate.getFullYear()}
                       </Text>
                     )}
                   </Text>
@@ -564,17 +576,20 @@ export default function BookingDetailsScreen() {
                   </Text>
                 </View>
               </View>
-              
+
               <View className="flex-row items-center gap-2 flex-shrink-0">
                 <Users size={16} color={colors[colorScheme].primary} />
                 <Text className="font-medium text-primary dark:text-white text-sm">
-                  {booking.party_size} {booking.party_size === 1 ? "Guest" : "Guests"}
+                  {booking.party_size}{" "}
+                  {booking.party_size === 1 ? "Guest" : "Guests"}
                 </Text>
               </View>
             </View>
 
             {/* Special Notes and Occasion Section */}
-            {(booking.occasion || booking.special_requests || booking.dietary_notes?.length) && (
+            {(booking.occasion ||
+              booking.special_requests ||
+              booking.dietary_notes?.length) && (
               <View className="border-t border-primary/20 pt-3 mb-3">
                 {booking.occasion && (
                   <View className="mb-3">
@@ -586,7 +601,7 @@ export default function BookingDetailsScreen() {
                     </Text>
                   </View>
                 )}
-                
+
                 {booking.special_requests && (
                   <View className="mb-3">
                     <Text className="text-sm font-medium text-muted-foreground mb-1">
@@ -597,7 +612,7 @@ export default function BookingDetailsScreen() {
                     </Text>
                   </View>
                 )}
-                
+
                 {booking.dietary_notes && booking.dietary_notes.length > 0 && (
                   <View className="mb-3">
                     <Text className="text-sm font-medium text-muted-foreground mb-1">
@@ -661,13 +676,14 @@ export default function BookingDetailsScreen() {
         />
 
         {/* Table Assignment - Only show for confirmed bookings and non-basic tier restaurants */}
-        {booking.status === "confirmed" && booking.restaurant?.tier !== "basic" && (
-          <BookingTableInfo
-            tables={assignedTables}
-            partySize={booking.party_size}
-            loading={loading}
-          />
-        )}
+        {booking.status === "confirmed" &&
+          booking.restaurant?.tier !== "basic" && (
+            <BookingTableInfo
+              tables={assignedTables}
+              partySize={booking.party_size}
+              loading={loading}
+            />
+          )}
 
         {/* Special Requests */}
         <BookingSpecialRequests booking={booking} />
@@ -678,7 +694,6 @@ export default function BookingDetailsScreen() {
           appliedOfferDetails={appliedOfferDetails}
           loyaltyActivity={loyaltyActivity}
         />
-
 
         {/* Bottom padding */}
         <View className="h-24" />

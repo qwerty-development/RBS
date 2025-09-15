@@ -149,9 +149,9 @@ export const useSearchLogic = (): UseSearchReturn => {
             lng: userLocation.longitude,
             city: userLocation.city,
             district: userLocation.district,
-            maxDistance: gFilters.maxDistance
+            maxDistance: gFilters.maxDistance,
           });
-          
+
           // Use your new LocationService method
           const restaurantsWithDistance =
             await LocationService.getRestaurantsWithDistance(
