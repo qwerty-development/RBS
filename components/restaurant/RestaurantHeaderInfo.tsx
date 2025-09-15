@@ -15,6 +15,7 @@ import {
 import { Text } from "@/components/ui/text";
 import { H1, P, Muted } from "@/components/ui/typography";
 import { useColorScheme } from "@/lib/useColorScheme";
+import { AgeRestrictionBadge } from "./AgeRestrictionBadge";
 
 interface Restaurant {
   id: string;
@@ -25,6 +26,7 @@ interface Restaurant {
   total_reviews?: number;
   price_range?: number;
   description?: string;
+  minimum_age?: number | null;
 }
 
 interface RestaurantHeaderInfoProps {
@@ -92,6 +94,14 @@ export const RestaurantHeaderInfo: React.FC<RestaurantHeaderInfoProps> = ({
               {restaurant.address}
             </Text>
           </View>
+        </View>
+
+        {/* Age Restriction Badge */}
+        <View className="mb-3">
+          <AgeRestrictionBadge
+            restaurant={restaurant as any}
+            variant="detail"
+          />
         </View>
 
         {/* Rating and Price */}

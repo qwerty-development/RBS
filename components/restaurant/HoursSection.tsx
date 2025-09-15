@@ -37,18 +37,20 @@ export const HoursSection = ({ restaurant }: HoursSectionProps) => {
               size={20}
               color={availability.isOpen ? "#10b981" : "#ef4444"}
             />
-            <Text className="font-medium text-foreground">Today: {formatOperatingHours()}</Text>
+            <Text className="font-medium text-foreground">
+              Today: {formatOperatingHours()}
+            </Text>
             <View
               className={`px-2 py-1 rounded-full ml-auto ${
-                availability.isOpen 
-                  ? "bg-green-100 dark:bg-green-900/30" 
+                availability.isOpen
+                  ? "bg-green-100 dark:bg-green-900/30"
                   : "bg-red-100 dark:bg-red-900/30"
               }`}
             >
               <Text
                 className={`text-xs font-medium ${
-                  availability.isOpen 
-                    ? "text-green-800 dark:text-green-300" 
+                  availability.isOpen
+                    ? "text-green-800 dark:text-green-300"
                     : "text-red-800 dark:text-red-300"
                 }`}
               >

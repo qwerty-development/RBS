@@ -9,7 +9,13 @@ import {
   Alert,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Search, Check, Plus, Heart, SlidersHorizontal } from "lucide-react-native";
+import {
+  Search,
+  Check,
+  Plus,
+  Heart,
+  SlidersHorizontal,
+} from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -53,7 +59,9 @@ export default function AddRestaurantsScreen() {
     new Set(),
   );
   const [addingRestaurants, setAddingRestaurants] = useState(false);
-  const [sortBy, setSortBy] = useState<"rating" | "name" | "distance">("rating");
+  const [sortBy, setSortBy] = useState<"rating" | "name" | "distance">(
+    "rating",
+  );
   const [showSortOptions, setShowSortOptions] = useState(false);
 
   const { addRestaurant, isRestaurantInPlaylist } =
@@ -172,8 +180,10 @@ export default function AddRestaurantsScreen() {
           className={cn(
             "mb-3 relative rounded-lg overflow-hidden",
             isAlreadyInPlaylist && "opacity-50",
-            isSelected ? "border-2 border-primary" : "border-2 border-transparent",
-            "active:scale-[0.98] transition-all duration-200"
+            isSelected
+              ? "border-2 border-primary"
+              : "border-2 border-transparent",
+            "active:scale-[0.98] transition-all duration-200",
           )}
         >
           <RestaurantSearchCard
@@ -181,10 +191,7 @@ export default function AddRestaurantsScreen() {
             variant="compact"
             showActions={false}
             disabled={true}
-            className={cn(
-              "border-0 shadow-none",
-              isSelected && "bg-primary/5"
-            )}
+            className={cn("border-0 shadow-none", isSelected && "bg-primary/5")}
           />
 
           {/* Selection indicator */}
@@ -228,24 +235,25 @@ export default function AddRestaurantsScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
-      <NavigationHeader
-        title="Add to Playlist"
-        onBack={() => router.back()}
-      />
-
+      <NavigationHeader title="Add to Playlist" onBack={() => router.back()} />
 
       {/* Search Bar */}
       <View className="px-4 py-3 border-b border-border bg-background">
         <View className="flex-row items-center gap-3">
           {/* Search Input */}
           <View className="flex-1 flex-row items-center bg-muted rounded-lg px-3 py-2">
-            <Search size={18} color={colorScheme === "dark" ? "#9ca3af" : "#6b7280"} />
+            <Search
+              size={18}
+              color={colorScheme === "dark" ? "#9ca3af" : "#6b7280"}
+            />
             <TextInput
               placeholder="Search restaurants..."
               value={searchQuery}
               onChangeText={setSearchQuery}
               className="flex-1 ml-2 text-base text-foreground"
-              placeholderTextColor={colorScheme === "dark" ? "#9ca3af" : "#6b7280"}
+              placeholderTextColor={
+                colorScheme === "dark" ? "#9ca3af" : "#6b7280"
+              }
             />
           </View>
 
@@ -254,14 +262,20 @@ export default function AddRestaurantsScreen() {
             onPress={() => setShowSortOptions(!showSortOptions)}
             className={cn(
               "p-2 rounded-lg border",
-              showSortOptions 
-                ? "bg-primary border-primary" 
-                : "bg-background border-border"
+              showSortOptions
+                ? "bg-primary border-primary"
+                : "bg-background border-border",
             )}
           >
-            <SlidersHorizontal 
-              size={18} 
-              color={showSortOptions ? "#fff" : (colorScheme === "dark" ? "#fff" : "#000")} 
+            <SlidersHorizontal
+              size={18}
+              color={
+                showSortOptions
+                  ? "#fff"
+                  : colorScheme === "dark"
+                    ? "#fff"
+                    : "#000"
+              }
             />
           </Pressable>
         </View>
@@ -269,7 +283,9 @@ export default function AddRestaurantsScreen() {
         {/* Sort Options */}
         {showSortOptions && (
           <View className="mt-3 p-3 bg-card border border-border rounded-lg">
-            <Text className="text-sm font-medium text-foreground mb-2">Sort by:</Text>
+            <Text className="text-sm font-medium text-foreground mb-2">
+              Sort by:
+            </Text>
             <View className="flex-row gap-2">
               <Pressable
                 onPress={() => {
@@ -278,15 +294,19 @@ export default function AddRestaurantsScreen() {
                 }}
                 className={cn(
                   "px-3 py-2 rounded-lg border",
-                  sortBy === "rating" 
-                    ? "bg-primary border-primary" 
-                    : "bg-background border-border"
+                  sortBy === "rating"
+                    ? "bg-primary border-primary"
+                    : "bg-background border-border",
                 )}
               >
-                <Text className={cn(
-                  "text-sm",
-                  sortBy === "rating" ? "text-primary-foreground" : "text-foreground"
-                )}>
+                <Text
+                  className={cn(
+                    "text-sm",
+                    sortBy === "rating"
+                      ? "text-primary-foreground"
+                      : "text-foreground",
+                  )}
+                >
                   Rating
                 </Text>
               </Pressable>
@@ -297,15 +317,19 @@ export default function AddRestaurantsScreen() {
                 }}
                 className={cn(
                   "px-3 py-2 rounded-lg border",
-                  sortBy === "name" 
-                    ? "bg-primary border-primary" 
-                    : "bg-background border-border"
+                  sortBy === "name"
+                    ? "bg-primary border-primary"
+                    : "bg-background border-border",
                 )}
               >
-                <Text className={cn(
-                  "text-sm",
-                  sortBy === "name" ? "text-primary-foreground" : "text-foreground"
-                )}>
+                <Text
+                  className={cn(
+                    "text-sm",
+                    sortBy === "name"
+                      ? "text-primary-foreground"
+                      : "text-foreground",
+                  )}
+                >
                   Name
                 </Text>
               </Pressable>
@@ -355,7 +379,10 @@ export default function AddRestaurantsScreen() {
             <ActivityIndicator size="small" color="#fff" />
           ) : (
             <Text className="text-white">
-              Add {selectedRestaurants.size > 0 ? `${selectedRestaurants.size} Restaurant${selectedRestaurants.size > 1 ? 's' : ''}` : 'Restaurants'}
+              Add{" "}
+              {selectedRestaurants.size > 0
+                ? `${selectedRestaurants.size} Restaurant${selectedRestaurants.size > 1 ? "s" : ""}`
+                : "Restaurants"}
             </Text>
           )}
         </Button>

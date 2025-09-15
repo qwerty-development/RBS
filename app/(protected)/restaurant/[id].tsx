@@ -51,11 +51,20 @@ import { useRestaurant } from "@/hooks/useRestaurant";
 import { useRestaurantReviews } from "@/hooks/useRestaurantReviews";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
-import { useBookingPress, useQuickActionPress, useModalPress } from "@/hooks/useHapticPress";
+import {
+  useBookingPress,
+  useQuickActionPress,
+  useModalPress,
+} from "@/hooks/useHapticPress";
 
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 import RestaurantDetailsScreenSkeleton from "@/components/skeletons/RestaurantDetailsScreenSkeleton";
 import { Database } from "@/types/supabase";
+import {
+  getAgeRestrictionMessage,
+  isAgeRestricted,
+} from "@/utils/ageVerification";
+import { useBookingEligibility } from "@/hooks/useBookingEligibility";
 
 // Type definitions - Extended to match actual database schema
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
@@ -339,7 +348,10 @@ const RestaurantHeaderInfo: React.FC<{
   restaurant: Restaurant;
   restaurantId: string;
 }> = ({ restaurant, restaurantId }) => {
-  const { address, isLoading } = useRestaurantLocation(restaurant.location, restaurant);
+  const { address, isLoading } = useRestaurantLocation(
+    restaurant.location,
+    restaurant,
+  );
   const { checkAvailability } = useRestaurantAvailability(restaurantId);
 
   // Use the new availability check
@@ -359,13 +371,24 @@ const RestaurantHeaderInfo: React.FC<{
             {restaurant.cuisine_type} •{" "}
             {"$".repeat(restaurant.price_range || 2)}
           </Text>
+          {isAgeRestricted(restaurant) && (
+            <View className="mt-2">
+              <View className="inline-flex flex-row items-center px-2 py-1 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+                <Text className="text-xs font-semibold text-amber-800 dark:text-amber-200">
+                  {getAgeRestrictionMessage(restaurant)}
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
 
         <View className="items-end">
           <View className="flex-row items-center gap-1 mb-1">
             <Star size={16} color="#f59e0b" fill="#f59e0b" />
             <Text className="font-semibold">
-              {restaurant.average_rating && restaurant.average_rating > 0 ? restaurant.average_rating.toFixed(1) : "-"}
+              {restaurant.average_rating && restaurant.average_rating > 0
+                ? restaurant.average_rating.toFixed(1)
+                : "-"}
             </Text>
             <Text className="text-muted-foreground">
               ({restaurant.total_reviews || 0})
@@ -654,7 +677,9 @@ const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
                 key={star}
                 size={14}
                 color="#f59e0b"
-                fill={star <= (restaurant.average_rating || 0) ? "#f59e0b" : "none"}
+                fill={
+                  star <= (restaurant.average_rating || 0) ? "#f59e0b" : "none"
+                }
               />
             ))}
           </View>
@@ -662,10 +687,10 @@ const ReviewsSummary: React.FC<ReviewsSummaryProps> = ({
 
         <View className="flex-1">
           <Text className="text-xs text-muted-foreground mb-1">
-            {restaurant.review_summary?.recommendation_percentage && restaurant.review_summary.recommendation_percentage > 0 
+            {restaurant.review_summary?.recommendation_percentage &&
+            restaurant.review_summary.recommendation_percentage > 0
               ? `${restaurant.review_summary.recommendation_percentage}% recommend`
-              : "No recommendation yet"
-            }
+              : "No recommendation yet"}
           </Text>
           <View className="bg-border rounded-full h-1.5">
             <View
@@ -763,6 +788,11 @@ export default function RestaurantDetailsScreen() {
     handleCall,
   } = useRestaurant(id);
 
+  // Booking eligibility check (only when restaurant is loaded)
+  const bookingEligibility = useBookingEligibility(
+    restaurant || ({} as Restaurant),
+  );
+
   // Restaurant reviews hook for write review functionality
   const { handleWriteReview: handleWriteReviewFromReviews } =
     useRestaurantReviews(id!);
@@ -790,9 +820,17 @@ export default function RestaurantDetailsScreen() {
   const handleWriteReview = useCallback(() => {
     if (!restaurant) return;
     handleQuickActionPress(() => {
-      runProtectedAction(() => handleWriteReviewFromReviews(), "write a review");
+      runProtectedAction(
+        () => handleWriteReviewFromReviews(),
+        "write a review",
+      );
     });
-  }, [runProtectedAction, handleWriteReviewFromReviews, restaurant, handleQuickActionPress]);
+  }, [
+    runProtectedAction,
+    handleWriteReviewFromReviews,
+    restaurant,
+    handleQuickActionPress,
+  ]);
 
   // FIXED: Navigate to availability screen instead of using BookingWidget
   const handleBookTable = useCallback(() => {
@@ -808,9 +846,45 @@ export default function RestaurantDetailsScreen() {
 
   const handleAttemptBooking = useCallback(() => {
     handleBookingPress(() => {
+      // Check booking eligibility first
+      if (!bookingEligibility.isEligible) {
+        Alert.alert(
+          "Booking Not Available",
+          bookingEligibility.blockedReason || "Unable to proceed with booking",
+          [
+            { text: "OK", style: "default" },
+            ...(bookingEligibility.actionText
+              ? [
+                  {
+                    text: bookingEligibility.actionText,
+                    style: "default",
+                    onPress: () => {
+                      if (bookingEligibility.actionRequired === "sign_up") {
+                        router.push("/sign-up");
+                      } else if (
+                        bookingEligibility.actionRequired ===
+                        "add_date_of_birth"
+                      ) {
+                        router.push("/profile/edit");
+                      }
+                    },
+                  },
+                ]
+              : []),
+          ],
+        );
+        return;
+      }
+
       runProtectedAction(handleBookTable, "book a table");
     });
-  }, [runProtectedAction, handleBookTable, handleBookingPress]);
+  }, [
+    runProtectedAction,
+    handleBookTable,
+    handleBookingPress,
+    bookingEligibility,
+    router,
+  ]);
 
   const handleAddToPlaylistSuccess = useCallback(
     (playlistName: string) => {
@@ -866,12 +940,15 @@ export default function RestaurantDetailsScreen() {
 
   const { handlePress: handleModalPress } = useModalPress();
 
-  const handleImagePress = useCallback((index: number) => {
-    handleModalPress(() => {
-      setSelectedImageIndex(index);
-      setShowImageGallery(true);
-    });
-  }, [handleModalPress]);
+  const handleImagePress = useCallback(
+    (index: number) => {
+      handleModalPress(() => {
+        setSelectedImageIndex(index);
+        setShowImageGallery(true);
+      });
+    },
+    [handleModalPress],
+  );
 
   // Loading and Error States
   if (loading) {
@@ -1016,9 +1093,22 @@ export default function RestaurantDetailsScreen() {
               </View>
             )}
 
-            <Button onPress={handleAttemptBooking} size="lg" className="w-full">
+            <Button
+              onPress={handleAttemptBooking}
+              size="lg"
+              className="w-full"
+              variant={bookingEligibility.isEligible ? "default" : "secondary"}
+              disabled={!bookingEligibility.isEligible}
+            >
               <View className="flex-row items-center justify-center gap-2">
-                {(restaurant as any).booking_policy === "request" ? (
+                {!bookingEligibility.isEligible ? (
+                  <>
+                    <Calendar size={20} color="#666" />
+                    <Text className="text-muted-foreground font-bold text-lg">
+                      {bookingEligibility.actionText || "Not Available"}
+                    </Text>
+                  </>
+                ) : (restaurant as any).booking_policy === "request" ? (
                   <>
                     <Send size={20} color="white" />
                     <Text className="text-white font-bold text-lg">

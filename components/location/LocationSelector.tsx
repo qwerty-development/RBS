@@ -304,17 +304,19 @@ export function LocationSelector({
 
   const isCurrentLocation = (location: LocationOption) => {
     if (!currentLocation) return false;
-    
+
     // If current location is a GPS location (not from the predefined list),
     // don't highlight any predefined locations as current
-    if (currentLocation.city === "Current Location" || 
-        currentLocation.district === "GPS Location" ||
-        currentLocation.city === "GPS Location" ||
-        currentLocation.city === "Unknown Location" ||
-        currentLocation.district === "Unknown Area") {
+    if (
+      currentLocation.city === "Current Location" ||
+      currentLocation.district === "GPS Location" ||
+      currentLocation.city === "GPS Location" ||
+      currentLocation.city === "Unknown Location" ||
+      currentLocation.district === "Unknown Area"
+    ) {
       return false;
     }
-    
+
     // Only match if both city and district exactly match
     return (
       location.city === currentLocation.city &&
@@ -399,25 +401,29 @@ export function LocationSelector({
                   className={`flex-row items-center justify-between p-4 mx-4 mt-4 rounded-lg border ${
                     detectingLocation
                       ? "bg-primary/5 border-primary/10 opacity-50"
-                      : (currentLocation && (currentLocation.city === "Current Location" || 
-                          currentLocation.district === "GPS Location" || 
-                          currentLocation.city === "GPS Location" ||
-                          currentLocation.city === "Unknown Location" ||
-                          currentLocation.district === "Unknown Area"))
+                      : currentLocation &&
+                          (currentLocation.city === "Current Location" ||
+                            currentLocation.district === "GPS Location" ||
+                            currentLocation.city === "GPS Location" ||
+                            currentLocation.city === "Unknown Location" ||
+                            currentLocation.district === "Unknown Area")
                         ? "bg-primary/10 border-primary/20"
                         : "bg-primary/10 border-primary/20"
                   }`}
                 >
                   <View className="flex-row items-center gap-3">
-                    <View className={`w-10 h-10 rounded-full items-center justify-center ${
-                      (currentLocation && (currentLocation.city === "Current Location" || 
-                        currentLocation.district === "GPS Location" || 
-                        currentLocation.city === "GPS Location" ||
-                        currentLocation.city === "Unknown Location" ||
-                        currentLocation.district === "Unknown Area"))
-                        ? "bg-primary/20" 
-                        : "bg-primary/20"
-                    }`}>
+                    <View
+                      className={`w-10 h-10 rounded-full items-center justify-center ${
+                        currentLocation &&
+                        (currentLocation.city === "Current Location" ||
+                          currentLocation.district === "GPS Location" ||
+                          currentLocation.city === "GPS Location" ||
+                          currentLocation.city === "Unknown Location" ||
+                          currentLocation.district === "Unknown Area")
+                          ? "bg-primary/20"
+                          : "bg-primary/20"
+                      }`}
+                    >
                       <Navigation size={20} color="#3b82f6" />
                     </View>
                     <View>
@@ -427,23 +433,23 @@ export function LocationSelector({
                       <Text className="text-xs text-muted-foreground">
                         {currentLocation
                           ? `Currently: ${LocationService.getLocationDisplayName(currentLocation)}`
-                          : "Allow access to find restaurants near you"
-                        }
+                          : "Allow access to find restaurants near you"}
                       </Text>
                     </View>
                   </View>
                   <View className="flex-row items-center gap-2">
-                    {currentLocation && (currentLocation.city === "Current Location" || 
-                      currentLocation.district === "GPS Location" || 
-                      currentLocation.city === "GPS Location" ||
-                      currentLocation.city === "Unknown Location" ||
-                      currentLocation.district === "Unknown Area") && (
-                      <View className="px-2 py-1 bg-primary/20 rounded">
-                        <Text className="text-xs font-medium text-primary">
-                          Current
-                        </Text>
-                      </View>
-                    )}
+                    {currentLocation &&
+                      (currentLocation.city === "Current Location" ||
+                        currentLocation.district === "GPS Location" ||
+                        currentLocation.city === "GPS Location" ||
+                        currentLocation.city === "Unknown Location" ||
+                        currentLocation.district === "Unknown Area") && (
+                        <View className="px-2 py-1 bg-primary/20 rounded">
+                          <Text className="text-xs font-medium text-primary">
+                            Current
+                          </Text>
+                        </View>
+                      )}
                     {detectingLocation && (
                       <ActivityIndicator size="small" color="#3b82f6" />
                     )}

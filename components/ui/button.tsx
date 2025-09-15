@@ -124,7 +124,9 @@ const Button = React.forwardRef<
   ) => {
     const { getButtonProps } = useButtonAccessibility();
     const { handlePress: handleHapticPress } = useHapticPress({
-      hapticStyle: destructive ? Haptics.ImpactFeedbackStyle.Heavy : Haptics.ImpactFeedbackStyle.Medium,
+      hapticStyle: destructive
+        ? Haptics.ImpactFeedbackStyle.Heavy
+        : Haptics.ImpactFeedbackStyle.Medium,
       debounceMs,
       enableHaptic,
       enableDebounce,

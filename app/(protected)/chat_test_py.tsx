@@ -69,7 +69,7 @@ const WavingHandAnimation = memo(() => {
 
   const rotateInterpolate = waveAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '20deg'],
+    outputRange: ["0deg", "20deg"],
   });
 
   return (
@@ -86,7 +86,8 @@ const WavingHandAnimation = memo(() => {
         DineMate is ready to help!
       </Text>
       <Text className="text-sm text-muted-foreground mt-2 text-center px-4">
-        Ask me about restaurants, make reservations, or get dining recommendations
+        Ask me about restaurants, make reservations, or get dining
+        recommendations
       </Text>
     </View>
   );
@@ -113,7 +114,7 @@ const TypingIndicator = memo(() => {
             duration: 600,
             useNativeDriver: true,
           }),
-        ])
+        ]),
       );
     };
 
@@ -142,7 +143,9 @@ const TypingIndicator = memo(() => {
       <View className="bg-muted p-4 rounded-2xl border border-border">
         <View className="flex-row items-center gap-2">
           <View className="w-8 h-8 bg-primary rounded-full items-center justify-center">
-            <Text className="text-primary-foreground text-sm font-bold">AI</Text>
+            <Text className="text-primary-foreground text-sm font-bold">
+              AI
+            </Text>
           </View>
           <View className="flex-row items-center gap-1">
             <Animated.View
@@ -224,15 +227,17 @@ const MessageBubble = memo(
         {message.content && (
           <View
             className={`p-4 rounded-2xl ${
-              isUser 
-                ? "bg-primary shadow-lg" 
+              isUser
+                ? "bg-primary shadow-lg"
                 : "bg-muted border border-border shadow-sm"
             }`}
           >
             {!isUser && (
               <View className="flex-row items-center gap-2 mb-2">
                 <View className="w-6 h-6 bg-primary rounded-full items-center justify-center">
-                  <Text className="text-primary-foreground text-xs font-bold">AI</Text>
+                  <Text className="text-primary-foreground text-xs font-bold">
+                    AI
+                  </Text>
                 </View>
                 <Text className="text-xs text-muted-foreground font-medium">
                   DineMate
@@ -660,17 +665,23 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
                   <Text className="text-2xl">🤖</Text>
                 </View>
                 <View>
-                  <H3 className="text-primary-foreground">DineMate AI Assistant</H3>
+                  <H3 className="text-primary-foreground">
+                    DineMate AI Assistant
+                  </H3>
                   <View className="flex-row items-center gap-2">
                     {apiConnected === true ? (
                       <>
                         <Wifi size={14} color="#22c55e" />
-                        <Text className="text-xs text-green-200">Connected</Text>
+                        <Text className="text-xs text-green-200">
+                          Connected
+                        </Text>
                       </>
                     ) : apiConnected === false ? (
                       <>
                         <WifiOff size={14} color="#ef4444" />
-                        <Text className="text-xs text-red-200">Disconnected</Text>
+                        <Text className="text-xs text-red-200">
+                          Disconnected
+                        </Text>
                       </>
                     ) : (
                       <Text className="text-xs text-primary-foreground/70">
@@ -711,7 +722,8 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
               {apiConnected === false && (
                 <View className="bg-red-50 border border-red-200 p-4 rounded-xl mx-4">
                   <Text className="text-sm text-red-700 text-center font-medium">
-                    ⚠️ RestoAI backend is not connected. Please check if the server is running.
+                    ⚠️ RestoAI backend is not connected. Please check if the
+                    server is running.
                   </Text>
                 </View>
               )}
@@ -754,9 +766,13 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
                   : "bg-primary"
               }`}
             >
-              <Send 
-                size={20} 
-                color={isLoading || !input.trim() || apiConnected === false ? "#9ca3af" : "white"} 
+              <Send
+                size={20}
+                color={
+                  isLoading || !input.trim() || apiConnected === false
+                    ? "#9ca3af"
+                    : "white"
+                }
               />
             </Pressable>
           </View>

@@ -1,6 +1,6 @@
 // components/restaurant/EnhancedRestaurantCard.tsx
 import React from "react";
-import { View, Pressable, Dimensions } from "react-native";
+import { View, Pressable, Dimensions, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import {
   Star,
@@ -18,8 +18,12 @@ import { Database } from "@/types/supabase";
 import { cn } from "@/lib/utils";
 import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
 import { format } from "date-fns";
-import { useRestaurantPress, useQuickActionPress } from "@/hooks/useHapticPress";
+import {
+  useRestaurantPress,
+  useQuickActionPress,
+} from "@/hooks/useHapticPress";
 import { useNavigationModal } from "@/context/modal-provider";
+import { useBookingEligibility } from "@/hooks/useBookingEligibility";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -45,11 +49,14 @@ export function EnhancedRestaurantCard({
   showQuickActions = false,
 }: EnhancedRestaurantCardProps) {
   const router = useRouter();
-  
+
   // Haptic press hooks
   const { handlePress: handleRestaurantPress } = useRestaurantPress();
   const { handlePress: handleQuickActionPress } = useQuickActionPress();
-  
+
+  // Booking eligibility check
+  const bookingEligibility = useBookingEligibility(restaurant);
+
   // Modal state management
   const { openNavigationModal, isAnyModalOpen } = useNavigationModal();
 
@@ -64,7 +71,9 @@ export function EnhancedRestaurantCard({
     handleRestaurantPress(() => {
       // Check if any modal is already open
       if (isAnyModalOpen) {
-        console.log(`Restaurant ${restaurant.id} press blocked - modal already open`);
+        console.log(
+          `Restaurant ${restaurant.id} press blocked - modal already open`,
+        );
         return;
       }
 
@@ -85,6 +94,36 @@ export function EnhancedRestaurantCard({
   const handleQuickBook = (e: any) => {
     e.stopPropagation();
     handleQuickActionPress(() => {
+      // Check booking eligibility first
+      if (!bookingEligibility.isEligible) {
+        Alert.alert(
+          "Booking Not Available",
+          bookingEligibility.blockedReason || "Unable to proceed with booking",
+          [
+            { text: "OK", style: "default" },
+            ...(bookingEligibility.actionText
+              ? [
+                  {
+                    text: bookingEligibility.actionText,
+                    style: "default",
+                    onPress: () => {
+                      if (bookingEligibility.actionRequired === "sign_up") {
+                        router.push("/sign-up");
+                      } else if (
+                        bookingEligibility.actionRequired ===
+                        "add_date_of_birth"
+                      ) {
+                        router.push("/profile/edit");
+                      }
+                    },
+                  },
+                ]
+              : []),
+          ],
+        );
+        return;
+      }
+
       router.push({
         pathname: "/booking/create",
         params: {
@@ -160,7 +199,9 @@ export function EnhancedRestaurantCard({
               <View className="flex-row items-center gap-1">
                 <Star size={12} color="#f59e0b" fill="#f59e0b" />
                 <Text className="text-xs font-medium">
-                  {restaurant.average_rating && restaurant.average_rating > 0 ? restaurant.average_rating.toFixed(1) : "-"}
+                  {restaurant.average_rating && restaurant.average_rating > 0
+                    ? restaurant.average_rating.toFixed(1)
+                    : "-"}
                 </Text>
               </View>
               <Text className="text-xs text-muted-foreground">
@@ -264,7 +305,7 @@ export function EnhancedRestaurantCard({
                       checkAvailability(new Date(), format(new Date(), "HH:mm"))
                         .isOpen
                         ? "bg-green-500"
-                        : "bg-red-500"
+                        : "bg-red-500",
                     )}
                   />
                 )}
@@ -280,7 +321,9 @@ export function EnhancedRestaurantCard({
             <View className="flex-row items-center gap-1">
               <Star size={16} color="#f59e0b" fill="#f59e0b" />
               <Text className="text-sm font-semibold">
-                {restaurant.average_rating && restaurant.average_rating > 0 ? restaurant.average_rating.toFixed(1) : "-"}
+                {restaurant.average_rating && restaurant.average_rating > 0
+                  ? restaurant.average_rating.toFixed(1)
+                  : "-"}
               </Text>
               <Text className="text-sm text-muted-foreground">
                 ({restaurant.total_reviews || 0} reviews)
@@ -305,7 +348,7 @@ export function EnhancedRestaurantCard({
                   checkAvailability(new Date(), format(new Date(), "HH:mm"))
                     .isOpen
                     ? "bg-green-500"
-                    : "bg-red-500"
+                    : "bg-red-500",
                 )}
               />
               <Text
@@ -358,13 +401,29 @@ export function EnhancedRestaurantCard({
             <View className="flex-row gap-3">
               <Pressable
                 onPress={handleQuickBook}
-                className="flex-1 bg-primary rounded-lg py-3 px-4 flex-row items-center justify-center gap-2 border border-primary"
+                className={`flex-1 rounded-lg py-3 px-4 flex-row items-center justify-center gap-2 border ${
+                  bookingEligibility.isEligible
+                    ? "bg-primary border-primary"
+                    : "bg-muted border-muted"
+                }`}
+                disabled={!bookingEligibility.isEligible}
               >
-                <Calendar size={18} color="white" />
-                <Text className="text-primary-foreground font-semibold">
-                  {restaurant.booking_policy === "instant"
-                    ? "Book Now"
-                    : "Request Booking"}
+                <Calendar
+                  size={18}
+                  color={bookingEligibility.isEligible ? "white" : "#666"}
+                />
+                <Text
+                  className={`font-semibold ${
+                    bookingEligibility.isEligible
+                      ? "text-primary-foreground"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {!bookingEligibility.isEligible
+                    ? bookingEligibility.actionText || "Not Available"
+                    : restaurant.booking_policy === "instant"
+                      ? "Book Now"
+                      : "Request Booking"}
                 </Text>
               </Pressable>
 
@@ -440,7 +499,9 @@ export function EnhancedRestaurantCard({
           <View className="flex-row items-center gap-1">
             <Star size={14} color="#f59e0b" fill="#f59e0b" />
             <Text className="text-sm font-medium">
-              {restaurant.average_rating && restaurant.average_rating > 0 ? restaurant.average_rating.toFixed(1) : "-"}
+              {restaurant.average_rating && restaurant.average_rating > 0
+                ? restaurant.average_rating.toFixed(1)
+                : "-"}
             </Text>
             <Text className="text-xs text-muted-foreground">
               ({restaurant.total_reviews || 0})

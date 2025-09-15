@@ -1,7 +1,6 @@
 import React from "react";
-import { View, Pressable } from "react-native";
+import { View, Pressable, useColorScheme } from "react-native";
 import { ChevronLeft, Share2 } from "lucide-react-native";
-import { useColorScheme } from "react-native";
 import { colors } from "@/constants/colors";
 import { H3 } from "@/components/ui/typography";
 
@@ -28,7 +27,9 @@ export function NavigationHeader({
   const colorScheme = useColorScheme();
 
   return (
-    <View className={`flex-row items-center justify-between px-4 py-3 border-b border-border bg-card ${className}`}>
+    <View
+      className={`flex-row items-center justify-between px-4 py-3 border-b border-border bg-card ${className}`}
+    >
       {/* Back Button */}
       <Pressable onPress={onBack} className="p-1 -ml-1">
         <ChevronLeft size={20} color={colors[colorScheme].foreground} />

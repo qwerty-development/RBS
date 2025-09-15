@@ -379,7 +379,6 @@ export default function PlaylistDetailScreen() {
         </View>
       </View>
 
-
       {/* Stats Bar */}
       <View className="flex-row items-center justify-between px-4 py-3 bg-muted/30">
         <View className="flex-row items-center gap-4">
@@ -483,7 +482,10 @@ export default function PlaylistDetailScreen() {
               className="flex-1 border-primary rounded-lg"
             >
               <View className="flex-row items-center justify-center gap-2">
-                <Share2 size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                <Share2
+                  size={16}
+                  color={colorScheme === "dark" ? "#fff" : "#000"}
+                />
                 <Text className="text-foreground font-medium">Share</Text>
               </View>
             </Button>
@@ -495,7 +497,10 @@ export default function PlaylistDetailScreen() {
                 className="flex-1 border-primary rounded-lg"
               >
                 <View className="flex-row items-center justify-center gap-2">
-                  <UserPlus size={16} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                  <UserPlus
+                    size={16}
+                    color={colorScheme === "dark" ? "#fff" : "#000"}
+                  />
                   <Text className="text-foreground font-medium">Invite</Text>
                 </View>
               </Button>
@@ -509,8 +514,13 @@ export default function PlaylistDetailScreen() {
             className="w-full bg-primary rounded-lg"
           >
             <View className="flex-row items-center justify-center gap-2">
-              <Plus size={16} color={colorScheme === "dark" ? "#fff" : "#fff"} />
-              <Text className="text-primary-foreground font-medium">Add Restaurant</Text>
+              <Plus
+                size={16}
+                color={colorScheme === "dark" ? "#fff" : "#fff"}
+              />
+              <Text className="text-primary-foreground font-medium">
+                Add Restaurant
+              </Text>
             </View>
           </Button>
         </View>
@@ -527,7 +537,11 @@ export default function PlaylistDetailScreen() {
             <Text>{playlist.is_public ? "Make Private" : "Make Public"}</Text>
           </Button>
 
-          <Button variant="destructive" onPress={handleDeletePlaylist} className="rounded-lg">
+          <Button
+            variant="destructive"
+            onPress={handleDeletePlaylist}
+            className="rounded-lg"
+          >
             <Trash2 size={18} color="#fff" className="mr-2" />
             <Text className="text-white">Delete Playlist</Text>
           </Button>

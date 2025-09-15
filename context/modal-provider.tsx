@@ -1,5 +1,11 @@
 // context/modal-provider.tsx
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
 
 interface ModalState {
   isAnyModalOpen: boolean;
@@ -26,27 +32,32 @@ export function ModalProvider({ children }: ModalProviderProps) {
     currentModal: null,
   });
 
-  const openModal = useCallback((modalId: string): boolean => {
-    setModalState(prev => {
-      // If any modal is already open, prevent opening another one
-      if (prev.isAnyModalOpen) {
-        console.log(`Modal ${modalId} blocked - ${prev.currentModal} is already open`);
-        return prev;
-      }
+  const openModal = useCallback(
+    (modalId: string): boolean => {
+      setModalState((prev) => {
+        // If any modal is already open, prevent opening another one
+        if (prev.isAnyModalOpen) {
+          console.log(
+            `Modal ${modalId} blocked - ${prev.currentModal} is already open`,
+          );
+          return prev;
+        }
 
-      console.log(`Opening modal: ${modalId}`);
-      return {
-        isAnyModalOpen: true,
-        currentModal: modalId,
-      };
-    });
+        console.log(`Opening modal: ${modalId}`);
+        return {
+          isAnyModalOpen: true,
+          currentModal: modalId,
+        };
+      });
 
-    // Return true if modal was opened, false if blocked
-    return !modalState.isAnyModalOpen;
-  }, [modalState.isAnyModalOpen]);
+      // Return true if modal was opened, false if blocked
+      return !modalState.isAnyModalOpen;
+    },
+    [modalState.isAnyModalOpen],
+  );
 
   const closeModal = useCallback((modalId: string) => {
-    setModalState(prev => {
+    setModalState((prev) => {
       if (prev.currentModal === modalId) {
         console.log(`Closing modal: ${modalId}`);
         return {
@@ -59,16 +70,19 @@ export function ModalProvider({ children }: ModalProviderProps) {
   }, []);
 
   const closeAllModals = useCallback(() => {
-    console.log('Closing all modals');
+    console.log("Closing all modals");
     setModalState({
       isAnyModalOpen: false,
       currentModal: null,
     });
   }, []);
 
-  const isModalOpen = useCallback((modalId: string) => {
-    return modalState.currentModal === modalId;
-  }, [modalState.currentModal]);
+  const isModalOpen = useCallback(
+    (modalId: string) => {
+      return modalState.currentModal === modalId;
+    },
+    [modalState.currentModal],
+  );
 
   return (
     <ModalContext.Provider
@@ -88,7 +102,7 @@ export function ModalProvider({ children }: ModalProviderProps) {
 export function useModal() {
   const context = useContext(ModalContext);
   if (context === undefined) {
-    throw new Error('useModal must be used within a ModalProvider');
+    throw new Error("useModal must be used within a ModalProvider");
   }
   return context;
 }
@@ -99,49 +113,55 @@ export function useNavigationModal() {
   const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const openNavigationModal = useCallback((modalId: string, navigationCallback: () => void) => {
-    const wasOpened = openModal(modalId);
-    
-    if (wasOpened) {
-      // Clear any existing timeouts
+  const openNavigationModal = useCallback(
+    (modalId: string, navigationCallback: () => void) => {
+      const wasOpened = openModal(modalId);
+
+      if (wasOpened) {
+        // Clear any existing timeouts
+        if (navigationTimeoutRef.current) {
+          clearTimeout(navigationTimeoutRef.current);
+        }
+        if (autoCloseTimeoutRef.current) {
+          clearTimeout(autoCloseTimeoutRef.current);
+        }
+
+        // Execute navigation after a short delay to ensure modal state is set
+        navigationTimeoutRef.current = setTimeout(() => {
+          try {
+            navigationCallback();
+
+            // Auto-close modal after navigation completes (with a delay to allow page to load)
+            autoCloseTimeoutRef.current = setTimeout(() => {
+              closeModal(modalId);
+            }, 1000); // Close after 1 second to allow page transition
+          } catch (error) {
+            console.error("Navigation error:", error);
+            // Close modal if navigation fails
+            closeModal(modalId);
+          }
+        }, 50);
+      }
+
+      return wasOpened;
+    },
+    [openModal, closeModal],
+  );
+
+  const closeNavigationModal = useCallback(
+    (modalId: string) => {
       if (navigationTimeoutRef.current) {
         clearTimeout(navigationTimeoutRef.current);
+        navigationTimeoutRef.current = null;
       }
       if (autoCloseTimeoutRef.current) {
         clearTimeout(autoCloseTimeoutRef.current);
+        autoCloseTimeoutRef.current = null;
       }
-
-      // Execute navigation after a short delay to ensure modal state is set
-      navigationTimeoutRef.current = setTimeout(() => {
-        try {
-          navigationCallback();
-          
-          // Auto-close modal after navigation completes (with a delay to allow page to load)
-          autoCloseTimeoutRef.current = setTimeout(() => {
-            closeModal(modalId);
-          }, 1000); // Close after 1 second to allow page transition
-        } catch (error) {
-          console.error('Navigation error:', error);
-          // Close modal if navigation fails
-          closeModal(modalId);
-        }
-      }, 50);
-    }
-
-    return wasOpened;
-  }, [openModal, closeModal]);
-
-  const closeNavigationModal = useCallback((modalId: string) => {
-    if (navigationTimeoutRef.current) {
-      clearTimeout(navigationTimeoutRef.current);
-      navigationTimeoutRef.current = null;
-    }
-    if (autoCloseTimeoutRef.current) {
-      clearTimeout(autoCloseTimeoutRef.current);
-      autoCloseTimeoutRef.current = null;
-    }
-    closeModal(modalId);
-  }, [closeModal]);
+      closeModal(modalId);
+    },
+    [closeModal],
+  );
 
   return {
     openNavigationModal,

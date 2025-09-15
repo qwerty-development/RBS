@@ -1,6 +1,6 @@
 // components/ui/PreventDoublePress.tsx
-import React, { useRef, useCallback } from 'react';
-import { Pressable, PressableProps } from 'react-native';
+import React, { useRef, useCallback } from "react";
+import { Pressable, PressableProps } from "react-native";
 
 interface PreventDoublePressProps extends PressableProps {
   /**
@@ -55,7 +55,7 @@ export function PreventDoublePress({
     try {
       onPress();
     } catch (error) {
-      console.error('Error in PreventDoublePress handler:', error);
+      console.error("Error in PreventDoublePress handler:", error);
     } finally {
       if (enableDebounce) {
         // Reset processing flag after a short delay
@@ -82,7 +82,7 @@ export function PreventDoublePressButton({
   debounceMs = 300,
   enableDebounce = true,
   ...props
-}: Omit<PreventDoublePressProps, 'children'> & {
+}: Omit<PreventDoublePressProps, "children"> & {
   children: React.ReactNode;
 }) {
   return (

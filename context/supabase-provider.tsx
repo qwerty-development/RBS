@@ -36,6 +36,7 @@ type Profile = {
   id: string;
   full_name: string;
   phone_number?: string;
+  date_of_birth?: string;
   avatar_url?: string;
   allergies?: string[];
   favorite_cuisines?: string[];
@@ -63,6 +64,7 @@ type AuthState = {
     password: string,
     fullName: string,
     phoneNumber?: string,
+    dateOfBirth?: string,
   ) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -205,6 +207,7 @@ function AuthContent({ children }: PropsWithChildren) {
             id: session.user.id,
             full_name: userName,
             phone_number: undefined,
+            date_of_birth: session.user.user_metadata.date_of_birth || null,
             avatar_url: session.user.user_metadata.avatar_url || null,
             loyalty_points: 0,
             membership_tier: "bronze",
@@ -256,6 +259,7 @@ function AuthContent({ children }: PropsWithChildren) {
         password: string,
         fullName: string,
         phoneNumber?: string,
+        dateOfBirth?: string,
       ) => {
         try {
           console.log("🔄 Starting sign-up process for:", email);
@@ -330,6 +334,7 @@ function AuthContent({ children }: PropsWithChildren) {
                 data: {
                   full_name: fullName,
                   phone_number: phoneNumber,
+                  date_of_birth: dateOfBirth,
                 },
               },
             });
@@ -373,6 +378,7 @@ function AuthContent({ children }: PropsWithChildren) {
                 id: authData.user.id,
                 full_name: fullName,
                 phone_number: phoneNumber,
+                date_of_birth: dateOfBirth,
                 loyalty_points: 0,
                 membership_tier: "bronze",
                 user_rating: 5.0, // New users start with excellent rating
