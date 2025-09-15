@@ -12,10 +12,41 @@ import { Form, FormField, FormInput } from "@/components/ui/form";
 import { useAuth } from "@/context/supabase-provider";
 import { supabase } from "@/config/supabase";
 
+// Utility function to format date input with automatic dashes
+const formatDateInput = (value: string): string => {
+  // Remove all non-numeric characters
+  const numbers = value.replace(/\D/g, "");
+
+  // Apply formatting based on length
+  if (numbers.length <= 4) {
+    return numbers;
+  } else if (numbers.length <= 6) {
+    return `${numbers.slice(0, 4)}-${numbers.slice(4)}`;
+  } else {
+    return `${numbers.slice(0, 4)}-${numbers.slice(4, 6)}-${numbers.slice(6, 8)}`;
+  }
+};
+
+// Utility function to validate date format
+const isValidDateFormat = (dateString: string): boolean => {
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!dateRegex.test(dateString)) return false;
+
+  const date = new Date(dateString);
+  return (
+    date instanceof Date &&
+    !isNaN(date.getTime()) &&
+    dateString === date.toISOString().split("T")[0]
+  );
+};
+
 const dobSchema = z.object({
   dateOfBirth: z
     .string()
     .min(1, "Please enter your date of birth.")
+    .refine((date) => {
+      return isValidDateFormat(date);
+    }, "Please enter a valid date in YYYY-MM-DD format.")
     .refine((date) => {
       const parsedDate = new Date(date);
       const today = new Date();
@@ -23,13 +54,17 @@ const dobSchema = z.object({
       const monthDiff = today.getMonth() - parsedDate.getMonth();
       const dayDiff = today.getDate() - parsedDate.getDate();
 
-      // Check if date is valid and person is at least 13 years old
+      // Check if person is at least 13 years old
       return (
-        !isNaN(parsedDate.getTime()) &&
-        (age > 13 ||
-          (age === 13 && (monthDiff > 0 || (monthDiff === 0 && dayDiff >= 0))))
+        age > 13 ||
+        (age === 13 && (monthDiff > 0 || (monthDiff === 0 && dayDiff >= 0)))
       );
-    }, "You must be at least 13 years old."),
+    }, "You must be at least 13 years old.")
+    .refine((date) => {
+      const parsedDate = new Date(date);
+      const today = new Date();
+      return parsedDate <= today;
+    }, "Date of birth cannot be in the future."),
 });
 
 type DOBFormData = z.infer<typeof dobSchema>;
@@ -186,13 +221,18 @@ export const DateOfBirthPrompt: React.FC<DateOfBirthPromptProps> = ({
               name="dateOfBirth"
               render={({ field }) => (
                 <FormInput
+                  {...field}
                   label="Date of Birth"
                   placeholder="YYYY-MM-DD"
-                  description="Format: Year-Month-Day (e.g., 1990-01-15)"
+                  description="Enter your birth year, month, and day (dashes added automatically)"
                   autoCapitalize="none"
                   autoCorrect={false}
                   keyboardType="numeric"
-                  {...field}
+                  maxLength={10}
+                  onChangeText={(text: string) => {
+                    const formatted = formatDateInput(text);
+                    field.onChange(formatted);
+                  }}
                 />
               )}
             />

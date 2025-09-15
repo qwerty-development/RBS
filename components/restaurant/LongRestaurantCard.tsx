@@ -1,6 +1,6 @@
 // components/restaurant/EnhancedRestaurantCard.tsx
 import React from "react";
-import { View, Pressable, Dimensions } from "react-native";
+import { View, Pressable, Dimensions, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import {
   Star,
@@ -24,7 +24,6 @@ import {
 } from "@/hooks/useHapticPress";
 import { useNavigationModal } from "@/context/modal-provider";
 import { useBookingEligibility } from "@/hooks/useBookingEligibility";
-import { Alert } from "react-native";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 

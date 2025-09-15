@@ -789,7 +789,9 @@ export default function RestaurantDetailsScreen() {
   } = useRestaurant(id);
 
   // Booking eligibility check (only when restaurant is loaded)
-  const bookingEligibility = useBookingEligibility(restaurant || {} as Restaurant);
+  const bookingEligibility = useBookingEligibility(
+    restaurant || ({} as Restaurant),
+  );
 
   // Restaurant reviews hook for write review functionality
   const { handleWriteReview: handleWriteReviewFromReviews } =
@@ -851,27 +853,38 @@ export default function RestaurantDetailsScreen() {
           bookingEligibility.blockedReason || "Unable to proceed with booking",
           [
             { text: "OK", style: "default" },
-            ...(bookingEligibility.actionText ? [
-              {
-                text: bookingEligibility.actionText,
-                style: "default",
-                onPress: () => {
-                  if (bookingEligibility.actionRequired === "sign_up") {
-                    router.push("/sign-up");
-                  } else if (bookingEligibility.actionRequired === "add_date_of_birth") {
-                    router.push("/profile/edit");
-                  }
-                }
-              }
-            ] : [])
-          ]
+            ...(bookingEligibility.actionText
+              ? [
+                  {
+                    text: bookingEligibility.actionText,
+                    style: "default",
+                    onPress: () => {
+                      if (bookingEligibility.actionRequired === "sign_up") {
+                        router.push("/sign-up");
+                      } else if (
+                        bookingEligibility.actionRequired ===
+                        "add_date_of_birth"
+                      ) {
+                        router.push("/profile/edit");
+                      }
+                    },
+                  },
+                ]
+              : []),
+          ],
         );
         return;
       }
 
       runProtectedAction(handleBookTable, "book a table");
     });
-  }, [runProtectedAction, handleBookTable, handleBookingPress, bookingEligibility, router]);
+  }, [
+    runProtectedAction,
+    handleBookTable,
+    handleBookingPress,
+    bookingEligibility,
+    router,
+  ]);
 
   const handleAddToPlaylistSuccess = useCallback(
     (playlistName: string) => {

@@ -398,7 +398,6 @@ class RealtimeSubscriptionService {
       this.retryAttempts.set(channelId, currentAttempts + 1);
 
       const retryDelay = this.RETRY_DELAY * Math.pow(2, currentAttempts); // Exponential backoff
-      
 
       const retryTimeout = setTimeout(() => {
         this.unsubscribe(channelId);
