@@ -280,7 +280,9 @@ export function BookingCard({
   const isPast = variant === "past";
   const isProcessing = processingBookingId === booking.id;
   const isPending = booking.status === "pending";
-  const isDeclined = booking.status === "declined_by_restaurant" || booking.status === "cancelled_by_restaurant";
+  const isDeclined =
+    booking.status === "declined_by_restaurant" ||
+    booking.status === "cancelled_by_restaurant";
   const isCompleted = booking.status === "completed";
   const isConfirmed = booking.status === "confirmed";
 

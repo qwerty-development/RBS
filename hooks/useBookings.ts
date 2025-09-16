@@ -578,9 +578,20 @@ export function useBookings() {
       );
 
       // Debug: log declined bookings specifically
-      const declinedBookings = pastData.filter(b => b.status === 'declined_by_restaurant' || b.status === 'cancelled_by_restaurant');
+      const declinedBookings = pastData.filter(
+        (b) =>
+          b.status === "declined_by_restaurant" ||
+          b.status === "cancelled_by_restaurant",
+      );
       if (declinedBookings.length > 0) {
-        console.log('Found declined bookings:', declinedBookings.map(b => ({id: b.id, status: b.status, booking_time: b.booking_time})));
+        console.log(
+          "Found declined bookings:",
+          declinedBookings.map((b) => ({
+            id: b.id,
+            status: b.status,
+            booking_time: b.booking_time,
+          })),
+        );
       }
 
       // Only throw error if both requests failed

@@ -20,6 +20,10 @@ import {
   calculateActiveFilterCount,
   generateDateOptions,
 } from "@/lib/searchUtils";
+import {
+  advancedSearchEngine,
+  type SearchSuggestion,
+} from "@/lib/advancedSearchUtils";
 import type {
   Restaurant,
   ViewMode,
@@ -46,10 +50,14 @@ export const useSearchLogic = (): UseSearchReturn => {
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   const [searchQuery, setSearchQuery] = useState("");
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
+  const [searchSuggestions, setSearchSuggestions] = useState<
+    SearchSuggestion[]
+  >([]);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [mapRegion, setMapRegion] = useState<Region>(DEFAULT_MAP_REGION);
+  const [allRestaurants, setAllRestaurants] = useState<Restaurant[]>([]); // Cache all restaurants for search
 
   // Filter state
   const [bookingFilters, setBookingFilters] = useState<BookingFilters>(
@@ -171,19 +179,18 @@ export const useSearchLogic = (): UseSearchReturn => {
             }),
           );
 
-          // Apply search query filter
+          // Use advanced fuzzy search instead of basic filtering
           if (query.trim()) {
-            processedRestaurants = processedRestaurants.filter(
-              (restaurant) =>
-                restaurant.name.toLowerCase().includes(query.toLowerCase()) ||
-                restaurant.cuisine_type
-                  .toLowerCase()
-                  .includes(query.toLowerCase()) ||
-                (restaurant.tags &&
-                  restaurant.tags.some((tag: string) =>
-                    tag.toLowerCase().includes(query.toLowerCase()),
-                  )),
+            const searchResult = advancedSearchEngine.search(
+              query,
+              processedRestaurants,
+              userLocation,
+              processedRestaurants.length, // Don't limit here, we'll apply other filters first
             );
+            processedRestaurants = searchResult.restaurants;
+            setSearchSuggestions(searchResult.suggestions);
+          } else {
+            setSearchSuggestions([]);
           }
 
           // Apply cuisine filters
@@ -276,6 +283,11 @@ export const useSearchLogic = (): UseSearchReturn => {
           );
 
           setRestaurants(processedRestaurants);
+
+          // Cache all fetched restaurants for advanced search
+          if (!query.trim()) {
+            setAllRestaurants(processedRestaurants);
+          }
         } else {
           // If no location, still fetch restaurants but without distance
           console.log(
@@ -284,12 +296,8 @@ export const useSearchLogic = (): UseSearchReturn => {
 
           let supabaseQuery = supabase.from("restaurants").select("*");
 
-          // Apply search query
-          if (query.trim()) {
-            supabaseQuery = supabaseQuery.or(
-              `name.ilike.%${query}%,cuisine_type.ilike.%${query}%,tags.cs.{${query}}`,
-            );
-          }
+          // We'll apply search after fetching all data for better fuzzy matching
+          // Database-level search is removed in favor of client-side advanced search
 
           // Apply cuisine filters
           if (gFilters.cuisines.length > 0) {
@@ -347,6 +355,20 @@ export const useSearchLogic = (): UseSearchReturn => {
             gFilters.features,
           );
 
+          // Use advanced fuzzy search for no-location scenario
+          if (query.trim()) {
+            const searchResult = advancedSearchEngine.search(
+              query,
+              processedRestaurants,
+              null, // No user location
+              processedRestaurants.length,
+            );
+            processedRestaurants = searchResult.restaurants;
+            setSearchSuggestions(searchResult.suggestions);
+          } else {
+            setSearchSuggestions([]);
+          }
+
           // Check availability only if specific criteria are set
           const needsAvailabilityCheck =
             bFilters.availableOnly ||
@@ -400,6 +422,11 @@ export const useSearchLogic = (): UseSearchReturn => {
           );
 
           setRestaurants(processedRestaurants);
+
+          // Cache all fetched restaurants for advanced search
+          if (!query.trim()) {
+            setAllRestaurants(processedRestaurants);
+          }
         }
       } catch (error) {
         console.error("Error fetching restaurants:", error);
@@ -468,6 +495,23 @@ export const useSearchLogic = (): UseSearchReturn => {
   const updateGeneralFilters = useCallback((filters: GeneralFilters) => {
     setGeneralFilters(filters);
   }, []);
+
+  // Generate search suggestions for autocomplete
+  const generateSearchSuggestions = useCallback(
+    (partialQuery: string) => {
+      if (partialQuery.length < 2) {
+        setSearchSuggestions([]);
+        return;
+      }
+
+      const suggestions = advancedSearchEngine.generateSuggestions(
+        partialQuery,
+        allRestaurants.length > 0 ? allRestaurants : restaurants,
+      );
+      setSearchSuggestions(suggestions);
+    },
+    [allRestaurants, restaurants],
+  );
 
   const toggleAvailableOnly = useCallback(() => {
     setBookingFilters((prev) => ({
@@ -563,6 +607,7 @@ export const useSearchLogic = (): UseSearchReturn => {
       searchQuery,
       bookingFilters,
       generalFilters,
+      searchSuggestions,
     },
     actions: {
       setViewMode,
@@ -572,6 +617,7 @@ export const useSearchLogic = (): UseSearchReturn => {
       toggleFavorite,
       clearAllFilters,
       handleRefresh,
+      generateSearchSuggestions,
     },
     handlers: {
       handleRestaurantPress,

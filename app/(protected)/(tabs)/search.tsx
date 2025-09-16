@@ -162,12 +162,18 @@ export default function SearchScreen() {
         activeFilterCount={computed.activeFilterCount}
         colorScheme={colorScheme}
         isCollapsed={isHeaderCollapsed}
+        searchSuggestions={searchState.searchSuggestions}
         onSearchChange={actions.setSearchQuery}
         onShowDatePicker={() => setShowDatePicker(true)}
         onShowTimePicker={() => setShowTimePicker(true)}
         onShowPartySizePicker={() => setShowPartySizePicker(true)}
         onShowGeneralFilters={() => setShowGeneralFilters(true)}
         onShowBookingModal={() => setShowBookingModal(true)}
+        onGenerateSuggestions={actions.generateSearchSuggestions}
+        onSelectSuggestion={(suggestion) => {
+          // Handle suggestion selection - could add analytics or special behavior here
+          actions.setSearchQuery(suggestion.value);
+        }}
       />
 
       <ViewToggleTabs

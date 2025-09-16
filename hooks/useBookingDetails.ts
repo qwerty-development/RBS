@@ -262,7 +262,8 @@ export const useBookingDetails = (bookingId: string) => {
     // Check if cancelling less than 24 hours before booking
     const bookingTime = new Date(booking.booking_time);
     const now = new Date();
-    const hoursUntilBooking = (bookingTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+    const hoursUntilBooking =
+      (bookingTime.getTime() - now.getTime()) / (1000 * 60 * 60);
     const isLastMinute = hoursUntilBooking <= 24;
 
     // Create alert message based on timing and offers
@@ -275,77 +276,74 @@ export const useBookingDetails = (bookingId: string) => {
     }
 
     if (isLastMinute) {
-      alertMessage += "\n\n⚠️ Warning: Cancelling less than 24 hours before your reservation may negatively impact your rating with restaurants and could affect future bookings.";
+      alertMessage +=
+        "\n\n⚠️ Warning: Cancelling less than 24 hours before your reservation may negatively impact your rating with restaurants and could affect future bookings.";
     }
 
-    Alert.alert(
-      "Cancel Booking",
-      alertMessage,
-      [
-        { text: "No", style: "cancel" },
-        {
-          text: "Yes, Cancel",
-          style: "destructive",
-          onPress: async () => {
-            setProcessing(true);
+    Alert.alert("Cancel Booking", alertMessage, [
+      { text: "No", style: "cancel" },
+      {
+        text: "Yes, Cancel",
+        style: "destructive",
+        onPress: async () => {
+          setProcessing(true);
 
-            try {
-              const { error } = await supabase
-                .from("bookings")
-                .update({
-                  status: "cancelled_by_user",
-                  updated_at: new Date().toISOString(),
-                })
-                .eq("id", booking.id);
-
-              if (error) throw error;
-
-              // If there was an applied offer, restore it
-              if (appliedOfferDetails?.user_offer_id) {
-                try {
-                  await supabase
-                    .from("user_offers")
-                    .update({
-                      used_at: null,
-                      booking_id: null,
-                    })
-                    .eq("id", appliedOfferDetails.user_offer_id);
-
-                  console.log("Offer restored to user account");
-                } catch (restoreError) {
-                  console.error("Error restoring offer:", restoreError);
-                }
-              }
-
-              await Haptics.notificationAsync(
-                Haptics.NotificationFeedbackType.Success,
-              );
-
-              // Update global bookings store immediately for real-time sync
-              updateBooking(booking.id, {
+          try {
+            const { error } = await supabase
+              .from("bookings")
+              .update({
                 status: "cancelled_by_user",
                 updated_at: new Date().toISOString(),
-              });
+              })
+              .eq("id", booking.id);
 
-              // Refresh local booking data
-              await fetchBookingDetails();
+            if (error) throw error;
 
-              Alert.alert(
-                "Success",
-                appliedOfferDetails
-                  ? "Your booking has been cancelled and your offer has been restored."
-                  : "Your booking has been cancelled",
-              );
-            } catch (error) {
-              console.error("Error cancelling booking:", error);
-              Alert.alert("Error", "Failed to cancel booking");
-            } finally {
-              setProcessing(false);
+            // If there was an applied offer, restore it
+            if (appliedOfferDetails?.user_offer_id) {
+              try {
+                await supabase
+                  .from("user_offers")
+                  .update({
+                    used_at: null,
+                    booking_id: null,
+                  })
+                  .eq("id", appliedOfferDetails.user_offer_id);
+
+                console.log("Offer restored to user account");
+              } catch (restoreError) {
+                console.error("Error restoring offer:", restoreError);
+              }
             }
-          },
+
+            await Haptics.notificationAsync(
+              Haptics.NotificationFeedbackType.Success,
+            );
+
+            // Update global bookings store immediately for real-time sync
+            updateBooking(booking.id, {
+              status: "cancelled_by_user",
+              updated_at: new Date().toISOString(),
+            });
+
+            // Refresh local booking data
+            await fetchBookingDetails();
+
+            Alert.alert(
+              "Success",
+              appliedOfferDetails
+                ? "Your booking has been cancelled and your offer has been restored."
+                : "Your booking has been cancelled",
+            );
+          } catch (error) {
+            console.error("Error cancelling booking:", error);
+            Alert.alert("Error", "Failed to cancel booking");
+          } finally {
+            setProcessing(false);
+          }
         },
-      ],
-    );
+      },
+    ]);
   }, [booking, fetchBookingDetails, appliedOfferDetails, updateBooking]);
 
   // Copy offer redemption code

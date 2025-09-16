@@ -2,6 +2,7 @@
 import { GeneralFilters, BookingFilters } from "@/types/search";
 
 // Search Configuration Constants
+// Updated to match your actual cuisine categories from homeScreenData.ts
 export const CUISINE_TYPES = [
   "American",
   "Cafe",
@@ -84,7 +85,7 @@ export const DEFAULT_BOOKING_FILTERS: BookingFilters = {
 };
 
 export const DEFAULT_GENERAL_FILTERS: GeneralFilters = {
-  sortBy: "rating",
+  sortBy: "recommended",
   cuisines: [],
   features: [],
   priceRange: [1, 2, 3, 4],

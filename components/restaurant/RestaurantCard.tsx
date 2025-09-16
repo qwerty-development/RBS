@@ -203,9 +203,7 @@ export function RestaurantCard({
 
     if (!hasPointsAvailable) return null;
 
-    return (
-      <Award size={14} color="#F2B25F" fill="#F2B25F" />
-    );
+    return <Award size={14} color="#F2B25F" fill="#F2B25F" />;
   };
 
   // Using a Fragment to wrap the card and the modal

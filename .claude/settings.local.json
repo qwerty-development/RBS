@@ -20,16 +20,17 @@
       "Bash(npx expo start:*)",
       "mcp__supabase__list_tables",
       "Bash(grep:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm install:*)"
     ],
     "deny": []
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "sequential-thinking",
     "filesystem",
     "fetch",
     "puppeteer",
     "supabase"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }
