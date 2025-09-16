@@ -23,15 +23,23 @@ const DeepLinkContext = createContext<DeepLinkContextType | null>(null);
 
 interface DeepLinkProviderProps {
   children: ReactNode;
+  isSplashVisible?: boolean;
+  onSplashDismissRequested?: () => void;
 }
 
-export function DeepLinkProvider({ children }: DeepLinkProviderProps) {
+export function DeepLinkProvider({
+  children,
+  isSplashVisible = false,
+  onSplashDismissRequested,
+}: DeepLinkProviderProps) {
   const { state, isAuthenticated, handleDeepLink, clearCache, isUrlSupported } =
     useDeepLink({
       autoHandle: true,
       fallbackPath: "/",
       enableLogging: __DEV__,
       processDelay: 1500, // Allow time for auth to initialize
+      isSplashVisible,
+      onSplashDismissRequested,
 
       onAuthRequired: (url) => {
         console.log(

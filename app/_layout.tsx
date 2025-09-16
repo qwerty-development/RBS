@@ -73,11 +73,51 @@ function NetworkStatusBar() {
   );
 }
 
-function RootLayoutContent() {
+function RootLayoutWithSplashState() {
+  const [showSplash, setShowSplash] = useState(true);
+  const [splashDismissRequested, setSplashDismissRequested] = useState(false);
+
+  // Handle early splash dismissal for deep links
+  const handleSplashDismissRequest = () => {
+    console.log("Deep link requesting early splash dismissal");
+    setSplashDismissRequested(true);
+  };
+
+  // Dismiss splash immediately if requested by deep link
+  useEffect(() => {
+    if (splashDismissRequested && showSplash) {
+      console.log("Dismissing splash screen early for deep link");
+      setShowSplash(false);
+    }
+  }, [splashDismissRequested, showSplash]);
+
+  return (
+    <DeepLinkProvider
+      isSplashVisible={showSplash}
+      onSplashDismissRequested={handleSplashDismissRequest}
+    >
+      <ModalProvider>
+        <NavigationErrorBoundary>
+          <RootLayoutContent
+            showSplash={showSplash}
+            setShowSplash={setShowSplash}
+          />
+        </NavigationErrorBoundary>
+      </ModalProvider>
+    </DeepLinkProvider>
+  );
+}
+
+function RootLayoutContent({
+  showSplash,
+  setShowSplash,
+}: {
+  showSplash: boolean;
+  setShowSplash: (show: boolean) => void;
+}) {
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
   const { profile } = useAuth();
-  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     initializeNotificationHandlers((deeplink: any) => {
@@ -177,13 +217,7 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <NetworkProvider>
           <AuthProvider>
-            <DeepLinkProvider>
-              <ModalProvider>
-                <NavigationErrorBoundary>
-                  <RootLayoutContent />
-                </NavigationErrorBoundary>
-              </ModalProvider>
-            </DeepLinkProvider>
+            <RootLayoutWithSplashState />
           </AuthProvider>
         </NetworkProvider>
       </GestureHandlerRootView>

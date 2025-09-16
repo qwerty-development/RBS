@@ -39,6 +39,12 @@ export interface DeepLinkHookOptions {
 
   // Whether to log deep link activities for debugging
   enableLogging?: boolean;
+
+  // Whether splash screen is currently showing (prevents navigation during splash)
+  isSplashVisible?: boolean;
+
+  // Callback when deep link should dismiss splash screen early
+  onSplashDismissRequested?: () => void;
 }
 
 const DEFAULT_OPTIONS: Required<DeepLinkHookOptions> = {
@@ -49,6 +55,8 @@ const DEFAULT_OPTIONS: Required<DeepLinkHookOptions> = {
   onNavigationError: () => {},
   processDelay: 1000,
   enableLogging: __DEV__,
+  isSplashVisible: false,
+  onSplashDismissRequested: () => {},
 };
 
 export function useDeepLink(options: DeepLinkHookOptions = {}) {
@@ -65,7 +73,8 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
   const [isMounted, setIsMounted] = useState(false);
   const [isNavigationReady, setIsNavigationReady] = useState(false);
   const processedUrls = useRef<Set<string>>(new Set());
-  const processingTimeout = useRef<NodeJS.Timeout | null>(null);
+  const processingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingDeepLink = useRef<string | null>(null);
   const isAuthenticated = Boolean(session) || isGuest;
 
   const log = useCallback(
@@ -124,6 +133,30 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
         return false;
       }
 
+      // If splash screen is visible, store the URL and defer navigation
+      if (finalOptions.isSplashVisible) {
+        log("Splash screen visible, storing pending deep link:", url);
+        pendingDeepLink.current = url;
+
+        // Process the URL to validate it, but don't navigate yet
+        const { route } = parseDeepLinkUrl(url);
+        if (isSupportedDeepLink(url) && !route?.protected) {
+          // For non-protected routes, we can dismiss splash early
+          log(
+            "Non-protected route detected, requesting early splash dismissal",
+          );
+          finalOptions.onSplashDismissRequested();
+        }
+
+        setState((prev) => ({
+          ...prev,
+          initialUrl: url,
+          isProcessing: false,
+        }));
+
+        return false;
+      }
+
       log("Processing deep link:", url);
 
       setState((prev) => ({
@@ -168,7 +201,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
           isAuthenticated,
           canNavigate: isMounted && isNavigationReady,
           fallbackPath: finalOptions.fallbackPath,
-          onAuthRequired: finalOptions.onAuthRequired,
+          onAuthRequired: () => finalOptions.onAuthRequired(url),
         });
 
         if (success) {
@@ -314,6 +347,34 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
     isMounted,
     isNavigationReady,
     state.initialUrl,
+    processDeepLink,
+    log,
+  ]);
+
+  // Process pending deep link when splash screen is dismissed
+  useEffect(() => {
+    if (
+      !finalOptions.isSplashVisible &&
+      pendingDeepLink.current &&
+      authInitialized &&
+      isMounted &&
+      isNavigationReady &&
+      !processedUrls.current.has(pendingDeepLink.current)
+    ) {
+      const url = pendingDeepLink.current;
+      log("Splash screen dismissed, processing pending deep link:", url);
+
+      // Clear the pending URL to prevent re-processing
+      pendingDeepLink.current = null;
+
+      // Process the deep link
+      processDeepLink(url);
+    }
+  }, [
+    finalOptions.isSplashVisible,
+    authInitialized,
+    isMounted,
+    isNavigationReady,
     processDeepLink,
     log,
   ]);
