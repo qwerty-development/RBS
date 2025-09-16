@@ -55,10 +55,39 @@ export const QUICK_FILTERS: QuickFilter[] = [
 
 export const CUISINE_CATEGORIES: CuisineCategory[] = [
   {
-    id: "lebanese",
-    label: "Lebanese",
-    image: require("@/assets/cuisine-categories/lebanese.png"),
-    popular: true,
+    id: "american",
+    label: "American",
+    image: require("@/assets/cuisine-categories/american.png"),
+  },
+  {
+    id: "cafe",
+    label: "Cafe",
+    image: require("@/assets/cuisine-categories/cafe.png"),
+  },
+  {
+    id: "chinese",
+    label: "Chinese",
+    image: require("@/assets/cuisine-categories/chinese.png"),
+  },
+  {
+    id: "french",
+    label: "French",
+    image: require("@/assets/cuisine-categories/french.png"),
+  },
+  {
+    id: "greek",
+    label: "Greek",
+    image: require("@/assets/cuisine-categories/greek.png"),
+  },
+  {
+    id: "indian",
+    label: "Indian",
+    image: require("@/assets/cuisine-categories/indian.png"),
+  },
+  {
+    id: "international",
+    label: "International",
+    image: require("@/assets/cuisine-categories/international.png"),
   },
   {
     id: "italian",
@@ -73,19 +102,16 @@ export const CUISINE_CATEGORIES: CuisineCategory[] = [
     popular: true,
   },
   {
-    id: "french",
-    label: "French",
-    image: require("@/assets/cuisine-categories/french.png"),
+    id: "lebanese",
+    label: "Lebanese",
+    image: require("@/assets/cuisine-categories/lebanese.png"),
+    popular: true,
   },
   {
-    id: "chinese",
-    label: "Chinese",
-    image: require("@/assets/cuisine-categories/chinese.png"),
-  },
-  {
-    id: "indian",
-    label: "Indian",
-    image: require("@/assets/cuisine-categories/indian.png"),
+    id: "mediterranean",
+    label: "Mediterranean",
+    image: require("@/assets/cuisine-categories/mediterranean.png"),
+    popular: true,
   },
   {
     id: "mexican",
@@ -96,5 +122,15 @@ export const CUISINE_CATEGORIES: CuisineCategory[] = [
     id: "seafood",
     label: "Seafood",
     image: require("@/assets/cuisine-categories/seafood.png"),
+  },
+  {
+    id: "spanish",
+    label: "Spanish",
+    image: require("@/assets/cuisine-categories/spanish.png"),
+  },
+  {
+    id: "thai",
+    label: "Thai",
+    image: require("@/assets/cuisine-categories/thai.png"),
   },
 ];

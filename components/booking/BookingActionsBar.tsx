@@ -12,6 +12,8 @@ import {
   Calendar,
   Trophy,
   Tag,
+  MapPin,
+  RefreshCw,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
@@ -19,6 +21,8 @@ import * as Clipboard from "expo-clipboard";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
+import { colors } from "@/constants/colors";
+import { useColorScheme } from "@/lib/useColorScheme";
 
 interface BookingActionsBarProps {
   booking: {
@@ -69,6 +73,7 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
   onNavigateToOffers,
   onEdit,
 }) => {
+  const { colorScheme } = useColorScheme();
   const callRestaurant = async () => {
     if (!booking.restaurant.phone_number) return;
 
@@ -148,33 +153,67 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
   };
 
   return (
-    <View className="p-4 border-t border-border bg-background">
+    <View className="p-4 pb-6 border-t border-border bg-background">
       {/* Primary Actions for Upcoming Bookings */}
       {isUpcoming &&
         (booking.status === "pending" || booking.status === "confirmed") && (
-          <View className="flex-row gap-3 mb-3">
-            <View className="flex-1">
-              <DirectionsButton
-                restaurant={booking.restaurant}
-                variant="button"
-                size="sm"
-                backgroundColor="bg-background"
-                borderColor="border-border"
-                iconColor="#3b82f6"
-                textColor="text-primary"
-                className="w-full h-10 justify-center"
-              />
+          <View className="mb-3">
+            {/* Main action buttons - Call and Directions */}
+            <View className="flex-row gap-3 mb-3">
+              {booking.restaurant.phone_number && (
+                <Button
+                  variant="default"
+                  onPress={callRestaurant}
+                  className="flex-1 bg-primary h-12 rounded-lg"
+                >
+                  <View className="flex-row items-center justify-center gap-2">
+                    <Phone
+                      size={16}
+                      color={colors[colorScheme].primaryForeground}
+                    />
+                    <Text className="text-primary-foreground font-medium">
+                      Call
+                    </Text>
+                  </View>
+                </Button>
+              )}
+
+              <Button
+                variant="default"
+                onPress={() => {
+                  // Handle directions navigation
+                  if (
+                    booking.restaurant.latitude &&
+                    booking.restaurant.longitude
+                  ) {
+                    const url = `https://www.google.com/maps/dir/?api=1&destination=${booking.restaurant.latitude},${booking.restaurant.longitude}`;
+                    Linking.openURL(url);
+                  }
+                }}
+                className="flex-1 bg-primary h-12 rounded-lg"
+              >
+                <View className="flex-row items-center justify-center gap-2">
+                  <MapPin
+                    size={16}
+                    color={colors[colorScheme].primaryForeground}
+                  />
+                  <Text className="text-primary-foreground font-medium">
+                    Directions
+                  </Text>
+                </View>
+              </Button>
             </View>
 
+            {/* Cancel button - light red styling */}
             <Button
-              variant="destructive"
+              variant="ghost"
               onPress={onCancel}
               disabled={processing}
-              className="flex-1"
+              className="w-full bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
             >
-              <View className="flex-row items-center gap-2">
-                <XCircle size={16} />
-                <Text>Cancel</Text>
+              <View className="flex-row items-center justify-center gap-2">
+                <XCircle size={16} color="#ef4444" />
+                <Text className="text-red-600 dark:text-red-400">Cancel</Text>
               </View>
             </Button>
           </View>
@@ -182,10 +221,33 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
 
       {/* Review Button for Completed Bookings */}
       {booking.status === "completed" && !hasReview && (
-        <Button variant="default" onPress={onReview} className="w-full mb-3">
+        <Button
+          variant="default"
+          onPress={onReview}
+          className="w-full mb-3 rounded-lg"
+        >
           <View className="flex-row items-center gap-2">
             <Star size={16} />
             <Text>Rate Your Experience</Text>
+          </View>
+        </Button>
+      )}
+
+      {/* Try Different Time for Declined Bookings */}
+      {booking.status === "declined_by_restaurant" && (
+        <Button
+          variant="default"
+          onPress={onBookAgain}
+          className="w-full mb-3 bg-primary rounded-lg"
+        >
+          <View className="flex-row items-center gap-2">
+            <RefreshCw
+              size={16}
+              color={colors[colorScheme].primaryForeground}
+            />
+            <Text className="text-primary-foreground font-medium">
+              Try Different Time
+            </Text>
           </View>
         </Button>
       )}
@@ -195,10 +257,17 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
         {/* Book Again for Completed/Cancelled */}
         {(booking.status === "completed" ||
           booking.status === "cancelled_by_user") && (
-          <Button variant="secondary" onPress={onBookAgain} className="flex-1">
+          <Button
+            variant="default"
+            onPress={onBookAgain}
+            className="flex-1 bg-primary rounded-lg"
+          >
             <View className="flex-row items-center gap-2">
-              <Calendar size={16} />
-              <Text>Book Again</Text>
+              <Calendar
+                size={16}
+                color={colors[colorScheme].primaryForeground}
+              />
+              <Text className="text-primary-foreground">Book Again</Text>
             </View>
           </Button>
         )}
@@ -208,7 +277,7 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
           <Button
             variant="outline"
             onPress={onNavigateToLoyalty}
-            className="flex-none px-4"
+            className="flex-none px-4 rounded-lg"
           >
             <Trophy size={16} color="#f59e0b" />
           </Button>
@@ -219,7 +288,7 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
           <Button
             variant="outline"
             onPress={onNavigateToOffers}
-            className="flex-none px-4"
+            className="flex-none px-4 rounded-lg"
           >
             <Tag size={16} color="#16a34a" />
           </Button>

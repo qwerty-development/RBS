@@ -270,14 +270,14 @@ export const CreatePlaylistModal: React.FC<CreatePlaylistModalProps> = ({
             <Button
               variant="outline"
               onPress={onClose}
-              className="flex-1"
+              className="flex-1 rounded-lg"
               disabled={loading}
             >
               <Text>Cancel</Text>
             </Button>
             <Button
               onPress={handleSubmit}
-              className="flex-1"
+              className="flex-1 rounded-lg"
               disabled={loading || !name.trim()}
             >
               {loading ? (

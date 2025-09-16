@@ -8,6 +8,7 @@ import * as Haptics from "expo-haptics";
 import { AvailabilityService } from "@/lib/AvailabilityService";
 import { useUserRating } from "@/hooks/useUserRating";
 import type { BookingEligibilityResult } from "@/types/database-functions";
+import { notifyRestaurantWhatsAppNonBlocking } from "@/lib/whatsapp-notification";
 
 interface BookingConfirmationProps {
   restaurantId: string;
@@ -444,6 +445,10 @@ export const useBookingConfirmation = () => {
         if (debugMode && bookingResult.debug_info) {
           console.log("Booking Debug Info:", bookingResult.debug_info);
         }
+
+        // Send WhatsApp notification to restaurant (non-blocking)
+        console.log('🎯 Calling WhatsApp notification for confirmation booking:', bookingResult.booking.id);
+        notifyRestaurantWhatsAppNonBlocking(bookingResult.booking.id);
 
         // Send friend invitations if any friends were invited
         if (invitedFriends.length > 0) {

@@ -57,20 +57,21 @@ const ALLERGIES = [
 ];
 
 const CUISINE_PREFERENCES = [
+  { id: "american", label: "American" },
+  { id: "cafe", label: "Cafe" },
+  { id: "chinese", label: "Chinese" },
+  { id: "french", label: "French" },
+  { id: "greek", label: "Greek" },
+  { id: "indian", label: "Indian" },
+  { id: "international", label: "International" },
+  { id: "italian", label: "Italian", popular: true },
+  { id: "japanese", label: "Japanese", popular: true },
   { id: "lebanese", label: "Lebanese", popular: true },
   { id: "mediterranean", label: "Mediterranean", popular: true },
-  { id: "italian", label: "Italian", popular: true },
-  { id: "french", label: "French" },
-  { id: "japanese", label: "Japanese", popular: true },
-  { id: "chinese", label: "Chinese" },
-  { id: "indian", label: "Indian" },
   { id: "mexican", label: "Mexican" },
-  { id: "american", label: "American" },
   { id: "seafood", label: "Seafood" },
-  { id: "steakhouse", label: "Steakhouse" },
-  { id: "fusion", label: "Fusion" },
-  { id: "vegetarian", label: "Vegetarian/Vegan" },
-  { id: "cafe", label: "Café & Bakery" },
+  { id: "spanish", label: "Spanish" },
+  { id: "thai", label: "Thai" },
 ];
 
 const AMBIANCE_PREFERENCES = [

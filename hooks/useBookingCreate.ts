@@ -15,6 +15,7 @@ import {
   TierType,
 } from "@/lib/bookingUtils";
 import { calculateBookingWindow } from "@/lib/tableManagementUtils";
+import { notifyRestaurantWhatsAppNonBlocking } from "@/lib/whatsapp-notification";
 
 // Type Definitions
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
@@ -489,6 +490,10 @@ export function useBookingCreate() {
           // The old point awarding RPC is removed as it's now handled transactionally within 'create_booking_with_tables'.
           await Promise.allSettled(postBookingPromises);
 
+          // Send WhatsApp notification to restaurant (non-blocking)
+          console.log('🎯 Calling WhatsApp notification for instant booking:', booking.id);
+          notifyRestaurantWhatsAppNonBlocking(booking.id);
+
           // Navigate to instant success screen
           await Haptics.notificationAsync(
             Haptics.NotificationFeedbackType.Success,
@@ -530,6 +535,10 @@ export function useBookingCreate() {
             .single();
 
           if (bookingError) throw bookingError;
+
+          // Send WhatsApp notification to restaurant (non-blocking)
+          console.log('🎯 Calling WhatsApp notification for request booking:', booking.id);
+          notifyRestaurantWhatsAppNonBlocking(booking.id);
 
           // Navigate to request success screen
           await Haptics.notificationAsync(

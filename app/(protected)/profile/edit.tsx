@@ -18,6 +18,8 @@ import {
   ChevronLeft,
   Save,
   AlertCircle,
+  Calendar,
+  Shield,
 } from "lucide-react-native";
 import * as ImagePicker from "expo-image-picker";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -71,6 +73,24 @@ const profileEditSchema = z.object({
       }
       return val;
     }),
+  date_of_birth: z
+    .string()
+    .optional()
+    .refine((date) => {
+      if (!date) return true; // Optional field
+      const parsedDate = new Date(date);
+      const today = new Date();
+      const age = today.getFullYear() - parsedDate.getFullYear();
+      const monthDiff = today.getMonth() - parsedDate.getMonth();
+      const dayDiff = today.getDate() - parsedDate.getDate();
+
+      // Check if date is valid and person is at least 13 years old
+      return (
+        !isNaN(parsedDate.getTime()) &&
+        (age > 13 ||
+          (age === 13 && (monthDiff > 0 || (monthDiff === 0 && dayDiff >= 0))))
+      );
+    }, "You must be at least 13 years old."),
 });
 
 type ProfileEditFormData = z.infer<typeof profileEditSchema>;
@@ -91,6 +111,7 @@ export default function ProfileEditScreen() {
       full_name: profile?.full_name || "",
       email: user?.email || "",
       phone_number: profile?.phone_number || "",
+      date_of_birth: profile?.date_of_birth || "",
     },
   });
 
@@ -169,6 +190,7 @@ export default function ProfileEditScreen() {
         await updateProfile({
           full_name: data.full_name,
           phone_number: data.phone_number,
+          date_of_birth: data.date_of_birth,
           avatar_url: avatarUrl,
         });
 
@@ -274,6 +296,44 @@ export default function ProfileEditScreen() {
                       keyboardType="phone-pad"
                       {...field}
                     />
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="date_of_birth"
+                  render={({ field }) => (
+                    <View>
+                      <FormInput
+                        label="Date of Birth"
+                        placeholder={
+                          profile?.date_of_birth
+                            ? "Set and cannot be changed"
+                            : "YYYY-MM-DD"
+                        }
+                        description={
+                          profile?.date_of_birth
+                            ? "Date of birth cannot be changed once set for security purposes"
+                            : "Can only be set once for security and age verification"
+                        }
+                        keyboardType="numeric"
+                        editable={!profile?.date_of_birth}
+                        style={profile?.date_of_birth ? { opacity: 0.6 } : {}}
+                        {...field}
+                      />
+                      {profile?.date_of_birth && (
+                        <View className="flex-row items-center mt-2 px-3 py-2 bg-muted/50 rounded-lg">
+                          <Shield
+                            size={16}
+                            className="text-green-600 dark:text-green-400 mr-2"
+                          />
+                          <Text className="text-sm text-muted-foreground flex-1">
+                            Your date of birth is securely locked and cannot be
+                            modified
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   )}
                 />
               </View>

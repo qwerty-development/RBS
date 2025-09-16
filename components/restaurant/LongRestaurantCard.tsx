@@ -1,6 +1,6 @@
 // components/restaurant/EnhancedRestaurantCard.tsx
 import React from "react";
-import { View, Pressable, Dimensions } from "react-native";
+import { View, Pressable, Dimensions, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import {
   Star,
@@ -18,6 +18,12 @@ import { Database } from "@/types/supabase";
 import { cn } from "@/lib/utils";
 import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
 import { format } from "date-fns";
+import {
+  useRestaurantPress,
+  useQuickActionPress,
+} from "@/hooks/useHapticPress";
+import { useNavigationModal } from "@/context/modal-provider";
+import { useBookingEligibility } from "@/hooks/useBookingEligibility";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -44,6 +50,16 @@ export function EnhancedRestaurantCard({
 }: EnhancedRestaurantCardProps) {
   const router = useRouter();
 
+  // Haptic press hooks
+  const { handlePress: handleRestaurantPress } = useRestaurantPress();
+  const { handlePress: handleQuickActionPress } = useQuickActionPress();
+
+  // Booking eligibility check
+  const bookingEligibility = useBookingEligibility(restaurant);
+
+  // Modal state management
+  const { openNavigationModal, isAnyModalOpen } = useNavigationModal();
+
   // Use the availability hook
   const {
     formatOperatingHours,
@@ -52,33 +68,80 @@ export function EnhancedRestaurantCard({
   } = useRestaurantAvailability(restaurant.id);
 
   const handlePress = () => {
-    if (onPress) {
-      onPress();
-    } else {
-      router.push({
-        pathname: "/restaurant/[id]",
-        params: { id: restaurant.id },
+    handleRestaurantPress(() => {
+      // Check if any modal is already open
+      if (isAnyModalOpen) {
+        console.log(
+          `Restaurant ${restaurant.id} press blocked - modal already open`,
+        );
+        return;
+      }
+
+      // Use navigation modal to prevent multiple modals
+      openNavigationModal(`restaurant-${restaurant.id}`, () => {
+        if (onPress) {
+          onPress();
+        } else {
+          router.push({
+            pathname: "/restaurant/[id]",
+            params: { id: restaurant.id },
+          });
+        }
       });
-    }
+    });
   };
 
   const handleQuickBook = (e: any) => {
     e.stopPropagation();
-    router.push({
-      pathname: "/booking/create",
-      params: {
-        restaurantId: restaurant.id,
-        restaurantName: restaurant.name,
-        quickBook: "true",
-      },
+    handleQuickActionPress(() => {
+      // Check booking eligibility first
+      if (!bookingEligibility.isEligible) {
+        Alert.alert(
+          "Booking Not Available",
+          bookingEligibility.blockedReason || "Unable to proceed with booking",
+          [
+            { text: "OK", style: "default" },
+            ...(bookingEligibility.actionText
+              ? [
+                  {
+                    text: bookingEligibility.actionText,
+                    style: "default",
+                    onPress: () => {
+                      if (bookingEligibility.actionRequired === "sign_up") {
+                        router.push("/sign-up");
+                      } else if (
+                        bookingEligibility.actionRequired ===
+                        "add_date_of_birth"
+                      ) {
+                        router.push("/profile/edit");
+                      }
+                    },
+                  },
+                ]
+              : []),
+          ],
+        );
+        return;
+      }
+
+      router.push({
+        pathname: "/booking/create",
+        params: {
+          restaurantId: restaurant.id,
+          restaurantName: restaurant.name,
+          quickBook: "true",
+        },
+      });
     });
   };
 
   const handleViewMenu = (e: any) => {
     e.stopPropagation();
-    router.push({
-      pathname: "/restaurant/[id]/menu",
-      params: { id: restaurant.id },
+    handleQuickActionPress(() => {
+      router.push({
+        pathname: "/restaurant/[id]/menu",
+        params: { id: restaurant.id },
+      });
     });
   };
 
@@ -119,7 +182,7 @@ export function EnhancedRestaurantCard({
                 <Pressable
                   onPress={(e) => {
                     e.stopPropagation();
-                    onFavoritePress();
+                    handleQuickActionPress(onFavoritePress);
                   }}
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
@@ -136,7 +199,9 @@ export function EnhancedRestaurantCard({
               <View className="flex-row items-center gap-1">
                 <Star size={12} color="#f59e0b" fill="#f59e0b" />
                 <Text className="text-xs font-medium">
-                  {restaurant.average_rating?.toFixed(1) || "N/A"}
+                  {restaurant.average_rating && restaurant.average_rating > 0
+                    ? restaurant.average_rating.toFixed(1)
+                    : "-"}
                 </Text>
               </View>
               <Text className="text-xs text-muted-foreground">
@@ -184,7 +249,7 @@ export function EnhancedRestaurantCard({
             <Pressable
               onPress={(e) => {
                 e.stopPropagation();
-                onFavoritePress();
+                handleQuickActionPress(onFavoritePress);
               }}
               className="absolute top-3 right-3 bg-black/50 rounded-full p-2"
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -229,9 +294,22 @@ export function EnhancedRestaurantCard({
         <View className="p-4 border-b border-border">
           <View className="flex-row items-start justify-between mb-2">
             <View className="flex-1">
-              <H3 className="text-lg mb-1" numberOfLines={1}>
-                {restaurant.name}
-              </H3>
+              <View className="flex-row items-center gap-2 mb-1">
+                <H3 className="text-lg flex-1" numberOfLines={1}>
+                  {restaurant.name}
+                </H3>
+                {!availabilityLoading && (
+                  <View
+                    className={cn(
+                      "w-2 h-2 rounded-full",
+                      checkAvailability(new Date(), format(new Date(), "HH:mm"))
+                        .isOpen
+                        ? "bg-green-500"
+                        : "bg-red-500",
+                    )}
+                  />
+                )}
+              </View>
               <Text className="text-muted-foreground text-sm">
                 {restaurant.cuisine_type}
               </Text>
@@ -243,13 +321,13 @@ export function EnhancedRestaurantCard({
             <View className="flex-row items-center gap-1">
               <Star size={16} color="#f59e0b" fill="#f59e0b" />
               <Text className="text-sm font-semibold">
-                {restaurant.average_rating?.toFixed(1) || "N/A"}
+                {restaurant.average_rating && restaurant.average_rating > 0
+                  ? restaurant.average_rating.toFixed(1)
+                  : "-"}
               </Text>
-              {restaurant.total_reviews > 0 && (
-                <Text className="text-sm text-muted-foreground">
-                  ({restaurant.total_reviews} reviews)
-                </Text>
-              )}
+              <Text className="text-sm text-muted-foreground">
+                ({restaurant.total_reviews || 0} reviews)
+              </Text>
             </View>
             <Text className="text-sm font-semibold text-muted-foreground">
               {"$".repeat(restaurant.price_range)} •{" "}
@@ -261,46 +339,37 @@ export function EnhancedRestaurantCard({
             </Text>
           </View>
 
-          {/* Location and Hours Row */}
-          <View className="space-y-2 mb-3">
-            <View className="flex-row items-center gap-2">
-              <MapPin size={16} color="#666" />
-              <Text className="text-sm text-muted-foreground flex-1">
-                {restaurant.address || "Location not available"}
+          {/* Status Row */}
+          {!availabilityLoading && (
+            <View className="flex-row items-center gap-2 mb-3">
+              <View
+                className={cn(
+                  "w-2 h-2 rounded-full",
+                  checkAvailability(new Date(), format(new Date(), "HH:mm"))
+                    .isOpen
+                    ? "bg-green-500"
+                    : "bg-red-500",
+                )}
+              />
+              <Text
+                className={cn(
+                  "text-sm font-medium",
+                  checkAvailability(new Date(), format(new Date(), "HH:mm"))
+                    .isOpen
+                    ? "text-green-600"
+                    : "text-red-600",
+                )}
+              >
+                {checkAvailability(new Date(), format(new Date(), "HH:mm"))
+                  .isOpen
+                  ? "Open"
+                  : "Closed"}
+              </Text>
+              <Text className="text-sm text-muted-foreground">
+                • {formatOperatingHours()}
               </Text>
             </View>
-
-            {!availabilityLoading && (
-              <View className="flex-row items-center gap-2">
-                <Clock
-                  size={16}
-                  color={
-                    checkAvailability(new Date(), format(new Date(), "HH:mm"))
-                      .isOpen
-                      ? "#10b981"
-                      : "#ef4444"
-                  }
-                />
-                <Text
-                  className={cn(
-                    "text-sm font-medium",
-                    checkAvailability(new Date(), format(new Date(), "HH:mm"))
-                      .isOpen
-                      ? "text-green-600"
-                      : "text-red-600",
-                  )}
-                >
-                  {checkAvailability(new Date(), format(new Date(), "HH:mm"))
-                    .isOpen
-                    ? "Open"
-                    : "Closed"}
-                </Text>
-                <Text className="text-sm text-muted-foreground">
-                  • {formatOperatingHours()}
-                </Text>
-              </View>
-            )}
-          </View>
+          )}
 
           {/* Tags Row */}
           {restaurant.tags && restaurant.tags.length > 0 && (
@@ -332,13 +401,29 @@ export function EnhancedRestaurantCard({
             <View className="flex-row gap-3">
               <Pressable
                 onPress={handleQuickBook}
-                className="flex-1 bg-primary rounded-lg py-3 px-4 flex-row items-center justify-center gap-2 border border-primary"
+                className={`flex-1 rounded-lg py-3 px-4 flex-row items-center justify-center gap-2 border ${
+                  bookingEligibility.isEligible
+                    ? "bg-primary border-primary"
+                    : "bg-muted border-muted"
+                }`}
+                disabled={!bookingEligibility.isEligible}
               >
-                <Calendar size={18} color="white" />
-                <Text className="text-primary-foreground font-semibold">
-                  {restaurant.booking_policy === "instant"
-                    ? "Book Now"
-                    : "Request Booking"}
+                <Calendar
+                  size={18}
+                  color={bookingEligibility.isEligible ? "white" : "#666"}
+                />
+                <Text
+                  className={`font-semibold ${
+                    bookingEligibility.isEligible
+                      ? "text-primary-foreground"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {!bookingEligibility.isEligible
+                    ? bookingEligibility.actionText || "Not Available"
+                    : restaurant.booking_policy === "instant"
+                      ? "Book Now"
+                      : "Request Booking"}
                 </Text>
               </Pressable>
 
@@ -378,7 +463,7 @@ export function EnhancedRestaurantCard({
           <Pressable
             onPress={(e) => {
               e.stopPropagation();
-              onFavoritePress();
+              handleQuickActionPress(onFavoritePress);
             }}
             className="absolute top-3 right-3 bg-black/50 rounded-full p-2"
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -414,13 +499,13 @@ export function EnhancedRestaurantCard({
           <View className="flex-row items-center gap-1">
             <Star size={14} color="#f59e0b" fill="#f59e0b" />
             <Text className="text-sm font-medium">
-              {restaurant.average_rating?.toFixed(1) || "N/A"}
+              {restaurant.average_rating && restaurant.average_rating > 0
+                ? restaurant.average_rating.toFixed(1)
+                : "-"}
             </Text>
-            {restaurant.total_reviews > 0 && (
-              <Text className="text-xs text-muted-foreground">
-                ({restaurant.total_reviews})
-              </Text>
-            )}
+            <Text className="text-xs text-muted-foreground">
+              ({restaurant.total_reviews || 0})
+            </Text>
           </View>
           <Text className="text-sm text-muted-foreground">
             {"$".repeat(restaurant.price_range)}

@@ -46,6 +46,7 @@ import { usePlaylistSharing } from "@/hooks/usePlaylistSharing";
 import { RestaurantSearchCard } from "@/components/search/RestaurantSearchCard";
 import { Database } from "@/types/supabase";
 import { PlaylistDetailsSkeleton } from "@/components/skeletons/PlaylistDetailsSkeleton";
+import { cn } from "@/lib/utils";
 import { CreatePlaylistModal } from "@/components/playlists/CreatePlaylistModal";
 
 type PlaylistParams = {
@@ -198,6 +199,25 @@ export default function PlaylistDetailScreen() {
     );
   }, [playlist, deletePlaylist, router]);
 
+  const handleSettingsPress = useCallback(() => {
+    Alert.alert(
+      "Playlist Options",
+      "What would you like to do with this playlist?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Edit",
+          onPress: () => setShowEditModal(true),
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: handleDeletePlaylist,
+        },
+      ],
+    );
+  }, [handleDeletePlaylist]);
+
   const handleTogglePublic = useCallback(async () => {
     if (!playlist) return;
 
@@ -347,8 +367,8 @@ export default function PlaylistDetailScreen() {
           </View>
           {isOwner && (
             <Pressable
-              onPress={() => setShowEditModal(true)}
-              className="w-10 h-10 items-center justify-center rounded-full bg-muted"
+              onPress={handleSettingsPress}
+              className="w-10 h-10 items-center justify-center rounded-full bg-muted active:bg-muted/80"
             >
               <Settings
                 size={20}
@@ -410,48 +430,6 @@ export default function PlaylistDetailScreen() {
       </View>
 
       {/* Actions Bar */}
-      {canEdit && (
-        <View className="bg-gray-50 dark:bg-gray-900 px-4 py-3 flex-row gap-2">
-          <Button
-            size="sm"
-            onPress={handleAddRestaurants}
-            className="flex-row items-center"
-          >
-            <View className="flex-row items-center justify-center gap-2">
-              <Plus size={16} color="#fff" />
-              <Text className="text-white text-sm">Add Restaurants</Text>
-            </View>
-          </Button>
-
-          <Button
-            size="sm"
-            variant="outline"
-            onPress={handleShare}
-            className="flex-row items-center"
-          >
-            <Share2
-              size={16}
-              color={colorScheme === "dark" ? "#fff" : "#000"}
-            />
-            <Text className="text-sm ml-1">Share</Text>
-          </Button>
-
-          {isOwner && (
-            <Button
-              size="sm"
-              variant="outline"
-              onPress={() => router.push(`/playlist/${id}/collaborators`)}
-              className="flex-row items-center"
-            >
-              <UserPlus
-                size={16}
-                color={colorScheme === "dark" ? "#fff" : "#000"}
-              />
-              <Text className="text-sm ml-1">Invite</Text>
-            </Button>
-          )}
-        </View>
-      )}
 
       {/* Content */}
       {items.length === 0 ? (
@@ -462,11 +440,6 @@ export default function PlaylistDetailScreen() {
               ? "Start adding your favorite restaurants to this playlist"
               : "This playlist doesn't have any restaurants yet"}
           </Muted>
-          {canEdit && (
-            <Button onPress={handleAddRestaurants}>
-              <Text className="text-white">Add Restaurants</Text>
-            </Button>
-          )}
         </View>
       ) : (
         <DraggableFlatList
@@ -498,18 +471,77 @@ export default function PlaylistDetailScreen() {
         editingPlaylist={playlist}
       />
 
+      {/* Bottom Action Bar */}
+      {canEdit && (
+        <View className="p-4 border-t border-border bg-background">
+          {/* Share and Invite Row */}
+          <View className="flex-row gap-3 mb-3">
+            <Button
+              variant="outline"
+              onPress={handleShare}
+              className="flex-1 border-primary rounded-lg"
+            >
+              <View className="flex-row items-center justify-center gap-2">
+                <Share2
+                  size={16}
+                  color={colorScheme === "dark" ? "#fff" : "#000"}
+                />
+                <Text className="text-foreground font-medium">Share</Text>
+              </View>
+            </Button>
+
+            {isOwner && (
+              <Button
+                variant="outline"
+                onPress={() => router.push(`/playlist/${id}/collaborators`)}
+                className="flex-1 border-primary rounded-lg"
+              >
+                <View className="flex-row items-center justify-center gap-2">
+                  <UserPlus
+                    size={16}
+                    color={colorScheme === "dark" ? "#fff" : "#000"}
+                  />
+                  <Text className="text-foreground font-medium">Invite</Text>
+                </View>
+              </Button>
+            )}
+          </View>
+
+          {/* Add Restaurant - Full Width */}
+          <Button
+            variant="default"
+            onPress={handleAddRestaurants}
+            className="w-full bg-primary rounded-lg"
+          >
+            <View className="flex-row items-center justify-center gap-2">
+              <Plus
+                size={16}
+                color={colorScheme === "dark" ? "#fff" : "#fff"}
+              />
+              <Text className="text-primary-foreground font-medium">
+                Add Restaurant
+              </Text>
+            </View>
+          </Button>
+        </View>
+      )}
+
       {/* More Options Menu */}
       {isOwner && showShareOptions && (
         <View className="absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-800 rounded-t-2xl shadow-lg p-4">
           <Button
             variant="outline"
             onPress={handleTogglePublic}
-            className="mb-2"
+            className="mb-2 rounded-lg"
           >
             <Text>{playlist.is_public ? "Make Private" : "Make Public"}</Text>
           </Button>
 
-          <Button variant="destructive" onPress={handleDeletePlaylist}>
+          <Button
+            variant="destructive"
+            onPress={handleDeletePlaylist}
+            className="rounded-lg"
+          >
             <Trash2 size={18} color="#fff" className="mr-2" />
             <Text className="text-white">Delete Playlist</Text>
           </Button>

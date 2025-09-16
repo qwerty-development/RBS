@@ -3,18 +3,21 @@ import { GeneralFilters, BookingFilters } from "@/types/search";
 
 // Search Configuration Constants
 export const CUISINE_TYPES = [
-  "Lebanese",
-  "Italian",
-  "French",
-  "Japanese",
-  "Chinese",
-  "Indian",
-  "Mexican",
   "American",
+  "Cafe",
+  "Chinese",
+  "French",
+  "Greek",
+  "Indian",
+  "International",
+  "Italian",
+  "Japanese",
+  "Lebanese",
   "Mediterranean",
+  "Mexican",
   "Seafood",
-  "Steakhouse",
-  "Vegetarian",
+  "Spanish",
+  "Thai",
 ];
 
 export const FEATURES = [

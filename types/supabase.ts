@@ -2625,6 +2625,7 @@ export type Database = {
           cancelled_bookings: number | null;
           completed_bookings: number | null;
           created_at: string | null;
+          date_of_birth: string | null;
           dietary_restrictions: string[] | null;
           email: string | null;
           favorite_cuisines: string[] | null;
@@ -2648,6 +2649,7 @@ export type Database = {
           cancelled_bookings?: number | null;
           completed_bookings?: number | null;
           created_at?: string | null;
+          date_of_birth?: string | null;
           dietary_restrictions?: string[] | null;
           email?: string | null;
           favorite_cuisines?: string[] | null;
@@ -2671,6 +2673,7 @@ export type Database = {
           cancelled_bookings?: number | null;
           completed_bookings?: number | null;
           created_at?: string | null;
+          date_of_birth?: string | null;
           dietary_restrictions?: string[] | null;
           email?: string | null;
           favorite_cuisines?: string[] | null;
@@ -3908,6 +3911,7 @@ export type Database = {
           max_party_size: number | null;
           menu_url: string | null;
           min_party_size: number | null;
+          minimum_age: number | null;
           name: string;
           opening_time: string | null;
           outdoor_seating: boolean | null;
@@ -3952,6 +3956,7 @@ export type Database = {
           max_party_size?: number | null;
           menu_url?: string | null;
           min_party_size?: number | null;
+          minimum_age?: number | null;
           name: string;
           opening_time?: string | null;
           outdoor_seating?: boolean | null;
@@ -3996,6 +4001,7 @@ export type Database = {
           max_party_size?: number | null;
           menu_url?: string | null;
           min_party_size?: number | null;
+          minimum_age?: number | null;
           name?: string;
           opening_time?: string | null;
           outdoor_seating?: boolean | null;

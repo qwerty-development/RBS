@@ -56,6 +56,24 @@ const formSchema = z
         }
         return cleaned;
       }),
+    dateOfBirth: z
+      .string()
+      .min(1, "Please enter your date of birth.")
+      .refine((date) => {
+        const parsedDate = new Date(date);
+        const today = new Date();
+        const age = today.getFullYear() - parsedDate.getFullYear();
+        const monthDiff = today.getMonth() - parsedDate.getMonth();
+        const dayDiff = today.getDate() - parsedDate.getDate();
+
+        // Check if date is valid and person is at least 13 years old
+        return (
+          !isNaN(parsedDate.getTime()) &&
+          (age > 13 ||
+            (age === 13 &&
+              (monthDiff > 0 || (monthDiff === 0 && dayDiff >= 0))))
+        );
+      }, "You must be at least 13 years old to register."),
     password: z
       .string()
       .min(8, "Password must be at least 8 characters.")
@@ -87,6 +105,7 @@ export default function SignUp() {
       fullName: "",
       email: "",
       phoneNumber: "",
+      dateOfBirth: "",
       password: "",
       confirmPassword: "",
       agreeToTerms: false,
@@ -96,7 +115,13 @@ export default function SignUp() {
   async function onSubmit(data: FormData) {
     try {
       setLoading(true);
-      await signUp(data.email, data.password, data.fullName, data.phoneNumber);
+      await signUp(
+        data.email,
+        data.password,
+        data.fullName,
+        data.phoneNumber,
+        data.dateOfBirth,
+      );
 
       // Success - navigation handled by AuthContext
       form.reset();
@@ -187,6 +212,22 @@ export default function SignUp() {
                       autoCapitalize="none"
                       autoCorrect={false}
                       keyboardType="phone-pad"
+                      {...field}
+                    />
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="dateOfBirth"
+                  render={({ field }) => (
+                    <FormInput
+                      label="Date of Birth"
+                      placeholder="YYYY-MM-DD"
+                      description="Must be at least 13 years old to register"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="numeric"
                       {...field}
                     />
                   )}

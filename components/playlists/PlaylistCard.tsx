@@ -93,11 +93,6 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
               <H4 className="flex-1" numberOfLines={1}>
                 {safeName}
               </H4>
-              {playlist.is_public ? (
-                <Globe size={14} className="text-muted-foreground" />
-              ) : (
-                <Lock size={14} className="text-muted-foreground" />
-              )}
             </View>
 
             {safeDescription && (
@@ -134,19 +129,10 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
           </View>
 
           <View className="flex-row items-center gap-2">
-            {isOwner && (
-              <Pressable
-                onPress={handleDeletePress}
-                disabled={isDeleting}
-                className="p-2"
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                {isDeleting ? (
-                  <ActivityIndicator size="small" color="#ef4444" />
-                ) : (
-                  <Trash2 size={18} color="#ef4444" />
-                )}
-              </Pressable>
+            {playlist.is_public ? (
+              <Globe size={18} color="#6b7280" />
+            ) : (
+              <Lock size={18} color="#6b7280" />
             )}
             <ChevronRight size={20} className="text-muted-foreground" />
           </View>

@@ -15,6 +15,7 @@ import {
 import { Text } from "@/components/ui/text";
 import { H1, P, Muted } from "@/components/ui/typography";
 import { useColorScheme } from "@/lib/useColorScheme";
+import { AgeRestrictionBadge } from "./AgeRestrictionBadge";
 
 interface Restaurant {
   id: string;
@@ -25,6 +26,7 @@ interface Restaurant {
   total_reviews?: number;
   price_range?: number;
   description?: string;
+  minimum_age?: number | null;
 }
 
 interface RestaurantHeaderInfoProps {
@@ -94,6 +96,14 @@ export const RestaurantHeaderInfo: React.FC<RestaurantHeaderInfoProps> = ({
           </View>
         </View>
 
+        {/* Age Restriction Badge */}
+        <View className="mb-3">
+          <AgeRestrictionBadge
+            restaurant={restaurant as any}
+            variant="detail"
+          />
+        </View>
+
         {/* Rating and Price */}
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center gap-4">
@@ -106,7 +116,7 @@ export const RestaurantHeaderInfo: React.FC<RestaurantHeaderInfoProps> = ({
                 <Text className="font-bold text-lg">
                   {restaurant.average_rating.toFixed(1)}
                 </Text>
-                {restaurant.total_reviews && (
+                {restaurant.total_reviews && restaurant.total_reviews > 0 && (
                   <Text className="text-sm text-muted-foreground ml-1">
                     ({restaurant.total_reviews})
                   </Text>

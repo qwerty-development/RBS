@@ -27,6 +27,9 @@
         "usesNonExemptEncryption": false
       },
       "bundleIdentifier": "com.notqwerty.plate",
+      "splash": {
+        "backgroundColor": "#ffece2"
+      },
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Plate uses your location to find nearby restaurants and provide personalized recommendations.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Plate uses your location to find nearby restaurants and provide personalized recommendations.",
@@ -61,16 +64,6 @@
           "http"
         ]
       },
-      "splash": {
-        "image": "./assets/icon.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#ffece2",
-        "dark": {
-          "image": "./assets/icon-dark.png",
-          "resizeMode": "contain",
-          "backgroundColor": "#000000"
-        }
-      },
       "icon": {
         "light": "./assets/icon.png",
         "dark": "./assets/icon-dark.png"
@@ -96,14 +89,7 @@
         "android.permission.WRITE_CALENDAR"
       ],
       "splash": {
-        "image": "./assets/icon.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#ffece2",
-        "dark": {
-          "image": "./assets/icon-dark.png",
-          "resizeMode": "contain",
-          "backgroundColor": "#000000"
-        }
+        "backgroundColor": "#ffece2"
       },
       "intentFilters": [
         {

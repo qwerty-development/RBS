@@ -18,7 +18,9 @@
       "mcp__supabase__list_projects",
       "mcp__filesystem__list_directory",
       "Bash(npx expo start:*)",
-      "mcp__supabase__list_tables"
+      "mcp__supabase__list_tables",
+      "Bash(grep:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   },

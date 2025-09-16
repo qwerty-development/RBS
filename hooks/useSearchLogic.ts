@@ -144,6 +144,14 @@ export const useSearchLogic = (): UseSearchReturn => {
 
       try {
         if (userLocation) {
+          console.log("🔍 Search using location:", {
+            lat: userLocation.latitude,
+            lng: userLocation.longitude,
+            city: userLocation.city,
+            district: userLocation.district,
+            maxDistance: gFilters.maxDistance,
+          });
+
           // Use your new LocationService method
           const restaurantsWithDistance =
             await LocationService.getRestaurantsWithDistance(

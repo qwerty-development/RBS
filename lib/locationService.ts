@@ -224,7 +224,11 @@ export class LocationService {
     maxDistance?: number,
     retryCount: number = 0,
   ): Promise<any[]> {
-    console.log("🍽️ Getting restaurants with distance from:", userLocation);
+    console.log("🍽️ Getting restaurants with distance from:", {
+      lat: userLocation.latitude,
+      lng: userLocation.longitude,
+      maxDistance,
+    });
 
     try {
       // First try: PostGIS ST_X and ST_Y functions
@@ -473,20 +477,9 @@ export class LocationService {
   // Enhanced location detection with better error handling
   static async getCurrentLocation(): Promise<LocationData> {
     try {
-      // Check stored location first
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (
-          parsed.latitude &&
-          parsed.longitude &&
-          parsed.city &&
-          parsed.district
-        ) {
-          console.log("📍 Using stored location:", parsed);
-          return parsed;
-        }
-      }
+      // Clear any stored location first to force fresh GPS detection
+      await LocationService.clearLocation();
+      console.log("📍 Cleared stored location, getting fresh GPS location");
 
       console.log("📍 Getting fresh location...");
 
@@ -512,9 +505,13 @@ export class LocationService {
         accuracy: position.coords.accuracy,
       });
 
-      // Reverse geocode with timeout
+      // For GPS location, use reverse geocoding to get actual street/area names
+      // This ensures we get real location names from the map
+      console.log("📍 Using reverse geocoding to get real location names");
+
       let locationData: LocationData;
       try {
+        // Try reverse geocoding to get real street/area names
         const geocodePromise = Location.reverseGeocodeAsync({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
@@ -530,16 +527,52 @@ export class LocationService {
           timeoutPromise,
         ])) as any;
 
-        locationData = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          city: address.city || address.subregion || "Current Location",
-          district:
+        console.log("📍 Raw geocoding result:", address);
+
+        // Extract real location names from geocoding result
+        let detectedCity = "Unknown Location";
+        let detectedDistrict = "Unknown Area";
+
+        if (address) {
+          // Try to get the most specific location names available
+          detectedCity =
+            address.city ||
+            address.subregion ||
+            address.region ||
+            address.administrativeArea ||
+            address.country ||
+            "Unknown Location";
+
+          detectedDistrict =
             address.district ||
             address.street ||
             address.name ||
-            "Current Area",
-          country: address.country || "Lebanon",
+            address.locality ||
+            address.subLocality ||
+            address.neighborhood ||
+            "Unknown Area";
+
+          // If we got generic names, try to be more specific
+          if (
+            detectedCity === "Lebanon" ||
+            detectedCity === "Unknown Location"
+          ) {
+            detectedCity = "Unknown Location";
+          }
+          if (
+            detectedDistrict === "Lebanon" ||
+            detectedDistrict === "Unknown Area"
+          ) {
+            detectedDistrict = "Unknown Area";
+          }
+        }
+
+        locationData = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          city: detectedCity,
+          district: detectedDistrict,
+          country: address?.country || "Lebanon",
         };
 
         console.log("📍 Reverse geocoded successfully:", locationData);
@@ -548,24 +581,31 @@ export class LocationService {
         locationData = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-          city: "Current Location",
-          district: "GPS Location",
+          city: "Unknown Location",
+          district: "Unknown Area",
           country: "Lebanon",
         };
       }
 
       // Validate coordinates are reasonable for Lebanon area
+      // But be more lenient - if we have valid GPS coordinates, use them even if outside Lebanon
       if (!LocationService.isInLebanon(locationData)) {
-        console.warn("⚠️ Location outside Lebanon bounds, using default");
-        await AsyncStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify(DEFAULT_LOCATION),
+        console.warn(
+          "⚠️ Location outside Lebanon bounds, but using GPS coordinates anyway",
         );
-        return DEFAULT_LOCATION;
+        // Don't fall back to default - use the actual GPS location
+        // This allows users outside Lebanon to still use the app
       }
 
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(locationData));
-      console.log("✅ Successfully got and stored current location");
+      console.log("✅ Successfully got and stored current location:", {
+        coordinates: {
+          lat: locationData.latitude,
+          lng: locationData.longitude,
+        },
+        displayName: LocationService.getLocationDisplayName(locationData),
+        isInLebanon: LocationService.isInLebanon(locationData),
+      });
       return locationData;
     } catch (error) {
       console.error("❌ Error getting location:", error);
@@ -589,18 +629,283 @@ export class LocationService {
   // Get location display name
   static getLocationDisplayName(location: LocationData | null): string {
     if (!location) return "Select location";
+
+    // If we have specific city/district info from map, use it
     if (
       location.district &&
       location.city &&
-      location.district !== location.city
+      location.district !== location.city &&
+      location.district !== "Unknown Area" &&
+      location.city !== "Unknown Location" &&
+      location.district !== "GPS Location" &&
+      location.city !== "Current Location"
     ) {
       return `${location.district}, ${location.city}`;
     }
-    return location.city || "Current Location";
+
+    // If we have a city name that's not generic, use it
+    if (
+      location.city &&
+      location.city !== "Current Location" &&
+      location.city !== "Unknown Location"
+    ) {
+      return location.city;
+    }
+
+    // If we have GPS coordinates but no good location names, show coordinates
+    if (location.latitude && location.longitude) {
+      return `GPS: ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`;
+    }
+
+    return "Current Location";
   }
 
   // Convert coordinates to PostGIS format
   static toPostGISFormat(lat: number, lng: number): string {
     return `POINT(${lng} ${lat})`;
+  }
+
+  // Find the closest city from predefined Lebanon locations
+  static findClosestCity(
+    latitude: number,
+    longitude: number,
+  ): { city: string; district: string } {
+    console.log("🔍 Finding closest city to:", {
+      lat: latitude,
+      lng: longitude,
+    });
+
+    // Import the Lebanon locations from the LocationSelector component
+    const LEBANON_LOCATIONS = [
+      // Beirut Districts
+      {
+        id: "beirut-central",
+        city: "Beirut",
+        district: "Central District",
+        coordinates: { latitude: 33.8938, longitude: 35.5018 },
+      },
+      {
+        id: "beirut-hamra",
+        city: "Beirut",
+        district: "Hamra",
+        coordinates: { latitude: 33.8959, longitude: 35.4797 },
+      },
+      {
+        id: "beirut-achrafieh",
+        city: "Beirut",
+        district: "Achrafieh",
+        coordinates: { latitude: 33.8854, longitude: 35.5209 },
+      },
+      {
+        id: "beirut-gemmayzeh",
+        city: "Beirut",
+        district: "Gemmayzeh",
+        coordinates: { latitude: 33.8958, longitude: 35.5144 },
+      },
+      {
+        id: "beirut-mar-mikhael",
+        city: "Beirut",
+        district: "Mar Mikhael",
+        coordinates: { latitude: 33.8969, longitude: 35.5262 },
+      },
+      {
+        id: "beirut-verdun",
+        city: "Beirut",
+        district: "Verdun",
+        coordinates: { latitude: 33.8791, longitude: 35.4834 },
+      },
+      {
+        id: "beirut-ras-beirut",
+        city: "Beirut",
+        district: "Ras Beirut",
+        coordinates: { latitude: 33.9006, longitude: 35.4815 },
+      },
+      {
+        id: "beirut-badaro",
+        city: "Beirut",
+        district: "Badaro",
+        coordinates: { latitude: 33.8792, longitude: 35.5156 },
+      },
+      {
+        id: "beirut-sodeco",
+        city: "Beirut",
+        district: "Sodeco",
+        coordinates: { latitude: 33.8831, longitude: 35.5131 },
+      },
+      {
+        id: "beirut-raouche",
+        city: "Beirut",
+        district: "Raouche",
+        coordinates: { latitude: 33.8912, longitude: 35.4792 },
+      },
+
+      // Mount Lebanon
+      {
+        id: "jounieh",
+        city: "Jounieh",
+        district: "Keserwan",
+        coordinates: { latitude: 33.9806, longitude: 35.6178 },
+      },
+      {
+        id: "dbayeh",
+        city: "Dbayeh",
+        district: "Metn",
+        coordinates: { latitude: 33.9481, longitude: 35.5872 },
+      },
+      {
+        id: "antelias",
+        city: "Antelias",
+        district: "Metn",
+        coordinates: { latitude: 33.9139, longitude: 35.5858 },
+      },
+      {
+        id: "zalka",
+        city: "Zalka",
+        district: "Metn",
+        coordinates: { latitude: 33.9264, longitude: 35.5711 },
+      },
+      {
+        id: "jal-el-dib",
+        city: "Jal el Dib",
+        district: "Metn",
+        coordinates: { latitude: 33.9386, longitude: 35.5958 },
+      },
+      {
+        id: "baabda",
+        city: "Baabda",
+        district: "Baabda",
+        coordinates: { latitude: 33.8339, longitude: 35.5442 },
+      },
+      {
+        id: "aley",
+        city: "Aley",
+        district: "Aley",
+        coordinates: { latitude: 33.8106, longitude: 35.5992 },
+      },
+      {
+        id: "broummana",
+        city: "Broummana",
+        district: "Metn",
+        coordinates: { latitude: 33.8831, longitude: 35.6442 },
+      },
+      {
+        id: "beit-mery",
+        city: "Beit Mery",
+        district: "Metn",
+        coordinates: { latitude: 33.8531, longitude: 35.6097 },
+      },
+      {
+        id: "kaslik",
+        city: "Kaslik",
+        district: "Keserwan",
+        coordinates: { latitude: 33.9706, longitude: 35.6125 },
+      },
+
+      // North Lebanon
+      {
+        id: "batroun",
+        city: "Batroun",
+        district: "Batroun",
+        coordinates: { latitude: 34.2556, longitude: 35.6586 },
+      },
+      {
+        id: "byblos",
+        city: "Byblos",
+        district: "Jbeil",
+        coordinates: { latitude: 34.1224, longitude: 35.6487 },
+      },
+      {
+        id: "tripoli",
+        city: "Tripoli",
+        district: "Tripoli",
+        coordinates: { latitude: 34.4332, longitude: 35.8498 },
+      },
+      {
+        id: "chekka",
+        city: "Chekka",
+        district: "Batroun",
+        coordinates: { latitude: 34.3006, longitude: 35.7089 },
+      },
+      {
+        id: "zgharta",
+        city: "Zgharta",
+        district: "Zgharta",
+        coordinates: { latitude: 34.3983, longitude: 35.9006 },
+      },
+
+      // South Lebanon
+      {
+        id: "tyre",
+        city: "Tyre",
+        district: "Tyre",
+        coordinates: { latitude: 33.2704, longitude: 35.2038 },
+      },
+      {
+        id: "sidon",
+        city: "Sidon",
+        district: "Sidon",
+        coordinates: { latitude: 33.5634, longitude: 35.3711 },
+      },
+      {
+        id: "nabatieh",
+        city: "Nabatieh",
+        district: "Nabatieh",
+        coordinates: { latitude: 33.3789, longitude: 35.4839 },
+      },
+      {
+        id: "jezzine",
+        city: "Jezzine",
+        district: "Jezzine",
+        coordinates: { latitude: 33.5456, longitude: 35.5789 },
+      },
+
+      // Bekaa
+      {
+        id: "zahle",
+        city: "Zahle",
+        district: "Zahle",
+        coordinates: { latitude: 33.8463, longitude: 35.9019 },
+      },
+      {
+        id: "baalbek",
+        city: "Baalbek",
+        district: "Baalbek",
+        coordinates: { latitude: 34.0042, longitude: 36.2075 },
+      },
+      {
+        id: "chtaura",
+        city: "Chtaura",
+        district: "Zahle",
+        coordinates: { latitude: 33.8206, longitude: 35.8556 },
+      },
+    ];
+
+    let closestLocation = LEBANON_LOCATIONS[0]; // Default to first location
+    let minDistance = Number.MAX_VALUE;
+
+    for (const location of LEBANON_LOCATIONS) {
+      const distance = LocationService.calculateDistance(
+        latitude,
+        longitude,
+        location.coordinates.latitude,
+        location.coordinates.longitude,
+      );
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestLocation = location;
+      }
+    }
+
+    console.log("📍 Closest city found:", {
+      city: closestLocation.city,
+      district: closestLocation.district,
+      distance: minDistance.toFixed(2) + "km",
+    });
+
+    return {
+      city: closestLocation.city,
+      district: closestLocation.district,
+    };
   }
 }
