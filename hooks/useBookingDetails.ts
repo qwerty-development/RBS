@@ -259,11 +259,28 @@ export const useBookingDetails = (bookingId: string) => {
   const cancelBooking = useCallback(async () => {
     if (!booking) return;
 
+    // Check if cancelling less than 24 hours before booking
+    const bookingTime = new Date(booking.booking_time);
+    const now = new Date();
+    const hoursUntilBooking = (bookingTime.getTime() - now.getTime()) / (1000 * 60 * 60);
+    const isLastMinute = hoursUntilBooking <= 24;
+
+    // Create alert message based on timing and offers
+    let alertMessage = "Are you sure you want to cancel this booking?";
+
+    if (appliedOfferDetails) {
+      alertMessage += " Your applied offer will be restored to your account.";
+    } else {
+      alertMessage += " This action cannot be undone.";
+    }
+
+    if (isLastMinute) {
+      alertMessage += "\n\n⚠️ Warning: Cancelling less than 24 hours before your reservation may negatively impact your rating with restaurants and could affect future bookings.";
+    }
+
     Alert.alert(
       "Cancel Booking",
-      appliedOfferDetails
-        ? "Are you sure you want to cancel this booking? Your applied offer will be restored to your account."
-        : "Are you sure you want to cancel this booking? This action cannot be undone.",
+      alertMessage,
       [
         { text: "No", style: "cancel" },
         {
@@ -329,7 +346,7 @@ export const useBookingDetails = (bookingId: string) => {
         },
       ],
     );
-  }, [booking, fetchBookingDetails, appliedOfferDetails]);
+  }, [booking, fetchBookingDetails, appliedOfferDetails, updateBooking]);
 
   // Copy offer redemption code
   const copyOfferCode = useCallback(async () => {
