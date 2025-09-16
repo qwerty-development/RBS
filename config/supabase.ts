@@ -94,26 +94,6 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       "X-Client-Info": "plate-app",
       "X-Client-Version": "1.0.0",
     },
-    fetch: (url, options = {}) => {
-      // JMeter proxy configuration for development
-      if (__DEV__) {
-        console.log("🔄 Making request through potential proxy:", url);
-
-        // Add headers to help JMeter identify requests
-        const headers = {
-          ...options.headers,
-          'X-JMeter-Source': 'plate-app',
-          'X-Request-ID': Date.now().toString(),
-        };
-
-        return fetch(url, {
-          ...options,
-          headers,
-        });
-      }
-
-      return fetch(url, options);
-    },
   },
   // Add timeout configuration
   db: {
@@ -132,7 +112,7 @@ console.log("✅ Supabase client created successfully");
 const testConnection = async () => {
   try {
     console.log("🔄 Testing Supabase connection...");
-    const { error } = await supabase.auth.getSession();
+    const { data, error } = await supabase.auth.getSession();
     if (error) {
       console.warn("⚠️ Supabase connection test warning:", error.message);
     } else {
