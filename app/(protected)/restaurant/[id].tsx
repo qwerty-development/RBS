@@ -335,7 +335,10 @@ const RestaurantHeaderInfo: React.FC<{
   restaurant: Restaurant;
   restaurantId: string;
 }> = ({ restaurant, restaurantId }) => {
-  const { address, isLoading } = useRestaurantLocation(restaurant.location, restaurant);
+  const { address, isLoading } = useRestaurantLocation(
+    restaurant.location,
+    restaurant,
+  );
   const { checkAvailability } = useRestaurantAvailability(restaurantId);
 
   // Use the new availability check
