@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Development configuration for JMeter proxy HTTPS interception -->
+    <debug-overrides>
+        <trust-anchors>
+            <!-- Trust user-added CA certificates for debugging -->
+            <certificates src="user" />
+            <!-- Also trust system certificates -->
+            <certificates src="system" />
+        </trust-anchors>
+    </debug-overrides>
+
+    <!-- Base configuration for production -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- Only trust system certificates in production -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- Allow cleartext traffic for development and specific domains -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Local development -->
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+
+        <!-- JMeter proxy typical IP ranges (update with your computer's IP) -->
+        <domain includeSubdomains="true">192.168.1.0</domain>
+        <domain includeSubdomains="true">192.168.0.0</domain>
+
+        <!-- Expo development server -->
+        <domain includeSubdomains="true">expo.dev</domain>
+        <domain includeSubdomains="true">exp.host</domain>
+    </domain-config>
+</network-security-config>

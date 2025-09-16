@@ -23,6 +23,11 @@ import {
 } from "@/lib/notifications/setup";
 import AnimatedSplashScreen from "@/components/AnimatedSplashScreen";
 
+// JMeter proxy integration (development only)
+if (__DEV__) {
+  import("@/lib/jmeter-proxy");
+}
+
 LogBox.ignoreAllLogs();
 
 // Network status bar component
