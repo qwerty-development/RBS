@@ -204,12 +204,7 @@ export function RestaurantCard({
     if (!hasPointsAvailable) return null;
 
     return (
-      <View className="flex-row items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 px-2 py-1 rounded-full mt-1">
-        <Award size={12} color="#F2B25F" fill="#F2B25F" />
-        <Text className="text-xs font-medium text-amber-700 dark:text-amber-300">
-          Loyalty Available
-        </Text>
-      </View>
+      <Award size={14} color="#F2B25F" fill="#F2B25F" />
     );
   };
 
@@ -284,11 +279,11 @@ export function RestaurantCard({
               {/* Rating and Price */}
               <View className="flex-row items-center justify-between mb-2">
                 {renderStars(restaurantData.average_rating || 0)}
-                {renderPriceRange(restaurantData.price_range)}
+                <View className="flex-row items-center gap-2">
+                  {renderLoyaltyIndicator()}
+                  {renderPriceRange(restaurantData.price_range)}
+                </View>
               </View>
-
-              {/* Loyalty indicator */}
-              {renderLoyaltyIndicator()}
             </View>
           </Card>
         </Pressable>
@@ -387,11 +382,11 @@ export function RestaurantCard({
               {/* Rating and Price */}
               <View className="flex-row items-center justify-between mb-3">
                 {renderStars(restaurantData.average_rating || 0)}
-                {renderPriceRange(restaurantData.price_range)}
+                <View className="flex-row items-center gap-2">
+                  {renderLoyaltyIndicator()}
+                  {renderPriceRange(restaurantData.price_range)}
+                </View>
               </View>
-
-              {/* Loyalty indicator */}
-              {renderLoyaltyIndicator()}
             </View>
           </Card>
         </Pressable>
@@ -464,11 +459,11 @@ export function RestaurantCard({
                 {/* Rating and Price */}
                 <View className="flex-row items-center justify-between mb-2">
                   {renderStars(restaurantData.average_rating || 0)}
-                  {renderPriceRange(restaurantData.price_range)}
+                  <View className="flex-row items-center gap-2">
+                    {renderLoyaltyIndicator()}
+                    {renderPriceRange(restaurantData.price_range)}
+                  </View>
                 </View>
-
-                {/* Loyalty indicator */}
-                {renderLoyaltyIndicator()}
               </View>
             </View>
           </Card>
