@@ -48,6 +48,8 @@ import { Database } from "@/types/supabase";
 import { PlaylistDetailsSkeleton } from "@/components/skeletons/PlaylistDetailsSkeleton";
 import { cn } from "@/lib/utils";
 import { CreatePlaylistModal } from "@/components/playlists/CreatePlaylistModal";
+import { useShare } from "@/hooks/useShare";
+import { ShareModal } from "@/components/ui/share-modal";
 
 type PlaylistParams = {
   id: string;
@@ -55,6 +57,12 @@ type PlaylistParams = {
 
 export default function PlaylistDetailScreen() {
   const [isMounted, setIsMounted] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  const {
+    sharePlaylist: sharePlaylistWithDeepLink,
+    sharePlaylistJoin: sharePlaylistJoinWithDeepLink,
+  } = useShare();
 
   useEffect(() => {
     setIsMounted(true);
@@ -365,17 +373,28 @@ export default function PlaylistDetailScreen() {
             </View>
             <Muted>{items.length} restaurants</Muted>
           </View>
-          {isOwner && (
+          <View className="flex-row gap-2">
             <Pressable
-              onPress={handleSettingsPress}
+              onPress={() => setShowShareModal(true)}
               className="w-10 h-10 items-center justify-center rounded-full bg-muted active:bg-muted/80"
             >
-              <Settings
+              <Share2
                 size={20}
                 color={colorScheme === "dark" ? "#fff" : "#000"}
               />
             </Pressable>
-          )}
+            {isOwner && (
+              <Pressable
+                onPress={handleSettingsPress}
+                className="w-10 h-10 items-center justify-center rounded-full bg-muted active:bg-muted/80"
+              >
+                <Settings
+                  size={20}
+                  color={colorScheme === "dark" ? "#fff" : "#000"}
+                />
+              </Pressable>
+            )}
+          </View>
         </View>
       </View>
 
@@ -546,6 +565,40 @@ export default function PlaylistDetailScreen() {
             <Text className="text-white">Delete Playlist</Text>
           </Button>
         </View>
+      )}
+
+      {/* Share Modal */}
+      {playlist && (
+        <ShareModal
+          visible={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          title={`Share ${playlist.name}`}
+          description="Share this playlist with your friends"
+          shareOptions={{
+            url: `https://plate-app.com/playlist/${playlist.id}`,
+            title: playlist.name,
+            message: `Check out my "${playlist.name}" playlist on Plate! ${playlist.emoji} ${items.length} amazing restaurants curated just for you.`,
+            subject: `${playlist.name} - Plate Playlist`,
+          }}
+          customActions={
+            playlist.share_code
+              ? [
+                  {
+                    id: "share-join-code",
+                    title: "Share Join Code",
+                    description: `Let others join with code: ${playlist.share_code}`,
+                    icon: UserPlus,
+                    onPress: async () => {
+                      await sharePlaylistJoinWithDeepLink(
+                        playlist.share_code!,
+                        playlist.name,
+                      );
+                    },
+                  },
+                ]
+              : []
+          }
+        />
       )}
     </SafeAreaView>
   );
