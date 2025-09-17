@@ -4,7 +4,7 @@ import { Clock, DollarSign } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { H3 } from "@/components/ui/typography";
 import { Database } from "@/types/supabase";
-import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
+import { useRestaurantOpenHours } from "@/hooks/useRestaurantOpenHours";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
 

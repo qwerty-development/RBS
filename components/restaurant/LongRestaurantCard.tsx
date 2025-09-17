@@ -16,7 +16,7 @@ import { Text } from "@/components/ui/text";
 import { H3, P, Muted } from "@/components/ui/typography";
 import { Database } from "@/types/supabase";
 import { cn } from "@/lib/utils";
-import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
+import { useRestaurantOpenHours } from "@/hooks/useRestaurantOpenHours";
 import { format } from "date-fns";
 import {
   useRestaurantPress,
@@ -60,12 +60,12 @@ export function EnhancedRestaurantCard({
   // Modal state management
   const { openNavigationModal, isAnyModalOpen } = useNavigationModal();
 
-  // Use the availability hook
+  // Use the new open hours hook
   const {
-    formatOperatingHours,
+    formatDisplayHours,
     checkAvailability,
     loading: availabilityLoading,
-  } = useRestaurantAvailability(restaurant.id);
+  } = useRestaurantOpenHours(restaurant.id);
 
   const handlePress = () => {
     handleRestaurantPress(() => {
@@ -105,7 +105,7 @@ export function EnhancedRestaurantCard({
               ? [
                   {
                     text: bookingEligibility.actionText,
-                    style: "default",
+                    style: "default" as const,
                     onPress: () => {
                       if (bookingEligibility.actionRequired === "sign_up") {
                         router.push("/sign-up");
@@ -139,8 +139,8 @@ export function EnhancedRestaurantCard({
     e.stopPropagation();
     handleQuickActionPress(() => {
       router.push({
-        pathname: "/restaurant/[id]/menu",
-        params: { id: restaurant.id },
+        pathname: "/restaurant/[id]",
+        params: { id: restaurant.id, tab: "menu" },
       });
     });
   };
@@ -157,7 +157,7 @@ export function EnhancedRestaurantCard({
       >
         <View className="flex-row p-3">
           <Image
-            source={{ uri: restaurant.main_image_url }}
+            source={{ uri: restaurant.main_image_url || "" }}
             className="w-20 h-20 rounded-lg"
             contentFit="cover"
           />
@@ -205,7 +205,7 @@ export function EnhancedRestaurantCard({
                 </Text>
               </View>
               <Text className="text-xs text-muted-foreground">
-                {"$".repeat(restaurant.price_range)}
+                {"$".repeat(restaurant.price_range || 1)}
               </Text>
               <Text
                 className={cn(
@@ -239,7 +239,7 @@ export function EnhancedRestaurantCard({
         {/* Full Width Image */}
         <View className="relative">
           <Image
-            source={{ uri: restaurant.main_image_url }}
+            source={{ uri: restaurant.main_image_url || "" }}
             className="w-full h-48"
             contentFit="cover"
           />
@@ -330,10 +330,10 @@ export function EnhancedRestaurantCard({
               </Text>
             </View>
             <Text className="text-sm font-semibold text-muted-foreground">
-              {"$".repeat(restaurant.price_range)} •{" "}
+              {"$".repeat(restaurant.price_range || 1)} •{" "}
               {
                 ["Budget", "Moderate", "Upscale", "Fine Dining"][
-                  restaurant.price_range - 1
+                  (restaurant.price_range || 1) - 1
                 ]
               }
             </Text>
@@ -366,7 +366,7 @@ export function EnhancedRestaurantCard({
                   : "Closed"}
               </Text>
               <Text className="text-sm text-muted-foreground">
-                • {formatOperatingHours()}
+                • {formatDisplayHours()}
               </Text>
             </View>
           )}
@@ -453,7 +453,7 @@ export function EnhancedRestaurantCard({
       {/* Full Width Image */}
       <View className="relative">
         <Image
-          source={{ uri: restaurant.main_image_url }}
+          source={{ uri: restaurant.main_image_url || "" }}
           className="w-full h-40"
           contentFit="cover"
         />
@@ -508,7 +508,7 @@ export function EnhancedRestaurantCard({
             </Text>
           </View>
           <Text className="text-sm text-muted-foreground">
-            {"$".repeat(restaurant.price_range)}
+            {"$".repeat(restaurant.price_range || 1)}
           </Text>
           <View className="flex-row items-center gap-1">
             <MapPin size={14} color="#666" />
@@ -545,7 +545,7 @@ export function EnhancedRestaurantCard({
                   : "Closed"}
               </Text>
               <Text className="text-xs text-muted-foreground">
-                • {formatOperatingHours()}
+                • {formatDisplayHours()}
               </Text>
             </View>
           )}

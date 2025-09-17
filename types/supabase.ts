@@ -3032,6 +3032,59 @@ export type Database = {
           },
         ];
       };
+      restaurant_open_hours: {
+        Row: {
+          accepts_walkins: boolean | null;
+          close_time: string | null;
+          created_at: string | null;
+          day_of_week: string;
+          id: string;
+          is_open: boolean | null;
+          name: string | null;
+          notes: string | null;
+          open_time: string | null;
+          restaurant_id: string;
+          service_type: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          accepts_walkins?: boolean | null;
+          close_time?: string | null;
+          created_at?: string | null;
+          day_of_week: string;
+          id?: string;
+          is_open?: boolean | null;
+          name?: string | null;
+          notes?: string | null;
+          open_time?: string | null;
+          restaurant_id: string;
+          service_type?: string;
+          updated_at?: string | null;
+        };
+        Update: {
+          accepts_walkins?: boolean | null;
+          close_time?: string | null;
+          created_at?: string | null;
+          day_of_week?: string;
+          id?: string;
+          is_open?: boolean | null;
+          name?: string | null;
+          notes?: string | null;
+          open_time?: string | null;
+          restaurant_id?: string;
+          service_type?: string;
+          updated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "restaurant_open_hours_restaurant_id_fkey";
+            columns: ["restaurant_id"];
+            isOneToOne: false;
+            referencedRelation: "restaurants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       restaurant_loyalty_balance: {
         Row: {
           created_at: string | null;

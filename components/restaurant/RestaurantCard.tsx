@@ -12,7 +12,7 @@ import { Database } from "@/types/supabase";
 import { cn } from "@/lib/utils";
 import { AddToPlaylistModal } from "@/components/playlists/AddToPlaylistModal"; // Assuming this path is correct
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
-import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
+import { useRestaurantOpenHours } from "@/hooks/useRestaurantOpenHours";
 import { useRestaurantLoyalty } from "@/hooks/useRestaurantLoyalty";
 import {
   useRestaurantPress,
@@ -75,9 +75,9 @@ export function RestaurantCard({
   // Support both restaurant and item props for backward compatibility
   const restaurantData = restaurant || item;
 
-  // Use the availability hook
+  // Use the new open hours hook
   const { checkAvailability, loading: availabilityLoading } =
-    useRestaurantAvailability(restaurantData?.id || "");
+    useRestaurantOpenHours(restaurantData?.id || "");
 
   // Use the loyalty hook to check if restaurant has loyalty program
   const { hasLoyaltyProgram, balance } = useRestaurantLoyalty(
