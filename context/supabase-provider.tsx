@@ -1118,47 +1118,6 @@ function AuthContent({ children }: PropsWithChildren) {
           );
           return;
         }
-
-        // Also check if we have a pending deep link URL that we're about to process
-        const pendingDeepLink = await Linking.getInitialURL();
-        if (
-          pendingDeepLink &&
-          !pendingDeepLink.includes("exp://") &&
-          !pendingDeepLink.includes("localhost") &&
-          !pendingDeepLink.includes("127.0.0.1") &&
-          pendingDeepLink.length > 10
-        ) {
-          console.log(
-            "🔗 Pending deep link detected, delaying auth navigation to allow deep link processing:",
-            pendingDeepLink,
-          );
-
-          // Set a flag to prevent immediate navigation and give deep link processing time
-          await AsyncStorage.setItem("deeplink-navigation-in-progress", "true");
-
-          // Schedule to clear the flag and proceed with auth navigation if deep link fails
-          setTimeout(async () => {
-            try {
-              await AsyncStorage.removeItem("deeplink-navigation-in-progress");
-              console.log(
-                "🔗 Deep link processing timeout, proceeding with auth navigation",
-              );
-
-              // Attempt navigation again after deep link timeout
-              if (!router || typeof router.replace !== "function") return;
-
-              if (session || isGuest) {
-                router.replace("/(protected)/(tabs)");
-              } else {
-                router.replace("/welcome");
-              }
-            } catch (timeoutError) {
-              console.log("Error in deep link timeout handler:", timeoutError);
-            }
-          }, 3000); // Give deep link processing 3 seconds
-
-          return;
-        }
       } catch (storageError) {
         console.log(
           "📍 Could not check deeplink storage, proceeding with auth navigation",
