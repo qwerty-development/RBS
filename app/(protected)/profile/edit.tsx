@@ -227,155 +227,158 @@ export default function ProfileEditScreen() {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
             {/* Avatar Section */}
-          <View className="items-center py-6">
-            <Pressable onPress={handleAvatarUpload} disabled={uploadingAvatar}>
-              <View className="relative">
-                <Image
-                  source={
-                    avatarUrl
-                      ? { uri: avatarUrl }
-                      : require("@/assets/default-avatar.jpeg")
-                  }
-                  className="w-32 h-32 rounded-full"
-                  contentFit="cover"
-                />
-                {uploadingAvatar && (
-                  <View className="absolute inset-0 bg-black/50 rounded-full items-center justify-center">
-                    <ActivityIndicator size="small" color="white" />
-                  </View>
-                )}
-                <View className="absolute bottom-0 right-0 bg-primary rounded-full p-3">
-                  <Camera size={20} color="white" />
-                </View>
-              </View>
-            </Pressable>
-            <Pressable onPress={handleAvatarUpload} className="mt-3">
-              <Text className="text-primary font-medium">Change Photo</Text>
-            </Pressable>
-          </View>
-
-          {/* Form Fields */}
-          <View className="px-4 pb-6">
-            <Form {...form}>
-              <View className="gap-4">
-                <FormField
-                  control={form.control}
-                  name="full_name"
-                  render={({ field }) => (
-                    <FormInput
-                      label="Full Name"
-                      placeholder="John Doe"
-                      autoCapitalize="words"
-                      autoComplete="name"
-                      {...field}
-                    />
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormInput
-                      label="Email Address"
-                      placeholder="john@example.com"
-                      autoCapitalize="none"
-                      autoComplete="email"
-                      keyboardType="email-address"
-                      description="You'll need to verify your new email if changed"
-                      {...field}
-                    />
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="phone_number"
-                  render={({ field }) => (
-                    <FormInput
-                      label="Phone Number"
-                      placeholder="03 123 456"
-                      description="Used for booking confirmations"
-                      keyboardType="phone-pad"
-                      {...field}
-                    />
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="date_of_birth"
-                  render={({ field }) => (
-                    <View>
-                      <FormInput
-                        label="Date of Birth"
-                        placeholder={
-                          profile?.date_of_birth
-                            ? "Set and cannot be changed"
-                            : "YYYY-MM-DD"
-                        }
-                        description={
-                          profile?.date_of_birth
-                            ? "Date of birth cannot be changed once set for security purposes"
-                            : "Can only be set once for security and age verification"
-                        }
-                        keyboardType="numeric"
-                        editable={!profile?.date_of_birth}
-                        style={profile?.date_of_birth ? { opacity: 0.6 } : {}}
-                        {...field}
-                        value={field.value ?? ""}
-                      />
-                      {profile?.date_of_birth && (
-                        <View className="flex-row items-center mt-2 px-3 py-2 bg-muted/50 rounded-lg">
-                          <Shield
-                            size={16}
-                            className="text-green-600 dark:text-green-400 mr-2"
-                          />
-                          <Text className="text-sm text-muted-foreground flex-1">
-                            Your date of birth is securely locked and cannot be
-                            modified
-                          </Text>
-                        </View>
-                      )}
+            <View className="items-center py-6">
+              <Pressable
+                onPress={handleAvatarUpload}
+                disabled={uploadingAvatar}
+              >
+                <View className="relative">
+                  <Image
+                    source={
+                      avatarUrl
+                        ? { uri: avatarUrl }
+                        : require("@/assets/default-avatar.jpeg")
+                    }
+                    className="w-32 h-32 rounded-full"
+                    contentFit="cover"
+                  />
+                  {uploadingAvatar && (
+                    <View className="absolute inset-0 bg-black/50 rounded-full items-center justify-center">
+                      <ActivityIndicator size="small" color="white" />
                     </View>
                   )}
-                />
-              </View>
-            </Form>
-
-            {/* Account Info */}
-            <View className="mt-6 p-4 bg-muted/50 rounded-lg">
-              <View className="flex-row items-center gap-2 mb-2">
-                <AlertCircle size={16} color="#666" />
-                <Text className="font-medium">Account Information</Text>
-              </View>
-              <Text className="text-sm text-muted-foreground">
-                Member since{" "}
-                {new Date(profile?.created_at || "").toLocaleDateString()}
-              </Text>
-              <Text className="text-sm text-muted-foreground">
-                User ID: {profile?.id?.slice(0, 8)}...
-              </Text>
+                  <View className="absolute bottom-0 right-0 bg-primary rounded-full p-3">
+                    <Camera size={20} color="white" />
+                  </View>
+                </View>
+              </Pressable>
+              <Pressable onPress={handleAvatarUpload} className="mt-3">
+                <Text className="text-primary font-medium">Change Photo</Text>
+              </Pressable>
             </View>
-          </View>
-        </ScrollView>
 
-        {/* Save Button */}
-        <View className="p-4 flex border-t border-border">
-          <Button
-            onPress={form.handleSubmit(handleSaveProfile)}
-            disabled={savingProfile || !form.formState.isDirty}
-          >
-            {savingProfile ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <View className="flex-row items-center justify-center gap-2">
-                <Save size={20} color="white" />
-                <Text>Save Changes</Text>
+            {/* Form Fields */}
+            <View className="px-4 pb-6">
+              <Form {...form}>
+                <View className="gap-4">
+                  <FormField
+                    control={form.control}
+                    name="full_name"
+                    render={({ field }) => (
+                      <FormInput
+                        label="Full Name"
+                        placeholder="John Doe"
+                        autoCapitalize="words"
+                        autoComplete="name"
+                        {...field}
+                      />
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormInput
+                        label="Email Address"
+                        placeholder="john@example.com"
+                        autoCapitalize="none"
+                        autoComplete="email"
+                        keyboardType="email-address"
+                        description="You'll need to verify your new email if changed"
+                        {...field}
+                      />
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="phone_number"
+                    render={({ field }) => (
+                      <FormInput
+                        label="Phone Number"
+                        placeholder="03 123 456"
+                        description="Used for booking confirmations"
+                        keyboardType="phone-pad"
+                        {...field}
+                      />
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="date_of_birth"
+                    render={({ field }) => (
+                      <View>
+                        <FormInput
+                          label="Date of Birth"
+                          placeholder={
+                            profile?.date_of_birth
+                              ? "Set and cannot be changed"
+                              : "YYYY-MM-DD"
+                          }
+                          description={
+                            profile?.date_of_birth
+                              ? "Date of birth cannot be changed once set for security purposes"
+                              : "Can only be set once for security and age verification"
+                          }
+                          keyboardType="numeric"
+                          editable={!profile?.date_of_birth}
+                          style={profile?.date_of_birth ? { opacity: 0.6 } : {}}
+                          {...field}
+                          value={field.value ?? ""}
+                        />
+                        {profile?.date_of_birth && (
+                          <View className="flex-row items-center mt-2 px-3 py-2 bg-muted/50 rounded-lg">
+                            <Shield
+                              size={16}
+                              className="text-green-600 dark:text-green-400 mr-2"
+                            />
+                            <Text className="text-sm text-muted-foreground flex-1">
+                              Your date of birth is securely locked and cannot
+                              be modified
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    )}
+                  />
+                </View>
+              </Form>
+
+              {/* Account Info */}
+              <View className="mt-6 p-4 bg-muted/50 rounded-lg">
+                <View className="flex-row items-center gap-2 mb-2">
+                  <AlertCircle size={16} color="#666" />
+                  <Text className="font-medium">Account Information</Text>
+                </View>
+                <Text className="text-sm text-muted-foreground">
+                  Member since{" "}
+                  {new Date(profile?.created_at || "").toLocaleDateString()}
+                </Text>
+                <Text className="text-sm text-muted-foreground">
+                  User ID: {profile?.id?.slice(0, 8)}...
+                </Text>
               </View>
-            )}
-          </Button>
-        </View>
+            </View>
+          </ScrollView>
+
+          {/* Save Button */}
+          <View className="p-4 flex border-t border-border">
+            <Button
+              onPress={form.handleSubmit(handleSaveProfile)}
+              disabled={savingProfile || !form.formState.isDirty}
+            >
+              {savingProfile ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <View className="flex-row items-center justify-center gap-2">
+                  <Save size={20} color="white" />
+                  <Text>Save Changes</Text>
+                </View>
+              )}
+            </Button>
+          </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>

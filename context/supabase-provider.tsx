@@ -28,7 +28,24 @@ const GUEST_MODE_KEY = "guest-mode-active";
 
 // Add this at the top of your AuthContent component
 WebBrowser.maybeCompleteAuthSession();
-// Prevent auto hide initially
+
+// AGGRESSIVE SPLASH HIDING: Hide splash as soon as possible, don't wait for complex logic
+let splashHideAttempted = false;
+const hideSplashImmediately = () => {
+  if (!splashHideAttempted) {
+    splashHideAttempted = true;
+    SplashScreen.hideAsync().catch(() => {});
+    console.log("🚀 AGGRESSIVE: Native splash hide attempted immediately");
+  }
+};
+
+// Multiple aggressive timeouts to ensure splash never stays visible
+setTimeout(hideSplashImmediately, 100); // 100ms - almost immediate
+setTimeout(hideSplashImmediately, 500); // 500ms - backup
+setTimeout(hideSplashImmediately, 1000); // 1s - third attempt
+setTimeout(hideSplashImmediately, 2000); // 2s - final backup
+
+// Initial prevention (but will be overridden quickly)
 SplashScreen.preventAutoHideAsync().catch(console.warn);
 
 // Profile type definition
@@ -106,7 +123,6 @@ function AuthContent({ children }: PropsWithChildren) {
 
   const router = useRouter();
   const initializationAttempted = useRef(false);
-  const splashHidden = useRef(false);
   const oAuthFlowTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigationInProgress = useRef(false); // Prevent multiple navigation attempts
 
@@ -1091,6 +1107,64 @@ function AuthContent({ children }: PropsWithChildren) {
         return;
       }
 
+      // Check if deeplink navigation might be in progress by checking for pending deeplink storage
+      try {
+        const deeplinkInProgress = await AsyncStorage.getItem(
+          "deeplink-navigation-in-progress",
+        );
+        if (deeplinkInProgress === "true") {
+          console.log(
+            "🔗 Deeplink navigation in progress, skipping auth navigation",
+          );
+          return;
+        }
+
+        // Also check if we have a pending deep link URL that we're about to process
+        const pendingDeepLink = await Linking.getInitialURL();
+        if (
+          pendingDeepLink &&
+          !pendingDeepLink.includes("exp://") &&
+          !pendingDeepLink.includes("localhost") &&
+          !pendingDeepLink.includes("127.0.0.1") &&
+          pendingDeepLink.length > 10
+        ) {
+          console.log(
+            "🔗 Pending deep link detected, delaying auth navigation to allow deep link processing:",
+            pendingDeepLink,
+          );
+
+          // Set a flag to prevent immediate navigation and give deep link processing time
+          await AsyncStorage.setItem("deeplink-navigation-in-progress", "true");
+
+          // Schedule to clear the flag and proceed with auth navigation if deep link fails
+          setTimeout(async () => {
+            try {
+              await AsyncStorage.removeItem("deeplink-navigation-in-progress");
+              console.log(
+                "🔗 Deep link processing timeout, proceeding with auth navigation",
+              );
+
+              // Attempt navigation again after deep link timeout
+              if (!router || typeof router.replace !== "function") return;
+
+              if (session || isGuest) {
+                router.replace("/(protected)/(tabs)");
+              } else {
+                router.replace("/welcome");
+              }
+            } catch (timeoutError) {
+              console.log("Error in deep link timeout handler:", timeoutError);
+            }
+          }, 3000); // Give deep link processing 3 seconds
+
+          return;
+        }
+      } catch (storageError) {
+        console.log(
+          "📍 Could not check deeplink storage, proceeding with auth navigation",
+        );
+      }
+
       try {
         navigationInProgress.current = true;
         console.log("🔄 Handling navigation...", {
@@ -1098,13 +1172,6 @@ function AuthContent({ children }: PropsWithChildren) {
           isGuest,
           platform: Platform.OS,
         });
-
-        // Hide splash screen only once
-        if (!splashHidden.current) {
-          await SplashScreen.hideAsync();
-          splashHidden.current = true;
-          console.log("✅ Splash screen hidden");
-        }
 
         // Add platform-specific delays for OAuth scenarios to prevent race conditions
         // Check if this is an OAuth flow by looking at recent auth events
@@ -1175,27 +1242,39 @@ function AuthContent({ children }: PropsWithChildren) {
                 }
               }
 
-              if (session || isGuest) {
-                router.replace("/(protected)/(tabs)");
-                console.log("✅ Silent fallback navigation to tabs successful");
-              } else {
-                router.replace("/welcome");
+              try {
+                if (session || isGuest) {
+                  router.replace("/(protected)/(tabs)");
+                  console.log(
+                    "✅ Silent fallback navigation to tabs successful",
+                  );
+                } else {
+                  router.replace("/welcome");
+                  console.log(
+                    "✅ Silent fallback navigation to welcome successful",
+                  );
+                }
+              } catch (fallbackError) {
                 console.log(
-                  "✅ Silent fallback navigation to welcome successful",
+                  `❌ Silent fallback navigation attempt ${attempt} failed (continuing):`,
+                  fallbackError,
                 );
-              }
-            } catch (fallbackError) {
-              console.log(
-                `❌ Silent fallback navigation attempt ${attempt} failed (continuing):`,
-                fallbackError,
-              );
 
+                if (attempt < maxAttempts) {
+                  attemptFallbackNavigation(attempt + 1);
+                } else {
+                  console.log(
+                    "❌ All silent fallback attempts completed - user will see loading",
+                  );
+                }
+              }
+            } catch (outerError) {
+              console.log(
+                `❌ Outer error in fallback attempt ${attempt}:`,
+                outerError,
+              );
               if (attempt < maxAttempts) {
                 attemptFallbackNavigation(attempt + 1);
-              } else {
-                console.log(
-                  "❌ All silent fallback attempts completed - user will see loading",
-                );
               }
             }
           }, delay);

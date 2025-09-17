@@ -16,38 +16,57 @@ export default function AnimatedSplashScreen({
   const splashOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    const runAnimation = async () => {
-      // Step 1: Text fades in (background is already at 100% opacity)
-      await new Promise((resolve) => {
-        Animated.timing(textOpacity, {
-          toValue: 1,
-          duration: 800,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }).start(resolve);
-      });
-
-      // Wait a moment
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Step 2: Fade out animation
-      await new Promise((resolve) => {
-        Animated.timing(splashOpacity, {
-          toValue: 0,
-          duration: 300,
-          easing: Easing.bezier(0.4, 0.4, 0.4, 0.4), // Very smooth ease-out
-          useNativeDriver: true,
-        }).start(resolve);
-      });
-
-      // Wait a moment to ensure fade-out is visible
-      await new Promise((resolve) => setTimeout(resolve, 400));
-
-      // Animation complete
+    // AGGRESSIVE FALLBACK: Always complete animation after maximum 2 seconds for faster cold start
+    const fallbackTimer = setTimeout(() => {
+      console.log(
+        "🚀 AGGRESSIVE: AnimatedSplashScreen fallback timeout triggered",
+      );
       onAnimationComplete();
+    }, 2000);
+
+    const runAnimation = async () => {
+      try {
+        // Step 1: Text fades in (background is already at 100% opacity)
+        await new Promise((resolve) => {
+          Animated.timing(textOpacity, {
+            toValue: 1,
+            duration: 400, // Reduced from 800ms
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }).start(resolve);
+        });
+
+        // Wait a moment (reduced for faster cold start)
+        await new Promise((resolve) => setTimeout(resolve, 200));
+
+        // Step 2: Fade out animation (faster for cold start)
+        await new Promise((resolve) => {
+          Animated.timing(splashOpacity, {
+            toValue: 0,
+            duration: 150, // Further reduced for faster cold start
+            easing: Easing.bezier(0.4, 0.4, 0.4, 0.4),
+            useNativeDriver: true,
+          }).start(resolve);
+        });
+
+        // Minimal final wait
+        await new Promise((resolve) => setTimeout(resolve, 100));
+
+        clearTimeout(fallbackTimer);
+        // Animation complete
+        onAnimationComplete();
+      } catch (error) {
+        console.warn("Animation error, completing anyway:", error);
+        clearTimeout(fallbackTimer);
+        onAnimationComplete();
+      }
     };
 
     runAnimation();
+
+    return () => {
+      clearTimeout(fallbackTimer);
+    };
   }, [backgroundOpacity, textOpacity, splashOpacity, onAnimationComplete]);
 
   return (

@@ -37,7 +37,7 @@ export function DeepLinkProvider({
       autoHandle: true,
       fallbackPath: "/",
       enableLogging: __DEV__,
-      processDelay: 1500, // Allow time for auth to initialize
+      processDelay: 50, // Minimal delay for fastest cold start handling
       isSplashVisible,
       onSplashDismissRequested,
 

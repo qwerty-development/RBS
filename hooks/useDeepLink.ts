@@ -10,6 +10,8 @@ import {
   type DeepLinkRoute,
 } from "@/lib/deeplink";
 import { useAuth } from "@/context/supabase-provider";
+import { useStoreHydration } from "@/hooks/useStoreHydration";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export interface DeepLinkState {
   initialUrl: string | null;
@@ -53,7 +55,7 @@ const DEFAULT_OPTIONS: Required<DeepLinkHookOptions> = {
   onAuthRequired: () => {},
   onNavigationSuccess: () => {},
   onNavigationError: () => {},
-  processDelay: 1000,
+  processDelay: 50, // Further reduced for faster cold start processing
   enableLogging: __DEV__,
   isSplashVisible: false,
   onSplashDismissRequested: () => {},
@@ -62,6 +64,7 @@ const DEFAULT_OPTIONS: Required<DeepLinkHookOptions> = {
 export function useDeepLink(options: DeepLinkHookOptions = {}) {
   const finalOptions = { ...DEFAULT_OPTIONS, ...options };
   const { session, isGuest, initialized: authInitialized } = useAuth();
+  const { isHydrated: storesHydrated } = useStoreHydration();
 
   const [state, setState] = useState<DeepLinkState>({
     initialUrl: null,
@@ -133,18 +136,22 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
         return false;
       }
 
-      // If splash screen is visible, store the URL and defer navigation
+      if (!storesHydrated) {
+        log("Stores not hydrated, delaying deep link processing:", url);
+        return false;
+      }
+
+      // If splash screen is visible, store the URL and request immediate dismissal
       if (finalOptions.isSplashVisible) {
-        log("Splash screen visible, storing pending deep link:", url);
+        log(
+          "Splash screen visible, storing pending deep link and requesting dismissal:",
+          url,
+        );
         pendingDeepLink.current = url;
 
-        // Process the URL to validate it, but don't navigate yet
-        const { route } = parseDeepLinkUrl(url);
-        if (isSupportedDeepLink(url) && !route?.protected) {
-          // For non-protected routes, we can dismiss splash early
-          log(
-            "Non-protected route detected, requesting early splash dismissal",
-          );
+        // Always request splash dismissal for any valid deeplink during cold start
+        if (isSupportedDeepLink(url)) {
+          log("Valid deeplink detected, requesting immediate splash dismissal");
           finalOptions.onSplashDismissRequested();
         }
 
@@ -158,6 +165,24 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
       }
 
       log("Processing deep link:", url);
+
+      // Set flag to prevent auth navigation override
+      try {
+        await AsyncStorage.setItem("deeplink-navigation-in-progress", "true");
+        log("Set deeplink navigation flag");
+
+        // Auto-clear flag after 10 seconds as safety mechanism
+        setTimeout(async () => {
+          try {
+            await AsyncStorage.removeItem("deeplink-navigation-in-progress");
+            log("Auto-cleared deeplink navigation flag after timeout");
+          } catch (timeoutError) {
+            log("Failed to auto-clear deeplink navigation flag:", timeoutError);
+          }
+        }, 10000);
+      } catch (error) {
+        log("Failed to set deeplink navigation flag:", error);
+      }
 
       setState((prev) => ({
         ...prev,
@@ -212,12 +237,28 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
           throw new Error("Navigation failed");
         }
 
+        // Clear deeplink navigation flag on success
+        try {
+          await AsyncStorage.removeItem("deeplink-navigation-in-progress");
+          log("Cleared deeplink navigation flag after success");
+        } catch (error) {
+          log("Failed to clear deeplink navigation flag:", error);
+        }
+
         setState((prev) => ({ ...prev, isProcessing: false }));
         return success;
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error";
         log("Deep link processing failed:", url, errorMessage);
+
+        // Clear deeplink navigation flag on error
+        try {
+          await AsyncStorage.removeItem("deeplink-navigation-in-progress");
+          log("Cleared deeplink navigation flag after error");
+        } catch (storageError) {
+          log("Failed to clear deeplink navigation flag:", storageError);
+        }
 
         setState((prev) => ({
           ...prev,
@@ -237,6 +278,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
       isMounted,
       isNavigationReady,
       authInitialized,
+      storesHydrated,
       isAuthenticated,
       finalOptions,
       log,
@@ -299,6 +341,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
         if (
           finalOptions.autoHandle &&
           authInitialized &&
+          storesHydrated &&
           isMounted &&
           isNavigationReady
         ) {
@@ -316,6 +359,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
     finalOptions.autoHandle,
     finalOptions.processDelay,
     authInitialized,
+    storesHydrated,
     isMounted,
     isNavigationReady,
     log,
@@ -325,6 +369,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
   useEffect(() => {
     if (
       authInitialized &&
+      storesHydrated &&
       isAuthenticated &&
       isMounted &&
       isNavigationReady &&
@@ -343,6 +388,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
   }, [
     shouldIgnoreUrl,
     authInitialized,
+    storesHydrated,
     isAuthenticated,
     isMounted,
     isNavigationReady,
@@ -357,22 +403,29 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
       !finalOptions.isSplashVisible &&
       pendingDeepLink.current &&
       authInitialized &&
+      storesHydrated &&
       isMounted &&
       isNavigationReady &&
       !processedUrls.current.has(pendingDeepLink.current)
     ) {
       const url = pendingDeepLink.current;
-      log("Splash screen dismissed, processing pending deep link:", url);
+      log(
+        "Splash screen dismissed, processing pending deep link immediately:",
+        url,
+      );
 
       // Clear the pending URL to prevent re-processing
       pendingDeepLink.current = null;
 
-      // Process the deep link
-      processDeepLink(url);
+      // Process the deep link immediately without delay for cold start
+      setTimeout(() => {
+        processDeepLink(url);
+      }, 50); // Minimal delay to ensure navigation is ready
     }
   }, [
     finalOptions.isSplashVisible,
     authInitialized,
+    storesHydrated,
     isMounted,
     isNavigationReady,
     processDeepLink,
