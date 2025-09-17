@@ -30,6 +30,7 @@ interface BookingConfirmationProps {
   guestEmail?: string;
   guestPhone?: string;
   invitedFriends?: string[]; // Array of friend user IDs
+  preferredSection?: string; // Preferred seating section name
 }
 
 interface BookingResult {
@@ -153,6 +154,7 @@ export const useBookingConfirmation = () => {
         turnTime = 120,
         isGroupBooking = false,
         invitedFriends = [],
+        preferredSection,
       } = modifiedProps;
 
       // Parse table IDs
@@ -222,7 +224,20 @@ export const useBookingConfirmation = () => {
           p_party_size: partySize,
           p_table_ids: parsedTableIds.length > 0 ? parsedTableIds : null,
           p_turn_time: turnTime,
+          p_special_requests: specialRequests || null,
+          p_occasion: occasion !== "none" ? occasion : null,
+          p_dietary_notes: dietaryNotes || null,
+          p_table_preferences: tablePreferences || null,
+          p_is_group_booking: isGroupBooking,
+          p_applied_offer_id: appliedOfferId || null,
+          p_booking_policy: bookingPolicy,
+          p_expected_loyalty_points: expectedLoyaltyPoints || 0,
+          p_applied_loyalty_rule_id: loyaltyRuleId || null,
+          // Note: p_preferred_section parameter not yet supported by database function
+          // TODO: Add p_preferred_section to create_booking_with_tables function
         });
+
+       
 
         const { data: rpcResult, error: rpcError } = await supabase.rpc(
           "create_booking_with_tables",
@@ -242,8 +257,11 @@ export const useBookingConfirmation = () => {
             p_booking_policy: bookingPolicy,
             p_expected_loyalty_points: expectedLoyaltyPoints || 0,
             p_applied_loyalty_rule_id: loyaltyRuleId || null,
+            p_preferred_section: preferredSection || null,
           },
         );
+
+        console.log("RPC Response:", { rpcResult, rpcError });
 
         if (rpcError) {
           if (debugMode) {

@@ -873,21 +873,25 @@ export default function AvailabilitySelectionScreen() {
 
     setIsConfirmingBooking(true);
     try {
-      // Prepare special requests with section information
-      let specialRequests = undefined;
-      if (selectedSectionId && selectedSectionId !== "any") {
+      // Prepare section preference for basic tier restaurants
+      let preferredSection = null;
+      console.log("Section Debug - isBasicTier:", isBasicTier, "selectedSectionId:", selectedSectionId);
+      
+      if (isBasicTier && selectedSectionId && selectedSectionId !== "any") {
         const selectedSection = restaurantSections.find(section => section.id === selectedSectionId);
+        console.log("Selected section found:", selectedSection);
         if (selectedSection) {
-          specialRequests = `Preferred seating section: ${selectedSection.name}`;
+          preferredSection = selectedSection.name;
         }
       }
-      // Note: If selectedSectionId is "any" or null, no section preference is added to special requests
+      // Note: If selectedSectionId is "any" or null, no section preference is set
+      console.log("Final preferredSection value:", preferredSection);
 
       const success = await confirmBooking({
         restaurantId: params.restaurantId,
         bookingTime: bookingTime,
         partySize: partySize,
-        specialRequests: specialRequests,
+        specialRequests: undefined, // Remove section from special requests
         occasion: undefined,
         dietaryNotes: undefined,
         tablePreferences: undefined,
@@ -905,6 +909,7 @@ export default function AvailabilitySelectionScreen() {
         tableIds: JSON.stringify([]),
         requiresCombination: false,
         invitedFriends: invitedFriends,
+        preferredSection: preferredSection || undefined, // Add the preferred section
       });
 
       if (success) {
