@@ -165,23 +165,30 @@ export function SpecialOffersCarousel({
   const renderOfferCard = useCallback(
     ({ item }: { item: EnrichedOffer }) => (
       <View style={{ width: SCREEN_WIDTH }}>
-        <Pressable
-          onPress={() => (onPress ? onPress(item) : handleOfferPress(item))}
-          disabled={processingOfferId === item.id}
-          style={{ opacity: processingOfferId === item.id ? 0.7 : 1 }}
-        >
-          <SpecialOfferCard offer={item} />
+        {/* Conditionally wrap with Pressable based on is_clickable field */}
+        {item.is_clickable ? (
+          <Pressable
+            onPress={() => (onPress ? onPress(item) : handleOfferPress(item))}
+            disabled={processingOfferId === item.id}
+            style={{ opacity: processingOfferId === item.id ? 0.7 : 1 }}
+          >
+            <SpecialOfferCard offer={item} />
 
-          {/* Processing overlay */}
-          {processingOfferId === item.id && (
-            <View className="absolute inset-0 bg-black/20 rounded-2xl items-center justify-center">
-              <View className="bg-white rounded-lg p-4 items-center">
-                <ActivityIndicator size="small" color="#3b82f6" />
-                <Text className="text-sm mt-2">Claiming offer...</Text>
+            {/* Processing overlay */}
+            {processingOfferId === item.id && (
+              <View className="absolute inset-0 bg-black/20 rounded-2xl items-center justify-center">
+                <View className="bg-white rounded-lg p-4 items-center">
+                  <ActivityIndicator size="small" color="#3b82f6" />
+                  <Text className="text-sm mt-2">Claiming offer...</Text>
+                </View>
               </View>
-            </View>
-          )}
-        </Pressable>
+            )}
+          </Pressable>
+        ) : (
+          <View>
+            <SpecialOfferCard offer={item} />
+          </View>
+        )}
       </View>
     ),
     [onPress, handleOfferPress, processingOfferId],

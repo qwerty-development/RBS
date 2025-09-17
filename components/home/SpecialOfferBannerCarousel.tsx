@@ -78,9 +78,7 @@ export function SpecialOfferBannerCarousel({
     const contentOffset = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffset / (bannerWidth + spacing));
     // +1 because of the local banner at the beginning
-    setCurrentIndex(
-      Math.max(0, Math.min(index, bannersWithImages.length))
-    );
+    setCurrentIndex(Math.max(0, Math.min(index, bannersWithImages.length)));
   };
 
   const handleDotPress = (index: number) => {
@@ -179,12 +177,18 @@ export function SpecialOfferBannerCarousel({
             <View
               key={offer.id}
               style={{
-                marginRight: index === bannersWithImages.length - 1 ? 0 : spacing,
+                marginRight:
+                  index === bannersWithImages.length - 1 ? 0 : spacing,
               }}
             >
-              <Pressable onPress={() => handleBannerPress(offer)}>
+              {/* Conditionally wrap with Pressable based on is_clickable field */}
+              {offer.is_clickable ? (
+                <Pressable onPress={() => handleBannerPress(offer)}>
+                  <SpecialOfferBanner offer={offer} />
+                </Pressable>
+              ) : (
                 <SpecialOfferBanner offer={offer} />
-              </Pressable>
+              )}
             </View>
           ))}
         </ScrollView>

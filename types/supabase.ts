@@ -4334,6 +4334,7 @@ export type Database = {
           discount_percentage: number | null;
           id: string;
           img_url: string | null;
+          is_clickable: boolean;
           minimum_party_size: number | null;
           restaurant_id: string;
           terms_conditions: string[] | null;
@@ -4348,6 +4349,7 @@ export type Database = {
           discount_percentage?: number | null;
           id?: string;
           img_url?: string | null;
+          is_clickable?: boolean;
           minimum_party_size?: number | null;
           restaurant_id: string;
           terms_conditions?: string[] | null;
@@ -4362,6 +4364,7 @@ export type Database = {
           discount_percentage?: number | null;
           id?: string;
           img_url?: string | null;
+          is_clickable?: boolean;
           minimum_party_size?: number | null;
           restaurant_id?: string;
           terms_conditions?: string[] | null;

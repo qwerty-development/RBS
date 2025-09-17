@@ -26,34 +26,45 @@ export function SpecialOfferBanner({ offer }: SpecialOfferBannerProps) {
     });
   };
 
-  return (
-    <Pressable
-      onPress={handlePress}
-      style={({ pressed }) => ({
-        opacity: pressed ? 0.95 : 1,
-        transform: [{ scale: pressed ? 0.98 : 1 }],
-      })}
+  // Common banner content
+  const BannerContent = (
+    <Card
+      variant="elevated"
+      noPadding={true}
+      style={{
+        width: bannerWidth,
+        height: bannerHeight,
+        overflow: "hidden",
+      }}
     >
-      <Card
-        variant="elevated"
-        noPadding={true}
+      {/* Banner Image - Fill entire card space */}
+      <Image
+        source={{ uri: offer.img_url }}
         style={{
-          width: bannerWidth,
-          height: bannerHeight,
-          overflow: "hidden",
+          width: "100%",
+          height: "100%",
+          borderRadius: 12, // Match card border radius
         }}
-      >
-        {/* Banner Image - Fill entire card space */}
-        <Image
-          source={{ uri: offer.img_url }}
-          style={{
-            width: "100%",
-            height: "100%",
-            borderRadius: 12, // Match card border radius
-          }}
-          contentFit="cover"
-        />
-      </Card>
-    </Pressable>
+        contentFit="cover"
+      />
+    </Card>
   );
+
+  // Return clickable or non-clickable version based on is_clickable field
+  if (offer.is_clickable) {
+    return (
+      <Pressable
+        onPress={handlePress}
+        style={({ pressed }) => ({
+          opacity: pressed ? 0.95 : 1,
+          transform: [{ scale: pressed ? 0.98 : 1 }],
+        })}
+      >
+        {BannerContent}
+      </Pressable>
+    );
+  }
+
+  // Non-clickable version - just return the banner content directly
+  return <View>{BannerContent}</View>;
 }
