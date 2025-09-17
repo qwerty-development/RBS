@@ -128,14 +128,19 @@ export const DateOfBirthPrompt: React.FC<DateOfBirthPromptProps> = ({
         throw error;
       }
 
-      // Update local profile state
+      // Update local profile state immediately
       await updateProfile({ date_of_birth: data.dateOfBirth });
 
-      Alert.alert(
-        "Date of Birth Set",
-        "Your date of birth has been successfully recorded. This information cannot be changed for security purposes.",
-        [{ text: "OK", onPress: onComplete }],
-      );
+      // Call onComplete immediately to hide the modal
+      onComplete();
+
+      // Show success alert after modal is hidden
+      setTimeout(() => {
+        Alert.alert(
+          "Date of Birth Set",
+          "Your date of birth has been successfully recorded. This information cannot be changed for security purposes.",
+        );
+      }, 100);
     } catch (error: any) {
       console.error("Error setting date of birth:", error);
 

@@ -28,12 +28,25 @@ const GUEST_MODE_KEY = "guest-mode-active";
 
 // Add this at the top of your AuthContent component
 WebBrowser.maybeCompleteAuthSession();
-// Prevent auto hide initially
+
+// AGGRESSIVE SPLASH HIDING: Hide splash as soon as possible, don't wait for complex logic
+let splashHideAttempted = false;
+const hideSplashImmediately = () => {
+  if (!splashHideAttempted) {
+    splashHideAttempted = true;
+    SplashScreen.hideAsync().catch(() => {});
+    console.log("🚀 AGGRESSIVE: Native splash hide attempted immediately");
+  }
+};
+
+// Multiple aggressive timeouts to ensure splash never stays visible
+setTimeout(hideSplashImmediately, 100);   // 100ms - almost immediate
+setTimeout(hideSplashImmediately, 500);   // 500ms - backup
+setTimeout(hideSplashImmediately, 1000);  // 1s - third attempt
+setTimeout(hideSplashImmediately, 2000);  // 2s - final backup
+
+// Initial prevention (but will be overridden quickly)
 SplashScreen.preventAutoHideAsync().catch(console.warn);
-// Absolute safety net: ensure native splash never persists indefinitely (e.g. deadlock during cold-start deep link)
-setTimeout(() => {
-  SplashScreen.hideAsync().catch(() => {});
-}, 3000); // 8s hard timeout
 
 // Profile type definition
 type Profile = {
@@ -110,10 +123,8 @@ function AuthContent({ children }: PropsWithChildren) {
 
   const router = useRouter();
   const initializationAttempted = useRef(false);
-  const splashHidden = useRef(false);
   const oAuthFlowTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigationInProgress = useRef(false); // Prevent multiple navigation attempts
-  const nativeSplashHidden = useRef(false); // Track native splash independently of navigation
 
   // Create redirect URI for OAuth
   const redirectUri = makeRedirectUri({
@@ -1104,17 +1115,6 @@ function AuthContent({ children }: PropsWithChildren) {
           platform: Platform.OS,
         });
 
-        // Hide native splash ASAP once initialized – decouple from navigation success
-        if (!nativeSplashHidden.current) {
-          try {
-            await SplashScreen.hideAsync();
-            nativeSplashHidden.current = true;
-            console.log("✅ Native splash hidden (post-init phase)");
-          } catch (e) {
-            console.warn("⚠️ Failed to hide native splash immediately:", e);
-          }
-        }
-
         // Add platform-specific delays for OAuth scenarios to prevent race conditions
         // Check if this is an OAuth flow by looking at recent auth events
         const recentAuthTime = session?.expires_at
@@ -1184,36 +1184,32 @@ function AuthContent({ children }: PropsWithChildren) {
                 }
               }
 
-              if (!nativeSplashHidden.current) {
-                SplashScreen.hideAsync()
-                  .then(() => {
-                    nativeSplashHidden.current = true;
-                    console.log("✅ Native splash hidden (fallback phase)");
-                  })
-                  .catch(() => {});
-              }
-
-              if (session || isGuest) {
-                router.replace("/(protected)/(tabs)");
-                console.log("✅ Silent fallback navigation to tabs successful");
-              } else {
-                router.replace("/welcome");
+              try {
+                if (session || isGuest) {
+                  router.replace("/(protected)/(tabs)");
+                  console.log("✅ Silent fallback navigation to tabs successful");
+                } else {
+                  router.replace("/welcome");
+                  console.log("✅ Silent fallback navigation to welcome successful");
+                }
+              } catch (fallbackError) {
                 console.log(
-                  "✅ Silent fallback navigation to welcome successful",
+                  `❌ Silent fallback navigation attempt ${attempt} failed (continuing):`,
+                  fallbackError,
                 );
-              }
-            } catch (fallbackError) {
-              console.log(
-                `❌ Silent fallback navigation attempt ${attempt} failed (continuing):`,
-                fallbackError,
-              );
 
+                if (attempt < maxAttempts) {
+                  attemptFallbackNavigation(attempt + 1);
+                } else {
+                  console.log(
+                    "❌ All silent fallback attempts completed - user will see loading",
+                  );
+                }
+              }
+            } catch (outerError) {
+              console.log(`❌ Outer error in fallback attempt ${attempt}:`, outerError);
               if (attempt < maxAttempts) {
                 attemptFallbackNavigation(attempt + 1);
-              } else {
-                console.log(
-                  "❌ All silent fallback attempts completed - user will see loading",
-                );
               }
             }
           }, delay);
@@ -1238,18 +1234,6 @@ function AuthContent({ children }: PropsWithChildren) {
       navigationInProgress.current = false;
     };
   }, [initialized, session, isGuest, router]);
-
-  // Dedicated effect: hide native splash once auth initializes (even if navigation effect is delayed)
-  useEffect(() => {
-    if (initialized && !nativeSplashHidden.current) {
-      SplashScreen.hideAsync()
-        .then(() => {
-          nativeSplashHidden.current = true;
-          console.log("✅ Native splash hidden (auth initialized)");
-        })
-        .catch(() => {});
-    }
-  }, [initialized]);
 
   // Show loading screen while initializing
   if (!initialized) {
