@@ -8,6 +8,8 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -222,8 +224,9 @@ export default function ProfileEditScreen() {
           <View className="w-10" />
         </View>
 
-        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-          {/* Avatar Section */}
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+          <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+            {/* Avatar Section */}
           <View className="items-center py-6">
             <Pressable onPress={handleAvatarUpload} disabled={uploadingAvatar}>
               <View className="relative">
@@ -372,6 +375,8 @@ export default function ProfileEditScreen() {
             )}
           </Button>
         </View>
+          </ScrollView>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );

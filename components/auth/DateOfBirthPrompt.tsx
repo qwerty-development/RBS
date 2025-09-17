@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Alert, Modal } from "react-native";
+import { View, Alert, Modal, Keyboard, TouchableWithoutFeedback } from "react-native";
 import { Calendar, AlertTriangle, Shield, X } from "lucide-react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -97,6 +97,8 @@ export const DateOfBirthPrompt: React.FC<DateOfBirthPromptProps> = ({
   });
 
   const handleSubmit = async (data: DOBFormData) => {
+    // Dismiss keyboard first
+    Keyboard.dismiss();
     setIsSubmitting(true);
 
     try {
@@ -177,8 +179,10 @@ export const DateOfBirthPrompt: React.FC<DateOfBirthPromptProps> = ({
       animationType="fade"
       statusBarTranslucent
     >
-      <View className="flex-1 bg-black/50 justify-center items-center px-4">
-        <View className="bg-background w-full max-w-md rounded-xl p-6 shadow-lg">
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View className="flex-1 bg-black/50 justify-center items-center px-4">
+          <TouchableWithoutFeedback onPress={() => {}}>
+            <View className="bg-background w-full max-w-md rounded-xl p-6 shadow-lg">
           {/* Header */}
           <View className="flex-row items-center justify-between mb-4">
             <View className="flex-row items-center">
@@ -229,6 +233,8 @@ export const DateOfBirthPrompt: React.FC<DateOfBirthPromptProps> = ({
                   autoCorrect={false}
                   keyboardType="numeric"
                   maxLength={10}
+                  returnKeyType="done"
+                  onSubmitEditing={Keyboard.dismiss}
                   onChangeText={(text: string) => {
                     const formatted = formatDateInput(text);
                     field.onChange(formatted);
@@ -273,8 +279,10 @@ export const DateOfBirthPrompt: React.FC<DateOfBirthPromptProps> = ({
               </Text>
             </Button>
           </View>
+            </View>
+          </TouchableWithoutFeedback>
         </View>
-      </View>
+      </TouchableWithoutFeedback>
     </Modal>
   );
 };
