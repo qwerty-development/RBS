@@ -53,7 +53,7 @@ const DEFAULT_OPTIONS: Required<DeepLinkHookOptions> = {
   onAuthRequired: () => {},
   onNavigationSuccess: () => {},
   onNavigationError: () => {},
-  processDelay: 100, // Reduced for faster cold start processing
+  processDelay: 1000,
   enableLogging: __DEV__,
   isSplashVisible: false,
   onSplashDismissRequested: () => {},
@@ -133,17 +133,18 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
         return false;
       }
 
-      // If splash screen is visible, store the URL and request immediate dismissal
+      // If splash screen is visible, store the URL and defer navigation
       if (finalOptions.isSplashVisible) {
-        log(
-          "Splash screen visible, storing pending deep link and requesting dismissal:",
-          url,
-        );
+        log("Splash screen visible, storing pending deep link:", url);
         pendingDeepLink.current = url;
 
-        // Always request splash dismissal for any valid deeplink during cold start
-        if (isSupportedDeepLink(url)) {
-          log("Valid deeplink detected, requesting immediate splash dismissal");
+        // Process the URL to validate it, but don't navigate yet
+        const { route } = parseDeepLinkUrl(url);
+        if (isSupportedDeepLink(url) && !route?.protected) {
+          // For non-protected routes, we can dismiss splash early
+          log(
+            "Non-protected route detected, requesting early splash dismissal",
+          );
           finalOptions.onSplashDismissRequested();
         }
 
@@ -361,18 +362,13 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
       !processedUrls.current.has(pendingDeepLink.current)
     ) {
       const url = pendingDeepLink.current;
-      log(
-        "Splash screen dismissed, processing pending deep link immediately:",
-        url,
-      );
+      log("Splash screen dismissed, processing pending deep link:", url);
 
       // Clear the pending URL to prevent re-processing
       pendingDeepLink.current = null;
 
-      // Process the deep link immediately without delay for cold start
-      setTimeout(() => {
-        processDeepLink(url);
-      }, 50); // Minimal delay to ensure navigation is ready
+      // Process the deep link
+      processDeepLink(url);
     }
   }, [
     finalOptions.isSplashVisible,

@@ -40,10 +40,10 @@ const hideSplashImmediately = () => {
 };
 
 // Multiple aggressive timeouts to ensure splash never stays visible
-setTimeout(hideSplashImmediately, 100); // 100ms - almost immediate
-setTimeout(hideSplashImmediately, 500); // 500ms - backup
-setTimeout(hideSplashImmediately, 1000); // 1s - third attempt
-setTimeout(hideSplashImmediately, 2000); // 2s - final backup
+setTimeout(hideSplashImmediately, 100);   // 100ms - almost immediate
+setTimeout(hideSplashImmediately, 500);   // 500ms - backup
+setTimeout(hideSplashImmediately, 1000);  // 1s - third attempt
+setTimeout(hideSplashImmediately, 2000);  // 2s - final backup
 
 // Initial prevention (but will be overridden quickly)
 SplashScreen.preventAutoHideAsync().catch(console.warn);
@@ -1187,14 +1187,10 @@ function AuthContent({ children }: PropsWithChildren) {
               try {
                 if (session || isGuest) {
                   router.replace("/(protected)/(tabs)");
-                  console.log(
-                    "✅ Silent fallback navigation to tabs successful",
-                  );
+                  console.log("✅ Silent fallback navigation to tabs successful");
                 } else {
                   router.replace("/welcome");
-                  console.log(
-                    "✅ Silent fallback navigation to welcome successful",
-                  );
+                  console.log("✅ Silent fallback navigation to welcome successful");
                 }
               } catch (fallbackError) {
                 console.log(
@@ -1211,10 +1207,7 @@ function AuthContent({ children }: PropsWithChildren) {
                 }
               }
             } catch (outerError) {
-              console.log(
-                `❌ Outer error in fallback attempt ${attempt}:`,
-                outerError,
-              );
+              console.log(`❌ Outer error in fallback attempt ${attempt}:`, outerError);
               if (attempt < maxAttempts) {
                 attemptFallbackNavigation(attempt + 1);
               }
