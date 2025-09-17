@@ -49,6 +49,7 @@ type Profile = {
   };
   loyalty_points?: number;
   membership_tier?: "bronze" | "silver" | "gold" | "platinum";
+  onboarded?: boolean;
   created_at?: string;
   updated_at?: string;
 };
@@ -211,6 +212,7 @@ function AuthContent({ children }: PropsWithChildren) {
             avatar_url: session.user.user_metadata.avatar_url || null,
             loyalty_points: 0,
             membership_tier: "bronze",
+            onboarded: false,
             notification_preferences: {
               email: true,
               push: true,
@@ -382,6 +384,7 @@ function AuthContent({ children }: PropsWithChildren) {
                 loyalty_points: 0,
                 membership_tier: "bronze",
                 user_rating: 5.0, // New users start with excellent rating
+              onboarded: false,
                 notification_preferences: {
                   email: true,
                   push: true,

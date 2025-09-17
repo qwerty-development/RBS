@@ -8,6 +8,7 @@ import { useAuth } from "@/context/supabase-provider";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import { useOffers, EnrichedOffer } from "@/hooks/useOffers";
 import { GuestPromptModal } from "@/components/guest/GuestPromptModal";
+import { Image } from "@/components/image";
 
 const { width: screenWidth } = Dimensions.get("window");
 
@@ -41,17 +42,45 @@ export function SpecialOfferBannerCarousel({
     (offer) => offer.img_url && offer.img_url.trim() !== "",
   );
 
-  if (bannersWithImages.length === 0) {
-    return null;
-  }
-
+  // Build list with local welcome banner as the first item
   const bannerWidth = screenWidth - 32;
   const spacing = 8;
+
+  const localWelcomeBanner = (
+    <View key="welcome-local" style={{ marginRight: spacing }}>
+      <Image
+        source={require("@/assets/welcome.png")}
+        style={{ width: bannerWidth, height: 200, borderRadius: 12 }}
+        contentFit="cover"
+      />
+    </View>
+  );
+
+  const hasRemoteBanners = bannersWithImages.length > 0;
+
+  if (!hasRemoteBanners) {
+    // Still show the local banner alone
+    return (
+      <View className="mb-6">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={bannerWidth + spacing}
+          contentContainerStyle={{ paddingHorizontal: 16 }}
+        >
+          {localWelcomeBanner}
+        </ScrollView>
+      </View>
+    );
+  }
 
   const handleScroll = (event: any) => {
     const contentOffset = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffset / (bannerWidth + spacing));
-    setCurrentIndex(Math.max(0, Math.min(index, bannersWithImages.length - 1)));
+    // +1 because of the local banner at the beginning
+    setCurrentIndex(
+      Math.max(0, Math.min(index, bannersWithImages.length))
+    );
   };
 
   const handleDotPress = (index: number) => {
@@ -142,12 +171,15 @@ export function SpecialOfferBannerCarousel({
           onScroll={handleScroll}
           scrollEventThrottle={16}
         >
+          {/* Local welcome banner first */}
+          {localWelcomeBanner}
+
+          {/* Then remote offer banners */}
           {bannersWithImages.map((offer, index) => (
             <View
               key={offer.id}
               style={{
-                marginRight:
-                  index === bannersWithImages.length - 1 ? 0 : spacing,
+                marginRight: index === bannersWithImages.length - 1 ? 0 : spacing,
               }}
             >
               <Pressable onPress={() => handleBannerPress(offer)}>
@@ -158,9 +190,10 @@ export function SpecialOfferBannerCarousel({
         </ScrollView>
 
         {/* Pagination Dots */}
-        {bannersWithImages.length > 1 && (
+        {bannersWithImages.length >= 1 && (
           <View className="flex-row justify-center items-center mt-4 gap-2">
-            {bannersWithImages.map((_, index) => (
+            {/* +1 dot for the local banner */}
+            {[...Array(bannersWithImages.length + 1)].map((_, index) => (
               <Pressable
                 key={index}
                 onPress={() => handleDotPress(index)}

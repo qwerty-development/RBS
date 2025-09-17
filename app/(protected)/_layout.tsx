@@ -1,6 +1,6 @@
 // app/(protected)/_layout.tsx
 import React, { useState, useEffect, useRef } from "react";
-import { Stack } from "expo-router";
+import { Stack, router } from "expo-router";
 import { useAuth } from "@/context/supabase-provider";
 import { GlobalChatTab } from "@/components/ui/global-chat-tab";
 import { NotificationManager } from "@/components/notifications/NotificationManager";
@@ -16,7 +16,7 @@ export const unstable_settings = {
 };
 
 export default function ProtectedLayout() {
-  const { initialized, session, isGuest } = useAuth();
+  const { initialized, session, isGuest, profile } = useAuth();
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
 
@@ -66,6 +66,15 @@ export default function ProtectedLayout() {
       }
     };
   }, [initialized, session, isGuest]);
+
+  // If onboarded is false, redirect to onboarding
+  useEffect(() => {
+    if (session && profile && profile.onboarded === false) {
+      try {
+        router.replace("/onboarding");
+      } catch (e) {}
+    }
+  }, [session, profile?.onboarded]);
 
   // Show loading while auth is stabilizing
   if (!stableAuthState.initialized) {

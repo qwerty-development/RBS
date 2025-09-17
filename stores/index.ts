@@ -29,6 +29,7 @@ type Profile = {
   };
   loyalty_points?: number;
   membership_tier?: "bronze" | "silver" | "gold" | "platinum";
+  onboarded?: boolean;
   created_at?: string;
   updated_at?: string;
 };

@@ -119,6 +119,17 @@ function RootLayoutContent({
   const themedColors = getThemedColors(colorScheme);
   const { profile } = useAuth();
 
+  // Redirect users who haven't completed onboarding
+  useEffect(() => {
+    if (profile && profile.onboarded === false) {
+      try {
+        router.replace("/onboarding");
+      } catch (e) {
+        // ignore navigation errors during startup race conditions
+      }
+    }
+  }, [profile?.onboarded]);
+
   useEffect(() => {
     initializeNotificationHandlers((deeplink: any) => {
       try {
