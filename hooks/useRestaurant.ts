@@ -88,7 +88,7 @@ export function useRestaurant(
   restaurantId: string | undefined,
 ): UseRestaurantReturn {
   const router = useRouter();
-  const { profile } = useAuth();
+  const { profile, initialized: authInitialized } = useAuth();
 
   // Core state
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -579,10 +579,16 @@ export function useRestaurant(
     });
   }, [restaurantId, restaurant, router]);
 
-  // Initialize data fetch
+  // Initialize data fetch - wait for auth initialization
   useEffect(() => {
-    fetchRestaurantDetails();
-  }, [fetchRestaurantDetails]);
+    if (authInitialized) {
+      console.log(
+        "🏪 Auth initialized, fetching restaurant details for:",
+        restaurantId,
+      );
+      fetchRestaurantDetails();
+    }
+  }, [fetchRestaurantDetails, authInitialized]);
 
   // Subscribe to real-time updates
   useEffect(() => {

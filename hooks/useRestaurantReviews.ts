@@ -62,7 +62,7 @@ const RATING_FILTER_OPTIONS = [
 ];
 
 export const useRestaurantReviews = (restaurantId: string) => {
-  const { profile } = useAuth();
+  const { profile, initialized: authInitialized } = useAuth();
   const router = useRouter();
 
   // State management
@@ -352,12 +352,16 @@ export const useRestaurantReviews = (restaurantId: string) => {
     fetchData(true);
   }, [fetchData]);
 
-  // Effects
+  // Effects - wait for auth initialization
   useEffect(() => {
-    if (restaurantId) {
+    if (restaurantId && authInitialized) {
+      console.log(
+        "🏪 Auth initialized, fetching restaurant reviews for:",
+        restaurantId,
+      );
       fetchData();
     }
-  }, [fetchData]);
+  }, [fetchData, authInitialized]);
 
   useEffect(() => {
     fetchData();
