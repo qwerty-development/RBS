@@ -5,7 +5,6 @@ import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
-import { useSupabaseReady } from "@/hooks/useSupabaseReady";
 import { Database } from "@/types/supabase";
 import { AvailabilityService, TimeSlot } from "@/lib/AvailabilityService";
 import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
@@ -89,8 +88,7 @@ export function useRestaurant(
   restaurantId: string | undefined,
 ): UseRestaurantReturn {
   const router = useRouter();
-  const { profile } = useAuth();
-  const { isFullyReady, authInitialized, storesHydrated } = useSupabaseReady();
+  const { profile, initialized: authInitialized } = useAuth();
 
   // Core state
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -378,17 +376,6 @@ export function useRestaurant(
       return;
     }
 
-    // Wait for full initialization during cold start
-    if (!isFullyReady) {
-      console.log("[useRestaurant] Waiting for full initialization...", {
-        authInitialized,
-        storesHydrated,
-        isFullyReady,
-        restaurantId,
-      });
-      return;
-    }
-
     try {
       console.log("Fetching restaurant details for ID:", restaurantId);
 
@@ -496,7 +483,7 @@ export function useRestaurant(
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, profile?.id, calculateReviewSummary, isFullyReady]);
+  }, [restaurantId, profile?.id, calculateReviewSummary]);
 
   // Action handlers
   const toggleFavorite = useCallback(async () => {
@@ -592,16 +579,16 @@ export function useRestaurant(
     });
   }, [restaurantId, restaurant, router]);
 
-  // Initialize data fetch - wait for full initialization
+  // Initialize data fetch - wait for auth initialization
   useEffect(() => {
-    if (isFullyReady) {
+    if (authInitialized) {
       console.log(
-        "🏪 [useRestaurant] 🚀 Full initialization complete, fetching restaurant details for:",
+        "🏪 Auth initialized, fetching restaurant details for:",
         restaurantId,
       );
       fetchRestaurantDetails();
     }
-  }, [fetchRestaurantDetails, isFullyReady]);
+  }, [fetchRestaurantDetails, authInitialized]);
 
   // Subscribe to real-time updates
   useEffect(() => {
