@@ -64,7 +64,9 @@ export function useBookingEligibility(
       isEligible: false,
       blockedReason: ageVerification.reason || "Age restriction applies",
       actionRequired: "age_restriction",
-      actionText: null, // No action available for age restriction
+      actionText: restaurant.minimum_age 
+        ? `${restaurant.minimum_age}+ Only`
+        : "Age Restricted",
     };
   }, [restaurant, profile, isGuest]);
 }
