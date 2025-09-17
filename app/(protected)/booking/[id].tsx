@@ -391,10 +391,24 @@ export default function BookingDetailsScreen() {
         <View className="flex-1 items-center justify-center px-4">
           <H3 className="text-center mb-2">Booking not found</H3>
           <P className="text-center text-muted-foreground mb-4">
-            The booking you're looking for doesn't exist or has been removed.
+            We couldn't load the booking details. This might be due to a network
+            issue or the booking may no longer be available.
           </P>
-          <Button variant="outline" onPress={() => router.back()}>
+          <Button
+            variant="outline"
+            onPress={() => router.back()}
+            className="mb-2"
+          >
             <Text>Go Back</Text>
+          </Button>
+          <Button
+            variant="ghost"
+            onPress={() => {
+              // Trigger a refresh by calling the refresh function from useBookingDetails
+              refresh();
+            }}
+          >
+            <Text>Try Again</Text>
           </Button>
         </View>
       </SafeAreaView>

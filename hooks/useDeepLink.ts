@@ -11,6 +11,7 @@ import {
 } from "@/lib/deeplink";
 import { useAuth } from "@/context/supabase-provider";
 import { useStoreHydration } from "@/hooks/useStoreHydration";
+import { useSupabaseReady } from "@/hooks/useSupabaseReady";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export interface DeepLinkState {
@@ -55,7 +56,7 @@ const DEFAULT_OPTIONS: Required<DeepLinkHookOptions> = {
   onAuthRequired: () => {},
   onNavigationSuccess: () => {},
   onNavigationError: () => {},
-  processDelay: 50, // Further reduced for faster cold start processing
+  processDelay: 200, // Increased for cold start reliability
   enableLogging: __DEV__,
   isSplashVisible: false,
   onSplashDismissRequested: () => {},
@@ -65,6 +66,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
   const finalOptions = { ...DEFAULT_OPTIONS, ...options };
   const { session, isGuest, initialized: authInitialized } = useAuth();
   const { isHydrated: storesHydrated } = useStoreHydration();
+  const { isReady: supabaseReady, sessionRestored } = useSupabaseReady();
 
   const [state, setState] = useState<DeepLinkState>({
     initialUrl: null,
@@ -133,6 +135,18 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
 
       if (!authInitialized) {
         log("Auth not initialized, delaying deep link processing:", url);
+        return false;
+      }
+
+      if (!supabaseReady) {
+        log(
+          "Supabase not ready (session restoration pending), delaying deep link processing:",
+          url,
+          {
+            authInitialized,
+            sessionRestored,
+          },
+        );
         return false;
       }
 
@@ -278,6 +292,8 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
       isMounted,
       isNavigationReady,
       authInitialized,
+      supabaseReady,
+      sessionRestored,
       storesHydrated,
       isAuthenticated,
       finalOptions,
