@@ -23,7 +23,8 @@
       "Bash(find:*)",
       "Bash(npm install:*)",
       "mcp__filesystem__directory_tree",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "mcp__supabase__get_logs"
     ],
     "deny": []
   },

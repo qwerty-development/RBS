@@ -918,6 +918,7 @@ CREATE TABLE public.special_offers (
   applicable_days ARRAY,
   created_at timestamp with time zone DEFAULT now(),
   img_url text,
+  is_clickable boolean NOT NULL DEFAULT true,
   CONSTRAINT special_offers_pkey PRIMARY KEY (id),
   CONSTRAINT special_offers_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id)
 );

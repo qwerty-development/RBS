@@ -101,9 +101,7 @@ export default function OnboardingScreen() {
   const indicators = useMemo(
     () =>
       SLIDES.map((_, i) => {
-        return (
-          <Dot key={i} i={i} scrollX={scrollX} />
-        );
+        return <Dot key={i} i={i} scrollX={scrollX} />;
       }),
     [],
   );
@@ -132,14 +130,23 @@ export default function OnboardingScreen() {
           const displayHeight = Math.floor(displayWidth / aspect);
 
           return (
-            <View style={{ width }} className="flex-1 items-center justify-center p-6 gap-6">
+            <View
+              style={{ width }}
+              className="flex-1 items-center justify-center p-6 gap-6"
+            >
               <RNImage
                 source={item.image}
                 resizeMode="contain"
-                style={{ width: displayWidth, height: displayHeight, borderRadius: 14 }}
+                style={{
+                  width: displayWidth,
+                  height: displayHeight,
+                  borderRadius: 14,
+                }}
               />
               <H1 className="text-center">{item.title}</H1>
-              <P className="text-center text-muted-foreground">{item.subtitle}</P>
+              <P className="text-center text-muted-foreground">
+                {item.subtitle}
+              </P>
             </View>
           );
         }}
@@ -152,7 +159,11 @@ export default function OnboardingScreen() {
             <Text>Skip</Text>
           </Button>
           <Button className="flex-1" onPress={next}>
-            <Text>{index === SLIDES.length - 1 ? SLIDES[index].cta || "Done" : "Next"}</Text>
+            <Text>
+              {index === SLIDES.length - 1
+                ? SLIDES[index].cta || "Done"
+                : "Next"}
+            </Text>
           </Button>
         </View>
         <Muted className="text-center">
@@ -163,19 +174,30 @@ export default function OnboardingScreen() {
   );
 }
 
-function Dot({ i, scrollX }: { i: number; scrollX: Animated.SharedValue<number> }) {
+function Dot({
+  i,
+  scrollX,
+}: {
+  i: number;
+  scrollX: Animated.SharedValue<number>;
+}) {
   const style = useAnimatedStyle(() => {
     const inputRange = [(i - 1) * width, i * width, (i + 1) * width];
-    const scale = interpolate(scrollX.value, inputRange, [0.8, 1.2, 0.8], Extrapolate.CLAMP);
-    const opacity = interpolate(scrollX.value, inputRange, [0.5, 1, 0.5], Extrapolate.CLAMP);
+    const scale = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.8, 1.2, 0.8],
+      Extrapolate.CLAMP,
+    );
+    const opacity = interpolate(
+      scrollX.value,
+      inputRange,
+      [0.5, 1, 0.5],
+      Extrapolate.CLAMP,
+    );
     return { transform: [{ scale }], opacity };
   });
   return (
-    <Animated.View
-      style={style}
-      className="w-2 h-2 rounded-full bg-primary"
-    />
+    <Animated.View style={style} className="w-2 h-2 rounded-full bg-primary" />
   );
 }
-
-

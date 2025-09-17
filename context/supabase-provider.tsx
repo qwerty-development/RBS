@@ -389,7 +389,7 @@ function AuthContent({ children }: PropsWithChildren) {
                 loyalty_points: 0,
                 membership_tier: "bronze",
                 user_rating: 5.0, // New users start with excellent rating
-              onboarded: false,
+                onboarded: false,
                 notification_preferences: {
                   email: true,
                   push: true,
