@@ -109,6 +109,29 @@ function AuthContent({ children }: PropsWithChildren) {
   const oAuthFlowTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const navigationInProgress = useRef(false); // Prevent multiple navigation attempts
 
+  // Helper function to check for deep links
+  const checkForDeepLink = useCallback(async (): Promise<boolean> => {
+    try {
+      const initialUrl = await Linking.getInitialURL();
+      if (!initialUrl) return false;
+
+      // Ignore development URLs
+      const shouldIgnore =
+        initialUrl.startsWith("exp://") ||
+        initialUrl.startsWith("exps://") ||
+        initialUrl.includes(":8081") ||
+        initialUrl.includes("localhost") ||
+        initialUrl.includes("127.0.0.1") ||
+        initialUrl.startsWith("file://") ||
+        initialUrl.length < 5;
+
+      return !shouldIgnore;
+    } catch (error) {
+      console.warn("Failed to check for deep link:", error);
+      return false;
+    }
+  }, []);
+
   // Create redirect URI for OAuth
   const redirectUri = makeRedirectUri({
     scheme: "qwerty-plate", // From your app.json
@@ -1085,6 +1108,13 @@ function AuthContent({ children }: PropsWithChildren) {
       // Prevent multiple simultaneous navigation attempts
       if (navigationInProgress.current) {
         console.log("🔒 Navigation already in progress, skipping...");
+        return;
+      }
+
+      // Check if there's a deep link that should take priority
+      const hasDeepLink = await checkForDeepLink();
+      if (hasDeepLink) {
+        console.log("🔗 Deep link detected, deferring auth navigation");
         return;
       }
 

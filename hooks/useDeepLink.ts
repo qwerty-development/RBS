@@ -75,6 +75,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
   const processedUrls = useRef<Set<string>>(new Set());
   const processingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingDeepLink = useRef<string | null>(null);
+  const coldStartDeepLink = useRef<string | null>(null);
   const isAuthenticated = Boolean(session) || isGuest;
 
   const log = useCallback(
@@ -106,7 +107,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
     return false;
   }, []);
 
-  // Process a deep link URL
+  // Process a deep link URL - optimized for cold start
   const processDeepLink = useCallback(
     async (url: string): Promise<boolean> => {
       // First check: ignore development/invalid URLs immediately
@@ -120,32 +121,41 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
         return false;
       }
 
-      if (!isMounted || !isNavigationReady) {
-        log("Navigation not ready, delaying deep link processing:", url, {
-          isMounted,
-          isNavigationReady,
-        });
-        return false;
+      // For cold start deep links, be more lenient with readiness checks
+      const isColdStart = url === coldStartDeepLink.current;
+      if (!isColdStart) {
+        if (!isMounted || !isNavigationReady) {
+          log("Navigation not ready, delaying deep link processing:", url, {
+            isMounted,
+            isNavigationReady,
+          });
+          return false;
+        }
+
+        if (!authInitialized) {
+          log("Auth not initialized, delaying deep link processing:", url);
+          return false;
+        }
       }
 
-      if (!authInitialized) {
-        log("Auth not initialized, delaying deep link processing:", url);
-        return false;
-      }
-
-      // If splash screen is visible, store the URL and defer navigation
+      // If splash screen is visible, handle differently for cold start
       if (finalOptions.isSplashVisible) {
-        log("Splash screen visible, storing pending deep link:", url);
+        log("Splash screen visible, handling deep link:", url, { isColdStart });
         pendingDeepLink.current = url;
 
-        // Process the URL to validate it, but don't navigate yet
-        const { route } = parseDeepLinkUrl(url);
-        if (isSupportedDeepLink(url) && !route?.protected) {
-          // For non-protected routes, we can dismiss splash early
-          log(
-            "Non-protected route detected, requesting early splash dismissal",
-          );
+        // For cold start deep links, always request early dismissal
+        if (isColdStart) {
+          log("Cold start deep link, requesting immediate splash dismissal");
           finalOptions.onSplashDismissRequested();
+        } else {
+          // For regular deep links, check if route is protected
+          const { route } = parseDeepLinkUrl(url);
+          if (isSupportedDeepLink(url) && !route?.protected) {
+            log(
+              "Non-protected route detected, requesting early splash dismissal",
+            );
+            finalOptions.onSplashDismissRequested();
+          }
         }
 
         setState((prev) => ({
@@ -281,7 +291,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
     [shouldIgnoreUrl, processDeepLink, finalOptions.processDelay, log],
   );
 
-  // Get initial URL when app starts
+  // Get initial URL when app starts - optimized for cold start deep links
   const getInitialUrl = useCallback(async () => {
     try {
       const initialUrl = await Linking.getInitialURL();
@@ -294,17 +304,36 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
           return;
         }
 
+        // Store cold start deep link immediately
+        if (!isMounted && !authInitialized) {
+          log(
+            "Cold start deep link detected, storing for early processing:",
+            initialUrl,
+          );
+          coldStartDeepLink.current = initialUrl;
+
+          // Immediately request splash dismissal for any deep link during cold start
+          if (finalOptions.isSplashVisible) {
+            finalOptions.onSplashDismissRequested();
+          }
+        }
+
         setState((prev) => ({ ...prev, initialUrl }));
 
+        // Only process immediately if all systems are ready
         if (
           finalOptions.autoHandle &&
           authInitialized &&
           isMounted &&
           isNavigationReady
         ) {
+          // Use shorter delay for cold start deep links
+          const delay = coldStartDeepLink.current
+            ? 500
+            : finalOptions.processDelay;
           processingTimeout.current = setTimeout(() => {
             processDeepLink(initialUrl);
-          }, finalOptions.processDelay);
+          }, delay);
         }
       }
     } catch (error) {
@@ -315,13 +344,34 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
     processDeepLink,
     finalOptions.autoHandle,
     finalOptions.processDelay,
+    finalOptions.isSplashVisible,
+    finalOptions.onSplashDismissRequested,
     authInitialized,
     isMounted,
     isNavigationReady,
     log,
   ]);
 
-  // Process pending deep link after authentication
+  // Priority processing for cold start deep links
+  useEffect(() => {
+    if (
+      coldStartDeepLink.current &&
+      authInitialized &&
+      isMounted &&
+      !processedUrls.current.has(coldStartDeepLink.current)
+    ) {
+      const url = coldStartDeepLink.current;
+      log("Processing cold start deep link with priority:", url);
+
+      // Process immediately, don't wait for all navigation ready checks
+      processDeepLink(url);
+
+      // Clear the cold start reference to prevent reprocessing
+      coldStartDeepLink.current = null;
+    }
+  }, [authInitialized, isMounted, processDeepLink, log]);
+
+  // Process pending deep link after authentication (for non-cold start)
   useEffect(() => {
     if (
       authInitialized &&
@@ -329,7 +379,8 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
       isMounted &&
       isNavigationReady &&
       state.initialUrl &&
-      !processedUrls.current.has(state.initialUrl)
+      !processedUrls.current.has(state.initialUrl) &&
+      !coldStartDeepLink.current // Don't double-process cold start links
     ) {
       // Double-check URL filtering before processing
       if (shouldIgnoreUrl(state.initialUrl)) {

@@ -13,6 +13,7 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
 import { LogBox, View, Text } from "react-native";
 import React, { useEffect, useState } from "react";
+import * as Linking from "expo-linking";
 import {
   ErrorBoundary,
   NavigationErrorBoundary,
@@ -76,6 +77,42 @@ function NetworkStatusBar() {
 function RootLayoutWithSplashState() {
   const [showSplash, setShowSplash] = useState(true);
   const [splashDismissRequested, setSplashDismissRequested] = useState(false);
+  const [deepLinkDetected, setDeepLinkDetected] = useState(false);
+
+  // Check for initial deep link on cold start
+  useEffect(() => {
+    const checkInitialDeepLink = async () => {
+      try {
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl && !shouldIgnoreUrl(initialUrl)) {
+          console.log(
+            "Cold start deep link detected in root layout:",
+            initialUrl,
+          );
+          setDeepLinkDetected(true);
+          setSplashDismissRequested(true);
+        }
+      } catch (error) {
+        console.warn("Failed to check initial URL:", error);
+      }
+    };
+
+    checkInitialDeepLink();
+  }, []);
+
+  // Helper function to check if URL should be ignored
+  const shouldIgnoreUrl = (url: string): boolean => {
+    return (
+      url.startsWith("exp://") ||
+      url.startsWith("exps://") ||
+      url.includes(":8081") ||
+      url.includes("localhost") ||
+      url.includes("127.0.0.1") ||
+      url.startsWith("file://") ||
+      !url ||
+      url.length < 5
+    );
+  };
 
   // Handle early splash dismissal for deep links
   const handleSplashDismissRequest = () => {
@@ -90,6 +127,20 @@ function RootLayoutWithSplashState() {
       setShowSplash(false);
     }
   }, [splashDismissRequested, showSplash]);
+
+  // Safety timeout to prevent splash screen from hanging indefinitely
+  useEffect(() => {
+    const maxSplashTime = deepLinkDetected ? 3000 : 5000; // Shorter timeout for deep links
+
+    const timeout = setTimeout(() => {
+      if (showSplash) {
+        console.warn("Splash screen timeout reached, forcing dismissal");
+        setShowSplash(false);
+      }
+    }, maxSplashTime);
+
+    return () => clearTimeout(timeout);
+  }, [showSplash, deepLinkDetected]);
 
   return (
     <DeepLinkProvider
@@ -176,6 +227,8 @@ function RootLayoutContent({
       {showSplash && (
         <AnimatedSplashScreen
           onAnimationComplete={() => setShowSplash(false)}
+          skipAnimation={splashDismissRequested}
+          fastMode={deepLinkDetected}
         />
       )}
       <NetworkStatusBar />
