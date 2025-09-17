@@ -94,44 +94,6 @@ export default function NotificationsScreen() {
     setRefreshing(false);
   }, [fetchNotifications]);
 
-  const handleSendTest = useCallback(async () => {
-    if (!profile?.id) return;
-    const { error } = await supabase.rpc("enqueue_notification", {
-      p_user_id: profile.id,
-      p_category: "system",
-      p_type: "test_notification",
-      p_title: "Test notification",
-      p_message: `This is a test notification at ${new Date().toLocaleString()}`,
-      p_data: { debug: true },
-      p_deeplink: "app://profile/notifications",
-      p_channels: ["inapp", "push"],
-    });
-    if (!error) {
-      await fetchNotifications();
-    }
-  }, [profile?.id, fetchNotifications]);
-
-  const handleTriggerNotify = useCallback(async () => {
-    try {
-      // Call the notify Edge Function directly to process the outbox
-      const response = await fetch(
-        `${supabase.supabaseUrl}/functions/v1/notify`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${supabase.supabaseKey}`,
-            "Content-Type": "application/json",
-          },
-        },
-      );
-      const result = await response.json();
-      console.log("Notify result:", result);
-      await fetchNotifications();
-    } catch (error) {
-      console.error("Error triggering notify:", error);
-    }
-  }, [fetchNotifications]);
-
   const handleNotificationPress = useCallback(
     async (notification: Notification) => {
       // Mark as read in DB and locally
@@ -294,26 +256,6 @@ export default function NotificationsScreen() {
             </Pressable>
           )}
         </View>
-      </View>
-
-      {/* Actions */}
-      <View className="px-4 mb-2 gap-2">
-        <Pressable
-          onPress={handleSendTest}
-          className="px-4 py-3 rounded-md bg-primary"
-        >
-          <Text className="text-primary-foreground font-semibold text-center">
-            Send test notification
-          </Text>
-        </Pressable>
-        <Pressable
-          onPress={handleTriggerNotify}
-          className="px-4 py-3 rounded-md bg-secondary"
-        >
-          <Text className="text-secondary-foreground font-semibold text-center">
-            Process outbox now
-          </Text>
-        </Pressable>
       </View>
 
       {/* Notifications List */}

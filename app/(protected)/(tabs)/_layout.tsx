@@ -1,10 +1,11 @@
 // app/(protected)/(tabs)/_layout.tsx
-import React, { useRef } from "react";
+import React, { useMemo, useRef } from "react";
 import { Tabs } from "expo-router";
 import { Home, Search, Heart, Calendar, User } from "lucide-react-native";
 import { ScrollView } from "react-native";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { getThemedColors } from "@/lib/utils";
+import { useBookingsStore } from "@/stores";
 
 // Create ref outside component but don't use useRef at module level
 export let homeScrollRef: React.RefObject<ScrollView> | null = null;
@@ -16,6 +17,12 @@ export default function TabsLayout() {
 
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
+  const { upcomingBookings } = useBookingsStore();
+  const upcomingCount = useMemo(() => {
+    const count = (upcomingBookings || []).length;
+    console.log("Tab Layout: Upcoming bookings count:", count);
+    return count;
+  }, [upcomingBookings]);
 
   return (
     <Tabs
@@ -91,6 +98,19 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => (
             <Calendar size={size} color={color} strokeWidth={2} />
           ),
+          tabBarBadge:
+            upcomingCount > 0
+              ? upcomingCount > 9
+                ? "9+"
+                : String(upcomingCount)
+              : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: themedColors.primary,
+            color: themedColors.primaryForeground,
+            fontSize: 10,
+            minWidth: 18,
+            height: 18,
+          },
         }}
       />
       <Tabs.Screen

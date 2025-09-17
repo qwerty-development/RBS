@@ -257,13 +257,12 @@ export default function DiningPreferencesScreen() {
     setSaving(true);
 
     try {
+      // Only update columns that exist in profiles table
       await updateProfile({
         dietary_restrictions: preferences.dietary_restrictions,
         allergies: preferences.allergies,
         favorite_cuisines: preferences.favorite_cuisines,
-        preferred_ambiance: preferences.preferred_ambiance,
         preferred_party_size: preferences.preferred_party_size,
-        special_requirements: preferences.special_requirements,
       });
 
       Alert.alert(

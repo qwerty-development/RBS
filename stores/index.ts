@@ -558,6 +558,9 @@ export const useBookingStore = create<BookingState>()(
 
           addNewBooking: (booking) =>
             set((state) => {
+              console.log("Store: Adding new booking:", booking);
+              console.log("Store: Current upcoming bookings count:", state.upcomingBookings.length);
+              
               // Add to recent bookings
               state.recentBookings.unshift(booking);
               state.recentBookings = state.recentBookings.slice(0, 50);
@@ -565,6 +568,11 @@ export const useBookingStore = create<BookingState>()(
               // Add to appropriate list based on status and date
               const bookingDate = new Date(booking.booking_time);
               const now = new Date();
+
+              console.log("Store: Booking date:", bookingDate);
+              console.log("Store: Current time:", now);
+              console.log("Store: Booking status:", booking.status);
+              console.log("Store: Is upcoming?", (booking.status === "pending" || booking.status === "confirmed") && bookingDate >= now);
 
               if (
                 (booking.status === "pending" ||
@@ -578,10 +586,12 @@ export const useBookingStore = create<BookingState>()(
                     new Date(a.booking_time).getTime() -
                     new Date(b.booking_time).getTime(),
                 );
+                console.log("Store: Added to upcoming bookings. New count:", state.upcomingBookings.length);
               } else {
                 // Add to past bookings in reverse chronological order
                 state.pastBookings.unshift(booking);
                 state.pastBookings = state.pastBookings.slice(0, 50); // Keep only 50 recent
+                console.log("Store: Added to past bookings. New count:", state.pastBookings.length);
               }
             }),
 

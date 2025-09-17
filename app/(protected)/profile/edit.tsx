@@ -225,7 +225,8 @@ export default function ProfileEditScreen() {
         </View>
 
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-          <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          <View className="flex-1">
+            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
             {/* Avatar Section */}
             <View className="items-center py-6">
               <Pressable
@@ -345,6 +346,7 @@ export default function ProfileEditScreen() {
                   />
                 </View>
               </Form>
+              </View>
 
               {/* Account Info */}
               <View className="mt-6 p-4 bg-muted/50 rounded-lg">
@@ -360,24 +362,24 @@ export default function ProfileEditScreen() {
                   User ID: {profile?.id?.slice(0, 8)}...
                 </Text>
               </View>
-            </View>
-          </ScrollView>
+            </ScrollView>
 
-          {/* Save Button */}
-          <View className="p-4 flex border-t border-border">
-            <Button
-              onPress={form.handleSubmit(handleSaveProfile)}
-              disabled={savingProfile || !form.formState.isDirty}
-            >
-              {savingProfile ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <View className="flex-row items-center justify-center gap-2">
-                  <Save size={20} color="white" />
-                  <Text>Save Changes</Text>
-                </View>
-              )}
-            </Button>
+            {/* Save Button */}
+            <View className="p-4 flex border-t border-border">
+              <Button
+                onPress={form.handleSubmit(handleSaveProfile)}
+                disabled={savingProfile || !form.formState.isDirty}
+              >
+                {savingProfile ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <View className="flex-row items-center justify-center gap-2">
+                    <Save size={20} color="white" />
+                    <Text>Save Changes</Text>
+                  </View>
+                )}
+              </Button>
+            </View>
           </View>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>

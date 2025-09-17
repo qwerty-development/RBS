@@ -69,13 +69,12 @@ export function getAgeRestrictionMessage(
     return null;
   }
 
-  if (restaurant.minimum_age >= 21) {
-    return `21+ venue - Valid ID required`;
-  } else if (restaurant.minimum_age >= 18) {
-    return `18+ venue - Adults only`;
-  } else {
-    return `${restaurant.minimum_age}+ age requirement`;
+  // Show the exact configured minimum age instead of bucketing at 18/21
+  const age = restaurant.minimum_age;
+  if (age >= 18) {
+    return `${age}+ venue - Valid ID required`;
   }
+  return `${age}+ age requirement`;
 }
 
 /**

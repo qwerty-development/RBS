@@ -56,6 +56,7 @@ export function useBookingCreate() {
   const params = useLocalSearchParams<any>();
   const { profile } = useAuth();
   const router = useRouter();
+  const { addNewBooking } = useBookingsStore();
 
   // --- Core State ---
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -462,6 +463,10 @@ export function useBookingCreate() {
 
           const booking = bookingResult.booking;
 
+          // Update the booking store immediately
+          console.log("Adding new instant booking to store:", booking);
+          addNewBooking(booking);
+
           // Post-booking side-effects (non-blocking)
           const postBookingPromises = [];
           if (invitedFriends.length > 0) {
@@ -538,6 +543,10 @@ export function useBookingCreate() {
             .single();
 
           if (bookingError) throw bookingError;
+
+          // Update the booking store immediately
+          console.log("Adding new request booking to store:", booking);
+          addNewBooking(booking);
 
           // Send WhatsApp notification to restaurant (non-blocking)
           console.log(
