@@ -77,6 +77,16 @@ function RootLayoutWithSplashState() {
   const [showSplash, setShowSplash] = useState(true);
   const [splashDismissRequested, setSplashDismissRequested] = useState(false);
 
+  // AGGRESSIVE SPLASH DISMISSAL: Force hide splash after short delay regardless of deep links
+  useEffect(() => {
+    const aggressiveTimer = setTimeout(() => {
+      console.log("🚀 AGGRESSIVE: Forcing custom splash dismissal after 2 seconds");
+      setShowSplash(false);
+    }, 2000); // 2 second hard limit
+
+    return () => clearTimeout(aggressiveTimer);
+  }, []);
+
   // Handle early splash dismissal for deep links
   const handleSplashDismissRequest = () => {
     console.log("Deep link requesting early splash dismissal");

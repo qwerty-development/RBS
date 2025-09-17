@@ -1,5 +1,11 @@
 import React, { useState } from "react";
-import { View, Alert, Modal, Keyboard, TouchableWithoutFeedback } from "react-native";
+import {
+  View,
+  Alert,
+  Modal,
+  Keyboard,
+  TouchableWithoutFeedback,
+} from "react-native";
 import { Calendar, AlertTriangle, Shield, X } from "lucide-react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -122,14 +128,19 @@ export const DateOfBirthPrompt: React.FC<DateOfBirthPromptProps> = ({
         throw error;
       }
 
-      // Update local profile state
+      // Update local profile state immediately
       await updateProfile({ date_of_birth: data.dateOfBirth });
 
-      Alert.alert(
-        "Date of Birth Set",
-        "Your date of birth has been successfully recorded. This information cannot be changed for security purposes.",
-        [{ text: "OK", onPress: onComplete }],
-      );
+      // Call onComplete immediately to hide the modal
+      onComplete();
+
+      // Show success alert after modal is hidden
+      setTimeout(() => {
+        Alert.alert(
+          "Date of Birth Set",
+          "Your date of birth has been successfully recorded. This information cannot be changed for security purposes.",
+        );
+      }, 100);
     } catch (error: any) {
       console.error("Error setting date of birth:", error);
 
@@ -183,102 +194,102 @@ export const DateOfBirthPrompt: React.FC<DateOfBirthPromptProps> = ({
         <View className="flex-1 bg-black/50 justify-center items-center px-4">
           <TouchableWithoutFeedback onPress={() => {}}>
             <View className="bg-background w-full max-w-md rounded-xl p-6 shadow-lg">
-          {/* Header */}
-          <View className="flex-row items-center justify-between mb-4">
-            <View className="flex-row items-center">
-              <Calendar size={24} className="text-primary mr-3" />
-              <H2 className="flex-1">{title}</H2>
-            </View>
-            {!mandatory && onSkip && (
-              <Button variant="ghost" size="sm" onPress={handleSkip}>
-                <X size={20} />
-              </Button>
-            )}
-          </View>
+              {/* Header */}
+              <View className="flex-row items-center justify-between mb-4">
+                <View className="flex-row items-center">
+                  <Calendar size={24} className="text-primary mr-3" />
+                  <H2 className="flex-1">{title}</H2>
+                </View>
+                {!mandatory && onSkip && (
+                  <Button variant="ghost" size="sm" onPress={handleSkip}>
+                    <X size={20} />
+                  </Button>
+                )}
+              </View>
 
-          {/* Description */}
-          <P className="text-muted-foreground mb-6 leading-relaxed">
-            {description}
-          </P>
+              {/* Description */}
+              <P className="text-muted-foreground mb-6 leading-relaxed">
+                {description}
+              </P>
 
-          {/* Warning */}
-          <View className="flex-row items-start bg-amber-50 dark:bg-amber-900/30 p-3 rounded-lg mb-6 border border-amber-200 dark:border-amber-800">
-            <AlertTriangle
-              size={20}
-              className="text-amber-600 dark:text-amber-400 mt-0.5 mr-3"
-            />
-            <View className="flex-1">
-              <Text className="font-medium text-amber-700 dark:text-amber-300 mb-1">
-                One-Time Setting
-              </Text>
-              <Text className="text-sm text-amber-600 dark:text-amber-400">
-                Your date of birth can only be set once and cannot be changed
-                afterward for security and verification purposes.
-              </Text>
-            </View>
-          </View>
-
-          {/* Form */}
-          <Form {...form}>
-            <FormField
-              control={form.control}
-              name="dateOfBirth"
-              render={({ field }) => (
-                <FormInput
-                  {...field}
-                  label="Date of Birth"
-                  placeholder="YYYY-MM-DD"
-                  description="Enter your birth year, month, and day (dashes added automatically)"
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  keyboardType="numeric"
-                  maxLength={10}
-                  returnKeyType="done"
-                  onSubmitEditing={Keyboard.dismiss}
-                  onChangeText={(text: string) => {
-                    const formatted = formatDateInput(text);
-                    field.onChange(formatted);
-                  }}
+              {/* Warning */}
+              <View className="flex-row items-start bg-amber-50 dark:bg-amber-900/30 p-3 rounded-lg mb-6 border border-amber-200 dark:border-amber-800">
+                <AlertTriangle
+                  size={20}
+                  className="text-amber-600 dark:text-amber-400 mt-0.5 mr-3"
                 />
-              )}
-            />
-          </Form>
+                <View className="flex-1">
+                  <Text className="font-medium text-amber-700 dark:text-amber-300 mb-1">
+                    One-Time Setting
+                  </Text>
+                  <Text className="text-sm text-amber-600 dark:text-amber-400">
+                    Your date of birth can only be set once and cannot be
+                    changed afterward for security and verification purposes.
+                  </Text>
+                </View>
+              </View>
 
-          {/* Security Note */}
-          <View className="flex-row items-center mt-4 mb-6">
-            <Shield
-              size={16}
-              className="text-green-600 dark:text-green-400 mr-2"
-            />
-            <Text className="text-xs text-muted-foreground flex-1">
-              Your date of birth is used only for age verification and is kept
-              secure
-            </Text>
-          </View>
+              {/* Form */}
+              <Form {...form}>
+                <FormField
+                  control={form.control}
+                  name="dateOfBirth"
+                  render={({ field }) => (
+                    <FormInput
+                      {...field}
+                      label="Date of Birth"
+                      placeholder="YYYY-MM-DD"
+                      description="Enter your birth year, month, and day (dashes added automatically)"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      keyboardType="numeric"
+                      maxLength={10}
+                      returnKeyType="done"
+                      onSubmitEditing={Keyboard.dismiss}
+                      onChangeText={(text: string) => {
+                        const formatted = formatDateInput(text);
+                        field.onChange(formatted);
+                      }}
+                    />
+                  )}
+                />
+              </Form>
 
-          {/* Actions */}
-          <View className="flex-row gap-3">
-            {!mandatory && onSkip && (
-              <Button
-                variant="outline"
-                className="flex-1"
-                onPress={handleSkip}
-                disabled={isSubmitting}
-              >
-                <Text>Skip for Now</Text>
-              </Button>
-            )}
-            <Button
-              className="flex-1"
-              onPress={form.handleSubmit(handleSubmit)}
-              disabled={isSubmitting}
-            >
-              <Calendar size={16} className="text-white mr-2" />
-              <Text className="text-white font-medium">
-                {isSubmitting ? "Setting..." : "Set Date of Birth"}
-              </Text>
-            </Button>
-          </View>
+              {/* Security Note */}
+              <View className="flex-row items-center mt-4 mb-6">
+                <Shield
+                  size={16}
+                  className="text-green-600 dark:text-green-400 mr-2"
+                />
+                <Text className="text-xs text-muted-foreground flex-1">
+                  Your date of birth is used only for age verification and is
+                  kept secure
+                </Text>
+              </View>
+
+              {/* Actions */}
+              <View className="flex-row gap-3">
+                {!mandatory && onSkip && (
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onPress={handleSkip}
+                    disabled={isSubmitting}
+                  >
+                    <Text>Skip for Now</Text>
+                  </Button>
+                )}
+                <Button
+                  className="flex-1"
+                  onPress={form.handleSubmit(handleSubmit)}
+                  disabled={isSubmitting}
+                >
+                  <Calendar size={16} className="text-white mr-2" />
+                  <Text className="text-white font-medium">
+                    {isSubmitting ? "Setting..." : "Set Date of Birth"}
+                  </Text>
+                </Button>
+              </View>
             </View>
           </TouchableWithoutFeedback>
         </View>
