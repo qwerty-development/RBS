@@ -10,7 +10,6 @@ import {
   type DeepLinkRoute,
 } from "@/lib/deeplink";
 import { useAuth } from "@/context/supabase-provider";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export interface DeepLinkState {
   initialUrl: string | null;
@@ -159,24 +158,6 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
 
       log("Processing deep link:", url);
 
-      // Set flag to prevent auth navigation override
-      try {
-        await AsyncStorage.setItem("deeplink-navigation-in-progress", "true");
-        log("Set deeplink navigation flag");
-
-        // Auto-clear flag after 10 seconds as safety mechanism
-        setTimeout(async () => {
-          try {
-            await AsyncStorage.removeItem("deeplink-navigation-in-progress");
-            log("Auto-cleared deeplink navigation flag after timeout");
-          } catch (timeoutError) {
-            log("Failed to auto-clear deeplink navigation flag:", timeoutError);
-          }
-        }, 10000);
-      } catch (error) {
-        log("Failed to set deeplink navigation flag:", error);
-      }
-
       setState((prev) => ({
         ...prev,
         isProcessing: true,
@@ -230,28 +211,12 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
           throw new Error("Navigation failed");
         }
 
-        // Clear deeplink navigation flag on success
-        try {
-          await AsyncStorage.removeItem("deeplink-navigation-in-progress");
-          log("Cleared deeplink navigation flag after success");
-        } catch (error) {
-          log("Failed to clear deeplink navigation flag:", error);
-        }
-
         setState((prev) => ({ ...prev, isProcessing: false }));
         return success;
       } catch (error) {
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error";
         log("Deep link processing failed:", url, errorMessage);
-
-        // Clear deeplink navigation flag on error
-        try {
-          await AsyncStorage.removeItem("deeplink-navigation-in-progress");
-          log("Cleared deeplink navigation flag after error");
-        } catch (storageError) {
-          log("Failed to clear deeplink navigation flag:", storageError);
-        }
 
         setState((prev) => ({
           ...prev,
