@@ -37,7 +37,7 @@ export function DeepLinkProvider({
       autoHandle: true,
       fallbackPath: "/",
       enableLogging: __DEV__,
-      processDelay: 200, // Reduced delay for faster cold start handling
+      processDelay: 50, // Minimal delay for fastest cold start handling
       isSplashVisible,
       onSplashDismissRequested,
 

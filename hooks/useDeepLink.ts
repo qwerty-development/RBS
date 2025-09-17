@@ -10,6 +10,7 @@ import {
   type DeepLinkRoute,
 } from "@/lib/deeplink";
 import { useAuth } from "@/context/supabase-provider";
+import { useStoreHydration } from "@/hooks/useStoreHydration";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export interface DeepLinkState {
@@ -54,7 +55,7 @@ const DEFAULT_OPTIONS: Required<DeepLinkHookOptions> = {
   onAuthRequired: () => {},
   onNavigationSuccess: () => {},
   onNavigationError: () => {},
-  processDelay: 100, // Reduced for faster cold start processing
+  processDelay: 50, // Further reduced for faster cold start processing
   enableLogging: __DEV__,
   isSplashVisible: false,
   onSplashDismissRequested: () => {},
@@ -63,6 +64,7 @@ const DEFAULT_OPTIONS: Required<DeepLinkHookOptions> = {
 export function useDeepLink(options: DeepLinkHookOptions = {}) {
   const finalOptions = { ...DEFAULT_OPTIONS, ...options };
   const { session, isGuest, initialized: authInitialized } = useAuth();
+  const { isHydrated: storesHydrated } = useStoreHydration();
 
   const [state, setState] = useState<DeepLinkState>({
     initialUrl: null,
@@ -131,6 +133,11 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
 
       if (!authInitialized) {
         log("Auth not initialized, delaying deep link processing:", url);
+        return false;
+      }
+
+      if (!storesHydrated) {
+        log("Stores not hydrated, delaying deep link processing:", url);
         return false;
       }
 
@@ -271,6 +278,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
       isMounted,
       isNavigationReady,
       authInitialized,
+      storesHydrated,
       isAuthenticated,
       finalOptions,
       log,
@@ -333,6 +341,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
         if (
           finalOptions.autoHandle &&
           authInitialized &&
+          storesHydrated &&
           isMounted &&
           isNavigationReady
         ) {
@@ -350,6 +359,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
     finalOptions.autoHandle,
     finalOptions.processDelay,
     authInitialized,
+    storesHydrated,
     isMounted,
     isNavigationReady,
     log,
@@ -359,6 +369,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
   useEffect(() => {
     if (
       authInitialized &&
+      storesHydrated &&
       isAuthenticated &&
       isMounted &&
       isNavigationReady &&
@@ -377,6 +388,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
   }, [
     shouldIgnoreUrl,
     authInitialized,
+    storesHydrated,
     isAuthenticated,
     isMounted,
     isNavigationReady,
@@ -391,6 +403,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
       !finalOptions.isSplashVisible &&
       pendingDeepLink.current &&
       authInitialized &&
+      storesHydrated &&
       isMounted &&
       isNavigationReady &&
       !processedUrls.current.has(pendingDeepLink.current)
@@ -412,6 +425,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
   }, [
     finalOptions.isSplashVisible,
     authInitialized,
+    storesHydrated,
     isMounted,
     isNavigationReady,
     processDeepLink,
