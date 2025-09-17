@@ -16,11 +16,13 @@ export default function AnimatedSplashScreen({
   const splashOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // AGGRESSIVE FALLBACK: Always complete animation after maximum 3 seconds
+    // AGGRESSIVE FALLBACK: Always complete animation after maximum 2 seconds for faster cold start
     const fallbackTimer = setTimeout(() => {
-      console.log("🚀 AGGRESSIVE: AnimatedSplashScreen fallback timeout triggered");
+      console.log(
+        "🚀 AGGRESSIVE: AnimatedSplashScreen fallback timeout triggered",
+      );
       onAnimationComplete();
-    }, 3000);
+    }, 2000);
 
     const runAnimation = async () => {
       try {
@@ -28,27 +30,27 @@ export default function AnimatedSplashScreen({
         await new Promise((resolve) => {
           Animated.timing(textOpacity, {
             toValue: 1,
-            duration: 800,
+            duration: 400, // Reduced from 800ms
             easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
           }).start(resolve);
         });
 
-        // Wait a moment (reduced from 1000ms to 500ms)
-        await new Promise((resolve) => setTimeout(resolve, 500));
+        // Wait a moment (reduced for faster cold start)
+        await new Promise((resolve) => setTimeout(resolve, 200));
 
-        // Step 2: Fade out animation (faster)
+        // Step 2: Fade out animation (faster for cold start)
         await new Promise((resolve) => {
           Animated.timing(splashOpacity, {
             toValue: 0,
-            duration: 200, // Reduced from 300ms
+            duration: 150, // Further reduced for faster cold start
             easing: Easing.bezier(0.4, 0.4, 0.4, 0.4),
             useNativeDriver: true,
           }).start(resolve);
         });
 
-        // Shorter final wait (reduced from 400ms)
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        // Minimal final wait
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
         clearTimeout(fallbackTimer);
         // Animation complete
