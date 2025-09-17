@@ -43,6 +43,8 @@ import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
+import { useShare } from "@/hooks/useShare";
+import { ShareModal } from "@/components/ui/share-modal";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -87,6 +89,7 @@ export default function PostDetailScreen() {
   const { id: postId } = useLocalSearchParams();
   const { profile } = useAuth();
   const { colorScheme } = useColorScheme();
+  const { shareSocialPost } = useShare();
 
   const [post, setPost] = useState<PostDetail | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -94,6 +97,7 @@ export default function PostDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [imageIndex, setImageIndex] = useState(0);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   // Heart animation for double-tap on images
   const likeScale = useSharedValue(0);
@@ -251,7 +255,7 @@ export default function PostDetailScreen() {
   const handleShare = async () => {
     // Add haptic feedback
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert("Share", "Share functionality coming soon!");
+    setShowShareModal(true);
   };
 
   const handleComment = async () => {
@@ -605,6 +609,24 @@ export default function PostDetailScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Share Modal */}
+      {post && (
+        <ShareModal
+          visible={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          title="Share Post"
+          description="Share this post with your friends"
+          shareOptions={{
+            url: `https://plate-app.com/social/post/${post.id}`,
+            title: "Social Post",
+            message: post.content
+              ? `Check out this post on Plate: "${post.content.substring(0, 100)}${post.content.length > 100 ? "..." : ""}"`
+              : "Check out this post on Plate!",
+            subject: "Social Post - Plate",
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }

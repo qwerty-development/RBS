@@ -2,8 +2,8 @@
   "expo": {
     "name": "Plate",
     "slug": "Booklet",
-    "scheme": "qwerty-plate",
-    "version": "1.0.0",
+    "scheme": "plate",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -45,6 +45,11 @@
               "NSExceptionRequiresForwardSecrecy": false,
               "NSExceptionMinimumTLSVersion": "TLSv1.0",
               "NSIncludesSubdomains": true
+            },
+            "plate-app.com": {
+              "NSExceptionRequiresForwardSecrecy": false,
+              "NSExceptionMinimumTLSVersion": "TLSv1.0",
+              "NSIncludesSubdomains": true
             }
           }
         },
@@ -52,7 +57,8 @@
           {
             "CFBundleURLSchemes": [
               "qwerty-plate",
-              "com.notqwerty.plate"
+              "com.notqwerty.plate",
+              "plate"
             ]
           }
         ],
@@ -64,6 +70,10 @@
           "http"
         ]
       },
+      "associatedDomains": [
+        "applinks:plate-app.com",
+        "applinks:www.plate-app.com"
+      ],
       "icon": {
         "light": "./assets/icon.png",
         "dark": "./assets/icon-dark.png"
@@ -103,6 +113,27 @@
             },
             {
               "scheme": "com.notqwerty.plate"
+            },
+            {
+              "scheme": "plate"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        },
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "plate-app.com"
+            },
+            {
+              "scheme": "https",
+              "host": "www.plate-app.com"
             }
           ],
           "category": [

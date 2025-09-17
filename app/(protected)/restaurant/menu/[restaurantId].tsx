@@ -24,6 +24,7 @@ import {
   Wheat,
   Info,
   ChevronLeft,
+  Share2,
 } from "lucide-react-native";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -34,6 +35,8 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { useMenu } from "@/hooks/useMenu";
 import { MenuItem, MenuCategory, DIETARY_TAGS } from "@/types/menu";
 import { MenuScreenSkeleton } from "@/components/skeletons/MenuScreenSkeleton";
+import { useShare } from "@/hooks/useShare";
+import { ShareModal } from "@/components/ui/share-modal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -47,6 +50,9 @@ const DIETARY_ICONS: Record<string, any> = {
 
 export default function MenuScreen() {
   const [isMounted, setIsMounted] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  const { shareRestaurantMenu } = useShare();
 
   useEffect(() => {
     setIsMounted(true);
@@ -248,6 +254,12 @@ export default function MenuScreen() {
             />
           </View>
           {renderFilterButton()}
+          <Pressable
+            onPress={() => setShowShareModal(true)}
+            className="bg-primary/10 p-2 rounded-lg flex-row items-center"
+          >
+            <Share2 size={20} className="text-primary mr-1" />
+          </Pressable>
         </View>
       </View>
 
@@ -315,6 +327,31 @@ export default function MenuScreen() {
           onClose={() => setSelectedItem(null)}
         />
       )}
+
+      {/* Share Modal */}
+      <ShareModal
+        visible={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        title="Share Menu"
+        description="Check out this restaurant menu!"
+        shareOptions={{
+          title: "Restaurant Menu",
+          message: "Check out this restaurant menu!",
+        }}
+        showNativeShare={true}
+        showCopyLink={true}
+        customActions={[
+          {
+            id: "share-menu",
+            title: "Share Menu",
+            description: "Share restaurant menu with friends",
+            icon: Share2,
+            onPress: async () => {
+              await shareRestaurantMenu(restaurantId!);
+            },
+          },
+        ]}
+      />
     </SafeAreaView>
   );
 }

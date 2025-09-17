@@ -19,6 +19,7 @@ import {
   Send,
   Timer,
   X,
+  Share2,
 } from "lucide-react-native";
 import {
   ScrollView,
@@ -58,6 +59,8 @@ import {
 } from "@/hooks/useHapticPress";
 
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
+import { useShare } from "@/hooks/useShare";
+import { ShareModal } from "@/components/ui/share-modal";
 import RestaurantDetailsScreenSkeleton from "@/components/skeletons/RestaurantDetailsScreenSkeleton";
 import { Database } from "@/types/supabase";
 import {
@@ -767,6 +770,10 @@ export default function RestaurantDetailsScreen() {
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   const [showImageGallery, setShowImageGallery] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  // Hooks
+  const { shareRestaurant, shareRestaurantMenu } = useShare();
 
   // Guest Guard Hook
   const {
@@ -816,6 +823,12 @@ export default function RestaurantDetailsScreen() {
       );
     });
   }, [runProtectedAction, handleQuickActionPress]);
+
+  const handleShare = useCallback(() => {
+    handleQuickActionPress(() => {
+      setShowShareModal(true);
+    });
+  }, [handleQuickActionPress]);
 
   const handleWriteReview = useCallback(() => {
     if (!restaurant) return;
@@ -997,8 +1010,16 @@ export default function RestaurantDetailsScreen() {
         </SafeAreaView>
       </View>
 
-      {/* Favorite and Playlist Buttons - Outside ScrollView for proper touch handling */}
+      {/* Favorite, Playlist, and Share Buttons - Outside ScrollView for proper touch handling */}
       <View className="absolute top-20 right-4 flex-row gap-3 z-50">
+        <Pressable
+          onPress={handleShare}
+          className="w-12 h-12 bg-black/60 rounded-full items-center justify-center shadow-lg backdrop-blur-sm"
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={{ elevation: 10, zIndex: 50 }}
+        >
+          <Share2 size={20} color="white" />
+        </Pressable>
         <Pressable
           onPress={handleToggleFavorite}
           className="w-12 h-12 bg-black/60 rounded-full items-center justify-center shadow-lg backdrop-blur-sm"
@@ -1164,6 +1185,33 @@ export default function RestaurantDetailsScreen() {
         initialIndex={selectedImageIndex}
         onClose={() => setShowImageGallery(false)}
       />
+
+      {/* Share Modal */}
+      {restaurant && (
+        <ShareModal
+          visible={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          title={`Share ${restaurant.name}`}
+          description="Share this restaurant with your friends"
+          shareOptions={{
+            url: `https://plate-app.com/restaurant/${restaurant.id}`,
+            title: restaurant.name,
+            message: `Check out ${restaurant.name} on Plate! ${restaurant.cuisine_type} • ${"$".repeat(restaurant.price_range || 2)}`,
+            subject: `${restaurant.name} - Plate`,
+          }}
+          customActions={[
+            {
+              id: "share-menu",
+              title: "Share Menu",
+              description: "Share the restaurant's menu",
+              icon: BookOpen,
+              onPress: async () => {
+                await shareRestaurantMenu(restaurant.id, restaurant.name);
+              },
+            },
+          ]}
+        />
+      )}
     </View>
   );
 }

@@ -48,6 +48,7 @@ interface EnhancedBooking {
   suggested_alternative_tables?: string[];
   source: string;
   is_shared_booking?: boolean;
+  decline_note?: string;
   restaurant: {
     id: string;
     name: string;
@@ -313,7 +314,7 @@ export function useBookings() {
           )
           .eq("user_id", userId)
           .or(
-            `booking_time.lt.${now},status.in.(completed,cancelled_by_user,declined_by_restaurant,no_show)`,
+            `booking_time.lt.${now},status.in.(completed,cancelled_by_user,declined_by_restaurant,cancelled_by_restaurant,auto_declined,no_show)`,
           )
           .order("booking_time", { ascending: false })
           .limit(50),
@@ -365,7 +366,7 @@ export function useBookings() {
           .eq("to_user_id", userId)
           .eq("status", "accepted")
           .or(
-            `booking.booking_time.lt.${now},booking.status.in.(completed,cancelled_by_user,declined_by_restaurant,no_show)`,
+            `booking.booking_time.lt.${now},booking.status.in.(completed,cancelled_by_user,declined_by_restaurant,cancelled_by_restaurant,auto_declined,no_show)`,
           )
           .order("booking.booking_time", { ascending: false })
           .limit(25),
@@ -575,6 +576,23 @@ export function useBookings() {
       console.log(
         `Fetched ${upcomingData.length} upcoming and ${pastData.length} past bookings (including invitations)`,
       );
+
+      // Debug: log declined bookings specifically
+      const declinedBookings = pastData.filter(
+        (b) =>
+          b.status === "declined_by_restaurant" ||
+          b.status === "cancelled_by_restaurant",
+      );
+      if (declinedBookings.length > 0) {
+        console.log(
+          "Found declined bookings:",
+          declinedBookings.map((b) => ({
+            id: b.id,
+            status: b.status,
+            booking_time: b.booking_time,
+          })),
+        );
+      }
 
       // Only throw error if both requests failed
       if (

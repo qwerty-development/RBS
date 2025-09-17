@@ -447,7 +447,10 @@ export const useBookingConfirmation = () => {
         }
 
         // Send WhatsApp notification to restaurant (non-blocking)
-        console.log('🎯 Calling WhatsApp notification for confirmation booking:', bookingResult.booking.id);
+        console.log(
+          "🎯 Calling WhatsApp notification for confirmation booking:",
+          bookingResult.booking.id,
+        );
         notifyRestaurantWhatsAppNonBlocking(bookingResult.booking.id);
 
         // Send friend invitations if any friends were invited

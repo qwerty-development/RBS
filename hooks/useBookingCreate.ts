@@ -491,7 +491,10 @@ export function useBookingCreate() {
           await Promise.allSettled(postBookingPromises);
 
           // Send WhatsApp notification to restaurant (non-blocking)
-          console.log('🎯 Calling WhatsApp notification for instant booking:', booking.id);
+          console.log(
+            "🎯 Calling WhatsApp notification for instant booking:",
+            booking.id,
+          );
           notifyRestaurantWhatsAppNonBlocking(booking.id);
 
           // Navigate to instant success screen
@@ -537,7 +540,10 @@ export function useBookingCreate() {
           if (bookingError) throw bookingError;
 
           // Send WhatsApp notification to restaurant (non-blocking)
-          console.log('🎯 Calling WhatsApp notification for request booking:', booking.id);
+          console.log(
+            "🎯 Calling WhatsApp notification for request booking:",
+            booking.id,
+          );
           notifyRestaurantWhatsAppNonBlocking(booking.id);
 
           // Navigate to request success screen

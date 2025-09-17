@@ -82,6 +82,7 @@ interface EnhancedBooking {
   suggested_alternative_tables?: string[];
   source: string;
   is_shared_booking?: boolean;
+  decline_note?: string;
   restaurant: {
     id: string;
     name: string;
@@ -138,6 +139,12 @@ const BOOKING_STATUS_CONFIG = {
     icon: XCircle,
     color: "#ef4444", // Red
     description: "Restaurant couldn't accommodate this request",
+  },
+  cancelled_by_restaurant: {
+    label: "Cancelled",
+    icon: XCircle,
+    color: "#ef4444", // Red
+    description: "Restaurant cancelled this booking",
   },
   completed: {
     label: "Completed",
@@ -273,7 +280,9 @@ export function BookingCard({
   const isPast = variant === "past";
   const isProcessing = processingBookingId === booking.id;
   const isPending = booking.status === "pending";
-  const isDeclined = booking.status === "declined_by_restaurant";
+  const isDeclined =
+    booking.status === "declined_by_restaurant" ||
+    booking.status === "cancelled_by_restaurant";
   const isCompleted = booking.status === "completed";
   const isConfirmed = booking.status === "confirmed";
 
@@ -695,6 +704,32 @@ export function BookingCard({
 
         {/* Booking Details - Compact Layout */}
         <View className="px-3 pb-3">
+          {/* --- Contextual Messages for Pending/Declined --- */}
+          {isPending && !isPendingAndPassed && (
+            <View className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 mb-3 border border-orange-200">
+              <Text className="text-sm text-center text-orange-800 dark:text-orange-200">
+                The restaurant will confirm your request shortly. We'll notify
+                you as soon as they respond.
+              </Text>
+            </View>
+          )}
+          {(isDeclined || isPendingAndPassed) && (
+            <View className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 mb-3 border border-red-200">
+              <Text className="text-sm text-center text-red-800 dark:text-red-200">
+                Unfortunately, the restaurant couldn't accommodate this request.
+                {booking.decline_note && booking.decline_note.trim() ? (
+                  <>
+                    {"\n\n"}
+                    <Text className="font-medium">Reason: </Text>
+                    {booking.decline_note.trim()}
+                  </>
+                ) : (
+                  " Please try another time."
+                )}
+              </Text>
+            </View>
+          )}
+
           {/* --- Core Details Section - More Prominent --- */}
           <View className="bg-primary/5 rounded-lg p-3 mb-3 border border-primary/10">
             <View className="flex-row justify-between items-center mb-2">

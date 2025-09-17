@@ -5,6 +5,10 @@ import { Stack, router } from "expo-router";
 import { AuthProvider, useAuth } from "@/context/supabase-provider";
 import { NetworkProvider } from "@/context/network-provider";
 import { ModalProvider } from "@/context/modal-provider";
+import {
+  DeepLinkProvider,
+  useDeepLinkContext,
+} from "@/context/deeplink-provider";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
 import { LogBox, View, Text } from "react-native";
@@ -69,23 +73,77 @@ function NetworkStatusBar() {
   );
 }
 
-function RootLayoutContent() {
+function RootLayoutWithSplashState() {
+  const [showSplash, setShowSplash] = useState(true);
+  const [splashDismissRequested, setSplashDismissRequested] = useState(false);
+
+  // Handle early splash dismissal for deep links
+  const handleSplashDismissRequest = () => {
+    console.log("Deep link requesting early splash dismissal");
+    setSplashDismissRequested(true);
+  };
+
+  // Dismiss splash immediately if requested by deep link
+  useEffect(() => {
+    if (splashDismissRequested && showSplash) {
+      console.log("Dismissing splash screen early for deep link");
+      setShowSplash(false);
+    }
+  }, [splashDismissRequested, showSplash]);
+
+  return (
+    <DeepLinkProvider
+      isSplashVisible={showSplash}
+      onSplashDismissRequested={handleSplashDismissRequest}
+    >
+      <ModalProvider>
+        <NavigationErrorBoundary>
+          <RootLayoutContent
+            showSplash={showSplash}
+            setShowSplash={setShowSplash}
+          />
+        </NavigationErrorBoundary>
+      </ModalProvider>
+    </DeepLinkProvider>
+  );
+}
+
+function RootLayoutContent({
+  showSplash,
+  setShowSplash,
+}: {
+  showSplash: boolean;
+  setShowSplash: (show: boolean) => void;
+}) {
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
   const { profile } = useAuth();
-  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
     initializeNotificationHandlers((deeplink: any) => {
       try {
+        console.log("Notification deep link received:", deeplink);
+
+        // Handle legacy "app://" format by converting to "plate://" format
+        let processedUrl = deeplink;
         if (deeplink.startsWith("app://")) {
-          const path: any = deeplink.replace("app://", "/");
-          router.push(path);
-        } else {
-          router.push(deeplink);
+          processedUrl = deeplink.replace("app://", "plate://");
+        } else if (deeplink.startsWith("/")) {
+          // Handle relative paths by adding the scheme
+          processedUrl = `plate://${deeplink}`;
         }
+
+        // The deep link will be handled by the DeepLinkProvider automatically
+        // We can also manually trigger it if needed
+        console.log("Processed notification URL:", processedUrl);
       } catch (e) {
-        console.warn("Failed to navigate from notification:", e);
+        console.warn("Failed to process notification deep link:", e);
+        // Fallback to direct navigation for critical paths
+        try {
+          router.push(deeplink as any);
+        } catch (fallbackError) {
+          console.error("Fallback navigation also failed:", fallbackError);
+        }
       }
     });
     ensurePushPermissionsAndToken();
@@ -159,11 +217,7 @@ export default function RootLayout() {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <NetworkProvider>
           <AuthProvider>
-            <ModalProvider>
-              <NavigationErrorBoundary>
-                <RootLayoutContent />
-              </NavigationErrorBoundary>
-            </ModalProvider>
+            <RootLayoutWithSplashState />
           </AuthProvider>
         </NetworkProvider>
       </GestureHandlerRootView>

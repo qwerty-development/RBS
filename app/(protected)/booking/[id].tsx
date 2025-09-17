@@ -21,6 +21,7 @@ import {
   Trophy,
   AlertCircle,
   Info,
+  Share2,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
@@ -53,6 +54,8 @@ import { useBookingDetails } from "@/hooks/useBookingDetails";
 // Import constants
 import { BOOKING_STATUS_CONFIG } from "@/constants/bookingConstants";
 import BookingDetailsScreenSkeleton from "@/components/skeletons/BookingDetailsScreenSkeleton";
+import { useShare } from "@/hooks/useShare";
+import { ShareModal } from "@/components/ui/share-modal";
 
 // Types
 interface LoyaltyRuleDetails {
@@ -167,6 +170,9 @@ const RestaurantLoyaltyStatus: React.FC<{
 
 export default function BookingDetailsScreen() {
   const [isMounted, setIsMounted] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  const { shareBooking: shareBookingWithDeepLink } = useShare();
 
   useEffect(() => {
     setIsMounted(true);
@@ -313,56 +319,38 @@ export default function BookingDetailsScreen() {
     });
   };
 
-  // Enhanced share booking with restaurant loyalty
+  // Enhanced share booking with deep links
   const shareBooking = async () => {
     if (!booking) return;
 
-    const statusText = isPending
-      ? "I've requested a table"
-      : isDeclined
-        ? "My booking request was declined"
-        : "I have a reservation";
-
-    const offerText = appliedOfferDetails
-      ? ` Plus I saved ${appliedOfferDetails.discount_percentage}% with a special offer!`
-      : "";
-
-    const pointsText = (() => {
-      if (
-        isPending &&
-        booking.expected_loyalty_points > 0 &&
-        restaurantLoyaltyRule
-      ) {
-        return ` If confirmed, I'll earn ${booking.expected_loyalty_points} bonus points from "${restaurantLoyaltyRule.rule_name}"!`;
-      } else if (
-        booking.loyalty_points_earned > 0 &&
-        restaurantLoyaltyRule &&
-        !isCancelled
-      ) {
-        return ` I also earned ${booking.loyalty_points_earned} bonus points from "${restaurantLoyaltyRule.rule_name}"!`;
-      }
-      return "";
-    })();
-
-    const shareMessage = `${statusText} at ${booking.restaurant.name} on ${new Date(
-      booking.booking_time,
-    ).toLocaleDateString()} at ${new Date(
-      booking.booking_time,
-    ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} for ${
-      booking.party_size
-    } people.${offerText}${pointsText}${
-      booking.confirmation_code && !isPending
-        ? ` Confirmation code: ${booking.confirmation_code}`
-        : ""
-    }`;
-
     try {
+      await shareBookingWithDeepLink(booking.id, booking.restaurant.name);
+    } catch (error) {
+      console.error("Error sharing booking:", error);
+
+      // Fallback to basic sharing
+      const statusText = isPending
+        ? "I've requested a table"
+        : isDeclined
+          ? "My booking request was declined"
+          : "I have a reservation";
+
+      const shareMessage = `${statusText} at ${booking.restaurant.name} on ${new Date(
+        booking.booking_time,
+      ).toLocaleDateString()} at ${new Date(
+        booking.booking_time,
+      ).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} for ${
+        booking.party_size
+      } people.${
+        booking.confirmation_code && !isPending
+          ? ` Confirmation code: ${booking.confirmation_code}`
+          : ""
+      }`;
+
       await Share.share({
         message: shareMessage,
         title: `Booking at ${booking.restaurant.name}`,
       });
-    } catch (error) {
-      console.error("Error sharing booking:", error);
     }
   };
 

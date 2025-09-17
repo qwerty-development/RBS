@@ -1,5 +1,6 @@
-// types/search.ts - Updated with location types
+// types/search.ts - Updated with location types and search functionality
 import { Region } from "react-native-maps";
+import type { SearchSuggestion } from "@/lib/advancedSearchUtils";
 
 export interface LocationCoordinates {
   latitude: number;
@@ -24,7 +25,7 @@ export interface BookingFilters {
 }
 
 export interface GeneralFilters {
-  sortBy: "rating" | "distance" | "name";
+  sortBy: "recommended" | "rating" | "distance" | "name";
   cuisines: string[];
   features: string[];
   priceRange: number[];
@@ -70,6 +71,7 @@ export interface SearchState {
   searchQuery: string;
   bookingFilters: BookingFilters;
   generalFilters: GeneralFilters;
+  searchSuggestions: SearchSuggestion[];
 }
 
 export interface SearchActions {
@@ -80,6 +82,7 @@ export interface SearchActions {
   toggleFavorite: (restaurantId: string) => Promise<void>;
   clearAllFilters: () => void;
   handleRefresh: () => void;
+  generateSearchSuggestions: (query: string) => void;
 }
 
 export interface SearchHandlers {
