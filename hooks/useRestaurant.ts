@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
+import { useSupabaseReady } from "@/hooks/useSupabaseReady";
 import { Database } from "@/types/supabase";
 import { AvailabilityService, TimeSlot } from "@/lib/AvailabilityService";
 import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
@@ -88,7 +89,8 @@ export function useRestaurant(
   restaurantId: string | undefined,
 ): UseRestaurantReturn {
   const router = useRouter();
-  const { profile, initialized: authInitialized } = useAuth();
+  const { profile } = useAuth();
+  const { isFullyReady, authInitialized, storesHydrated } = useSupabaseReady();
 
   // Core state
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -376,6 +378,17 @@ export function useRestaurant(
       return;
     }
 
+    // Wait for full initialization during cold start
+    if (!isFullyReady) {
+      console.log("[useRestaurant] Waiting for full initialization...", {
+        authInitialized,
+        storesHydrated,
+        isFullyReady,
+        restaurantId,
+      });
+      return;
+    }
+
     try {
       console.log("Fetching restaurant details for ID:", restaurantId);
 
@@ -483,7 +496,7 @@ export function useRestaurant(
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, profile?.id, calculateReviewSummary]);
+  }, [restaurantId, profile?.id, calculateReviewSummary, isFullyReady]);
 
   // Action handlers
   const toggleFavorite = useCallback(async () => {
@@ -579,16 +592,16 @@ export function useRestaurant(
     });
   }, [restaurantId, restaurant, router]);
 
-  // Initialize data fetch - wait for auth initialization
+  // Initialize data fetch - wait for full initialization
   useEffect(() => {
-    if (authInitialized) {
+    if (isFullyReady) {
       console.log(
-        "🏪 Auth initialized, fetching restaurant details for:",
+        "🏪 [useRestaurant] 🚀 Full initialization complete, fetching restaurant details for:",
         restaurantId,
       );
       fetchRestaurantDetails();
     }
-  }, [fetchRestaurantDetails, authInitialized]);
+  }, [fetchRestaurantDetails, isFullyReady]);
 
   // Subscribe to real-time updates
   useEffect(() => {
