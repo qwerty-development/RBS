@@ -323,6 +323,7 @@ export default function ProfileEditScreen() {
                         editable={!profile?.date_of_birth}
                         style={profile?.date_of_birth ? { opacity: 0.6 } : {}}
                         {...field}
+                        value={field.value ?? ""}
                       />
                       {profile?.date_of_birth && (
                         <View className="flex-row items-center mt-2 px-3 py-2 bg-muted/50 rounded-lg">
@@ -375,7 +376,6 @@ export default function ProfileEditScreen() {
             )}
           </Button>
         </View>
-          </ScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
