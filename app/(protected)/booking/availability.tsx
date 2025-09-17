@@ -76,14 +76,15 @@ import { useTimeRangeSearch } from "@/hooks/useTimeRangeSearch";
 // Friend invitation imports
 import { InviteFriendsModal } from "@/components/booking/InviteFriendsModal";
 
-// Restaurant type import
-import type { Restaurant } from "@/types/restaurant";
+// Section selector imports
+import { SectionSelector } from "@/components/booking/SectionSelector";
+import { useRestaurantSections } from "@/hooks/useRestaurantSections";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 // Optimized Restaurant Info Card
 const RestaurantInfoCard = React.memo<{
-  restaurant: Restaurant;
+  restaurant: any;
 }>(({ restaurant }) => (
   <View className="mx-4 mt-4 p-4 bg-card rounded-xl border border-border shadow-sm">
     <View className="flex-row gap-3">
@@ -637,6 +638,9 @@ export default function AvailabilitySelectionScreen() {
   >([]);
   const [showInviteFriendsModal, setShowInviteFriendsModal] = useState(false);
 
+  // Section selection state (only for basic tier restaurants)
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+
   // Calculate total party size including invited friends
   const totalPartySize = useMemo(
     () => partySize + invitedFriends.length,
@@ -692,6 +696,12 @@ export default function AvailabilitySelectionScreen() {
 
   const offersData = useOffers();
   const { offers = [] } = offersData || {};
+
+  // Restaurant sections hook (only used for basic tier restaurants)
+  const { 
+    sections: restaurantSections, 
+    loading: sectionsLoading 
+  } = useRestaurantSections(params.restaurantId);
 
   // Memoize booking date time to prevent infinite re-renders
   const bookingDateTime = useMemo(() => {
@@ -806,6 +816,7 @@ export default function AvailabilitySelectionScreen() {
       setSelectedLoyaltyPoints(null); // Reset loyalty points
       setInvitedFriends([]); // Reset invited friends when date changes
       setInvitedFriendsDetails([]); // Reset invited friends details
+      setSelectedSectionId(null); // Reset section selection
 
       // Clear any pending transitions
       if (stepTransitionRef.current) {
@@ -825,6 +836,7 @@ export default function AvailabilitySelectionScreen() {
       setSelectedLoyaltyPoints(null); // Reset loyalty points
       setInvitedFriends([]); // Reset invited friends when party size changes
       setInvitedFriendsDetails([]); // Reset invited friends details
+      setSelectedSectionId(null); // Reset section selection
 
       if (stepTransitionRef.current) {
         clearTimeout(stepTransitionRef.current);
@@ -832,6 +844,12 @@ export default function AvailabilitySelectionScreen() {
     },
     [partySize, clearSelectedSlot, setInvitedFriends],
   );
+
+  // Handle section selection
+  const handleSectionSelect = useCallback((sectionId: string) => {
+    setSelectedSectionId(sectionId);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
 
   // Handle basic tier booking confirmation
   const handleBasicTierBooking = useCallback(async () => {
@@ -855,11 +873,21 @@ export default function AvailabilitySelectionScreen() {
 
     setIsConfirmingBooking(true);
     try {
+      // Prepare special requests with section information
+      let specialRequests = undefined;
+      if (selectedSectionId && selectedSectionId !== "any") {
+        const selectedSection = restaurantSections.find(section => section.id === selectedSectionId);
+        if (selectedSection) {
+          specialRequests = `Preferred seating section: ${selectedSection.name}`;
+        }
+      }
+      // Note: If selectedSectionId is "any" or null, no section preference is added to special requests
+
       const success = await confirmBooking({
         restaurantId: params.restaurantId,
         bookingTime: bookingTime,
         partySize: partySize,
-        specialRequests: undefined,
+        specialRequests: specialRequests,
         occasion: undefined,
         dietaryNotes: undefined,
         tablePreferences: undefined,
@@ -906,6 +934,8 @@ export default function AvailabilitySelectionScreen() {
     refresh,
     clearSelectedSlot,
     invitedFriends,
+    selectedSectionId,
+    restaurantSections,
   ]);
 
   const handleTimeSelect = useCallback(
@@ -1233,6 +1263,17 @@ export default function AvailabilitySelectionScreen() {
             maxDaysAhead={maxBookingDays}
             disabled={currentStep === "experience" || isConfirmingBooking}
           />
+
+          {/* Section Selector - Only show for basic tier restaurants */}
+          {isBasicTier && (
+            <SectionSelector
+              sections={restaurantSections}
+              selectedSectionId={selectedSectionId}
+              onSectionSelect={handleSectionSelect}
+              loading={sectionsLoading}
+              disabled={currentStep === "experience" || isConfirmingBooking}
+            />
+          )}
 
           {/* Step 1: Time Selection */}
           {currentStep === "time" && (
