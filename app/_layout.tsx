@@ -77,14 +77,14 @@ function RootLayoutWithSplashState() {
   const [showSplash, setShowSplash] = useState(true);
   const [splashDismissRequested, setSplashDismissRequested] = useState(false);
 
-  // CONSERVATIVE SPLASH DISMISSAL: Give more time for cold start initialization
+  // AGGRESSIVE SPLASH DISMISSAL: Force hide splash after reasonable delay
   useEffect(() => {
     const aggressiveTimer = setTimeout(() => {
       console.log(
-        "🚀 CONSERVATIVE: Forcing custom splash dismissal after 6 seconds",
+        "🚀 AGGRESSIVE: Forcing custom splash dismissal after 4 seconds",
       );
       setShowSplash(false);
-    }, 6000); // Increased to 6 seconds for better cold start reliability
+    }, 4000); // Increased to 4 seconds to allow for deeplink processing
 
     return () => clearTimeout(aggressiveTimer);
   }, []);

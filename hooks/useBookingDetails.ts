@@ -6,7 +6,6 @@ import * as Clipboard from "expo-clipboard";
 
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
-import { useSupabaseReady } from "@/hooks/useSupabaseReady";
 import { useBookingsStore } from "@/stores";
 import { Database } from "@/types/supabase";
 
@@ -47,7 +46,6 @@ type LoyaltyActivity = {
 
 export const useBookingDetails = (bookingId: string) => {
   const { profile } = useAuth();
-  const { isReady: supabaseReady } = useSupabaseReady();
   const { updateBooking } = useBookingsStore();
 
   const [booking, setBooking] = useState<Booking | null>(null);
@@ -60,114 +58,73 @@ export const useBookingDetails = (bookingId: string) => {
     useState<AppliedOfferDetails | null>(null);
   const [assignedTables, setAssignedTables] = useState<TableInfo[]>([]);
 
-  // Enhanced fetch booking details with table information and retry logic
-  const fetchBookingDetails = useCallback(
-    async (retryAttempt = 0) => {
-      if (!bookingId) return;
+  // Enhanced fetch booking details with table information
+  const fetchBookingDetails = useCallback(async () => {
+    if (!bookingId) return;
 
-      // Wait for Supabase to be ready before making requests
-      if (!supabaseReady && retryAttempt === 0) {
-        console.log(
-          "Supabase not ready, waiting before fetching booking details",
-        );
-        // Retry after a delay
-        setTimeout(() => fetchBookingDetails(1), 500);
-        return;
-      }
-
-      try {
-        console.log(
-          "Fetching booking details for ID:",
-          bookingId,
-          `(attempt ${retryAttempt + 1})`,
-        );
-
-        // Fetch booking with enhanced data
-        const { data: bookingData, error: bookingError } = await supabase
-          .from("bookings")
-          .select(
-            `
+    try {
+      // Fetch booking with enhanced data
+      const { data: bookingData, error: bookingError } = await supabase
+        .from("bookings")
+        .select(
+          `
           *,
           restaurant:restaurants (*)
         `,
-          )
-          .eq("id", bookingId)
-          .single();
+        )
+        .eq("id", bookingId)
+        .single();
 
-        if (bookingError) {
-          console.error("Booking fetch error:", bookingError);
+      if (bookingError) throw bookingError;
 
-          // Retry on certain errors during cold start
-          if (
-            retryAttempt < 2 &&
-            (bookingError.message.includes("Auth session missing") ||
-              bookingError.message.includes("JWT") ||
-              bookingError.code === "PGRST301")
-          ) {
-            console.log(
-              `Retrying booking fetch in ${(retryAttempt + 1) * 1000}ms...`,
-            );
-            setTimeout(
-              () => fetchBookingDetails(retryAttempt + 1),
-              (retryAttempt + 1) * 1000,
-            );
-            return;
-          }
+      if (!bookingData) {
+        throw new Error("Booking not found");
+      }
 
-          throw bookingError;
-        }
+      // Check if this is an expired pending booking and update it
+      const now = new Date();
+      if (
+        bookingData.status === "pending" &&
+        new Date(bookingData.booking_time) < now
+      ) {
+        console.log(
+          `Found expired pending booking ${bookingId}, updating to declined_by_restaurant`,
+        );
 
-        if (!bookingData) {
-          throw new Error("Booking not found");
-        }
+        try {
+          const { error: updateError } = await supabase
+            .from("bookings")
+            .update({
+              status: "declined_by_restaurant",
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", bookingId);
 
-        // Check if this is an expired pending booking and update it
-        const now = new Date();
-        if (
-          bookingData.status === "pending" &&
-          new Date(bookingData.booking_time) < now
-        ) {
-          console.log(
-            `Found expired pending booking ${bookingId}, updating to declined_by_restaurant`,
-          );
-
-          try {
-            const { error: updateError } = await supabase
-              .from("bookings")
-              .update({
-                status: "declined_by_restaurant",
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", bookingId);
-
-            if (updateError) {
-              console.error(
-                `Error updating expired booking ${bookingId}:`,
-                updateError,
-              );
-            } else {
-              console.log(
-                `Successfully updated booking ${bookingId} from pending to declined_by_restaurant`,
-              );
-              // Update the local booking data
-              bookingData.status = "declined_by_restaurant";
-              bookingData.updated_at = new Date().toISOString();
-            }
-          } catch (error) {
+          if (updateError) {
             console.error(
               `Error updating expired booking ${bookingId}:`,
-              error,
+              updateError,
             );
+          } else {
+            console.log(
+              `Successfully updated booking ${bookingId} from pending to declined_by_restaurant`,
+            );
+            // Update the local booking data
+            bookingData.status = "declined_by_restaurant";
+            bookingData.updated_at = new Date().toISOString();
           }
+        } catch (error) {
+          console.error(`Error updating expired booking ${bookingId}:`, error);
         }
+      }
 
-        setBooking(bookingData);
+      setBooking(bookingData);
 
-        // NEW: Fetch assigned tables
-        const { data: tablesData, error: tablesError } = await supabase
-          .from("booking_tables")
-          .select(
-            `
+      // NEW: Fetch assigned tables
+      const { data: tablesData, error: tablesError } = await supabase
+        .from("booking_tables")
+        .select(
+          `
         table_id,
         created_at,
         table:restaurant_tables (
@@ -177,132 +134,126 @@ export const useBookingDetails = (bookingId: string) => {
           capacity
         )
       `,
-          )
-          .eq("booking_id", bookingId);
+        )
+        .eq("booking_id", bookingId);
 
-        if (!tablesError && tablesData && tablesData.length > 0) {
-          const tables = tablesData
-            .map((bt) => bt.table)
-            .filter((t): t is TableInfo => t !== null);
-          setAssignedTables(tables);
-        } else {
-          console.log("No tables found for booking:", bookingId);
-          setAssignedTables([]);
-        }
+      if (!tablesError && tablesData && tablesData.length > 0) {
+        const tables = tablesData
+          .map((bt) => bt.table)
+          .filter((t): t is TableInfo => t !== null);
+        setAssignedTables(tables);
+      } else {
+        console.log("No tables found for booking:", bookingId);
+        setAssignedTables([]);
+      }
 
-        // Check if review exists for completed bookings
-        if (bookingData.status === "completed") {
-          const { data: reviewData } = await supabase
-            .from("reviews")
-            .select("id")
-            .eq("booking_id", bookingId)
+      // Check if review exists for completed bookings
+      if (bookingData.status === "completed") {
+        const { data: reviewData } = await supabase
+          .from("reviews")
+          .select("id")
+          .eq("booking_id", bookingId)
+          .single();
+
+        setHasReview(!!reviewData);
+      }
+
+      // Fetch loyalty activity for this booking
+      if (profile?.id) {
+        try {
+          const { data: loyaltyData } = await supabase
+            .from("loyalty_activities")
+            .select("*")
+            .eq("user_id", profile.id)
+            .eq("related_booking_id", bookingId)
+            .eq("activity_type", "booking_completed")
             .single();
 
-          setHasReview(!!reviewData);
+          if (loyaltyData) {
+            setLoyaltyActivity(loyaltyData);
+          }
+        } catch (loyaltyError) {
+          console.log(
+            "Loyalty activities table not available or no data found",
+          );
         }
+      }
 
-        // Fetch loyalty activity for this booking
-        if (profile?.id) {
-          try {
-            const { data: loyaltyData } = await supabase
-              .from("loyalty_activities")
+      // Enhanced: Fetch applied offer details using applied_offer_id
+      if (bookingData.applied_offer_id) {
+        console.log(
+          "Fetching applied offer details for offer ID:",
+          bookingData.applied_offer_id,
+        );
+
+        try {
+          // Get the special offer details
+          const { data: specialOfferData, error: specialOfferError } =
+            await supabase
+              .from("special_offers")
               .select("*")
-              .eq("user_id", profile.id)
-              .eq("related_booking_id", bookingId)
-              .eq("activity_type", "booking_completed")
+              .eq("id", bookingData.applied_offer_id)
               .single();
 
-            if (loyaltyData) {
-              setLoyaltyActivity(loyaltyData);
-            }
-          } catch (loyaltyError) {
-            console.log(
-              "Loyalty activities table not available or no data found",
-            );
-          }
-        }
+          if (specialOfferError) {
+            console.error("Error fetching special offer:", specialOfferError);
+          } else if (specialOfferData) {
+            console.log("Found special offer:", specialOfferData.title);
 
-        // Enhanced: Fetch applied offer details using applied_offer_id
-        if (bookingData.applied_offer_id) {
-          console.log(
-            "Fetching applied offer details for offer ID:",
-            bookingData.applied_offer_id,
-          );
-
-          try {
-            // Get the special offer details
-            const { data: specialOfferData, error: specialOfferError } =
+            // Get the user_offer details for redemption code and usage info
+            const { data: userOfferData, error: userOfferError } =
               await supabase
-                .from("special_offers")
+                .from("user_offers")
                 .select("*")
-                .eq("id", bookingData.applied_offer_id)
+                .eq("booking_id", bookingId)
+                .eq("user_id", profile?.id)
                 .single();
 
-            if (specialOfferError) {
-              console.error("Error fetching special offer:", specialOfferError);
-            } else if (specialOfferData) {
-              console.log("Found special offer:", specialOfferData.title);
-
-              // Get the user_offer details for redemption code and usage info
-              const { data: userOfferData, error: userOfferError } =
-                await supabase
-                  .from("user_offers")
-                  .select("*")
-                  .eq("booking_id", bookingId)
-                  .eq("user_id", profile?.id)
-                  .single();
-
-              if (userOfferError) {
-                console.error("Error fetching user offer:", userOfferError);
-              }
-
-              // Calculate estimated savings based on party size and price range
-              const estimatedSavings = Math.round(
-                bookingData.party_size *
-                  ((bookingData.restaurant.price_range || 2) * 30) *
-                  (specialOfferData.discount_percentage / 100),
-              );
-
-              const offerDetails: AppliedOfferDetails = {
-                special_offer_id: specialOfferData.id,
-                special_offer_title: specialOfferData.title,
-                special_offer_description: specialOfferData.description,
-                discount_percentage: specialOfferData.discount_percentage,
-                user_offer_id: userOfferData?.id || "",
-                redemption_code: userOfferData?.id || specialOfferData.id,
-                used_at:
-                  userOfferData?.used_at ||
-                  userOfferData?.claimed_at ||
-                  bookingData.created_at,
-                claimed_at: userOfferData?.claimed_at || bookingData.created_at,
-                estimated_savings: estimatedSavings,
-                terms_conditions: specialOfferData.terms_conditions,
-                valid_until: specialOfferData.valid_until,
-                minimum_party_size: specialOfferData.minimum_party_size,
-              };
-
-              console.log("Applied offer details:", offerDetails);
-              setAppliedOfferDetails(offerDetails);
+            if (userOfferError) {
+              console.error("Error fetching user offer:", userOfferError);
             }
-          } catch (offerError) {
-            console.error("Error fetching applied offer details:", offerError);
-          }
-        } else {
-          console.log("No applied offer for this booking");
-        }
-      } catch (error) {
-        console.error("Error fetching booking details:", error);
 
-        // Don't show alert for retry attempts during cold start
-        if (retryAttempt === 0) {
-          Alert.alert("Error", "Failed to load booking details");
+            // Calculate estimated savings based on party size and price range
+            const estimatedSavings = Math.round(
+              bookingData.party_size *
+                ((bookingData.restaurant.price_range || 2) * 30) *
+                (specialOfferData.discount_percentage / 100),
+            );
+
+            const offerDetails: AppliedOfferDetails = {
+              special_offer_id: specialOfferData.id,
+              special_offer_title: specialOfferData.title,
+              special_offer_description: specialOfferData.description,
+              discount_percentage: specialOfferData.discount_percentage,
+              user_offer_id: userOfferData?.id || "",
+              redemption_code: userOfferData?.id || specialOfferData.id,
+              used_at:
+                userOfferData?.used_at ||
+                userOfferData?.claimed_at ||
+                bookingData.created_at,
+              claimed_at: userOfferData?.claimed_at || bookingData.created_at,
+              estimated_savings: estimatedSavings,
+              terms_conditions: specialOfferData.terms_conditions,
+              valid_until: specialOfferData.valid_until,
+              minimum_party_size: specialOfferData.minimum_party_size,
+            };
+
+            console.log("Applied offer details:", offerDetails);
+            setAppliedOfferDetails(offerDetails);
+          }
+        } catch (offerError) {
+          console.error("Error fetching applied offer details:", offerError);
         }
-      } finally {
-        setLoading(false);
+      } else {
+        console.log("No applied offer for this booking");
       }
-    },
-    [bookingId, profile?.id, supabaseReady],
-  );
+    } catch (error) {
+      console.error("Error fetching booking details:", error);
+      Alert.alert("Error", "Failed to load booking details");
+    } finally {
+      setLoading(false);
+    }
+  }, [bookingId, profile?.id]);
 
   // Enhanced cancel booking with loyalty points handling
   const cancelBooking = useCallback(async () => {

@@ -793,7 +793,6 @@ export default function RestaurantDetailsScreen() {
     loading,
     toggleFavorite,
     handleCall,
-    refresh,
   } = useRestaurant(id);
 
   // Booking eligibility check (only when restaurant is loaded)
@@ -975,24 +974,14 @@ export default function RestaurantDetailsScreen() {
         <View className="flex-1 items-center justify-center px-4">
           <H3 className="text-center mb-2">Restaurant not found</H3>
           <P className="text-center text-muted-foreground mb-4">
-            We couldn't load the restaurant details. This might be due to a
-            network issue or the restaurant may no longer be available.
+            The restaurant you're looking for doesn't exist or has been removed.
           </P>
           <Button
             variant="outline"
             onPress={() => router.back()}
-            className="mb-2"
+            className="mt-4"
           >
             <Text>Go Back</Text>
-          </Button>
-          <Button
-            variant="ghost"
-            onPress={() => {
-              // Trigger a refresh by calling the refresh function from useRestaurant
-              refresh();
-            }}
-          >
-            <Text>Try Again</Text>
           </Button>
         </View>
       </SafeAreaView>
