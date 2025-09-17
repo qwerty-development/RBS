@@ -7,7 +7,6 @@ import * as Clipboard from "expo-clipboard";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { useBookingsStore } from "@/stores";
-import { useSupabaseReady } from "@/hooks/useSupabaseReady";
 import { Database } from "@/types/supabase";
 
 type Booking = Database["public"]["Tables"]["bookings"]["Row"] & {
@@ -48,7 +47,6 @@ type LoyaltyActivity = {
 export const useBookingDetails = (bookingId: string) => {
   const { profile } = useAuth();
   const { updateBooking } = useBookingsStore();
-  const { isFullyReady, authInitialized, storesHydrated } = useSupabaseReady();
 
   const [booking, setBooking] = useState<Booking | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,16 +61,6 @@ export const useBookingDetails = (bookingId: string) => {
   // Enhanced fetch booking details with table information
   const fetchBookingDetails = useCallback(async () => {
     if (!bookingId) return;
-
-    // Wait for full initialization during cold start
-    if (!isFullyReady) {
-      console.log("[useBookingDetails] Waiting for full initialization...", {
-        authInitialized,
-        storesHydrated,
-        isFullyReady,
-      });
-      return;
-    }
 
     try {
       // Fetch booking with enhanced data
@@ -265,7 +253,7 @@ export const useBookingDetails = (bookingId: string) => {
     } finally {
       setLoading(false);
     }
-  }, [bookingId, profile?.id, isFullyReady]);
+  }, [bookingId, profile?.id]);
 
   // Enhanced cancel booking with loyalty points handling
   const cancelBooking = useCallback(async () => {
@@ -393,13 +381,10 @@ export const useBookingDetails = (bookingId: string) => {
     );
   }, [booking]);
 
-  // Lifecycle - Initialize when everything is ready
+  // Lifecycle
   useEffect(() => {
-    if (isFullyReady) {
-      console.log("[useBookingDetails] 🚀 Full initialization complete, fetching booking details");
-      fetchBookingDetails();
-    }
-  }, [fetchBookingDetails, isFullyReady]);
+    fetchBookingDetails();
+  }, [fetchBookingDetails]);
 
   return {
     booking,
