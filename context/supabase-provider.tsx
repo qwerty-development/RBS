@@ -1104,6 +1104,17 @@ function AuthContent({ children }: PropsWithChildren) {
         return;
       }
 
+      // Check if deeplink navigation might be in progress by checking for pending deeplink storage
+      try {
+        const deeplinkInProgress = await AsyncStorage.getItem("deeplink-navigation-in-progress");
+        if (deeplinkInProgress === "true") {
+          console.log("🔗 Deeplink navigation in progress, skipping auth navigation");
+          return;
+        }
+      } catch (storageError) {
+        console.log("📍 Could not check deeplink storage, proceeding with auth navigation");
+      }
+
       try {
         navigationInProgress.current = true;
         console.log("🔄 Handling navigation...", {

@@ -26,7 +26,7 @@ interface QuickFilter {
 }
 
 export function useHomeScreenLogic() {
-  const { profile } = useAuth();
+  const { profile, initialized: authInitialized } = useAuth();
   const router = useRouter();
 
   // Core data states
@@ -370,10 +370,11 @@ export function useHomeScreenLogic() {
   }, [loadLocation]);
 
   useEffect(() => {
-    if (location) {
+    if (location && authInitialized) {
+      console.log("🏠 Loading home screen data after auth and location ready");
       loadAllData();
     }
-  }, [location, loadAllData]);
+  }, [location, authInitialized, loadAllData]);
 
   useEffect(() => {
     checkForLocationUpdates();
