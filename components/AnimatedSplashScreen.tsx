@@ -6,14 +6,10 @@ const { width, height } = Dimensions.get("window");
 
 interface AnimatedSplashScreenProps {
   onAnimationComplete: () => void;
-  skipAnimation?: boolean;
-  fastMode?: boolean;
 }
 
 export default function AnimatedSplashScreen({
   onAnimationComplete,
-  skipAnimation = false,
-  fastMode = false,
 }: AnimatedSplashScreenProps) {
   const backgroundOpacity = useRef(new Animated.Value(1)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
@@ -21,58 +17,38 @@ export default function AnimatedSplashScreen({
 
   useEffect(() => {
     const runAnimation = async () => {
-      // Skip animation entirely for immediate deep link navigation
-      if (skipAnimation) {
-        onAnimationComplete();
-        return;
-      }
-
-      // Use faster timing for deep link fast mode
-      const timingConfig = fastMode
-        ? { fadeIn: 200, wait: 300, fadeOut: 150, finalWait: 100 }
-        : { fadeIn: 800, wait: 1000, fadeOut: 300, finalWait: 400 };
-
       // Step 1: Text fades in (background is already at 100% opacity)
       await new Promise((resolve) => {
         Animated.timing(textOpacity, {
           toValue: 1,
-          duration: timingConfig.fadeIn,
+          duration: 800,
           easing: Easing.out(Easing.cubic),
           useNativeDriver: true,
         }).start(resolve);
       });
 
       // Wait a moment
-      await new Promise((resolve) => setTimeout(resolve, timingConfig.wait));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // Step 2: Fade out animation
       await new Promise((resolve) => {
         Animated.timing(splashOpacity, {
           toValue: 0,
-          duration: timingConfig.fadeOut,
+          duration: 300,
           easing: Easing.bezier(0.4, 0.4, 0.4, 0.4), // Very smooth ease-out
           useNativeDriver: true,
         }).start(resolve);
       });
 
       // Wait a moment to ensure fade-out is visible
-      await new Promise((resolve) =>
-        setTimeout(resolve, timingConfig.finalWait),
-      );
+      await new Promise((resolve) => setTimeout(resolve, 400));
 
       // Animation complete
       onAnimationComplete();
     };
 
     runAnimation();
-  }, [
-    backgroundOpacity,
-    textOpacity,
-    splashOpacity,
-    onAnimationComplete,
-    skipAnimation,
-    fastMode,
-  ]);
+  }, [backgroundOpacity, textOpacity, splashOpacity, onAnimationComplete]);
 
   return (
     <Animated.View
