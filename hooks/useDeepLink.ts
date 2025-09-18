@@ -144,45 +144,41 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
         log("Database not ready yet, but proceeding with navigation - component will handle retry:", url);
       }
 
-      // If splash screen is visible, store the URL and defer navigation
+      // NUCLEAR OPTION: If splash screen is visible, dismiss it and delay processing
       if (finalOptions.isSplashVisible) {
-        log("Splash screen visible, storing pending deep link:", url);
-        pendingDeepLink.current = url;
+        log("NUCLEAR: Splash visible, dismissing and delaying deep link processing");
 
-        try {
-          // Process the URL to validate it, but don't navigate yet
-          const { route } = parseDeepLinkUrl(url);
-          const isSupported = isSupportedDeepLink(url);
+        // Immediately dismiss splash
+        finalOptions.onSplashDismissRequested();
 
-          log("Deep link analysis:", {
-            url,
-            route: route?.path,
-            isProtected: route?.protected,
-            isSupported,
-          });
-
-          if (isSupported) {
-            // For all supported routes (protected or not), dismiss splash early
-            // Authentication will be handled at the route level
-            log("Supported deep link detected, requesting early splash dismissal");
-            finalOptions.onSplashDismissRequested();
-          } else {
-            // FALLBACK: Even for unsupported deep links, dismiss splash to prevent hanging
-            // This ensures we don't get stuck on splash screen
-            log("Unsupported deep link detected, but dismissing splash anyway to prevent hanging");
-            finalOptions.onSplashDismissRequested();
+        // Store URL and delay processing by 2 seconds to let everything stabilize
+        setTimeout(() => {
+          log("NUCLEAR: Retrying deep link after splash dismissal:", url);
+          if (isMounted) {
+            try {
+              // Simple extraction and navigation
+              if (url.includes("/restaurant/")) {
+                const match = url.match(/\/restaurant\/([^?&#]+)/);
+                if (match) {
+                  router.push(`/restaurant/${match[1]}`);
+                  return;
+                }
+              }
+              if (url.includes("/booking/")) {
+                const match = url.match(/\/booking\/([^?&#]+)/);
+                if (match) {
+                  router.push(`/booking/${match[1]}`);
+                  return;
+                }
+              }
+              // Fallback to home
+              router.push("/(protected)/(tabs)");
+            } catch (error) {
+              log("NUCLEAR: Delayed navigation failed, going home:", error);
+              router.push("/(protected)/(tabs)");
+            }
           }
-        } catch (error) {
-          // ERROR FALLBACK: If parsing fails, still dismiss splash
-          log("Error processing deep link, but dismissing splash anyway:", error);
-          finalOptions.onSplashDismissRequested();
-        }
-
-        setState((prev) => ({
-          ...prev,
-          initialUrl: url,
-          isProcessing: false,
-        }));
+        }, 2000);
 
         return false;
       }
