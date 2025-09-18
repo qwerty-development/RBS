@@ -266,10 +266,19 @@ export function parseDeepLinkUrl(url: string): {
     };
   } catch (error) {
     console.warn("Failed to parse deep link URL:", url, error);
+    // During potential cold start scenarios, preserve the original path for retry
+    // instead of immediately falling back to "/"
+    const fallbackPath =
+      url.includes("restaurant/") ||
+      url.includes("booking/") ||
+      url.includes("playlist/")
+        ? pathname || "/"
+        : "/";
+
     return {
       route: null,
       params: {},
-      path: "/",
+      path: fallbackPath,
     };
   }
 }
@@ -319,10 +328,27 @@ export function navigateToDeepLink(
 
     const { route, path } = parseDeepLinkUrl(url);
 
-    // Skip if no valid route found and path is just "/"
+    // Skip if no valid route found and path is just "/" - but only if this isn't a cold start scenario
     if (!route && path === "/") {
-      console.log("No valid route found for URL:", url);
-      return false;
+      // Check if this could be a cold start issue by examining the original URL
+      const couldBeColdStart =
+        url.includes("restaurant/") ||
+        url.includes("booking/") ||
+        url.includes("playlist/") ||
+        url.includes("waiting-list") ||
+        url.includes("offers") ||
+        url.includes("profile");
+
+      if (couldBeColdStart) {
+        console.log(
+          "Potential cold start parsing issue for URL:",
+          url,
+          "- allowing fallback",
+        );
+      } else {
+        console.log("No valid route found for URL:", url);
+        return false;
+      }
     }
 
     // Check if route requires authentication

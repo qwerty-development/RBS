@@ -1096,6 +1096,46 @@ function AuthContent({ children }: PropsWithChildren) {
     }
   }, [user?.id, profile, fetchProfile, isGuest]);
 
+  // Helper function to check for pending deeplinks
+  const checkForPendingDeeplink = useCallback(async (): Promise<boolean> => {
+    try {
+      // Check for initial URL that might be a deeplink
+      const initialUrl = await Linking.getInitialURL();
+      if (!initialUrl) return false;
+
+      // Ignore development URLs
+      const isDevelopmentUrl =
+        initialUrl.startsWith("exp://") ||
+        initialUrl.startsWith("exps://") ||
+        initialUrl.includes(":8081") ||
+        initialUrl.includes("localhost") ||
+        initialUrl.includes("127.0.0.1") ||
+        initialUrl.startsWith("file://");
+
+      if (isDevelopmentUrl) return false;
+
+      // Check if it's a supported deeplink (not just any URL)
+      const isSupportedScheme =
+        initialUrl.startsWith("plate://") ||
+        initialUrl.startsWith("qwerty-plate://") ||
+        initialUrl.startsWith("com.notqwerty.plate://") ||
+        initialUrl.startsWith("https://plate-app.com") ||
+        initialUrl.startsWith("https://www.plate-app.com");
+
+      if (!isSupportedScheme) return false;
+
+      // If we got here, there's likely a valid deeplink pending
+      console.log(
+        "🔗 Detected pending deeplink during auth navigation:",
+        initialUrl,
+      );
+      return true;
+    } catch (error) {
+      console.error("❌ Error checking for pending deeplinks:", error);
+      return false;
+    }
+  }, []);
+
   // Handle navigation
   useEffect(() => {
     if (!initialized) return;
@@ -1114,6 +1154,30 @@ function AuthContent({ children }: PropsWithChildren) {
           isGuest,
           platform: Platform.OS,
         });
+
+        // CRITICAL: Check for pending deeplinks during cold start
+        // Give deeplink processing priority during app initialization
+        const hasPendingDeeplink = await checkForPendingDeeplink();
+        if (hasPendingDeeplink) {
+          console.log(
+            "🔗 Pending deeplink detected, deferring auth navigation",
+          );
+          // Allow extra time for deeplink processing during cold start
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+
+          // Recheck after delay - if deeplink processing failed, we'll handle navigation
+          const stillPendingDeeplink = await checkForPendingDeeplink();
+          if (stillPendingDeeplink) {
+            console.log(
+              "🔗 Deeplink still pending after delay, continuing with auth navigation",
+            );
+          } else {
+            console.log(
+              "🔗 Deeplink processed successfully, skipping auth navigation",
+            );
+            return;
+          }
+        }
 
         // Add platform-specific delays for OAuth scenarios to prevent race conditions
         // Check if this is an OAuth flow by looking at recent auth events

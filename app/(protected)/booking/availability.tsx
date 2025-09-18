@@ -180,18 +180,30 @@ const SpecialRequirementsSection = React.memo<{
       </Pressable>
 
       {/* Summary when collapsed and has data */}
-      {!isExpanded && (formData.occasion || formData.dietaryRestrictions.length > 0 || formData.tablePreferences.length > 0 || formData.specialRequests) && (
-        <View className="mt-3 p-3 bg-muted/50 rounded-lg">
-          <Text className="text-sm text-muted-foreground">
-            {[
-              formData.occasion && formData.occasion !== "none" ? OCCASIONS.find(o => o.id === formData.occasion)?.label : null,
-              formData.dietaryRestrictions.length > 0 ? `${formData.dietaryRestrictions.length} dietary restrictions` : null,
-              formData.tablePreferences.length > 0 ? `${formData.tablePreferences.length} table preferences` : null,
-              formData.specialRequests ? "Special requests added" : null
-            ].filter(Boolean).join(" • ")}
-          </Text>
-        </View>
-      )}
+      {!isExpanded &&
+        (formData.occasion ||
+          formData.dietaryRestrictions.length > 0 ||
+          formData.tablePreferences.length > 0 ||
+          formData.specialRequests) && (
+          <View className="mt-3 p-3 bg-muted/50 rounded-lg">
+            <Text className="text-sm text-muted-foreground">
+              {[
+                formData.occasion && formData.occasion !== "none"
+                  ? OCCASIONS.find((o) => o.id === formData.occasion)?.label
+                  : null,
+                formData.dietaryRestrictions.length > 0
+                  ? `${formData.dietaryRestrictions.length} dietary restrictions`
+                  : null,
+                formData.tablePreferences.length > 0
+                  ? `${formData.tablePreferences.length} table preferences`
+                  : null,
+                formData.specialRequests ? "Special requests added" : null,
+              ]
+                .filter(Boolean)
+                .join(" • ")}
+            </Text>
+          </View>
+        )}
 
       {isExpanded && (
         <View className="mt-4 space-y-6">

@@ -170,9 +170,27 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
         const { route, path } = parseDeepLinkUrl(url);
 
         if (!isSupportedDeepLink(url)) {
-          log("Unsupported deep link, using fallback:", url);
+          log("Unsupported deep link, storing for potential retry:", url);
 
+          // During cold start, don't immediately fallback - store the URL for potential retry
+          // Only fallback if this is not during initial app load
+          if (state.initialUrl === null) {
+            log(
+              "Cold start detected - storing unsupported URL for retry:",
+              url,
+            );
+            setState((prev) => ({
+              ...prev,
+              isProcessing: false,
+              initialUrl: url,
+              error: "Unsupported deeplink during cold start - will retry",
+            }));
+            return false;
+          }
+
+          // If we've already tried once and it's still unsupported, then fallback
           if (finalOptions.autoHandle) {
+            log("Retried unsupported deep link, using fallback:", url);
             router.push(finalOptions.fallbackPath as any);
           }
 
@@ -375,6 +393,36 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
     authInitialized,
     isMounted,
     isNavigationReady,
+    processDeepLink,
+    log,
+  ]);
+
+  // Retry failed deeplinks during cold start after everything is ready
+  useEffect(() => {
+    if (
+      authInitialized &&
+      isMounted &&
+      isNavigationReady &&
+      !finalOptions.isSplashVisible &&
+      state.initialUrl &&
+      state.error?.includes("cold start") &&
+      !processedUrls.current.has(state.initialUrl)
+    ) {
+      const url = state.initialUrl;
+      log("Retrying failed cold start deeplink:", url);
+
+      // Add a small delay to ensure everything is fully ready
+      setTimeout(() => {
+        processDeepLink(url);
+      }, 1000);
+    }
+  }, [
+    authInitialized,
+    isMounted,
+    isNavigationReady,
+    finalOptions.isSplashVisible,
+    state.initialUrl,
+    state.error,
     processDeepLink,
     log,
   ]);

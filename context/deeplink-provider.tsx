@@ -35,9 +35,9 @@ export function DeepLinkProvider({
   const { state, isAuthenticated, handleDeepLink, clearCache, isUrlSupported } =
     useDeepLink({
       autoHandle: true,
-      fallbackPath: "/",
+      fallbackPath: "/(protected)/(tabs)", // Better fallback for authenticated users
       enableLogging: __DEV__,
-      processDelay: 1500, // Allow time for auth to initialize
+      processDelay: 2500, // Increased delay for cold start scenarios
       isSplashVisible,
       onSplashDismissRequested,
 
@@ -61,7 +61,10 @@ export function DeepLinkProvider({
 
       onNavigationError: (url, error) => {
         console.error("Deep link navigation error:", url, error);
-        // Optionally show user-friendly error message
+        // During cold start, don't immediately show errors - they might resolve on retry
+        if (!error.message?.includes("cold start")) {
+          // Optionally show user-friendly error message for non-cold-start errors
+        }
       },
     });
 
