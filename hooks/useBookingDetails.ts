@@ -332,7 +332,7 @@ export const useBookingDetails = (bookingId: string) => {
             Alert.alert(
               "Success",
               appliedOfferDetails
-                ? "Your booking has been cancelled and your offer has been restored."
+                ? "Your booking has been cancelled"
                 : "Your booking has been cancelled",
             );
           } catch (error) {
