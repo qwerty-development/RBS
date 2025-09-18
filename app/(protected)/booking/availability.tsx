@@ -1120,6 +1120,16 @@ export default function AvailabilitySelectionScreen() {
           ? selectedLoyaltyPoints.pointsToAward
           : 0,
         appliedOfferId: preselectedOffer?.id,
+        offerData: preselectedOffer?.fullOfferData
+          ? {
+              id: preselectedOffer.id,
+              title: preselectedOffer.title,
+              discount_percentage:
+                preselectedOffer.fullOfferData.discount_percentage,
+              valid_until: preselectedOffer.fullOfferData.valid_until,
+              restaurant_id: preselectedOffer.fullOfferData.restaurant_id,
+            }
+          : undefined,
         loyaltyRuleId: selectedLoyaltyPoints?.available
           ? selectedLoyaltyPoints.ruleId
           : undefined,
@@ -1242,6 +1252,16 @@ export default function AvailabilitySelectionScreen() {
             ? selectedLoyaltyPoints.pointsToAward
             : 0,
           appliedOfferId: preselectedOffer?.id,
+          offerData: preselectedOffer?.fullOfferData
+            ? {
+                id: preselectedOffer.id,
+                title: preselectedOffer.title,
+                discount_percentage:
+                  preselectedOffer.fullOfferData.discount_percentage,
+                valid_until: preselectedOffer.fullOfferData.valid_until,
+                restaurant_id: preselectedOffer.fullOfferData.restaurant_id,
+              }
+            : undefined,
           loyaltyRuleId: selectedLoyaltyPoints?.available
             ? selectedLoyaltyPoints.ruleId
             : undefined,

@@ -38,6 +38,12 @@ interface InlineOfferSelectorProps {
       title: string;
       discount: number;
       redemptionCode: string;
+      // Full offer data for booking confirmation
+      fullOfferData?: {
+        valid_until: string;
+        restaurant_id: string;
+        discount_percentage: number;
+      };
     } | null,
   ) => void;
   selectedOfferId?: string | null;
@@ -51,12 +57,9 @@ export const InlineOfferSelector: React.FC<InlineOfferSelectorProps> = ({
   disabled = false,
 }) => {
   const { colorScheme } = useColorScheme();
-  const { offers, loading, claimOffer, canClaimOffer } = useOffers();
+  const { offers, loading } = useOffers();
 
   const [isExpanded, setIsExpanded] = useState(false);
-  const [processingOfferId, setProcessingOfferId] = useState<string | null>(
-    null,
-  );
   const [showOfferDetails, setShowOfferDetails] = useState(false);
   const [selectedOfferForDetails, setSelectedOfferForDetails] =
     useState<EnrichedOffer | null>(null);
@@ -71,72 +74,27 @@ export const InlineOfferSelector: React.FC<InlineOfferSelectorProps> = ({
     );
   }, [offers, restaurantId]);
 
-  // Separate claimed and unclaimed offers
-  const { claimedOffers, unclaimedOffers } = useMemo(() => {
-    const claimed = restaurantOffers.filter((offer) => offer.claimed);
-    const unclaimed = restaurantOffers.filter((offer) => !offer.claimed);
-    return { claimedOffers: claimed, unclaimedOffers: unclaimed };
+  // Sort offers by discount percentage (highest first)
+  const sortedOffers = useMemo(() => {
+    return [...restaurantOffers].sort(
+      (a, b) => (b.discount_percentage || 0) - (a.discount_percentage || 0),
+    );
   }, [restaurantOffers]);
-
-  const handleClaimOffer = useCallback(
-    async (offer: EnrichedOffer) => {
-      if (processingOfferId === offer.id || disabled) return;
-
-      const claimCheck = canClaimOffer(offer);
-      if (!claimCheck.canClaim) {
-        Alert.alert(
-          "Cannot Claim Offer",
-          claimCheck.reason === "already_claimed"
-            ? "This offer has already been claimed"
-            : "This offer has expired",
-        );
-        return;
-      }
-
-      setProcessingOfferId(offer.id);
-
-      try {
-        await claimOffer(offer.id);
-        await Haptics.notificationAsync(
-          Haptics.NotificationFeedbackType.Success,
-        );
-
-        // Auto-select the newly claimed offer
-        onOfferSelect({
-          id: offer.id,
-          title: offer.title,
-          discount: offer.discount_percentage || 0,
-          redemptionCode: offer.id, // Will be updated after claiming
-        });
-
-        Alert.alert(
-          "Offer Claimed! 🎉",
-          `You've successfully claimed ${offer.discount_percentage}% off! This offer has been applied to your booking.`,
-          [{ text: "Continue", style: "default" }],
-        );
-      } catch (err: any) {
-        console.error("Error claiming offer:", err);
-        Alert.alert(
-          "Error",
-          err.message || "Failed to claim offer. Please try again.",
-        );
-      } finally {
-        setProcessingOfferId(null);
-      }
-    },
-    [processingOfferId, disabled, canClaimOffer, claimOffer, onOfferSelect],
-  );
 
   const handleSelectOffer = useCallback(
     (offer: EnrichedOffer) => {
       if (disabled) return;
 
-      if (!offer.claimed) {
-        handleClaimOffer(offer);
+      // Check if offer is valid for selection
+      const now = new Date();
+      const validUntil = new Date(offer.valid_until);
+      if (now > validUntil) {
+        Alert.alert("Offer Expired", "This offer is no longer valid.");
         return;
       }
 
-      if (!offer.canUse) {
+      // For already claimed offers, check if they can be used
+      if (offer.claimed && !offer.canUse) {
         Alert.alert(
           "Offer Not Available",
           offer.used
@@ -146,7 +104,7 @@ export const InlineOfferSelector: React.FC<InlineOfferSelectorProps> = ({
         return;
       }
 
-      // Toggle selection
+      // Toggle selection without claiming to database
       if (selectedOfferId === offer.id) {
         onOfferSelect(null);
       } else {
@@ -154,32 +112,23 @@ export const InlineOfferSelector: React.FC<InlineOfferSelectorProps> = ({
           id: offer.id,
           title: offer.title,
           discount: offer.discount_percentage || 0,
-          redemptionCode: offer.redemptionCode || offer.id,
+          redemptionCode: "", // Will be set during booking confirmation
+          fullOfferData: {
+            valid_until: offer.valid_until,
+            restaurant_id: offer.restaurant_id,
+            discount_percentage: offer.discount_percentage || 0,
+          },
         });
       }
 
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     },
-    [disabled, selectedOfferId, onOfferSelect, handleClaimOffer],
+    [disabled, selectedOfferId, onOfferSelect],
   );
 
   const handleViewDetails = useCallback((offer: EnrichedOffer) => {
     setSelectedOfferForDetails(offer);
     setShowOfferDetails(true);
-  }, []);
-
-  const getOfferStatusColor = useCallback((offer: EnrichedOffer) => {
-    if (offer.used) return "text-gray-500";
-    if (offer.isExpired) return "text-red-500";
-    if (offer.claimed) return "text-blue-500";
-    return "text-green-500";
-  }, []);
-
-  const getOfferStatusText = useCallback((offer: EnrichedOffer) => {
-    if (offer.used) return "Used";
-    if (offer.isExpired) return "Expired";
-    if (offer.claimed) return `${offer.daysUntilExpiry}d left`;
-    return "Available";
   }, []);
 
   if (loading) {
@@ -199,13 +148,13 @@ export const InlineOfferSelector: React.FC<InlineOfferSelectorProps> = ({
 
   const OfferCard = ({ offer }: { offer: EnrichedOffer }) => {
     const isSelected = selectedOfferId === offer.id;
-    const canSelect = offer.claimed ? offer.canUse : true;
-    const isProcessing = processingOfferId === offer.id;
+    const isExpired = new Date() > new Date(offer.valid_until);
+    const canSelect = !isExpired;
 
     return (
       <Pressable
         onPress={() => canSelect && handleSelectOffer(offer)}
-        disabled={!canSelect || isProcessing}
+        disabled={!canSelect}
         className={`border-2 rounded-xl p-4 mb-3 ${
           isSelected
             ? "border-primary bg-primary/10"
@@ -228,9 +177,9 @@ export const InlineOfferSelector: React.FC<InlineOfferSelectorProps> = ({
                 </Text>
               </View>
               <Text
-                className={`text-xs font-medium ${getOfferStatusColor(offer)}`}
+                className={`text-xs font-medium ${isExpired ? "text-red-500" : "text-green-500"}`}
               >
-                {getOfferStatusText(offer)}
+                {isExpired ? "Expired" : "Available"}
               </Text>
             </View>
 
@@ -265,32 +214,18 @@ export const InlineOfferSelector: React.FC<InlineOfferSelectorProps> = ({
                   </Text>
                 </View>
               )}
-              {offer.claimed && offer.redemptionCode && (
-                <View className="flex-row items-center bg-blue-50 dark:bg-blue-900/30 rounded-full px-2 py-1">
-                  <QrCode size={12} color="#2563eb" />
-                  <Text className="text-xs text-blue-700 dark:text-blue-300 ml-1">
-                    Code: {offer.redemptionCode.slice(-6).toUpperCase()}
-                  </Text>
-                </View>
-              )}
             </View>
           </View>
 
           {/* Action area */}
           <View className="items-end">
-            {isProcessing ? (
-              <ActivityIndicator size="small" color="#3b82f6" />
-            ) : isSelected ? (
+            {isSelected ? (
               <View className="bg-primary rounded-full p-2">
                 <CheckCircle size={20} color="white" />
               </View>
-            ) : !offer.claimed ? (
+            ) : canSelect ? (
               <View className="bg-green-500 rounded-full p-2">
                 <Tag size={20} color="white" />
-              </View>
-            ) : offer.canUse ? (
-              <View className="bg-blue-500 rounded-full p-2">
-                <Gift size={20} color="white" />
               </View>
             ) : (
               <View className="bg-gray-400 rounded-full p-2">
@@ -312,14 +247,8 @@ export const InlineOfferSelector: React.FC<InlineOfferSelectorProps> = ({
         <View className="mt-3 pt-3 border-t border-border">
           <Text className="text-sm font-medium text-center">
             {isSelected
-              ? "✓ Applied to booking"
-              : !offer.claimed
-                ? "Tap to claim and apply"
-                : offer.canUse
-                  ? "Tap to apply to booking"
-                  : offer.used
-                    ? "Already used"
-                    : "Expired"}
+              ? "✓ Will be applied when booking is confirmed"
+              : "Tap to select for booking"}
           </Text>
         </View>
       </Pressable>
@@ -389,27 +318,12 @@ export const InlineOfferSelector: React.FC<InlineOfferSelectorProps> = ({
         {/* Expanded offer list */}
         {isExpanded && (
           <View className="mt-4">
-            {claimedOffers.length > 0 && (
-              <View className="mb-4">
-                <Text className="font-medium text-sm text-muted-foreground mb-3">
-                  MY OFFERS ({claimedOffers.length})
-                </Text>
-                {claimedOffers.map((offer) => (
-                  <OfferCard key={`claimed-${offer.id}`} offer={offer} />
-                ))}
-              </View>
-            )}
-
-            {unclaimedOffers.length > 0 && (
-              <View>
-                <Text className="font-medium text-sm text-muted-foreground mb-3">
-                  AVAILABLE TO CLAIM ({unclaimedOffers.length})
-                </Text>
-                {unclaimedOffers.map((offer) => (
-                  <OfferCard key={`unclaimed-${offer.id}`} offer={offer} />
-                ))}
-              </View>
-            )}
+            <Text className="font-medium text-sm text-muted-foreground mb-3">
+              AVAILABLE OFFERS ({sortedOffers.length})
+            </Text>
+            {sortedOffers.map((offer) => (
+              <OfferCard key={offer.id} offer={offer} />
+            ))}
           </View>
         )}
       </View>
@@ -474,9 +388,17 @@ export const InlineOfferSelector: React.FC<InlineOfferSelectorProps> = ({
                         </Text>
                       </View>
                       <Text
-                        className={`text-sm font-medium ${getOfferStatusColor(selectedOfferForDetails)}`}
+                        className={`text-sm font-medium ${
+                          new Date() >
+                          new Date(selectedOfferForDetails.valid_until)
+                            ? "text-red-500"
+                            : "text-green-500"
+                        }`}
                       >
-                        {getOfferStatusText(selectedOfferForDetails)}
+                        {new Date() >
+                        new Date(selectedOfferForDetails.valid_until)
+                          ? "Expired"
+                          : "Available"}
                       </Text>
                     </View>
 
@@ -518,19 +440,17 @@ export const InlineOfferSelector: React.FC<InlineOfferSelectorProps> = ({
                       handleSelectOffer(selectedOfferForDetails);
                     }}
                     disabled={
-                      !selectedOfferForDetails.claimed &&
-                      !canClaimOffer(selectedOfferForDetails).canClaim
+                      new Date() > new Date(selectedOfferForDetails.valid_until)
                     }
                     className="mt-4"
                   >
                     <Text className="text-white font-medium">
                       {selectedOfferForDetails.id === selectedOfferId
                         ? "Remove from Booking"
-                        : !selectedOfferForDetails.claimed
-                          ? "Claim & Apply to Booking"
-                          : selectedOfferForDetails.canUse
-                            ? "Apply to Booking"
-                            : "Not Available"}
+                        : new Date() >
+                            new Date(selectedOfferForDetails.valid_until)
+                          ? "Offer Expired"
+                          : "Select for Booking"}
                     </Text>
                   </Button>
                 </ScrollView>

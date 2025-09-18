@@ -344,9 +344,121 @@ export function useOffers() {
     [profile?.id, offers, enrichOffer, calculateExpiryDate],
   );
 
-  // Use offer (mark as used)
-  const useOffer = useCallback(
-    async (offerId: string, bookingId?: string) => {
+  // Claim and redeem offer in one operation (for booking confirmation)
+  const claimAndRedeemOffer = useCallback(
+    async (offerId: string, bookingId: string) => {
+      console.log("🎯 claimAndRedeemOffer called with:", {
+        offerId,
+        bookingId,
+        profileId: profile?.id,
+      });
+
+      if (!profile?.id) {
+        console.log("❌ No profile ID available");
+        return false;
+      }
+
+      try {
+        console.log(
+          "🎯 Looking for offer in offers array. Total offers:",
+          offers.length,
+        );
+        const offer = offers.find((o) => o.id === offerId);
+        console.log("🎯 Found offer:", offer ? "YES" : "NO");
+
+        if (!offer) {
+          console.log("❌ Offer not found in offers array");
+          console.log(
+            "🎯 Available offer IDs:",
+            offers.map((o) => o.id),
+          );
+          throw new Error("Offer not found");
+        }
+
+        // Check if offer is valid
+        const now = new Date();
+        const validUntil = new Date(offer.valid_until);
+        console.log("🎯 Checking offer validity:", {
+          now: now.toISOString(),
+          validUntil: validUntil.toISOString(),
+        });
+
+        if (now > validUntil) {
+          console.log("❌ Offer has expired");
+          throw new Error("Offer has expired");
+        }
+
+        const claimDate = now.toISOString();
+        const expiryDate = calculateExpiryDate(claimDate, offer.valid_until);
+
+        console.log("🎯 Inserting user offer record:", {
+          user_id: profile.id,
+          offer_id: offerId,
+          booking_id: bookingId,
+          claimed_at: claimDate,
+          used_at: claimDate,
+          expires_at: expiryDate.toISOString(),
+          status: "used",
+        });
+
+        // Insert user offer directly as used (claimed and redeemed in one step)
+        const { data, error } = await supabase
+          .from("user_offers")
+          .insert({
+            user_id: profile.id,
+            offer_id: offerId,
+            booking_id: bookingId,
+            claimed_at: claimDate,
+            used_at: claimDate, // Mark as used immediately
+            expires_at: expiryDate.toISOString(),
+            status: "used",
+          })
+          .select()
+          .single();
+
+        if (error) {
+          console.log("❌ Database insert error:", error);
+          throw error;
+        }
+
+        console.log("✅ Successfully inserted user offer:", data);
+
+        // Update local state
+        const newUserOffer: UserOfferData = {
+          id: data.id,
+          user_id: profile.id,
+          offer_id: offerId,
+          booking_id: bookingId,
+          claimed_at: claimDate,
+          used_at: claimDate,
+          expires_at: expiryDate.toISOString(),
+        };
+
+        setUserOffers((prev) => new Map(prev.set(offerId, newUserOffer)));
+        setOffers((prev) =>
+          prev.map((o) =>
+            o.id === offerId ? enrichOffer(o, newUserOffer) : o,
+          ),
+        );
+
+        console.log(
+          "✅ Successfully claimed and redeemed offer:",
+          offerId,
+          "for booking:",
+          bookingId,
+        );
+        return true;
+      } catch (err: any) {
+        console.error("❌ Error claiming and redeeming offer:", err);
+        throw err;
+      }
+    },
+    [profile?.id, offers, enrichOffer, calculateExpiryDate],
+  );
+
+  // Redeem offer (mark as used with booking ID) - For already claimed offers
+  const redeemOffer = useCallback(
+    async (offerId: string, bookingId: string) => {
       if (!profile?.id) return false;
 
       try {
@@ -369,7 +481,8 @@ export function useOffers() {
           .from("user_offers")
           .update({
             used_at: usedAt,
-            booking_id: bookingId || null,
+            booking_id: bookingId,
+            status: "used",
           })
           .eq("id", offer.redemptionCode)
           .eq("user_id", profile.id);
@@ -394,11 +507,63 @@ export function useOffers() {
 
         return true;
       } catch (err: any) {
-        console.error("Error using offer:", err);
+        console.error("Error redeeming offer:", err);
         throw err;
       }
     },
     [profile?.id, offers, userOffers, enrichOffer],
+  );
+
+  // Release claimed offer (if booking was not completed)
+  const releaseClaimedOffer = useCallback(
+    async (offerId: string) => {
+      if (!profile?.id) return false;
+
+      try {
+        const offer = offers.find((o) => o.id === offerId);
+        if (!offer || !offer.claimed || !offer.redemptionCode || offer.used) {
+          // Offer not found, not claimed, or already used - nothing to release
+          return true;
+        }
+
+        // Delete the user_offer record to "unclaim" the offer
+        const { error } = await supabase
+          .from("user_offers")
+          .delete()
+          .eq("id", offer.redemptionCode)
+          .eq("user_id", profile.id)
+          .is("used_at", null); // Only delete if not yet used
+
+        if (error) throw error;
+
+        // Update local state
+        setUserOffers((prev) => {
+          const newMap = new Map(prev);
+          newMap.delete(offerId);
+          return newMap;
+        });
+
+        setOffers((prev) =>
+          prev.map((o) => (o.id === offerId ? enrichOffer(o, undefined) : o)),
+        );
+
+        console.log("Released claimed offer:", offerId);
+        return true;
+      } catch (err: any) {
+        console.error("Error releasing claimed offer:", err);
+        // Don't throw error here as this is cleanup
+        return false;
+      }
+    },
+    [profile?.id, offers, userOffers, enrichOffer],
+  );
+
+  // Use offer (mark as used) - Legacy function, use redeemOffer instead
+  const useOffer = useCallback(
+    async (offerId: string, bookingId?: string) => {
+      return redeemOffer(offerId, bookingId || "unknown");
+    },
+    [redeemOffer],
   );
 
   // Get user's claimed offers
@@ -531,6 +696,9 @@ export function useOffers() {
     fetchOffers,
     claimOffer,
     useOffer,
+    redeemOffer,
+    claimAndRedeemOffer,
+    releaseClaimedOffer,
     updateFilters,
     updateCategory,
 

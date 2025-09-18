@@ -21,6 +21,13 @@ interface BookingConfirmationProps {
   bookingPolicy: "instant" | "request";
   expectedLoyaltyPoints?: number;
   appliedOfferId?: string;
+  offerData?: {
+    id: string;
+    title: string;
+    discount_percentage: number;
+    valid_until: string;
+    restaurant_id: string;
+  };
   loyaltyRuleId?: string;
   tableIds?: string; // JSON string of table IDs array
   requiresCombination?: boolean;
@@ -148,6 +155,7 @@ export const useBookingConfirmation = () => {
         bookingPolicy,
         expectedLoyaltyPoints,
         appliedOfferId,
+        offerData,
         loyaltyRuleId,
         tableIds,
         requiresCombination,
@@ -229,7 +237,7 @@ export const useBookingConfirmation = () => {
           p_dietary_notes: dietaryNotes || null,
           p_table_preferences: tablePreferences || null,
           p_is_group_booking: isGroupBooking,
-          p_applied_offer_id: appliedOfferId || null,
+          p_applied_offer_id: null, // Don't apply offer until booking is confirmed
           p_booking_policy: bookingPolicy,
           p_expected_loyalty_points: expectedLoyaltyPoints || 0,
           p_applied_loyalty_rule_id: loyaltyRuleId || null,
@@ -251,7 +259,7 @@ export const useBookingConfirmation = () => {
             p_dietary_notes: dietaryNotes || null,
             p_table_preferences: tablePreferences || null,
             p_is_group_booking: isGroupBooking,
-            p_applied_offer_id: appliedOfferId || null,
+            p_applied_offer_id: null, // Don't apply offer until booking is confirmed
             p_booking_policy: bookingPolicy,
             p_expected_loyalty_points: expectedLoyaltyPoints || 0,
             p_applied_loyalty_rule_id: loyaltyRuleId || null,
@@ -462,11 +470,58 @@ export const useBookingConfirmation = () => {
           console.log("Booking Debug Info:", bookingResult.debug_info);
         }
 
+        // Claim and redeem the selected offer if one was applied
+        if (appliedOfferId && offerData) {
+          try {
+            // Check if offer is valid
+            const now = new Date();
+            const validUntil = new Date(offerData.valid_until);
+            if (now > validUntil) {
+              throw new Error("Offer has expired");
+            }
+
+            const claimDate = now.toISOString();
+            // Calculate expiry date (30 days from claim or offer expiry, whichever is sooner)
+            const thirtyDaysFromClaim = new Date(
+              now.getTime() + 30 * 24 * 60 * 60 * 1000,
+            );
+            const expiryDate = new Date(
+              Math.min(thirtyDaysFromClaim.getTime(), validUntil.getTime()),
+            );
+
+            // Insert user offer directly as used (claimed and redeemed in one step)
+            const { data: userOfferData, error: userOfferError } =
+              await supabase
+                .from("user_offers")
+                .insert({
+                  user_id: profile.id,
+                  offer_id: appliedOfferId,
+                  booking_id: bookingResult.booking.id,
+                  claimed_at: claimDate,
+                  used_at: claimDate, // Mark as used immediately
+                  expires_at: expiryDate.toISOString(),
+                  status: "used",
+                })
+                .select()
+                .single();
+
+            if (userOfferError) {
+              throw userOfferError;
+            }
+
+            // Update the booking record to include the applied offer
+            await supabase
+              .from("bookings")
+              .update({ applied_offer_id: appliedOfferId })
+              .eq("id", bookingResult.booking.id);
+          } catch (offerError) {
+            console.error("Failed to claim and redeem offer:", offerError);
+            // Don't fail the entire booking if offer redemption fails
+            // The booking is still valid, just without the discount
+          }
+        }
+
         // Send WhatsApp notification to restaurant (non-blocking)
-        console.log(
-          "🎯 Calling WhatsApp notification for confirmation booking:",
-          bookingResult.booking.id,
-        );
         notifyRestaurantWhatsAppNonBlocking(bookingResult.booking.id);
 
         // Send friend invitations if any friends were invited
