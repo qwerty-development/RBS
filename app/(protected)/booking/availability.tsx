@@ -25,18 +25,17 @@ import {
   Info,
   Star,
   MapPin,
-  CheckCircle,
   Gift,
-  Trophy,
   Sparkles,
   QrCode,
   ArrowLeft,
-  Zap,
   Clock,
   Timer,
   Search,
   X,
   UserPlus,
+  Utensils,
+  User,
 } from "lucide-react-native";
 import { Calendar as RNCalendar } from "react-native-calendars";
 import * as Haptics from "expo-haptics";
@@ -44,17 +43,21 @@ import * as Haptics from "expo-haptics";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
+import { Textarea } from "@/components/ui/textarea";
 import { Image } from "@/components/image";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { getMaxBookingWindow } from "@/lib/tableManagementUtils";
 import { useAuth } from "@/context/supabase-provider";
-import { Database } from "@/types/supabase";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import {
   useAvailability,
   useAvailabilityPreloader,
 } from "@/hooks/useAvailability";
-import { TimeSlots, TableOptions } from "@/components/booking/TimeSlots";
+import {
+  TimeSlots,
+  TableOptions,
+  SpecialRequirementsFormData,
+} from "@/components/booking/TimeSlots";
 import { TableOption } from "@/lib/AvailabilityService";
 import { useOffers } from "@/hooks/useOffers";
 
@@ -79,8 +82,238 @@ import { InviteFriendsModal } from "@/components/booking/InviteFriendsModal";
 // Section selector imports
 import { SectionSelector } from "@/components/booking/SectionSelector";
 import { useRestaurantSections } from "@/hooks/useRestaurantSections";
+import { getDefaultFormValues } from "@/lib/bookingFormHelpers";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Constants for form options
+const DIETARY_RESTRICTIONS = [
+  "Vegetarian",
+  "Vegan",
+  "Gluten-Free",
+  "Dairy-Free",
+  "Nut Allergies",
+  "Kosher",
+  "Halal",
+];
+
+const TABLE_PREFERENCES = [
+  "Booth",
+  "Window Seat",
+  "Patio/Outdoor",
+  "Bar Seating",
+  "Quiet Area",
+  "Near Kitchen",
+];
+
+const OCCASIONS = [
+  { id: "date", label: "Date Night" },
+  { id: "business", label: "Business Meal" },
+  { id: "birthday", label: "Birthday" },
+  { id: "anniversary", label: "Anniversary" },
+  { id: "celebration", label: "Celebration" },
+  { id: "casual", label: "Casual Dining" },
+  { id: "other", label: "Other" },
+];
+
+// Special Requirements Section Component
+const SpecialRequirementsSection = React.memo<{
+  formData: BookingFormData;
+  onFormDataChange: (formData: BookingFormData) => void;
+  showFormByDefault?: boolean;
+}>(({ formData, onFormDataChange, showFormByDefault = false }) => {
+  const [isExpanded, setIsExpanded] = useState(showFormByDefault);
+
+  const toggleDietaryRestriction = useCallback(
+    (restriction: string) => {
+      const current = formData.dietaryRestrictions;
+      const updated = current.includes(restriction)
+        ? current.filter((r) => r !== restriction)
+        : [...current, restriction];
+      onFormDataChange({ ...formData, dietaryRestrictions: updated });
+    },
+    [formData, onFormDataChange],
+  );
+
+  const toggleTablePreference = useCallback(
+    (preference: string) => {
+      const current = formData.tablePreferences;
+      const updated = current.includes(preference)
+        ? current.filter((p) => p !== preference)
+        : [...current, preference];
+      onFormDataChange({ ...formData, tablePreferences: updated });
+    },
+    [formData, onFormDataChange],
+  );
+
+  const setOccasion = useCallback(
+    (occasionId: string) => {
+      onFormDataChange({ ...formData, occasion: occasionId });
+    },
+    [formData, onFormDataChange],
+  );
+
+  const setSpecialRequests = useCallback(
+    (requests: string) => {
+      onFormDataChange({ ...formData, specialRequests: requests });
+    },
+    [formData, onFormDataChange],
+  );
+
+  return (
+    <View className="bg-card border border-border rounded-xl p-4 mb-4">
+      {/* Header */}
+      <Pressable
+        onPress={() => setIsExpanded(!isExpanded)}
+        className="flex-row items-center justify-between"
+      >
+        <View className="flex-row items-center gap-2">
+          <User size={20} color="#3b82f6" />
+          <Text className="font-semibold text-lg">Special Requirements</Text>
+          <Text className="text-sm text-muted-foreground">(Optional)</Text>
+        </View>
+        {isExpanded ? (
+          <ChevronUp size={20} color="#3b82f6" />
+        ) : (
+          <ChevronDown size={20} color="#3b82f6" />
+        )}
+      </Pressable>
+
+      {/* Summary when collapsed and has data */}
+      {!isExpanded && (formData.occasion || formData.dietaryRestrictions.length > 0 || formData.tablePreferences.length > 0 || formData.specialRequests) && (
+        <View className="mt-3 p-3 bg-muted/50 rounded-lg">
+          <Text className="text-sm text-muted-foreground">
+            {[
+              formData.occasion && formData.occasion !== "none" ? OCCASIONS.find(o => o.id === formData.occasion)?.label : null,
+              formData.dietaryRestrictions.length > 0 ? `${formData.dietaryRestrictions.length} dietary restrictions` : null,
+              formData.tablePreferences.length > 0 ? `${formData.tablePreferences.length} table preferences` : null,
+              formData.specialRequests ? "Special requests added" : null
+            ].filter(Boolean).join(" • ")}
+          </Text>
+        </View>
+      )}
+
+      {isExpanded && (
+        <View className="mt-4 space-y-6">
+          {/* Occasion Selection */}
+          <View>
+            <Text className="font-medium text-foreground mb-3">Occasion</Text>
+            <View className="flex-row flex-wrap gap-2">
+              {OCCASIONS.map((occasion) => (
+                <Pressable
+                  key={occasion.id}
+                  onPress={() => setOccasion(occasion.id)}
+                  className={`px-3 py-2 rounded-full border ${
+                    formData.occasion === occasion.id
+                      ? "bg-primary border-primary"
+                      : "bg-background border-border"
+                  }`}
+                >
+                  <Text
+                    className={`text-sm ${
+                      formData.occasion === occasion.id
+                        ? "text-white font-medium"
+                        : "text-foreground"
+                    }`}
+                  >
+                    {occasion.label}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          {/* Dietary Restrictions */}
+          <View>
+            <Text className="font-medium text-foreground mb-3">
+              Dietary Restrictions
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {DIETARY_RESTRICTIONS.map((restriction) => (
+                <Pressable
+                  key={restriction}
+                  onPress={() => toggleDietaryRestriction(restriction)}
+                  className={`px-3 py-2 rounded-full border ${
+                    formData.dietaryRestrictions.includes(restriction)
+                      ? "bg-green-100 border-green-300 dark:bg-green-900/30 dark:border-green-700"
+                      : "bg-background border-border"
+                  }`}
+                >
+                  <Text
+                    className={`text-sm ${
+                      formData.dietaryRestrictions.includes(restriction)
+                        ? "text-green-800 dark:text-green-300 font-medium"
+                        : "text-foreground"
+                    }`}
+                  >
+                    {restriction}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          {/* Table Preferences */}
+          <View>
+            <Text className="font-medium text-foreground mb-3">
+              Table Preferences
+            </Text>
+            <View className="flex-row flex-wrap gap-2">
+              {TABLE_PREFERENCES.map((preference) => (
+                <Pressable
+                  key={preference}
+                  onPress={() => toggleTablePreference(preference)}
+                  className={`px-3 py-2 rounded-full border ${
+                    formData.tablePreferences.includes(preference)
+                      ? "bg-blue-100 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700"
+                      : "bg-background border-border"
+                  }`}
+                >
+                  <Text
+                    className={`text-sm ${
+                      formData.tablePreferences.includes(preference)
+                        ? "text-blue-800 dark:text-blue-300 font-medium"
+                        : "text-foreground"
+                    }`}
+                  >
+                    {preference}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+
+          {/* Special Requests */}
+          <View>
+            <Text className="font-medium text-foreground mb-3">
+              Special Requests
+            </Text>
+            <Textarea
+              placeholder="Any special requests or notes for the restaurant..."
+              value={formData.specialRequests || ""}
+              onChangeText={setSpecialRequests}
+              className="min-h-[80px]"
+              maxLength={500}
+              label=""
+            />
+            <Text className="text-xs text-muted-foreground mt-1">
+              {(formData.specialRequests || "").length}/500 characters
+            </Text>
+          </View>
+        </View>
+      )}
+    </View>
+  );
+});
+
+// Form Data Interface
+interface BookingFormData {
+  specialRequests?: string;
+  occasion?: string;
+  dietaryRestrictions: string[];
+  tablePreferences: string[];
+  acceptTerms: boolean;
+}
 
 // Optimized Restaurant Info Card
 const RestaurantInfoCard = React.memo<{
@@ -639,7 +872,20 @@ export default function AvailabilitySelectionScreen() {
   const [showInviteFriendsModal, setShowInviteFriendsModal] = useState(false);
 
   // Section selection state (only for basic tier restaurants)
-  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(
+    null,
+  );
+
+  // Special requirements form state
+  const [showSpecialRequirements, setShowSpecialRequirements] = useState(false);
+  const [formData, setFormData] = useState<BookingFormData>(() => ({
+    specialRequests: "",
+    occasion: "none",
+    dietaryRestrictions: [],
+    tablePreferences: [],
+    acceptTerms: false,
+    ...getDefaultFormValues(profile),
+  }));
 
   // Calculate total party size including invited friends
   const totalPartySize = useMemo(
@@ -698,10 +944,8 @@ export default function AvailabilitySelectionScreen() {
   const { offers = [] } = offersData || {};
 
   // Restaurant sections hook (only used for basic tier restaurants)
-  const { 
-    sections: restaurantSections, 
-    loading: sectionsLoading 
-  } = useRestaurantSections(params.restaurantId);
+  const { sections: restaurantSections, loading: sectionsLoading } =
+    useRestaurantSections(params.restaurantId);
 
   // Memoize booking date time to prevent infinite re-renders
   const bookingDateTime = useMemo(() => {
@@ -875,10 +1119,17 @@ export default function AvailabilitySelectionScreen() {
     try {
       // Prepare section preference for basic tier restaurants
       let preferredSection = null;
-      console.log("Section Debug - isBasicTier:", isBasicTier, "selectedSectionId:", selectedSectionId);
-      
+      console.log(
+        "Section Debug - isBasicTier:",
+        isBasicTier,
+        "selectedSectionId:",
+        selectedSectionId,
+      );
+
       if (isBasicTier && selectedSectionId && selectedSectionId !== "any") {
-        const selectedSection = restaurantSections.find(section => section.id === selectedSectionId);
+        const selectedSection = restaurantSections.find(
+          (section) => section.id === selectedSectionId,
+        );
         console.log("Selected section found:", selectedSection);
         if (selectedSection) {
           preferredSection = selectedSection.name;
@@ -891,10 +1142,16 @@ export default function AvailabilitySelectionScreen() {
         restaurantId: params.restaurantId,
         bookingTime: bookingTime,
         partySize: partySize,
-        specialRequests: undefined, // Remove section from special requests
-        occasion: undefined,
-        dietaryNotes: undefined,
-        tablePreferences: undefined,
+        specialRequests: formData.specialRequests,
+        occasion: formData.occasion !== "none" ? formData.occasion : undefined,
+        dietaryNotes:
+          formData.dietaryRestrictions.length > 0
+            ? formData.dietaryRestrictions
+            : undefined,
+        tablePreferences:
+          formData.tablePreferences.length > 0
+            ? formData.tablePreferences
+            : undefined,
         bookingPolicy: (restaurant as any).booking_policy as
           | "instant"
           | "request",
@@ -941,6 +1198,7 @@ export default function AvailabilitySelectionScreen() {
     invitedFriends,
     selectedSectionId,
     restaurantSections,
+    formData,
   ]);
 
   const handleTimeSelect = useCallback(
@@ -1005,10 +1263,17 @@ export default function AvailabilitySelectionScreen() {
           restaurantId: params.restaurantId,
           bookingTime: bookingDateTime,
           partySize: totalPartySize,
-          specialRequests: undefined,
-          occasion: undefined,
-          dietaryNotes: undefined,
-          tablePreferences: undefined,
+          specialRequests: formData.specialRequests,
+          occasion:
+            formData.occasion !== "none" ? formData.occasion : undefined,
+          dietaryNotes:
+            formData.dietaryRestrictions.length > 0
+              ? formData.dietaryRestrictions
+              : undefined,
+          tablePreferences:
+            formData.tablePreferences.length > 0
+              ? formData.tablePreferences
+              : undefined,
           bookingPolicy: (restaurant as any).booking_policy as
             | "instant"
             | "request",
@@ -1062,6 +1327,7 @@ export default function AvailabilitySelectionScreen() {
       clearSelectedSlot,
       isConfirmingBooking,
       invitedFriends,
+      formData,
     ],
   );
 
@@ -1171,6 +1437,71 @@ export default function AvailabilitySelectionScreen() {
       ],
     );
   }, []);
+
+  // Special requirements form helpers
+  const handleFormDataChange = useCallback(
+    (field: keyof BookingFormData, value: any) => {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    },
+    [],
+  );
+
+  const toggleDietaryRestriction = useCallback(
+    (restriction: string) => {
+      const current = formData.dietaryRestrictions;
+      if (current.includes(restriction)) {
+        handleFormDataChange(
+          "dietaryRestrictions",
+          current.filter((r) => r !== restriction),
+        );
+      } else {
+        handleFormDataChange("dietaryRestrictions", [...current, restriction]);
+      }
+    },
+    [formData.dietaryRestrictions, handleFormDataChange],
+  );
+
+  const toggleTablePreference = useCallback(
+    (preference: string) => {
+      const current = formData.tablePreferences;
+      if (current.includes(preference)) {
+        handleFormDataChange(
+          "tablePreferences",
+          current.filter((p) => p !== preference),
+        );
+      } else {
+        handleFormDataChange("tablePreferences", [...current, preference]);
+      }
+    },
+    [formData.tablePreferences, handleFormDataChange],
+  );
+
+  const handleSetOccasion = useCallback(
+    (occasionId: string) => {
+      handleFormDataChange("occasion", occasionId);
+    },
+    [handleFormDataChange],
+  );
+
+  const handleToggleSpecialRequirements = useCallback(() => {
+    setShowSpecialRequirements((prev) => !prev);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }, []);
+
+  // Handle form completion from TimeSlots component
+  const handleSpecialRequirementsComplete = useCallback(
+    (newFormData: SpecialRequirementsFormData) => {
+      setFormData((prev) => ({
+        ...prev,
+        specialRequests: newFormData.specialRequests,
+        occasion: newFormData.occasion || "none",
+        dietaryRestrictions: newFormData.dietaryRestrictions,
+        tablePreferences: newFormData.tablePreferences,
+      }));
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    },
+    [],
+  );
 
   // Cleanup on unmount
   useEffect(() => {
@@ -1378,6 +1709,8 @@ export default function AvailabilitySelectionScreen() {
                 loading={timeSlotsLoading}
                 showLiveIndicator={true}
                 error={error}
+                onFormComplete={handleSpecialRequirementsComplete}
+                showRequirementsForm={true}
               />
 
               {/* Time Range Search Button - Only show for pro plan restaurants */}
@@ -1479,6 +1812,13 @@ export default function AvailabilitySelectionScreen() {
                   onPointsCalculated={setSelectedLoyaltyPoints}
                 />
               )}
+
+              {/* Special Requirements Form - Also show in experience step */}
+              <SpecialRequirementsSection
+                formData={formData}
+                onFormDataChange={setFormData}
+                showFormByDefault={false}
+              />
 
               {/* Pass isConfirming prop to TableOptions */}
               <TableOptions

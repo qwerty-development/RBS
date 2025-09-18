@@ -237,8 +237,6 @@ export const useBookingConfirmation = () => {
           // TODO: Add p_preferred_section to create_booking_with_tables function
         });
 
-       
-
         const { data: rpcResult, error: rpcError } = await supabase.rpc(
           "create_booking_with_tables",
           {

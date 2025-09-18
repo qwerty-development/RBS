@@ -532,6 +532,10 @@ export function useBookingCreate() {
               special_requests: formData.specialRequests || null,
               occasion: formData.occasion !== "none" ? formData.occasion : null,
               dietary_notes: formData.dietaryRestrictions,
+              table_preferences:
+                formData.tablePreferences.length > 0
+                  ? formData.tablePreferences
+                  : null,
               applied_offer_id: selectedOffer?.special_offer.id || null,
               is_group_booking: invitedFriends.length > 0,
               turn_time_minutes: turnTime,

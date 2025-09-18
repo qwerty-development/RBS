@@ -12,11 +12,16 @@ import {
   TreePine,
   Utensils,
   Eye,
+  ChevronDown,
+  ChevronUp,
+  User,
+  Clipboard,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   AvailabilityService,
   TimeSlotBasic,
@@ -24,7 +29,253 @@ import {
   TableOption,
 } from "@/lib/AvailabilityService";
 
+// Form data interface
+export interface SpecialRequirementsFormData {
+  specialRequests: string;
+  occasion: string;
+  dietaryRestrictions: string[];
+  tablePreferences: string[];
+}
+
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+// Constants for form options
+const DIETARY_RESTRICTIONS = [
+  "Vegetarian",
+  "Vegan",
+  "Gluten-Free",
+  "Dairy-Free",
+  "Nut Allergies",
+  "Kosher",
+  "Halal",
+];
+
+const TABLE_PREFERENCES = [
+  "Booth",
+  "Window Seat",
+  "Patio/Outdoor",
+  "Bar Seating",
+  "Quiet Area",
+  "Near Kitchen",
+];
+
+const OCCASIONS = [
+  { id: "date", label: "Date Night" },
+  { id: "business", label: "Business Meal" },
+  { id: "birthday", label: "Birthday" },
+  { id: "anniversary", label: "Anniversary" },
+  { id: "celebration", label: "Celebration" },
+  { id: "casual", label: "Casual Dining" },
+  { id: "other", label: "Other" },
+];
+
+// Special Requirements Form Component
+const SpecialRequirementsForm = memo<{
+  formData: SpecialRequirementsFormData;
+  onFormDataChange: (data: SpecialRequirementsFormData) => void;
+  onComplete: () => void;
+  isExpanded: boolean;
+  onToggleExpanded: () => void;
+}>(
+  ({
+    formData,
+    onFormDataChange,
+    onComplete,
+    isExpanded,
+    onToggleExpanded,
+  }) => {
+    const toggleDietaryRestriction = useCallback(
+      (restriction: string) => {
+        const updatedRestrictions = formData.dietaryRestrictions.includes(
+          restriction,
+        )
+          ? formData.dietaryRestrictions.filter((r) => r !== restriction)
+          : [...formData.dietaryRestrictions, restriction];
+        onFormDataChange({
+          ...formData,
+          dietaryRestrictions: updatedRestrictions,
+        });
+      },
+      [formData, onFormDataChange],
+    );
+
+    const toggleTablePreference = useCallback(
+      (preference: string) => {
+        const updatedPreferences = formData.tablePreferences.includes(
+          preference,
+        )
+          ? formData.tablePreferences.filter((p) => p !== preference)
+          : [...formData.tablePreferences, preference];
+        onFormDataChange({
+          ...formData,
+          tablePreferences: updatedPreferences,
+        });
+      },
+      [formData, onFormDataChange],
+    );
+
+    const setOccasion = useCallback(
+      (occasionId: string) => {
+        onFormDataChange({
+          ...formData,
+          occasion: occasionId,
+        });
+      },
+      [formData, onFormDataChange],
+    );
+
+    const setSpecialRequests = useCallback(
+      (requests: string) => {
+        onFormDataChange({
+          ...formData,
+          specialRequests: requests,
+        });
+      },
+      [formData, onFormDataChange],
+    );
+
+    return (
+      <View className="mt-4 bg-card border border-border rounded-xl p-4">
+        {/* Header */}
+        <Pressable
+          onPress={onToggleExpanded}
+          className="flex-row items-center justify-between"
+        >
+          <View className="flex-row items-center gap-2">
+            <User size={20} color="#3b82f6" />
+            <Text className="font-semibold text-lg">Special Requirements</Text>
+            <Text className="text-sm text-muted-foreground">(Optional)</Text>
+          </View>
+          {isExpanded ? (
+            <ChevronUp size={20} color="#3b82f6" />
+          ) : (
+            <ChevronDown size={20} color="#3b82f6" />
+          )}
+        </Pressable>
+
+        {isExpanded && (
+          <View className="mt-4 space-y-6">
+            {/* Occasion Selection */}
+            <View>
+              <Text className="font-medium text-foreground mb-3">Occasion</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {OCCASIONS.map((occasion) => (
+                  <Pressable
+                    key={occasion.id}
+                    onPress={() => setOccasion(occasion.id)}
+                    className={`px-3 py-2 rounded-full border ${
+                      formData.occasion === occasion.id
+                        ? "bg-primary border-primary"
+                        : "bg-background border-border"
+                    }`}
+                  >
+                    <Text
+                      className={`text-sm ${
+                        formData.occasion === occasion.id
+                          ? "text-white font-medium"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {occasion.label}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            {/* Dietary Restrictions */}
+            <View>
+              <Text className="font-medium text-foreground mb-3">
+                Dietary Restrictions
+              </Text>
+              <View className="flex-row flex-wrap gap-2">
+                {DIETARY_RESTRICTIONS.map((restriction) => (
+                  <Pressable
+                    key={restriction}
+                    onPress={() => toggleDietaryRestriction(restriction)}
+                    className={`px-3 py-2 rounded-full border ${
+                      formData.dietaryRestrictions.includes(restriction)
+                        ? "bg-green-100 border-green-300 dark:bg-green-900/30 dark:border-green-700"
+                        : "bg-background border-border"
+                    }`}
+                  >
+                    <Text
+                      className={`text-sm ${
+                        formData.dietaryRestrictions.includes(restriction)
+                          ? "text-green-800 dark:text-green-300 font-medium"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {restriction}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            {/* Table Preferences */}
+            <View>
+              <Text className="font-medium text-foreground mb-3">
+                Table Preferences
+              </Text>
+              <View className="flex-row flex-wrap gap-2">
+                {TABLE_PREFERENCES.map((preference) => (
+                  <Pressable
+                    key={preference}
+                    onPress={() => toggleTablePreference(preference)}
+                    className={`px-3 py-2 rounded-full border ${
+                      formData.tablePreferences.includes(preference)
+                        ? "bg-blue-100 border-blue-300 dark:bg-blue-900/30 dark:border-blue-700"
+                        : "bg-background border-border"
+                    }`}
+                  >
+                    <Text
+                      className={`text-sm ${
+                        formData.tablePreferences.includes(preference)
+                          ? "text-blue-800 dark:text-blue-300 font-medium"
+                          : "text-foreground"
+                      }`}
+                    >
+                      {preference}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            {/* Special Requests */}
+            <View>
+              <Text className="font-medium text-foreground mb-3">
+                Special Requests
+              </Text>
+              <Textarea
+                placeholder="Any special requests or notes for the restaurant..."
+                value={formData.specialRequests}
+                onChangeText={setSpecialRequests}
+                className="min-h-[80px]"
+                maxLength={500}
+                label=""
+              />
+              <Text className="text-xs text-muted-foreground mt-1">
+                {formData.specialRequests.length}/500 characters
+              </Text>
+            </View>
+
+            {/* Complete Button */}
+            <Button onPress={onComplete} size="lg" className="w-full">
+              <View className="flex-row items-center justify-center gap-2">
+                <CheckCircle size={20} color="white" />
+                <Text className="text-white font-bold">
+                  Continue to Table Selection
+                </Text>
+              </View>
+            </Button>
+          </View>
+        )}
+      </View>
+    );
+  },
+);
 
 // Optimized skeleton components
 const TimeSlotSkeleton = memo(() => (
@@ -92,6 +343,8 @@ export const TimeSlots = memo<{
   loading: boolean;
   showLiveIndicator?: boolean;
   error?: string | null;
+  onFormComplete?: (formData: SpecialRequirementsFormData) => void;
+  showRequirementsForm?: boolean;
 }>(
   ({
     slots,
@@ -100,7 +353,39 @@ export const TimeSlots = memo<{
     loading,
     showLiveIndicator = false,
     error,
+    onFormComplete,
+    showRequirementsForm = true,
   }) => {
+    // Form state
+    const [formData, setFormData] = useState<SpecialRequirementsFormData>({
+      specialRequests: "",
+      occasion: "",
+      dietaryRestrictions: [],
+      tablePreferences: [],
+    });
+    const [isFormExpanded, setIsFormExpanded] = useState(false);
+    const [isFormCompleted, setIsFormCompleted] = useState(false);
+
+    // Auto-expand form when time is selected
+    React.useEffect(() => {
+      if (selectedTime && showRequirementsForm && !isFormCompleted) {
+        setIsFormExpanded(true);
+      }
+    }, [selectedTime, showRequirementsForm, isFormCompleted]);
+
+    const handleFormComplete = useCallback(() => {
+      setIsFormCompleted(true);
+      setIsFormExpanded(false);
+      onFormComplete?.(formData);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }, [formData, onFormComplete]);
+
+    const handleFormDataChange = useCallback(
+      (newFormData: SpecialRequirementsFormData) => {
+        setFormData(newFormData);
+      },
+      [],
+    );
     // Memoize slots processing
     const processedSlots = useMemo(() => {
       if (!slots || slots.length === 0) return [];
@@ -198,6 +483,29 @@ export const TimeSlots = memo<{
               <CheckCircle size={16} color="#10b981" />
               <Text className="text-sm text-green-800 dark:text-green-200">
                 Selected: {selectedTime}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Special Requirements Form */}
+        {selectedTime && showRequirementsForm && (
+          <SpecialRequirementsForm
+            formData={formData}
+            onFormDataChange={handleFormDataChange}
+            onComplete={handleFormComplete}
+            isExpanded={isFormExpanded}
+            onToggleExpanded={() => setIsFormExpanded(!isFormExpanded)}
+          />
+        )}
+
+        {/* Form completion indicator */}
+        {selectedTime && isFormCompleted && (
+          <View className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <View className="flex-row items-center gap-2">
+              <CheckCircle size={16} color="#3b82f6" />
+              <Text className="text-sm text-blue-800 dark:text-blue-200">
+                Requirements saved. Ready to select table experience.
               </Text>
             </View>
           </View>

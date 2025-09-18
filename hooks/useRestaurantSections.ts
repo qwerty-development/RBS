@@ -4,7 +4,8 @@ import { supabase } from "@/config/supabase";
 import { Database } from "@/types/supabase";
 
 // Types
-type RestaurantSection = Database["public"]["Tables"]["restaurant_sections"]["Row"];
+type RestaurantSection =
+  Database["public"]["Tables"]["restaurant_sections"]["Row"];
 
 interface UseRestaurantSectionsReturn {
   sections: RestaurantSection[];
@@ -61,7 +62,7 @@ export function useRestaurantSections(
       setLoading(false);
       return;
     }
-    
+
     fetchSections();
   }, [restaurantId]); // Simplified dependency
 
