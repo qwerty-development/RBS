@@ -307,6 +307,17 @@ export default function MenuScreen() {
         }
         contentContainerStyle={{ paddingBottom: 20 }}
         stickySectionHeadersEnabled={true}
+        ListEmptyComponent={() => (
+          <View className="flex-1 items-center justify-center py-20 px-4">
+            <Text className="text-6xl mb-4">😞</Text>
+            <Text className="text-center text-lg font-medium text-foreground mb-2">
+              Oops restaurant did not upload menu
+            </Text>
+            <Text className="text-center text-muted-foreground">
+              Check back later or contact the restaurant
+            </Text>
+          </View>
+        )}
       />
 
       {/* Filters Modal */}

@@ -26,10 +26,9 @@ export const MenuTab = ({ restaurant }: MenuTabProps) => {
         </Pressable>
       ) : (
         <View className="bg-muted p-6 rounded-lg items-center">
-          <Menu size={48} color="#666" />
-          <Muted className="mt-3">Menu not available</Muted>
-          <Text className="text-sm text-center mt-1 text-muted-foreground">
-            Contact the restaurant for menu information
+          <Text className="text-4xl mb-3">😞</Text>
+          <Text className="text-center font-medium text-foreground">
+            Oops restaurant did not upload menu
           </Text>
         </View>
       )}
