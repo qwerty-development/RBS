@@ -8,8 +8,10 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  TouchableOpacity,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import * as z from "zod";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -18,6 +20,7 @@ import { Form, FormField, FormInput } from "@/components/ui/form";
 import { Text } from "@/components/ui/text";
 import { H1, P } from "@/components/ui/typography";
 import { useAuth } from "@/context/supabase-provider";
+import { useColorScheme } from "@/lib/useColorScheme";
 import { Checkbox } from "@/components/ui/checkbox";
 import SignUpScreenSkeleton from "@/components/skeletons/SignUpScreenSkeleton";
 
@@ -96,8 +99,12 @@ type FormData = z.infer<typeof formSchema>;
 
 export default function SignUp() {
   const { signUp } = useAuth();
+  const { colorScheme } = useColorScheme();
   const router = useRouter();
   const [loading, setLoading] = React.useState(false);
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const isDark = colorScheme === "dark";
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -237,15 +244,28 @@ export default function SignUp() {
                   control={form.control}
                   name="password"
                   render={({ field }) => (
-                    <FormInput
-                      label="Password"
-                      placeholder="Create a strong password"
-                      description="At least 8 characters with uppercase, lowercase, number and special character"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      secureTextEntry
-                      {...field}
-                    />
+                    <View className="relative">
+                      <FormInput
+                        label="Password"
+                        placeholder="Create a strong password"
+                        description="At least 8 characters with uppercase, lowercase, number and special character"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        secureTextEntry={!showPassword}
+                        {...field}
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-8 h-6 w-6 items-center justify-center"
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <Ionicons
+                          name={showPassword ? "eye-off" : "eye"}
+                          size={20}
+                          color={isDark ? "#9CA3AF" : "#6B7280"}
+                        />
+                      </TouchableOpacity>
+                    </View>
                   )}
                 />
 
@@ -253,14 +273,27 @@ export default function SignUp() {
                   control={form.control}
                   name="confirmPassword"
                   render={({ field }) => (
-                    <FormInput
-                      label="Confirm Password"
-                      placeholder="Re-enter your password"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      secureTextEntry
-                      {...field}
-                    />
+                    <View className="relative">
+                      <FormInput
+                        label="Confirm Password"
+                        placeholder="Re-enter your password"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        secureTextEntry={!showConfirmPassword}
+                        {...field}
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-8 h-6 w-6 items-center justify-center"
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      >
+                        <Ionicons
+                          name={showConfirmPassword ? "eye-off" : "eye"}
+                          size={20}
+                          color={isDark ? "#9CA3AF" : "#6B7280"}
+                        />
+                      </TouchableOpacity>
+                    </View>
                   )}
                 />
 

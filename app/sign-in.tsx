@@ -40,6 +40,7 @@ export default function SignIn() {
   const [isAppleLoading, setIsAppleLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [appleAuthAvailable, setAppleAuthAvailable] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -205,14 +206,27 @@ export default function SignIn() {
                 control={form.control}
                 name="password"
                 render={({ field }) => (
-                  <FormInput
-                    label="Password"
-                    placeholder="Enter your password"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    secureTextEntry
-                    {...field}
-                  />
+                  <View className="relative">
+                    <FormInput
+                      label="Password"
+                      placeholder="Enter your password"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                      secureTextEntry={!showPassword}
+                      {...field}
+                    />
+                    <TouchableOpacity
+                      onPress={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-8 h-6 w-6 items-center justify-center"
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Ionicons
+                        name={showPassword ? "eye-off" : "eye"}
+                        size={20}
+                        color={isDark ? "#9CA3AF" : "#6B7280"}
+                      />
+                    </TouchableOpacity>
+                  </View>
                 )}
               />
               <TouchableOpacity
