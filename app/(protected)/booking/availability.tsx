@@ -59,7 +59,6 @@ import {
   SpecialRequirementsFormData,
 } from "@/components/booking/TimeSlots";
 import { TableOption } from "@/lib/AvailabilityService";
-import { useOffers } from "@/hooks/useOffers";
 
 // New loyalty system imports
 import { LoyaltyPointsDisplay } from "@/components/booking/LoyaltyPointsDisplay";
@@ -83,6 +82,9 @@ import { InviteFriendsModal } from "@/components/booking/InviteFriendsModal";
 import { SectionSelector } from "@/components/booking/SectionSelector";
 import { useRestaurantSections } from "@/hooks/useRestaurantSections";
 import { getDefaultFormValues } from "@/lib/bookingFormHelpers";
+
+// Inline offer selector imports
+import { InlineOfferSelector } from "@/components/booking/InlineOfferSelector";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -786,45 +788,6 @@ const PreselectedOfferPreview = React.memo<{
   </View>
 ));
 
-const OffersPreview = React.memo<{
-  availableOffers: any[];
-  onViewOffers: () => void;
-}>(({ availableOffers, onViewOffers }) => {
-  if (availableOffers.length === 0) return null;
-
-  const maxDiscount = useMemo(
-    () => Math.max(...availableOffers.map((o) => o.discount_percentage || 0)),
-    [availableOffers],
-  );
-
-  return (
-    <Pressable
-      onPress={onViewOffers}
-      className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800 rounded-xl p-4"
-    >
-      <View className="flex-row items-center justify-between">
-        <View className="flex-row items-center gap-3 flex-1">
-          <Gift size={20} color="#10b981" />
-          <View className="flex-1">
-            <Text className="font-semibold text-lg text-green-800 dark:text-green-200">
-              {availableOffers.length} Special Offer
-              {availableOffers.length > 1 ? "s" : ""} Available
-            </Text>
-            <Text className="text-sm text-green-700 dark:text-green-300">
-              Apply discounts during booking
-            </Text>
-          </View>
-        </View>
-        <View className="bg-green-200 dark:bg-green-800 rounded-full px-3 py-1">
-          <Text className="text-green-800 dark:text-green-200 font-bold text-sm">
-            Save up to {maxDiscount}%
-          </Text>
-        </View>
-      </View>
-    </Pressable>
-  );
-});
-
 // Main Component
 export default function AvailabilitySelectionScreen() {
   const [isMounted, setIsMounted] = useState(false);
@@ -952,9 +915,6 @@ export default function AvailabilitySelectionScreen() {
     preloadNext: true,
   });
 
-  const offersData = useOffers();
-  const { offers = [] } = offersData || {};
-
   // Restaurant sections hook (only used for basic tier restaurants)
   const { sections: restaurantSections, loading: sectionsLoading } =
     useRestaurantSections(params.restaurantId);
@@ -1030,17 +990,6 @@ export default function AvailabilitySelectionScreen() {
     }
     fetchMaxDays();
   }, [profile?.id, restaurant?.id, (restaurant as any)?.booking_window_days]);
-
-  const availableOffers = useMemo(() => {
-    return offers.filter(
-      (offer) =>
-        offer &&
-        offer.restaurant_id === params.restaurantId &&
-        !offer.usedAt &&
-        new Date(offer.expiresAt || offer.valid_until) > new Date() &&
-        offer.id !== preselectedOffer?.id,
-    );
-  }, [offers, params.restaurantId, preselectedOffer?.id]);
 
   const formatSelectedDate = useCallback((date: Date) => {
     const today = new Date();
@@ -1343,15 +1292,25 @@ export default function AvailabilitySelectionScreen() {
     ],
   );
 
-  const handleViewOffers = useCallback(() => {
-    router.push({
-      pathname: "/offers",
-      params: {
-        restaurantId: params.restaurantId,
-        returnTo: "availability",
-      },
-    });
-  }, [router, params.restaurantId]);
+  // Handle inline offer selection
+  const handleOfferSelect = useCallback(
+    (
+      offer: {
+        id: string;
+        title: string;
+        discount: number;
+        redemptionCode: string;
+      } | null,
+    ) => {
+      if (offer) {
+        setPreselectedOffer(offer);
+      } else {
+        setPreselectedOffer(null);
+      }
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    },
+    [],
+  );
 
   const handleRemovePreselectedOffer = useCallback(() => {
     Alert.alert(
@@ -1846,13 +1805,13 @@ export default function AvailabilitySelectionScreen() {
           {/* Additional Content - Only show on time step */}
           {currentStep === "time" && (
             <>
-              {/* Other Offers Preview */}
-              {!preselectedOffer && (
-                <OffersPreview
-                  availableOffers={availableOffers}
-                  onViewOffers={handleViewOffers}
-                />
-              )}
+              {/* Inline Offer Selector */}
+              <InlineOfferSelector
+                restaurantId={params.restaurantId || ""}
+                onOfferSelect={handleOfferSelect}
+                selectedOfferId={preselectedOffer?.id || null}
+                disabled={currentStep === "experience" || isConfirmingBooking}
+              />
 
               {/* Booking Policies */}
               <View className="bg-muted/30 rounded-xl p-4">

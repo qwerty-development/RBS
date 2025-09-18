@@ -6,13 +6,11 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
-  RefreshControl,
   Share,
-  Dimensions,
   Modal,
   ScrollView,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import {
   Tag,
   Clock,
@@ -20,12 +18,10 @@ import {
   Users,
   Percent,
   ChevronRight,
+  ChevronLeft,
   Filter,
   Star,
   MapPin,
-  Info,
-  Sparkles,
-  TrendingUp,
   Gift,
   X,
   Share2,
@@ -46,15 +42,22 @@ import { Image } from "@/components/image";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useOffers } from "@/hooks/useOffers";
 import OffersScreenSkeleton from "@/components/skeletons/OffersScreenSkeleton";
-import { getRefreshControlColor } from "@/lib/utils";
 import { OptimizedList } from "@/components/ui/optimized-list";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function SpecialOffersScreen() {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const insets = useSafeAreaInsets();
+
+  // Get search params to check if coming from booking flow
+  const params = useLocalSearchParams<{
+    restaurantId?: string;
+    returnTo?: string;
+  }>();
+
+  // Check if we're in booking context
+  const isBookingContext =
+    params.restaurantId && params.returnTo === "availability";
 
   // Use the useOffers hook for all offer logic
   const {
@@ -70,6 +73,16 @@ export default function SpecialOffersScreen() {
     OFFER_CATEGORIES,
     fetchOffers,
   } = useOffers();
+
+  // Filter offers for booking context
+  const displayOffers = React.useMemo(() => {
+    if (isBookingContext && params.restaurantId) {
+      return offers.filter(
+        (offer) => offer.restaurant_id === params.restaurantId,
+      );
+    }
+    return offers;
+  }, [offers, isBookingContext, params.restaurantId]);
 
   // UI state
   const [processingOfferId, setProcessingOfferId] = React.useState<
@@ -174,6 +187,48 @@ export default function SpecialOffersScreen() {
       }
     },
     [claimOffer, processingOfferId, navigateToRestaurant, bookWithOffer],
+  );
+
+  // Apply offer to booking and return to availability
+  const applyOfferToBooking = React.useCallback(
+    (offer: any) => {
+      if (!offer.claimed) {
+        Alert.alert(
+          "Claim Required",
+          "You need to claim this offer first before you can use it.",
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Claim Now",
+              onPress: () => handleClaimOffer(offer),
+            },
+          ],
+        );
+        return;
+      }
+
+      if (!offer.canUse) {
+        Alert.alert(
+          "Offer Not Available",
+          "This offer has expired or has already been used.",
+          [{ text: "OK" }],
+        );
+        return;
+      }
+
+      // Navigate back to availability with the offer applied
+      router.push({
+        pathname: "/booking/availability",
+        params: {
+          restaurantId: params.restaurantId!,
+          preselectedOfferId: offer.id,
+          offerTitle: offer.title,
+          offerDiscount: offer.discount_percentage.toString(),
+          redemptionCode: offer.redemptionCode || offer.id,
+        },
+      });
+    },
+    [router, params.restaurantId, handleClaimOffer],
   );
 
   // Refresh handler
@@ -375,13 +430,18 @@ export default function SpecialOffersScreen() {
                 variant="default"
                 onPress={(e) => {
                   e.stopPropagation();
-                  bookWithOffer(offer);
+                  // Use different action based on context
+                  if (isBookingContext) {
+                    applyOfferToBooking(offer);
+                  } else {
+                    bookWithOffer(offer);
+                  }
                 }}
                 className="flex-1 h-12"
               >
                 <Calendar size={18} className="mr-2" />
                 <Text className="font-bold text-base text-white">
-                  Book with Offer
+                  {isBookingContext ? "Apply to Booking" : "Book with Offer"}
                 </Text>
               </Button>
             ) : (
@@ -423,7 +483,7 @@ export default function SpecialOffersScreen() {
       >
         {OFFER_CATEGORIES.map((category) => {
           const isActive = selectedCategory === category.id;
-          const claimedCount = offers.filter((o) => o.claimed).length;
+          const claimedCount = displayOffers.filter((o) => o.claimed).length;
           return (
             <Pressable
               key={category.id}
@@ -781,7 +841,7 @@ export default function SpecialOffersScreen() {
   }
 
   // Empty state
-  if (!loading && offers.length === 0) {
+  if (!loading && displayOffers.length === 0) {
     return (
       <SafeAreaView className="flex-1 bg-background">
         <View
@@ -789,29 +849,59 @@ export default function SpecialOffersScreen() {
           className="bg-background border-b border-border/50"
         >
           <View className="px-4 pt-4 pb-2 flex-row items-center justify-between">
-            <View>
-              <H2>Special Offers</H2>
-              <Muted>No offers available</Muted>
-            </View>
-            <Pressable onPress={() => setShowFilters(true)} className="p-2">
-              <Filter
-                size={24}
-                color={colorScheme === "dark" ? "#fff" : "#000"}
-              />
-            </Pressable>
+            {isBookingContext ? (
+              <View className="flex-row items-center flex-1">
+                <Pressable
+                  onPress={() => router.back()}
+                  className="p-2 -ml-2 mr-2 rounded-full"
+                  hitSlop={8}
+                >
+                  <ChevronLeft
+                    size={24}
+                    color={colorScheme === "dark" ? "#fff" : "#000"}
+                  />
+                </Pressable>
+                <View className="flex-1">
+                  <H2>Restaurant Offers</H2>
+                  <Muted>No offers available for this restaurant</Muted>
+                </View>
+              </View>
+            ) : (
+              <>
+                <View>
+                  <H2>Special Offers</H2>
+                  <Muted>No offers available</Muted>
+                </View>
+                <Pressable onPress={() => setShowFilters(true)} className="p-2">
+                  <Filter
+                    size={24}
+                    color={colorScheme === "dark" ? "#fff" : "#000"}
+                  />
+                </Pressable>
+              </>
+            )}
           </View>
-          <CategoryTabs />
+          {!isBookingContext && <CategoryTabs />}
         </View>
 
         <View className="flex-1 justify-center items-center px-4">
           <Gift size={48} color="#666" className="mb-4" />
           <H3 className="text-center mb-2">No offers found</H3>
           <Text className="text-center text-muted-foreground mb-4">
-            Check back later for new deals or try adjusting your filters.
+            {isBookingContext
+              ? "This restaurant doesn't have any active offers right now. You can still continue with your booking."
+              : "Check back later for new deals or try adjusting your filters."}
           </Text>
-          <Button onPress={handleRefresh}>
-            <Text className="text-white">Refresh</Text>
-          </Button>
+          <View className="flex-row gap-3">
+            <Button onPress={handleRefresh}>
+              <Text className="text-white">Refresh</Text>
+            </Button>
+            {isBookingContext && (
+              <Button variant="outline" onPress={() => router.back()}>
+                <Text>Continue Booking</Text>
+              </Button>
+            )}
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -827,24 +917,49 @@ export default function SpecialOffersScreen() {
       >
         {/* Header Content */}
         <View className="px-4 pt-4 pb-2 flex-row items-center justify-between">
-          <View>
-            <H2>Special Offers</H2>
-            <Muted>{offers.length} deals available</Muted>
-          </View>
-          <Pressable onPress={() => setShowFilters(true)} className="p-2">
-            <Filter
-              size={24}
-              color={colorScheme === "dark" ? "#fff" : "#000"}
-            />
-          </Pressable>
+          {isBookingContext ? (
+            <>
+              <View className="flex-row items-center flex-1">
+                <Pressable
+                  onPress={() => router.back()}
+                  className="p-2 -ml-2 mr-2 rounded-full"
+                  hitSlop={8}
+                >
+                  <ChevronLeft
+                    size={24}
+                    color={colorScheme === "dark" ? "#fff" : "#000"}
+                  />
+                </Pressable>
+                <View className="flex-1">
+                  <H2>Restaurant Offers</H2>
+                  <Muted>
+                    {displayOffers.length} offers for this restaurant
+                  </Muted>
+                </View>
+              </View>
+            </>
+          ) : (
+            <>
+              <View>
+                <H2>Special Offers</H2>
+                <Muted>{displayOffers.length} deals available</Muted>
+              </View>
+              <Pressable onPress={() => setShowFilters(true)} className="p-2">
+                <Filter
+                  size={24}
+                  color={colorScheme === "dark" ? "#fff" : "#000"}
+                />
+              </Pressable>
+            </>
+          )}
         </View>
-        {/* Category Tabs */}
-        <CategoryTabs />
+        {/* Category Tabs - Hide in booking context */}
+        {!isBookingContext && <CategoryTabs />}
       </View>
 
       {/* Content */}
       <OptimizedList
-        data={offers}
+        data={displayOffers}
         renderItem={({ item }) => <OfferCard offer={item} />}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
@@ -852,14 +967,8 @@ export default function SpecialOffersScreen() {
           paddingTop: 16,
           paddingBottom: insets.bottom + 16,
         }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={getRefreshControlColor(colorScheme)}
-          />
-        }
+        onRefresh={handleRefresh}
+        refreshing={refreshing}
       />
 
       {/* Modals */}

@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useMemo } from "react";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase-generated";
-import { realtimeSubscriptionService } from "@/lib/RealtimeSubscriptionService";
+// import { realtimeSubscriptionService } from "@/lib/RealtimeSubscriptionService";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 type SpecialOffer = Database["public"]["Tables"]["special_offers"]["Row"] & {
@@ -192,16 +192,16 @@ export function useOffers() {
       enrichedOffers = [...enrichedOffers].sort((a, b) => {
         switch (filters.sortBy) {
           case "discount":
-            return b.discount_percentage - a.discount_percentage;
+            return (b.discount_percentage || 0) - (a.discount_percentage || 0);
           case "expiry":
             return (
-              new Date(a.valid_until).getTime() -
-              new Date(b.valid_until).getTime()
+              new Date(a.valid_until || Date.now()).getTime() -
+              new Date(b.valid_until || Date.now()).getTime()
             );
           case "newest":
             return (
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime()
+              new Date(b.created_at || Date.now()).getTime() -
+              new Date(a.created_at || Date.now()).getTime()
             );
           case "popular":
             return (
@@ -227,16 +227,18 @@ export function useOffers() {
     (offers: EnrichedOffer[], category: string): EnrichedOffer[] => {
       switch (category) {
         case "trending":
-          return offers.filter((o) => o.discount_percentage >= 30);
+          return offers.filter((o) => (o.discount_percentage || 0) >= 30);
         case "new":
           const weekAgo = new Date();
           weekAgo.setDate(weekAgo.getDate() - 7);
-          return offers.filter((o) => new Date(o.created_at) > weekAgo);
+          return offers.filter(
+            (o) => new Date(o.created_at || Date.now()) > weekAgo,
+          );
         case "expiring":
           const threeDaysFromNow = new Date();
           threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
           return offers.filter(
-            (o) => new Date(o.valid_until) < threeDaysFromNow,
+            (o) => new Date(o.valid_until || Date.now()) < threeDaysFromNow,
           );
         case "claimed":
           return offers.filter((o) => o.claimed);
@@ -256,16 +258,16 @@ export function useOffers() {
       return [...offers].sort((a, b) => {
         switch (sortBy) {
           case "discount":
-            return b.discount_percentage - a.discount_percentage;
+            return (b.discount_percentage || 0) - (a.discount_percentage || 0);
           case "expiry":
             return (
-              new Date(a.valid_until).getTime() -
-              new Date(b.valid_until).getTime()
+              new Date(a.valid_until || Date.now()).getTime() -
+              new Date(b.valid_until || Date.now()).getTime()
             );
           case "newest":
             return (
-              new Date(b.created_at).getTime() -
-              new Date(a.created_at).getTime()
+              new Date(b.created_at || Date.now()).getTime() -
+              new Date(a.created_at || Date.now()).getTime()
             );
           case "popular":
             return (
@@ -510,71 +512,9 @@ export function useOffers() {
     return () => clearInterval(interval);
   }, [expireOldOffers]);
 
-  // Real-time subscription for offers
-  useEffect(() => {
-    if (!profile?.id) return;
-
-    const unsubscribe = realtimeSubscriptionService.subscribeToUser({
-      userId: profile.id,
-      onUserOfferChange: (payload) => {
-        console.log("User offer real-time update:", payload);
-
-        if (
-          payload.eventType === "INSERT" &&
-          payload.new &&
-          payload.new.user_id === profile.id
-        ) {
-          // User claimed new offer - refetch to get complete data
-          fetchOffers();
-        } else if (
-          payload.eventType === "UPDATE" &&
-          payload.new &&
-          payload.new.user_id === profile.id
-        ) {
-          // User offer updated (e.g., used)
-          const newUserOffer = payload.new as UserOfferData;
-          setUserOffers((prev) => {
-            const updated = new Map(prev);
-            updated.set(newUserOffer.offer_id, newUserOffer);
-            return updated;
-          });
-        } else if (
-          payload.eventType === "DELETE" &&
-          payload.old &&
-          payload.old.user_id === profile.id
-        ) {
-          // User offer removed
-          setUserOffers((prev) => {
-            const updated = new Map(prev);
-            updated.delete(payload.old!.offer_id);
-            return updated;
-          });
-        }
-      },
-    });
-
-    return unsubscribe;
-  }, [profile?.id, fetchOffers]);
-
-  // Also subscribe to general special offers updates
-  useEffect(() => {
-    const unsubscribeOffers = realtimeSubscriptionService.subscribeToTable(
-      "special_offers",
-      (payload) => {
-        console.log("Special offer real-time update:", payload);
-
-        // For any special offer change, refetch data to maintain consistency
-        // This ensures we have the complete EnrichedOffer type with all computed properties
-        fetchOffers();
-      },
-      {
-        channelId: "special_offers_general",
-        event: "*",
-      },
-    );
-
-    return unsubscribeOffers;
-  }, [fetchOffers]);
+  // TODO: Real-time subscriptions disabled due to channel errors
+  // Will be re-enabled once Supabase connection issues are resolved
+  // For now, data will be refreshed manually via pull-to-refresh
 
   return {
     // Data

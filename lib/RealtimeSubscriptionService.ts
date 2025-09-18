@@ -398,8 +398,12 @@ class RealtimeSubscriptionService {
       this.retryAttempts.set(channelId, currentAttempts + 1);
 
       const retryDelay = this.RETRY_DELAY * Math.pow(2, currentAttempts); // Exponential backoff
+      console.log(
+        `⚠️ Retrying subscription ${channelId} in ${retryDelay}ms (attempt ${currentAttempts + 1}/${this.MAX_RETRY_ATTEMPTS})`,
+      );
 
       const retryTimeout = setTimeout(() => {
+        console.log(`🔄 Attempting to reconnect ${channelId}...`);
         this.unsubscribe(channelId);
         this.createSubscription(channelId, subscriptions);
       }, retryDelay);
@@ -410,6 +414,9 @@ class RealtimeSubscriptionService {
         `💥 Max retry attempts reached for ${channelId}. Subscription failed permanently.`,
       );
       this.retryAttempts.delete(channelId);
+
+      // Clean up the failed channel to prevent memory leaks
+      this.unsubscribe(channelId);
     }
   }
 

@@ -16,3 +16,4 @@ export { BookingSpecialRequests } from "./BookingSpecialRequests";
 export { AppliedOfferCard } from "./AppliedOfferCard";
 export { BookingInvitationsSection } from "./BookingInvitationsSection";
 export { SectionSelector } from "./SectionSelector";
+export { InlineOfferSelector } from "./InlineOfferSelector";
