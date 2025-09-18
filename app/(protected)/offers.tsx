@@ -2,7 +2,6 @@
 import React from "react";
 import {
   View,
-  FlatList,
   Pressable,
   ActivityIndicator,
   Alert,
@@ -40,7 +39,7 @@ import { Text } from "@/components/ui/text";
 import { H2, H3, P, Muted } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 import { useColorScheme } from "@/lib/useColorScheme";
-import { useOffers } from "@/hooks/useOffers";
+import { useOffers, EnrichedOffer } from "@/hooks/useOffers";
 import OffersScreenSkeleton from "@/components/skeletons/OffersScreenSkeleton";
 import { OptimizedList } from "@/components/ui/optimized-list";
 
@@ -89,12 +88,13 @@ export default function SpecialOffersScreen() {
     string | null
   >(null);
   const [showFilters, setShowFilters] = React.useState(false);
-  const [selectedOffer, setSelectedOffer] = React.useState<any | null>(null);
+  const [selectedOffer, setSelectedOffer] =
+    React.useState<EnrichedOffer | null>(null);
   const [showOfferDetails, setShowOfferDetails] = React.useState(false);
   const [refreshing, setRefreshing] = React.useState(false);
 
   // Share offer
-  const shareOffer = React.useCallback(async (offer: any) => {
+  const shareOffer = React.useCallback(async (offer: EnrichedOffer) => {
     try {
       const message = `Check out this ${offer.discount_percentage}% off deal at ${offer.restaurant.name}! 🎉\n\n${offer.title}\n\nValid until ${new Date(offer.valid_until).toLocaleDateString()}`;
       await Share.share({
@@ -122,18 +122,33 @@ export default function SpecialOffersScreen() {
 
   // FIXED: Book with offer - now goes through availability selection first
   const bookWithOffer = React.useCallback(
-    (offer: any) => {
-      // Check if offer is still valid and can be used
-      if (!offer.canUse) {
+    (offer: EnrichedOffer) => {
+      // Check if offer is still valid
+      const now = new Date();
+      const validUntil = new Date(offer.valid_until);
+      if (now > validUntil) {
+        Alert.alert(
+          "Offer Expired",
+          "This offer is no longer valid. Please select a different offer.",
+          [{ text: "OK" }],
+        );
+        return;
+      }
+
+      // For claimed offers, check if they can be used
+      if (offer.claimed && !offer.canUse) {
         Alert.alert(
           "Offer Not Available",
-          "This offer has expired or has already been used.",
+          offer.used
+            ? "This offer has already been used."
+            : "This offer has expired.",
           [{ text: "OK" }],
         );
         return;
       }
 
       // Navigate to availability selection with offer pre-selected
+      // The booking flow will handle claiming unclaimed offers during confirmation
       router.push({
         pathname: "/booking/availability",
         params: {
@@ -142,8 +157,12 @@ export default function SpecialOffersScreen() {
           // Pass offer information to be carried through the booking flow
           preselectedOfferId: offer.id,
           offerTitle: offer.title,
-          offerDiscount: offer.discount_percentage.toString(),
-          redemptionCode: offer.redemptionCode || offer.id,
+          offerDiscount: (offer.discount_percentage || 0).toString(),
+          // Only pass redemptionCode if offer is already claimed
+          ...(offer.claimed &&
+            offer.redemptionCode && {
+              redemptionCode: offer.redemptionCode,
+            }),
         },
       });
     },
@@ -152,20 +171,41 @@ export default function SpecialOffersScreen() {
 
   // Enhanced claim offer with better error handling
   const handleClaimOffer = React.useCallback(
-    async (offer: any) => {
+    async (offer: EnrichedOffer) => {
       if (processingOfferId === offer.id) return;
+
+      // Pre-flight validation
+      const now = new Date();
+      const validUntil = new Date(offer.valid_until);
+      if (now > validUntil) {
+        Alert.alert("Offer Expired", "This offer is no longer valid.", [
+          { text: "OK" },
+        ]);
+        return;
+      }
+
+      if (offer.claimed) {
+        Alert.alert("Already Claimed", "You have already claimed this offer.", [
+          { text: "OK" },
+        ]);
+        return;
+      }
 
       setProcessingOfferId(offer.id);
 
       try {
-        await claimOffer(offer.id);
+        const success = await claimOffer(offer.id);
+        if (!success) {
+          throw new Error("Failed to claim offer");
+        }
+
         await Haptics.notificationAsync(
           Haptics.NotificationFeedbackType.Success,
         );
 
         Alert.alert(
           "Offer Claimed! 🎉",
-          `You've successfully claimed ${offer.discount_percentage}% off at ${offer.restaurant.name}. You can now use this offer when booking.`,
+          `You've successfully claimed ${offer.discount_percentage || 0}% off at ${offer.restaurant.name}. You can now use this offer when booking.`,
           [
             {
               text: "View Restaurant",
@@ -178,10 +218,21 @@ export default function SpecialOffersScreen() {
         );
       } catch (err: any) {
         console.error("Error claiming offer:", err);
-        Alert.alert(
-          "Error",
-          err.message || "Failed to claim offer. Please try again.",
-        );
+
+        let errorMessage = "Failed to claim offer. Please try again.";
+        if (err.message?.includes("already claimed")) {
+          errorMessage = "This offer has already been claimed.";
+        } else if (err.message?.includes("expired")) {
+          errorMessage = "This offer has expired and can no longer be claimed.";
+        } else if (
+          err.message?.includes("network") ||
+          err.message?.includes("connection")
+        ) {
+          errorMessage =
+            "Network error. Please check your connection and try again.";
+        }
+
+        Alert.alert("Error", errorMessage);
       } finally {
         setProcessingOfferId(null);
       }
@@ -191,7 +242,20 @@ export default function SpecialOffersScreen() {
 
   // Apply offer to booking and return to availability
   const applyOfferToBooking = React.useCallback(
-    (offer: any) => {
+    (offer: EnrichedOffer) => {
+      // Check if offer is still valid
+      const now = new Date();
+      const validUntil = new Date(offer.valid_until);
+      if (now > validUntil) {
+        Alert.alert(
+          "Offer Expired",
+          "This offer is no longer valid. Please select a different offer.",
+          [{ text: "OK" }],
+        );
+        return;
+      }
+
+      // If not claimed, prompt to claim first
       if (!offer.claimed) {
         Alert.alert(
           "Claim Required",
@@ -207,10 +271,23 @@ export default function SpecialOffersScreen() {
         return;
       }
 
+      // Check if claimed offer can be used
       if (!offer.canUse) {
         Alert.alert(
           "Offer Not Available",
-          "This offer has expired or has already been used.",
+          offer.used
+            ? "This offer has already been used."
+            : "This offer has expired.",
+          [{ text: "OK" }],
+        );
+        return;
+      }
+
+      // Validate redemption code exists
+      if (!offer.redemptionCode) {
+        Alert.alert(
+          "Error",
+          "Invalid offer data. Please try refreshing the page.",
           [{ text: "OK" }],
         );
         return;
@@ -223,8 +300,8 @@ export default function SpecialOffersScreen() {
           restaurantId: params.restaurantId!,
           preselectedOfferId: offer.id,
           offerTitle: offer.title,
-          offerDiscount: offer.discount_percentage.toString(),
-          redemptionCode: offer.redemptionCode || offer.id,
+          offerDiscount: (offer.discount_percentage || 0).toString(),
+          redemptionCode: offer.redemptionCode || '',
         },
       });
     },
@@ -232,15 +309,20 @@ export default function SpecialOffersScreen() {
   );
 
   // Refresh handler
-  const handleRefresh = React.useCallback(() => {
+  const handleRefresh = React.useCallback(async () => {
     setRefreshing(true);
-    fetchOffers();
-    setRefreshing(false);
+    try {
+      await fetchOffers();
+    } catch (error) {
+      console.error("Error refreshing offers:", error);
+    } finally {
+      setRefreshing(false);
+    }
   }, [fetchOffers]);
 
   // Apply filters
   const handleApplyFilters = React.useCallback(
-    (newFilters: any) => {
+    (newFilters: Partial<typeof filters>) => {
       updateFilters(newFilters);
       setShowFilters(false);
     },
@@ -248,7 +330,7 @@ export default function SpecialOffersScreen() {
   );
 
   // Enhanced offer card component
-  const OfferCard = ({ offer }: { offer: any }) => {
+  const OfferCard = ({ offer }: { offer: EnrichedOffer }) => {
     const handleCardPress = () => {
       if (offer.claimed) {
         setSelectedOffer(offer);
@@ -381,14 +463,14 @@ export default function SpecialOffersScreen() {
                 Ends {new Date(offer.valid_until).toLocaleDateString()}
               </Text>
             </View>
-            {offer.minimum_party_size > 1 && (
+            {(offer.minimum_party_size || 0) > 1 && (
               <View className="flex-row items-center bg-muted/50 rounded-full px-3 py-1 mr-2 mb-2">
                 <Users
                   size={14}
                   color={colorScheme === "dark" ? "#a1a1aa" : "#3f3f46"}
                 />
                 <Text className="text-xs text-muted-foreground ml-1.5">
-                  {offer.minimum_party_size}+ People
+                  {offer.minimum_party_size || 0}+ People
                 </Text>
               </View>
             )}
@@ -396,7 +478,7 @@ export default function SpecialOffersScreen() {
               <View className="flex-row items-center bg-blue-50 dark:bg-blue-900/30 rounded-full px-3 py-1 mr-2 mb-2">
                 <QrCode size={14} color="#2563eb" />
                 <Text className="text-xs text-blue-700 dark:text-blue-300 ml-1.5">
-                  Code: {offer.redemptionCode.slice(-6).toUpperCase()}
+                  Code: {offer.redemptionCode?.slice(-6).toUpperCase() || 'N/A'}
                 </Text>
               </View>
             )}
@@ -700,8 +782,8 @@ export default function SpecialOffersScreen() {
   }: {
     isVisible: boolean;
     onClose: () => void;
-    onApply: (f: any) => void;
-    currentFilters: any;
+    onApply: (f: Partial<typeof filters>) => void;
+    currentFilters: typeof filters;
   }) => {
     const [localFilters, setLocalFilters] = React.useState(currentFilters);
     const Cuisines = [
@@ -718,7 +800,7 @@ export default function SpecialOffersScreen() {
     }, [currentFilters]);
 
     const toggleCuisine = (cuisine: string) => {
-      setLocalFilters((prev: any) => {
+      setLocalFilters((prev: typeof filters) => {
         const newCuisines = new Set(prev.cuisineTypes);
         if (newCuisines.has(cuisine)) {
           newCuisines.delete(cuisine);
@@ -751,12 +833,15 @@ export default function SpecialOffersScreen() {
             {/* Sort By */}
             <Text className="font-semibold mb-3">Sort By</Text>
             <View className="flex-row justify-between mb-6">
-              {["discount", "popular", "newest", "expiry"].map((type) => (
+              {(["discount", "popular", "newest", "expiry"] as const).map((type) => (
                 <Button
                   key={type}
                   variant={localFilters.sortBy === type ? "default" : "outline"}
                   onPress={() =>
-                    setLocalFilters((f: any) => ({ ...f, sortBy: type }))
+                    setLocalFilters((f: typeof filters) => ({
+                      ...f,
+                      sortBy: type,
+                    }))
                   }
                   className="px-3"
                 >
@@ -776,7 +861,10 @@ export default function SpecialOffersScreen() {
               step={5}
               value={localFilters.minDiscount}
               onValueChange={(val) =>
-                setLocalFilters((f: any) => ({ ...f, minDiscount: val }))
+                setLocalFilters((f: typeof filters) => ({
+                  ...f,
+                  minDiscount: val,
+                }))
               }
               minimumTrackTintColor={
                 colorScheme === "dark" ? "#3b82f6" : "#2563eb"
