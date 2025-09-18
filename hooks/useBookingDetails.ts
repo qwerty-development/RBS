@@ -270,7 +270,7 @@ export const useBookingDetails = (bookingId: string) => {
     let alertMessage = "Are you sure you want to cancel this booking?";
 
     if (appliedOfferDetails) {
-      alertMessage += " Your applied offer will be restored to your account.";
+      alertMessage += " Your applied offer will be forfeited and cannot be restored.";
     } else {
       alertMessage += " This action cannot be undone.";
     }
@@ -299,22 +299,8 @@ export const useBookingDetails = (bookingId: string) => {
 
             if (error) throw error;
 
-            // If there was an applied offer, restore it
-            if (appliedOfferDetails?.user_offer_id) {
-              try {
-                await supabase
-                  .from("user_offers")
-                  .update({
-                    used_at: null,
-                    booking_id: null,
-                  })
-                  .eq("id", appliedOfferDetails.user_offer_id);
-
-                console.log("Offer restored to user account");
-              } catch (restoreError) {
-                console.error("Error restoring offer:", restoreError);
-              }
-            }
+            // Note: Applied offers are not restored when user cancels booking
+            // This is intentional to prevent offer abuse
 
             await Haptics.notificationAsync(
               Haptics.NotificationFeedbackType.Success,
@@ -331,9 +317,7 @@ export const useBookingDetails = (bookingId: string) => {
 
             Alert.alert(
               "Success",
-              appliedOfferDetails
-                ? "Your booking has been cancelled"
-                : "Your booking has been cancelled",
+              "Your booking has been cancelled",
             );
           } catch (error) {
             console.error("Error cancelling booking:", error);
