@@ -88,7 +88,7 @@ export function useRestaurant(
   restaurantId: string | undefined,
 ): UseRestaurantReturn {
   const router = useRouter();
-  const { profile } = useAuth();
+  const { profile, databaseReady } = useAuth();
 
   // Core state
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -377,6 +377,15 @@ export function useRestaurant(
         return;
       }
 
+      // If database isn't ready yet and this is the first attempt, wait a bit and retry
+      if (!databaseReady && retryCount === 0) {
+        console.log("Database not ready yet, scheduling retry in 2 seconds...");
+        setTimeout(() => {
+          fetchRestaurantDetails(1);
+        }, 2000);
+        return;
+      }
+
       try {
         console.log(
           `Fetching restaurant details for ID: ${restaurantId} (attempt ${retryCount + 1})`,
@@ -508,7 +517,7 @@ export function useRestaurant(
         setLoading(false);
       }
     },
-    [restaurantId, profile?.id, calculateReviewSummary],
+    [restaurantId, profile?.id, calculateReviewSummary, databaseReady],
   );
 
   // Action handlers
