@@ -32,7 +32,6 @@ import {
   Linking,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { format } from "date-fns";
 import * as Haptics from "expo-haptics";
 import MapView, { Marker } from "react-native-maps";
 import { RestaurantPosts } from "@/components/restaurant/RestaurantPosts";
@@ -51,7 +50,6 @@ import { useAuth } from "@/context/supabase-provider";
 import { useRestaurant } from "@/hooks/useRestaurant";
 import { useRestaurantReviews } from "@/hooks/useRestaurantReviews";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
-import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
 import {
   useBookingPress,
   useQuickActionPress,
@@ -355,15 +353,6 @@ const RestaurantHeaderInfo: React.FC<{
     restaurant.location,
     restaurant,
   );
-  const { checkAvailability } = useRestaurantAvailability(restaurantId);
-
-  // Use the new availability check
-  const availabilityStatus = useMemo(() => {
-    const now = new Date();
-    return checkAvailability(now, format(now, "HH:mm"));
-  }, [checkAvailability]);
-
-  const isOpen = availabilityStatus.isOpen;
 
   return (
     <View className="p-4 bg-background">
@@ -395,19 +384,6 @@ const RestaurantHeaderInfo: React.FC<{
             </Text>
             <Text className="text-muted-foreground">
               ({restaurant.total_reviews || 0})
-            </Text>
-          </View>
-          <View
-            className={`px-2 py-1 rounded-full ${
-              isOpen ? "bg-green-100" : "bg-red-100"
-            }`}
-          >
-            <Text
-              className={`text-xs font-medium ${
-                isOpen ? "text-green-800" : "text-red-800"
-              }`}
-            >
-              {isOpen ? "Open now" : "Closed"}
             </Text>
           </View>
         </View>
