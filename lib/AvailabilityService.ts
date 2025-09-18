@@ -273,12 +273,6 @@ export class AvailabilityService {
         .sort()
         .map((time) => ({ time }));
 
-      const turnTime = await this.getTurnTimeForParty(
-        restaurantId,
-        partySize,
-        date,
-      );
-
       // For basic tier restaurants, return all time slots without availability checking
       let availableSlots: TimeSlotBasic[];
       if (restaurantTier === "basic") {
@@ -294,7 +288,13 @@ export class AvailabilityService {
           })
           .map((slot) => ({ time: slot.time, available: true }));
       } else {
-        // For pro and higher tiers, use real availability checking
+        // For pro and higher tiers, get turn time and use real availability checking
+        const turnTime = await this.getTurnTimeForParty(
+          restaurantId,
+          partySize,
+          date,
+        );
+
         availableSlots = await this.batchQuickAvailabilityChecks(
           restaurantId,
           date,
@@ -1377,7 +1377,7 @@ export class AvailabilityService {
     return data;
   }
 
-  // UPDATED METHOD: Better time slot generation for large parties
+  // SIMPLIFIED: Generate slots for ALL restaurant hours without turn time restrictions
   private async generate15MinuteSlots(
     openTime: string,
     closeTime: string,
@@ -1392,6 +1392,7 @@ export class AvailabilityService {
     let currentHour = openHour;
     let currentMin = openMin;
 
+    // Round up to nearest 15-minute interval
     currentMin = Math.ceil(currentMin / 15) * 15;
     if (currentMin === 60) {
       currentMin = 0;
@@ -1408,15 +1409,8 @@ export class AvailabilityService {
       closeTimeInMinutes = 24 * 60; // midnight = 1440 minutes
     }
 
-    // Use the per‑party turn time (day-aware via RPC) as the closing buffer
-    // so small parties can book later if appropriate.
-    const bufferTime = await this.getTurnTimeForParty(
-      restaurantId,
-      partySize,
-      date,
-    );
-
-    while (currentHour * 60 + currentMin <= closeTimeInMinutes - bufferTime) {
+    // Generate ALL time slots up to and INCLUDING close time
+    while (currentHour * 60 + currentMin <= closeTimeInMinutes) {
       slots.push({
         time: `${currentHour.toString().padStart(2, "0")}:${currentMin
           .toString()
