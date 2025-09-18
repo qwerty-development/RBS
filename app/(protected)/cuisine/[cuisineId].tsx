@@ -453,23 +453,6 @@ export default function CuisineScreen() {
                 ? "Loading restaurants..."
                 : `No ${cuisineName || cuisineId} restaurants found. Try adjusting your filters or check back later.`}
             </Muted>
-            {!loading && (
-              <Button
-                variant="outline"
-                onPress={() =>
-                  setFilters({
-                    priceRange: [1, 2, 3, 4],
-                    rating: 0,
-                    distance: 50,
-                    sortBy: "rating",
-                    openNow: false,
-                  })
-                }
-                className="mt-4"
-              >
-                <Text>Clear Filters</Text>
-              </Button>
-            )}
           </View>
         }
       />
