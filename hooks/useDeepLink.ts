@@ -149,13 +149,32 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
         log("Splash screen visible, storing pending deep link:", url);
         pendingDeepLink.current = url;
 
-        // Process the URL to validate it, but don't navigate yet
-        const { route } = parseDeepLinkUrl(url);
-        if (isSupportedDeepLink(url) && !route?.protected) {
-          // For non-protected routes, we can dismiss splash early
-          log(
-            "Non-protected route detected, requesting early splash dismissal",
-          );
+        try {
+          // Process the URL to validate it, but don't navigate yet
+          const { route } = parseDeepLinkUrl(url);
+          const isSupported = isSupportedDeepLink(url);
+
+          log("Deep link analysis:", {
+            url,
+            route: route?.path,
+            isProtected: route?.protected,
+            isSupported,
+          });
+
+          if (isSupported) {
+            // For all supported routes (protected or not), dismiss splash early
+            // Authentication will be handled at the route level
+            log("Supported deep link detected, requesting early splash dismissal");
+            finalOptions.onSplashDismissRequested();
+          } else {
+            // FALLBACK: Even for unsupported deep links, dismiss splash to prevent hanging
+            // This ensures we don't get stuck on splash screen
+            log("Unsupported deep link detected, but dismissing splash anyway to prevent hanging");
+            finalOptions.onSplashDismissRequested();
+          }
+        } catch (error) {
+          // ERROR FALLBACK: If parsing fails, still dismiss splash
+          log("Error processing deep link, but dismissing splash anyway:", error);
           finalOptions.onSplashDismissRequested();
         }
 

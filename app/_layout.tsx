@@ -81,10 +81,10 @@ function RootLayoutWithSplashState() {
   useEffect(() => {
     const aggressiveTimer = setTimeout(() => {
       console.log(
-        "🚀 AGGRESSIVE: Forcing custom splash dismissal after 2 seconds",
+        "🚀 AGGRESSIVE: Forcing custom splash dismissal after 3 seconds",
       );
       setShowSplash(false);
-    }, 2000); // 2 second hard limit
+    }, 3000); // 3 second hard limit - increased to allow for deep link processing
 
     return () => clearTimeout(aggressiveTimer);
   }, []);
