@@ -369,121 +369,147 @@ export function useRestaurant(
     [restaurantId, restaurant, availabilityService, profile?.id],
   );
 
-  // Main data fetching
-  const fetchRestaurantDetails = useCallback(async () => {
-    if (!restaurantId) {
-      setLoading(false);
-      return;
-    }
-
-    try {
-      console.log("Fetching restaurant details for ID:", restaurantId);
-
-      const { data: restaurantData, error: restaurantError } = await supabase
-        .from("restaurants")
-        .select("*")
-        .eq("id", restaurantId)
-        .single();
-
-      if (restaurantError) {
-        console.error("Restaurant fetch error:", restaurantError);
-        throw restaurantError;
+  // Main data fetching with retry logic for cold start scenarios
+  const fetchRestaurantDetails = useCallback(
+    async (retryCount = 0) => {
+      if (!restaurantId) {
+        setLoading(false);
+        return;
       }
 
-      if (!restaurantData) {
-        throw new Error("Restaurant not found");
-      }
+      try {
+        console.log(
+          `Fetching restaurant details for ID: ${restaurantId} (attempt ${retryCount + 1})`,
+        );
 
-      console.log("Restaurant data fetched:", restaurantData.name);
-      setRestaurant(restaurantData);
-
-      // Check if restaurant is favorited
-      if (profile?.id) {
-        const { data: favoriteData } = await supabase
-          .from("favorites")
-          .select("id")
-          .eq("user_id", profile.id)
-          .eq("restaurant_id", restaurantId)
+        const { data: restaurantData, error: restaurantError } = await supabase
+          .from("restaurants")
+          .select("*")
+          .eq("id", restaurantId)
           .single();
 
-        setIsFavorite(!!favoriteData);
-      }
+        if (restaurantError) {
+          console.error("Restaurant fetch error:", restaurantError);
+          throw restaurantError;
+        }
 
-      // Fetch reviews with user details
-      const { data: reviewsData, error: reviewsError } = await supabase
-        .from("reviews")
-        .select(
-          `
+        if (!restaurantData) {
+          throw new Error("Restaurant not found");
+        }
+
+        console.log("Restaurant data fetched:", restaurantData.name);
+        setRestaurant(restaurantData);
+
+        // Check if restaurant is favorited
+        if (profile?.id) {
+          const { data: favoriteData } = await supabase
+            .from("favorites")
+            .select("id")
+            .eq("user_id", profile.id)
+            .eq("restaurant_id", restaurantId)
+            .single();
+
+          setIsFavorite(!!favoriteData);
+        }
+
+        // Fetch reviews with user details
+        const { data: reviewsData, error: reviewsError } = await supabase
+          .from("reviews")
+          .select(
+            `
           *,
           user:profiles (
             full_name,
             avatar_url
           )
         `,
-        )
-        .eq("restaurant_id", restaurantId)
-        .order("created_at", { ascending: false })
-        .limit(20);
+          )
+          .eq("restaurant_id", restaurantId)
+          .order("created_at", { ascending: false })
+          .limit(20);
 
-      // Filter out reviews from blocked users client-side if user is authenticated
-      let filteredReviews = reviewsData || [];
-      if (profile?.id && reviewsData) {
-        // Get blocked user IDs
-        const { data: blockedData } = await supabase
-          .from("blocked_users")
-          .select("blocked_id")
-          .eq("blocker_id", profile.id);
+        // Filter out reviews from blocked users client-side if user is authenticated
+        let filteredReviews = reviewsData || [];
+        if (profile?.id && reviewsData) {
+          // Get blocked user IDs
+          const { data: blockedData } = await supabase
+            .from("blocked_users")
+            .select("blocked_id")
+            .eq("blocker_id", profile.id);
 
-        if (blockedData?.length) {
-          const blockedUserIds = new Set(blockedData.map((b) => b.blocked_id));
-          filteredReviews = reviewsData.filter(
-            (review) => !blockedUserIds.has(review.user_id),
-          );
+          if (blockedData?.length) {
+            const blockedUserIds = new Set(
+              blockedData.map((b) => b.blocked_id),
+            );
+            filteredReviews = reviewsData.filter(
+              (review) => !blockedUserIds.has(review.user_id),
+            );
+          }
         }
-      }
 
-      if (reviewsError) {
-        console.warn("Reviews fetch error:", reviewsError);
-      } else {
-        console.log(
-          "Reviews fetched:",
-          filteredReviews.length,
-          "filtered from",
-          reviewsData?.length || 0,
-        );
-        setReviews(filteredReviews);
-
-        // Calculate review summary from filtered reviews data
-        const calculatedSummary = calculateReviewSummary(filteredReviews);
-        if (calculatedSummary) {
-          const updatedRestaurant = {
-            ...restaurantData,
-            review_summary: calculatedSummary,
-            average_rating: calculatedSummary.average_rating,
-            total_reviews: calculatedSummary.total_reviews,
-          };
-          setRestaurant(updatedRestaurant);
+        if (reviewsError) {
+          console.warn("Reviews fetch error:", reviewsError);
         } else {
-          // No reviews returned: preserve any existing aggregates on the restaurant row
-          const preservedAverage = (restaurantData as any).average_rating ?? 0;
-          const preservedTotal = (restaurantData as any).total_reviews ?? 0;
+          console.log(
+            "Reviews fetched:",
+            filteredReviews.length,
+            "filtered from",
+            reviewsData?.length || 0,
+          );
+          setReviews(filteredReviews);
 
-          const updatedRestaurant = {
-            ...restaurantData,
-            review_summary: null,
-            average_rating: preservedAverage,
-            total_reviews: preservedTotal,
-          };
-          setRestaurant(updatedRestaurant);
+          // Calculate review summary from filtered reviews data
+          const calculatedSummary = calculateReviewSummary(filteredReviews);
+          if (calculatedSummary) {
+            const updatedRestaurant = {
+              ...restaurantData,
+              review_summary: calculatedSummary,
+              average_rating: calculatedSummary.average_rating,
+              total_reviews: calculatedSummary.total_reviews,
+            };
+            setRestaurant(updatedRestaurant);
+          } else {
+            // No reviews returned: preserve any existing aggregates on the restaurant row
+            const preservedAverage =
+              (restaurantData as any).average_rating ?? 0;
+            const preservedTotal = (restaurantData as any).total_reviews ?? 0;
+
+            const updatedRestaurant = {
+              ...restaurantData,
+              review_summary: null,
+              average_rating: preservedAverage,
+              total_reviews: preservedTotal,
+            };
+            setRestaurant(updatedRestaurant);
+          }
         }
+
+        // Success - set loading to false
+        setLoading(false);
+      } catch (error) {
+        console.error(
+          `Error fetching restaurant details (attempt ${retryCount + 1}):`,
+          error,
+        );
+
+        // Retry logic for cold start scenarios (up to 3 attempts)
+        if (retryCount < 2) {
+          const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s exponential backoff
+          console.log(`⏱️  Retrying restaurant fetch in ${delay}ms...`);
+
+          setTimeout(() => {
+            fetchRestaurantDetails(retryCount + 1);
+          }, delay);
+          return; // Don't set loading to false yet
+        }
+
+        // Final failure after all retries
+        Alert.alert("Error", "Failed to load restaurant details");
+        setLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching restaurant details:", error);
-      Alert.alert("Error", "Failed to load restaurant details");
-    } finally {
-      setLoading(false);
-    }
-  }, [restaurantId, profile?.id, calculateReviewSummary]);
+    },
+    [restaurantId, profile?.id, calculateReviewSummary],
+  );
 
   // Action handlers
   const toggleFavorite = useCallback(async () => {

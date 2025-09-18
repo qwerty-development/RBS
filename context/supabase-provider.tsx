@@ -73,6 +73,7 @@ type Profile = {
 
 type AuthState = {
   initialized: boolean;
+  databaseReady: boolean; // NEW: Database readiness state
   session: Session | null;
   user: User | null;
   profile: Profile | null;
@@ -96,6 +97,7 @@ type AuthState = {
 
 export const AuthContext = createContext<AuthState>({
   initialized: false,
+  databaseReady: false,
   session: null,
   user: null,
   profile: null,
@@ -115,6 +117,7 @@ export const useAuth = () => useContext(AuthContext);
 
 function AuthContent({ children }: PropsWithChildren) {
   const [initialized, setInitialized] = useState(false);
+  const [databaseReady, setDatabaseReady] = useState(false); // NEW: Database readiness state
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -162,6 +165,30 @@ function AuthContent({ children }: PropsWithChildren) {
       console.error("Failed to clear guest mode status", error);
     }
   }, [router]);
+
+  // NEW: Database readiness check
+  const checkDatabaseReadiness = useCallback(async (): Promise<boolean> => {
+    try {
+      console.log("🔄 Checking database readiness...");
+
+      // Simple query to test database connectivity
+      const { data, error } = await supabase
+        .from("restaurants")
+        .select("id")
+        .limit(1);
+
+      if (error) {
+        console.warn("❌ Database readiness check failed:", error.message);
+        return false;
+      }
+
+      console.log("✅ Database readiness check successful");
+      return true;
+    } catch (error) {
+      console.error("❌ Database readiness check error:", error);
+      return false;
+    }
+  }, []);
 
   // Fetch user profile with enhanced error handling
   const fetchProfile = useCallback(
@@ -1027,6 +1054,35 @@ function AuthContent({ children }: PropsWithChildren) {
             console.log("ℹ️ No session found during initialization");
           }
         }
+
+        // NEW: Check database readiness after auth initialization
+        // Add retries for cold start scenarios with exponential backoff
+        let databaseReadySuccess = false;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          console.log(`🔄 Database readiness attempt ${attempt}/3`);
+
+          const isReady = await checkDatabaseReadiness();
+          if (isReady) {
+            databaseReadySuccess = true;
+            break;
+          }
+
+          // Exponential backoff: 1s, 2s, 4s
+          if (attempt < 3) {
+            const delay = Math.pow(2, attempt - 1) * 1000;
+            console.log(`⏱️  Retrying database check in ${delay}ms...`);
+            await new Promise((resolve) => setTimeout(resolve, delay));
+          }
+        }
+
+        if (isMounted) {
+          setDatabaseReady(databaseReadySuccess);
+          console.log(
+            databaseReadySuccess
+              ? "✅ Database readiness confirmed"
+              : "⚠️  Database readiness check failed after retries",
+          );
+        }
       } catch (error) {
         console.error("❌ Error initializing auth:", error);
       } finally {
@@ -1327,6 +1383,7 @@ function AuthContent({ children }: PropsWithChildren) {
     <AuthContext.Provider
       value={{
         initialized,
+        databaseReady,
         session,
         user,
         profile,

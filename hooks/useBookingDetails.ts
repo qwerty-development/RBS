@@ -270,7 +270,8 @@ export const useBookingDetails = (bookingId: string) => {
     let alertMessage = "Are you sure you want to cancel this booking?";
 
     if (appliedOfferDetails) {
-      alertMessage += " Your applied offer will be forfeited and cannot be restored.";
+      alertMessage +=
+        " Your applied offer will be forfeited and cannot be restored.";
     } else {
       alertMessage += " This action cannot be undone.";
     }
@@ -315,10 +316,7 @@ export const useBookingDetails = (bookingId: string) => {
             // Refresh local booking data
             await fetchBookingDetails();
 
-            Alert.alert(
-              "Success",
-              "Your booking has been cancelled",
-            );
+            Alert.alert("Success", "Your booking has been cancelled");
           } catch (error) {
             console.error("Error cancelling booking:", error);
             Alert.alert("Error", "Failed to cancel booking");

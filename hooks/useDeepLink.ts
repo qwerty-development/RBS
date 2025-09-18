@@ -61,7 +61,12 @@ const DEFAULT_OPTIONS: Required<DeepLinkHookOptions> = {
 
 export function useDeepLink(options: DeepLinkHookOptions = {}) {
   const finalOptions = { ...DEFAULT_OPTIONS, ...options };
-  const { session, isGuest, initialized: authInitialized } = useAuth();
+  const {
+    session,
+    isGuest,
+    initialized: authInitialized,
+    databaseReady,
+  } = useAuth();
 
   const [state, setState] = useState<DeepLinkState>({
     initialUrl: null,
@@ -128,8 +133,11 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
         return false;
       }
 
-      if (!authInitialized) {
-        log("Auth not initialized, delaying deep link processing:", url);
+      if (!authInitialized || !databaseReady) {
+        log("Auth or database not ready, delaying deep link processing:", url, {
+          authInitialized,
+          databaseReady,
+        });
         return false;
       }
 
@@ -255,6 +263,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
       isMounted,
       isNavigationReady,
       authInitialized,
+      databaseReady,
       isAuthenticated,
       finalOptions,
       log,
@@ -317,6 +326,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
         if (
           finalOptions.autoHandle &&
           authInitialized &&
+          databaseReady &&
           isMounted &&
           isNavigationReady
         ) {
@@ -334,6 +344,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
     finalOptions.autoHandle,
     finalOptions.processDelay,
     authInitialized,
+    databaseReady,
     isMounted,
     isNavigationReady,
     log,
@@ -343,6 +354,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
   useEffect(() => {
     if (
       authInitialized &&
+      databaseReady &&
       isAuthenticated &&
       isMounted &&
       isNavigationReady &&
@@ -361,6 +373,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
   }, [
     shouldIgnoreUrl,
     authInitialized,
+    databaseReady,
     isAuthenticated,
     isMounted,
     isNavigationReady,
@@ -375,6 +388,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
       !finalOptions.isSplashVisible &&
       pendingDeepLink.current &&
       authInitialized &&
+      databaseReady &&
       isMounted &&
       isNavigationReady &&
       !processedUrls.current.has(pendingDeepLink.current)
@@ -391,6 +405,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
   }, [
     finalOptions.isSplashVisible,
     authInitialized,
+    databaseReady,
     isMounted,
     isNavigationReady,
     processDeepLink,
@@ -401,6 +416,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
   useEffect(() => {
     if (
       authInitialized &&
+      databaseReady &&
       isMounted &&
       isNavigationReady &&
       !finalOptions.isSplashVisible &&
@@ -418,6 +434,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
     }
   }, [
     authInitialized,
+    databaseReady,
     isMounted,
     isNavigationReady,
     finalOptions.isSplashVisible,
