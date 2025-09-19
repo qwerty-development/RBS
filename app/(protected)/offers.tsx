@@ -301,7 +301,7 @@ export default function SpecialOffersScreen() {
           preselectedOfferId: offer.id,
           offerTitle: offer.title,
           offerDiscount: (offer.discount_percentage || 0).toString(),
-          redemptionCode: offer.redemptionCode || '',
+          redemptionCode: offer.redemptionCode || "",
         },
       });
     },
@@ -478,7 +478,7 @@ export default function SpecialOffersScreen() {
               <View className="flex-row items-center bg-blue-50 dark:bg-blue-900/30 rounded-full px-3 py-1 mr-2 mb-2">
                 <QrCode size={14} color="#2563eb" />
                 <Text className="text-xs text-blue-700 dark:text-blue-300 ml-1.5">
-                  Code: {offer.redemptionCode?.slice(-6).toUpperCase() || 'N/A'}
+                  Code: {offer.redemptionCode?.slice(-6).toUpperCase() || "N/A"}
                 </Text>
               </View>
             )}
@@ -833,21 +833,25 @@ export default function SpecialOffersScreen() {
             {/* Sort By */}
             <Text className="font-semibold mb-3">Sort By</Text>
             <View className="flex-row justify-between mb-6">
-              {(["discount", "popular", "newest", "expiry"] as const).map((type) => (
-                <Button
-                  key={type}
-                  variant={localFilters.sortBy === type ? "default" : "outline"}
-                  onPress={() =>
-                    setLocalFilters((f: typeof filters) => ({
-                      ...f,
-                      sortBy: type,
-                    }))
-                  }
-                  className="px-3"
-                >
-                  <Text className="capitalize">{type}</Text>
-                </Button>
-              ))}
+              {(["discount", "popular", "newest", "expiry"] as const).map(
+                (type) => (
+                  <Button
+                    key={type}
+                    variant={
+                      localFilters.sortBy === type ? "default" : "outline"
+                    }
+                    onPress={() =>
+                      setLocalFilters((f: typeof filters) => ({
+                        ...f,
+                        sortBy: type,
+                      }))
+                    }
+                    className="px-3"
+                  >
+                    <Text className="capitalize">{type}</Text>
+                  </Button>
+                ),
+              )}
             </View>
 
             {/* Minimum Discount */}

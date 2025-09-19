@@ -39,8 +39,8 @@ import { verifyAgeForBooking } from "@/utils/ageVerification";
 import { AgeRestrictionBanner } from "./AgeRestrictionBanner";
 import { useRouter } from "expo-router";
 import { useBookingEligibility } from "@/hooks/useBookingEligibility";
-import { useBookingDOBPrompt } from "@/hooks/useDateOfBirthPrompt";
-import { DateOfBirthPrompt } from "../auth/DateOfBirthPrompt";
+import { useBookingProfileCompletion } from "@/hooks/useProfileCompletion";
+import { ProfileCompletionPrompt } from "../auth/ProfileCompletionPrompt";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
@@ -389,8 +389,8 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
   // Booking eligibility (includes age verification and guest handling)
   const bookingEligibility = useBookingEligibility(restaurant);
 
-  // DOB prompt for booking flow
-  const dobPrompt = useBookingDOBPrompt();
+  // Profile completion prompt for booking flow
+  const profileCompletion = useBookingProfileCompletion();
 
   // Backward compatibility - keep ageVerification for existing AgeRestrictionBanner
   const ageVerification = useMemo(() => {
@@ -522,8 +522,11 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
   const handleContinueToTimeSelection = useCallback(() => {
     // Check booking eligibility (includes age verification)
     if (!bookingEligibility.isEligible) {
-      if (bookingEligibility.requiresDateOfBirth) {
-        dobPrompt.showPrompt();
+      if (
+        bookingEligibility.requiresDateOfBirth ||
+        !profileCompletion.isProfileComplete
+      ) {
+        profileCompletion.showPrompt();
         return;
       }
 
@@ -554,7 +557,7 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
     getDateStatus,
     selectedDate,
     bookingEligibility,
-    dobPrompt,
+    profileCompletion,
   ]);
 
   const handleTimeSelect = useCallback(
@@ -795,20 +798,25 @@ export const BookingWidget: React.FC<BookingWidgetProps> = ({
         </View>
       </View>
 
-      {/* Date of Birth Prompt */}
-      <DateOfBirthPrompt
-        visible={dobPrompt.isVisible}
+      {/* Profile Completion Prompt */}
+      <ProfileCompletionPrompt
+        visible={profileCompletion.isVisible}
+        currentField={profileCompletion.currentField}
+        missingFields={profileCompletion.missingFields}
         onComplete={() => {
-          dobPrompt.hidePrompt();
-          // Continue with booking flow after DOB is set
+          profileCompletion.hidePrompt();
+          // Continue with booking flow after profile is complete
           setTimeout(() => {
             if (!hasTimeSlots) return;
             setCurrentStep("time");
           }, 500);
         }}
+        onNext={() => {
+          profileCompletion.moveToNextField();
+        }}
         mandatory={true}
-        title="Age Verification Required"
-        description={`This venue requires guests to be at least ${restaurant.minimum_age} years old. Please provide your date of birth to continue with your booking.`}
+        getBestAvailableName={profileCompletion.getBestAvailableName}
+        splitName={profileCompletion.splitName}
       />
     </View>
   );

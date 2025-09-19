@@ -43,23 +43,42 @@ const lebanesPhoneRegex = /^(\+961|961|03|70|71|76|78|79|80|81)\d{6,7}$/;
 
 // 2. Form Schema
 const profileEditSchema = z.object({
-  full_name: z
+  first_name: z
     .string()
-    .min(2, "Name must be at least 2 characters")
-    .max(50, "Name must be less than 50 characters")
-    .regex(/^[a-zA-Z\s\u0600-\u06FF]+$/, "Please enter a valid name")
+    .min(1, "First name is required")
+    .max(25, "First name must be less than 25 characters")
+    .regex(/^[a-zA-Z\s\u0600-\u06FF]+$/, "Please enter a valid first name")
     .refine(
       (name) => {
         const validation = InputValidator.validateContent(name, {
-          maxLength: 50,
-          minLength: 2,
+          maxLength: 25,
+          minLength: 1,
           checkProfanity: true,
-          fieldName: "name",
+          fieldName: "first name",
         });
         return validation.isValid;
       },
       {
-        message: "Please use appropriate language in your name",
+        message: "Please use appropriate language in your first name",
+      },
+    ),
+  last_name: z
+    .string()
+    .min(1, "Last name is required")
+    .max(25, "Last name must be less than 25 characters")
+    .regex(/^[a-zA-Z\s\u0600-\u06FF]+$/, "Please enter a valid last name")
+    .refine(
+      (name) => {
+        const validation = InputValidator.validateContent(name, {
+          maxLength: 25,
+          minLength: 1,
+          checkProfanity: true,
+          fieldName: "last name",
+        });
+        return validation.isValid;
+      },
+      {
+        message: "Please use appropriate language in your last name",
       },
     ),
   email: z.string().email("Please enter a valid email address").toLowerCase(),
@@ -107,10 +126,21 @@ export default function ProfileEditScreen() {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
 
   // 3. Form Setup with Current Values
+  const splitName = useCallback((fullName: string) => {
+    const nameParts = (fullName || "").trim().split(/\s+/);
+    return {
+      first_name: nameParts[0] || "",
+      last_name: nameParts.slice(1).join(" ") || "",
+    };
+  }, []);
+
+  const { first_name, last_name } = splitName(profile?.full_name || "");
+
   const form = useForm<ProfileEditFormData>({
     resolver: zodResolver(profileEditSchema),
     defaultValues: {
-      full_name: profile?.full_name || "",
+      first_name,
+      last_name,
       email: user?.email || "",
       phone_number: profile?.phone_number || "",
       date_of_birth: profile?.date_of_birth || "",
@@ -179,18 +209,15 @@ export default function ProfileEditScreen() {
       setSavingProfile(true);
 
       try {
-        // 5.1 Update auth email if changed
-        if (data.email !== user?.email) {
-          const { error: emailError } = await supabase.auth.updateUser({
-            email: data.email,
-          });
+        // Note: Email is now locked and cannot be changed for security purposes
 
-          if (emailError) throw emailError;
-        }
+        // 5.1 Combine first and last name into full name for database
+        const full_name =
+          `${data.first_name.trim()} ${data.last_name.trim()}`.trim();
 
         // 5.2 Update profile
         await updateProfile({
-          full_name: data.full_name,
+          full_name,
           phone_number: data.phone_number,
           date_of_birth: data.date_of_birth,
           avatar_url: avatarUrl,
@@ -206,7 +233,7 @@ export default function ProfileEditScreen() {
         setSavingProfile(false);
       }
     },
-    [user?.email, avatarUrl, updateProfile, router],
+    [avatarUrl, updateProfile, router],
   );
 
   return (
@@ -264,13 +291,27 @@ export default function ProfileEditScreen() {
                   <View className="gap-4">
                     <FormField
                       control={form.control}
-                      name="full_name"
+                      name="first_name"
                       render={({ field }) => (
                         <FormInput
-                          label="Full Name"
-                          placeholder="John Doe"
+                          label="First Name"
+                          placeholder="John"
                           autoCapitalize="words"
-                          autoComplete="name"
+                          autoComplete="given-name"
+                          {...field}
+                        />
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="last_name"
+                      render={({ field }) => (
+                        <FormInput
+                          label="Last Name"
+                          placeholder="Doe"
+                          autoCapitalize="words"
+                          autoComplete="family-name"
                           {...field}
                         />
                       )}
@@ -280,15 +321,29 @@ export default function ProfileEditScreen() {
                       control={form.control}
                       name="email"
                       render={({ field }) => (
-                        <FormInput
-                          label="Email Address"
-                          placeholder="john@example.com"
-                          autoCapitalize="none"
-                          autoComplete="email"
-                          keyboardType="email-address"
-                          description="You'll need to verify your new email if changed"
-                          {...field}
-                        />
+                        <View>
+                          <FormInput
+                            label="Email Address"
+                            placeholder="Email cannot be changed"
+                            description="Your email address is locked and cannot be modified for security purposes"
+                            autoCapitalize="none"
+                            autoComplete="email"
+                            keyboardType="email-address"
+                            editable={false}
+                            style={{ opacity: 0.6 }}
+                            {...field}
+                          />
+                          <View className="flex-row items-center mt-2 px-3 py-2 bg-muted/50 rounded-lg">
+                            <Shield
+                              size={16}
+                              className="text-blue-600 dark:text-blue-400 mr-2"
+                            />
+                            <Text className="text-sm text-muted-foreground flex-1">
+                              Your email address is securely locked and cannot
+                              be modified
+                            </Text>
+                          </View>
+                        </View>
                       )}
                     />
 

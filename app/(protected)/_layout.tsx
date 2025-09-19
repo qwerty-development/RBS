@@ -9,7 +9,7 @@ import { NetworkStatusBanner } from "@/components/network/NetworkStatusBanner";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
 import { getThemedColors, getActivityIndicatorColor } from "@/lib/utils";
-import { DOBOnboarding } from "@/components/onboarding/DOBOnboarding";
+import { ProfileCompletionOnboarding } from "@/components/onboarding/ProfileCompletionOnboarding";
 
 export const unstable_settings = {
   initialRouteName: "(tabs)",
@@ -167,7 +167,7 @@ export default function ProtectedLayout() {
       </Stack>
       {!isGuest && <GlobalChatTab />}
       {!isGuest && <NotificationManager />}
-      {!isGuest && <DOBOnboarding />}
+      {!isGuest && <ProfileCompletionOnboarding />}
     </View>
   );
 }

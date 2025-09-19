@@ -141,12 +141,17 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
       // For database-dependent routes, we'll let them handle the database readiness internally
       // This prevents splash screen hanging while still ensuring data loads properly
       if (!databaseReady) {
-        log("Database not ready yet, but proceeding with navigation - component will handle retry:", url);
+        log(
+          "Database not ready yet, but proceeding with navigation - component will handle retry:",
+          url,
+        );
       }
 
       // NUCLEAR OPTION: If splash screen is visible, dismiss it and delay processing
       if (finalOptions.isSplashVisible) {
-        log("NUCLEAR: Splash visible, dismissing and delaying deep link processing");
+        log(
+          "NUCLEAR: Splash visible, dismissing and delaying deep link processing",
+        );
 
         // Immediately dismiss splash
         finalOptions.onSplashDismissRequested();

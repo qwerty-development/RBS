@@ -283,7 +283,9 @@ export default function SignUp() {
                         {...field}
                       />
                       <TouchableOpacity
-                        onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                        onPress={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
                         className="absolute right-3 top-8 h-6 w-6 items-center justify-center"
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
