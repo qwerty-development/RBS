@@ -90,6 +90,12 @@ export function useBookings() {
   );
   const [error, setError] = useState<Error | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
+  
+  // Pagination for past bookings
+  const [pastBookingsPage, setPastBookingsPage] = useState(1);
+  const [hasMorePastBookings, setHasMorePastBookings] = useState(true);
+  const [loadingMorePastBookings, setLoadingMorePastBookings] = useState(false);
+  const ITEMS_PER_PAGE = 10;
 
   const hasInitialLoad = useRef(false);
   const profileCheckAttempts = useRef(0);
@@ -390,7 +396,7 @@ export function useBookings() {
           .gte("booking_time", now)
           .order("booking_time", { ascending: true }),
 
-        // Owned past bookings
+        // Owned past bookings with pagination
         supabase
           .from("bookings")
           .select(
@@ -404,7 +410,7 @@ export function useBookings() {
             `booking_time.lt.${now},status.in.(completed,cancelled_by_user,declined_by_restaurant,cancelled_by_restaurant,auto_declined,no_show)`,
           )
           .order("booking_time", { ascending: false })
-          .limit(50),
+          .range(0, ITEMS_PER_PAGE - 1), // For initial load, get first page
 
         // Accepted invitations - upcoming bookings
         getAcceptedInvitationBookings('upcoming'),
@@ -881,10 +887,72 @@ export function useBookings() {
     [router],
   );
 
+  // Load more past bookings function
+  const loadMorePastBookings = useCallback(async () => {
+    // Don't load more if we're already loading or there are no more bookings
+    if (loadingMorePastBookings || !hasMorePastBookings || !user?.id || isGuest) return;
+    
+    setLoadingMorePastBookings(true);
+    
+    try {
+      const nextPage = pastBookingsPage + 1;
+      const startIndex = pastBookingsPage * ITEMS_PER_PAGE;
+      const endIndex = startIndex + ITEMS_PER_PAGE - 1;
+      
+      const now = new Date().toISOString();
+      
+      // Fetch the next page of past bookings
+      const { data: ownedPast, error } = await supabase
+        .from("bookings")
+        .select(
+          `
+          *,
+          restaurant:restaurants (*)
+        `,
+        )
+        .eq("user_id", user.id)
+        .or(
+          `booking_time.lt.${now},status.in.(completed,cancelled_by_user,declined_by_restaurant,cancelled_by_restaurant,auto_declined,no_show)`,
+        )
+        .order("booking_time", { ascending: false })
+        .range(startIndex, endIndex);
+      
+      if (error) throw error;
+      
+      if (ownedPast && ownedPast.length > 0) {
+        // Format the additional bookings
+        const formattedBookings = ownedPast.map(
+          (booking: any): EnhancedBooking => ({
+            ...booking,
+            invitation_id: null,
+            invited_by: null,
+            is_invitee: false,
+          }),
+        );
+        
+        // Append to existing past bookings
+        setPastBookings([...pastBookings, ...formattedBookings]);
+        setPastBookingsPage(nextPage);
+        
+        // Check if we have more bookings to load
+        setHasMorePastBookings(formattedBookings.length === ITEMS_PER_PAGE);
+      } else {
+        setHasMorePastBookings(false);
+      }
+    } catch (error) {
+      console.error("Error loading more past bookings:", error);
+    } finally {
+      setLoadingMorePastBookings(false);
+    }
+  }, [pastBookingsPage, loadingMorePastBookings, hasMorePastBookings, user, isGuest, pastBookings, setPastBookings, ITEMS_PER_PAGE]);
+  
   // Refresh Handler
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
     profileCheckAttempts.current = 0; // Reset attempts on manual refresh
+    // Reset pagination when refreshing
+    setPastBookingsPage(1);
+    setHasMorePastBookings(true);
     fetchBookings();
   }, [fetchBookings]);
 
@@ -982,5 +1050,10 @@ export function useBookings() {
     leaveBooking,
     rebookRestaurant,
     reviewBooking,
+    
+    // Pagination for past bookings
+    loadingMorePastBookings,
+    hasMorePastBookings,
+    loadMorePastBookings,
   };
 }

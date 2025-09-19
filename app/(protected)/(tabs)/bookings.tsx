@@ -1,6 +1,6 @@
 // app/(protected)/(tabs)/bookings.tsx
 import React, { useCallback } from "react";
-import { View, RefreshControl, ScrollView } from "react-native";
+import { View, RefreshControl, ScrollView, ActivityIndicator } from "react-native";
 import { Calendar, Clock, UserPlus, Mail } from "lucide-react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -56,6 +56,10 @@ function BookingsScreenContent() {
     leaveBooking,
     rebookRestaurant,
     reviewBooking,
+    // Pagination for past bookings
+    loadingMorePastBookings,
+    hasMorePastBookings,
+    loadMorePastBookings,
   } = useBookings();
 
   // Safe access to bookings with fallback - stabilize the reference
@@ -71,6 +75,25 @@ function BookingsScreenContent() {
       return [];
     }
   }, [activeTab, bookings.upcoming, bookings.past]);
+  
+  // Reference to track when we're near the end of the list for infinite scrolling
+  const flatListRef = React.useRef<ScrollView>(null);
+  const onScroll = React.useCallback(
+    (event: any) => {
+      // Only handle scrolling for past bookings
+      if (activeTab !== "past" || !hasMorePastBookings || loadingMorePastBookings) return;
+      
+      const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+      const paddingToBottom = 20; // Load more when within 20px of the bottom
+      const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= 
+        contentSize.height - paddingToBottom;
+      
+      if (isCloseToBottom) {
+        loadMorePastBookings();
+      }
+    },
+    [activeTab, hasMorePastBookings, loadingMorePastBookings, loadMorePastBookings]
+  );
 
   // Refresh bookings when the tab becomes focused (handles Android back navigation)
   // Only refresh if we haven't already initialized and loaded data
@@ -257,14 +280,17 @@ function BookingsScreenContent() {
           title="Past"
           isActive={activeTab === "past"}
           onPress={() => setActiveTab("past")}
-          count={bookings.past.length}
+          // Removed count as it's not useful for past bookings
         />
       </View>
 
-      {/* Content with ScrollView for pull-to-refresh */}
+      {/* Content with ScrollView for pull-to-refresh and infinite scrolling */}
       <ScrollView
+        ref={flatListRef}
         className="flex-1"
         showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={400} // Throttle scroll events for performance
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -308,6 +334,23 @@ function BookingsScreenContent() {
                   processingBookingId={processingBookingId}
                 />
               ))}
+              {/* Load more indicator for past bookings */}
+              {activeTab === "past" && hasMorePastBookings && (
+                <View className="py-4 items-center">
+                  {loadingMorePastBookings ? (
+                    <ActivityIndicator size="small" color={colorScheme === "dark" ? "#ffffff" : "#000000"} />
+                  ) : (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onPress={loadMorePastBookings}
+                      className="mt-2"
+                    >
+                      <Text>Load More</Text>
+                    </Button>
+                  )}
+                </View>
+              )}
             </View>
           )}
         </View>

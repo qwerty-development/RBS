@@ -99,27 +99,7 @@ export const RestaurantHoursDisplay: React.FC<RestaurantHoursDisplayProps> = ({
         </View>
       </View>
 
-      {/* Next open time if currently closed */}
-      {!todayStatus.isOpen &&
-        (() => {
-          const nextOpenTime = findNextOpenTime(new Date());
-          return nextOpenTime ? (
-            <View className="bg-muted/50 rounded-lg p-3 mb-3">
-              <Text className="text-sm text-foreground">
-                Next open:{" "}
-                <Text className="font-medium text-foreground">
-                  {isToday(nextOpenTime.date)
-                    ? `Today at ${formatTime(nextOpenTime.time)}`
-                    : isTomorrow(nextOpenTime.date)
-                      ? `Tomorrow at ${formatTime(nextOpenTime.time)}`
-                      : `${format(nextOpenTime.date, "EEEE")} at ${formatTime(
-                          nextOpenTime.time,
-                        )}`}
-                </Text>
-              </Text>
-            </View>
-          ) : null;
-        })()}
+      {/* Removed "Next open" section as requested */}
 
       {/* Weekly Schedule Toggle */}
       <Pressable

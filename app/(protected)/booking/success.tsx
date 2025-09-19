@@ -370,6 +370,29 @@ export default function BookingSuccessScreen() {
             </View>
           </View>
 
+          {/* Prominent Date and Time Display */}
+          <View className="bg-card rounded-2xl p-6 mb-6 border border-border">
+            <View className="items-center">
+              <Muted className="text-sm mb-2">YOUR RESERVATION</Muted>
+              <View className="flex-row items-center justify-center gap-2 mb-2">
+                <Calendar size={18} color={colorScheme === 'dark' ? '#9ca3af' : '#6b7280'} />
+                <Text className="text-xl font-bold">
+                  {new Date(params.bookingDate || '').toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </Text>
+              </View>
+              <View className="flex-row items-center justify-center gap-2">
+                <Clock size={18} color={colorScheme === 'dark' ? '#9ca3af' : '#6b7280'} />
+                <Text className="text-3xl font-extrabold text-primary">
+                  {params.bookingTime}
+                </Text>
+              </View>
+            </View>
+          </View>
+
           {/* Table Information Card */}
           {parsedParams.tableInfo && (
             <View className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 mb-6">

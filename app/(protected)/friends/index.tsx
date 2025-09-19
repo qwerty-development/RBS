@@ -74,6 +74,8 @@ interface SearchResult {
   full_name: string;
   avatar_url: string | null;
   is_friend: boolean;
+  email?: string; // Email may not be present in current API response
+  phone_number?: string; // Phone number may not be present in current API response
   hasPendingRequest?: boolean;
   pendingRequest?: {
     id: string;
@@ -111,7 +113,9 @@ export default function FriendsScreen() {
 
   // Load initial data
   useEffect(() => {
-    loadData();
+    if (activeTab !== "discover") {
+      loadData();
+    }
     // Clear search state when switching tabs to avoid leaking queries/results across tabs
     setSearchQuery("");
     setSearchResults([]);
@@ -130,7 +134,10 @@ export default function FriendsScreen() {
           await loadFriendRequests();
           break;
         case "discover":
-          await loadSuggestions();
+          // Only load suggestions if explicitly searching
+          if (searchQuery.length >= 2) {
+            await executeSearch();
+          }
           break;
       }
     } catch (error) {
@@ -182,24 +189,18 @@ export default function FriendsScreen() {
     }
   };
 
+  // This function is now only used when a search is performed
   const loadSuggestions = async () => {
-    const { data, error } = await supabase.rpc("get_friend_suggestions");
-
-    if (!error && data) {
-      setSuggestions(data);
-    }
+    // We don't automatically load suggestions anymore
+    // Only search results will be shown in discover tab
+    setSuggestions([]);
   };
 
-  const handleSearch = async (query: string) => {
+  const handleSearchInputChange = (query: string) => {
     setSearchQuery(query);
 
-    if (query.length < 2) {
-      setSearchResults([]);
-      return;
-    }
-
-    // Friends tab: filter existing friends locally for fast, accurate navigation
-    if (activeTab === "friends") {
+    // For Friends tab only: filter existing friends locally for fast, accurate navigation
+    if (activeTab === "friends" && query.length >= 2) {
       const loweredQuery = query.toLowerCase();
       const filteredFriends = friends
         .filter((friend) =>
@@ -214,49 +215,63 @@ export default function FriendsScreen() {
         }));
 
       setSearchResults(filteredFriends);
+    } else if (activeTab === "friends" && query.length < 2) {
+      setSearchResults([]);
+    }
+    // For discover tab, don't search automatically - wait for button press
+  };
+
+  const executeSearch = async () => {
+    if (searchQuery.length < 2) {
+      Alert.alert("Search Error", "Please enter at least 2 characters to search");
       return;
     }
 
-    // Discover tab: global user search via RPC
-    setSearchLoading(true);
-    try {
-      const { data, error } = await supabase.rpc("search_users", {
-        search_query: query,
-      });
+    // For discover tab: global user search via RPC
+    if (activeTab === "discover") {
+      setSearchLoading(true);
+      try {
+        // TODO: Update the search_users function in the database to also return email and phone_number fields
+        // Current function signature: search_users(search_query text) RETURNS TABLE(id uuid, full_name text, avatar_url text, is_friend boolean)
+        // Should be updated to: search_users(search_query text) RETURNS TABLE(id uuid, full_name text, avatar_url text, is_friend boolean, email text, phone_number text)
+        const { data, error } = await supabase.rpc("search_users", {
+          search_query: searchQuery,
+        });
 
-      if (!error && data) {
-        // Check for pending requests
-        const enrichedResults = await Promise.all(
-          data.map(async (user: any) => {
-            const { data: requestData } = await supabase
-              .from("friend_requests")
-              .select("id, from_user_id, to_user_id")
-              .or(
-                `and(from_user_id.eq.${profile?.id},to_user_id.eq.${user.id}),and(from_user_id.eq.${user.id},to_user_id.eq.${profile?.id})`,
-              )
-              .eq("status", "pending")
-              .single();
+        if (!error && data) {
+          // Check for pending requests
+          const enrichedResults = await Promise.all(
+            data.map(async (user: any) => {
+              const { data: requestData } = await supabase
+                .from("friend_requests")
+                .select("id, from_user_id, to_user_id")
+                .or(
+                  `and(from_user_id.eq.${profile?.id},to_user_id.eq.${user.id}),and(from_user_id.eq.${user.id},to_user_id.eq.${profile?.id})`,
+                )
+                .eq("status", "pending")
+                .single();
 
-            return {
-              ...user,
-              hasPendingRequest: !!requestData,
-              pendingRequest: requestData
-                ? {
-                    id: requestData.id,
-                    from_user_id: requestData.from_user_id,
-                    to_user_id: requestData.to_user_id,
-                  }
-                : null,
-            };
-          }),
-        );
+              return {
+                ...user,
+                hasPendingRequest: !!requestData,
+                pendingRequest: requestData
+                  ? {
+                      id: requestData.id,
+                      from_user_id: requestData.from_user_id,
+                      to_user_id: requestData.to_user_id,
+                    }
+                  : null,
+              };
+            }),
+          );
 
-        setSearchResults(enrichedResults);
+          setSearchResults(enrichedResults);
+        }
+      } catch (error) {
+        console.error("Search error:", error);
+      } finally {
+        setSearchLoading(false);
       }
-    } catch (error) {
-      console.error("Search error:", error);
-    } finally {
-      setSearchLoading(false);
     }
   };
 
@@ -276,8 +291,10 @@ export default function FriendsScreen() {
       Alert.alert("Success", "Friend request sent!");
 
       // Refresh search results
-      if (searchQuery) {
-        await handleSearch(searchQuery);
+      if (searchQuery && activeTab === "friends") {
+        handleSearchInputChange(searchQuery);
+      } else if (searchQuery && activeTab === "discover") {
+        await executeSearch();
       }
 
       // Refresh suggestions
@@ -405,6 +422,11 @@ export default function FriendsScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
+    // For the discover tab, only refresh if there's a search query
+    if (activeTab === "discover" && !searchQuery) {
+      setRefreshing(false);
+      return;
+    }
     await loadData();
     setRefreshing(false);
   };
@@ -788,11 +810,22 @@ export default function FriendsScreen() {
                   : "Search users..."
               }
               value={searchQuery}
-              onChangeText={handleSearch}
+              onChangeText={handleSearchInputChange}
               className="flex-1 ml-2 text-base text-gray-900 dark:text-white"
               placeholderTextColor="#6b7280"
             />
-            {searchLoading && <ActivityIndicator size="small" />}
+            {activeTab === "discover" && (
+              <Pressable 
+                onPress={executeSearch}
+                className="ml-2 bg-primary px-3 py-1.5 rounded-lg"
+                disabled={searchLoading}
+              >
+                <Text className="text-white font-medium">
+                  {searchLoading ? "Searching..." : "Search"}
+                </Text>
+              </Pressable>
+            )}
+            {searchLoading && <ActivityIndicator size="small" className="ml-2" />}
           </View>
         </View>
       )}
@@ -849,7 +882,7 @@ export default function FriendsScreen() {
                   <>
                     <Search size={48} color="#9ca3af" />
                     <Text className="text-muted-foreground mt-4 text-center">
-                      No suggestions available right now
+                      Search for users by name, email or phone
                     </Text>
                   </>
                 )}
@@ -866,7 +899,7 @@ export default function FriendsScreen() {
           }
 
           return (
-            <View style={{ padding: 16 }}>
+            <View style={{ padding: 16, paddingBottom: 80 }}>
               <OptimizedList
                 data={listData}
                 renderItem={listRenderItem}
