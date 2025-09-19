@@ -33,7 +33,7 @@
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Plate uses your location to find nearby restaurants and provide personalized recommendations.",
         "NSLocationAlwaysAndWhenInUseUsageDescription": "Plate uses your location to find nearby restaurants and provide personalized recommendations.",
-        "NSContactsUsageDescription": "Plate needs optional access to your contacts only when you ask it to import guests or share a reservation.",
+        "NSContactsUsageDescription": "Plate needs access to your contacts to help you find friends who are already using the app. Your contacts are never stored or shared.",
         "NSCalendarsUsageDescription": "Plate needs access to your calendar to add restaurant reservations with reminder notifications.",
         "NSCameraUsageDescription": "Plate needs access to your camera to take photos for your dining posts and reviews.",
         "NSPhotoLibraryUsageDescription": "Plate needs access to your photo library to share photos of your dining experiences.",
@@ -96,7 +96,9 @@
         "android.permission.INTERNET",
         "android.permission.VIBRATE",
         "android.permission.READ_CALENDAR",
-        "android.permission.WRITE_CALENDAR"
+        "android.permission.WRITE_CALENDAR",
+        "android.permission.READ_CONTACTS",
+        "android.permission.WRITE_CONTACTS"
       ],
       "splash": {
         "backgroundColor": "#ffece2"
@@ -168,6 +170,7 @@
         }
       ],
       "expo-calendar",
+      "expo-contacts",
       "expo-web-browser",
       [
         "expo-image-picker",
