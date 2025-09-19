@@ -65,7 +65,10 @@ export function ContactsDiscovery({
 
   // Find users from contacts who are already on the app
   const findUsersFromContacts = async () => {
-    if (!contacts.length || !profile?.id) return;
+    if (!contacts.length || !profile?.id) {
+      console.log('ContactsDiscovery: Skipping findUsersFromContacts - contacts:', contacts.length, 'profile:', !!profile?.id);
+      return;
+    }
 
     try {
       setSearchLoading(true);
@@ -225,7 +228,14 @@ export function ContactsDiscovery({
 
   const renderContactUser = ({ item }: { item: ContactUser }) => (
     <Pressable
-      onPress={() => onUserPress(item.id)}
+      onPress={() => {
+        // Don't navigate to current user's profile
+        if (item.id === profile?.id) {
+          console.log('ContactsDiscovery: Skipping navigation to current user profile');
+          return;
+        }
+        onUserPress(item.id);
+      }}
       className="flex-row items-center justify-between p-4 mb-2 bg-white dark:bg-gray-800 rounded-2xl"
       style={{
         shadowColor: '#000',
@@ -309,6 +319,18 @@ export function ContactsDiscovery({
       )}
     </Pressable>
   );
+
+  // Loading state when profile is not available
+  if (!profile?.id) {
+    return (
+      <View className="flex-1 justify-center items-center">
+        <ActivityIndicator size="large" color="#f59e0b" />
+        <Text className="mt-4 text-gray-600 dark:text-gray-400">
+          Loading your profile...
+        </Text>
+      </View>
+    );
+  }
 
   // Permission denied state
   if (!permissionStatus.granted) {
