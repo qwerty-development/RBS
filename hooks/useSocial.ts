@@ -82,7 +82,7 @@ export function useSocial() {
     const unsubscribe = realtimeSubscriptionService.subscribeToUser({
       userId: profile.id,
       onFriendRequestChange: (payload: any) => {
-        console.log("Friend request update:", payload);
+     
 
         // Show notifications for new requests
         if (
@@ -100,7 +100,7 @@ export function useSocial() {
         loadFriendRequests();
       },
       onBookingInviteChange: (payload: any) => {
-        console.log("Booking invite update:", payload);
+  
 
         // Show notifications for new invites
         if (

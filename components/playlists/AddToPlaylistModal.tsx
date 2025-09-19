@@ -131,7 +131,7 @@ export const AddToPlaylistModal: React.FC<AddToPlaylistModalProps> = ({
       if (error) {
         if (error.code === "23505") {
           // Unique constraint violation
-          console.log("Restaurant already in playlist");
+
           return false;
         }
         throw error;

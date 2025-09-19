@@ -565,7 +565,7 @@ export const TableOptions = memo<{
   const handleOptionSelect = useCallback(
     (index: number) => {
       if (isProcessing || isConfirming) {
-        console.log("Cannot change selection while processing");
+        
         return;
       }
       setSelectedOptionIndex(index);
@@ -578,7 +578,7 @@ export const TableOptions = memo<{
     // Prevent double-clicks
     const now = Date.now();
     if (now - lastConfirmRef.current < 2000) {
-      console.log("Ignoring rapid confirm click");
+
       return;
     }
     lastConfirmRef.current = now;
@@ -589,7 +589,7 @@ export const TableOptions = memo<{
     }
 
     if (isProcessing || isConfirming) {
-      console.log("Already processing confirmation");
+
       return;
     }
 
@@ -733,7 +733,7 @@ const TableOptionCard = memo<{
   const handlePress = useCallback(() => {
     const now = Date.now();
     if (now - lastClickRef.current < 500) {
-      console.log("Ignoring rapid option selection");
+    
       return;
     }
     lastClickRef.current = now;

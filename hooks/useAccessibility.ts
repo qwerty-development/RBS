@@ -154,7 +154,7 @@ export function useAccessibility(): AccessibilityOptions & {
         const newScale = PixelRatio.getFontScale();
         setFontScale((prevScale) => {
           if (newScale !== prevScale) {
-            console.log("Font scale updated:", newScale);
+       
             return newScale;
           }
           return prevScale;

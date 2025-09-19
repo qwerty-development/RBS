@@ -93,9 +93,7 @@ export function RestaurantCard({
     handleRestaurantPress(() => {
       // Check if any modal is already open
       if (isAnyModalOpen) {
-        console.log(
-          `Restaurant ${restaurantData.id} press blocked - modal already open`,
-        );
+      
         return;
       }
 
@@ -121,7 +119,7 @@ export function RestaurantCard({
 
   const handlePlaylistSuccess = (playlistName: string) => {
     // You can add a Toast notification here for better UX
-    console.log(`Added ${restaurantData.name} to ${playlistName}`);
+  
     setPlaylistModalVisible(false);
   };
 

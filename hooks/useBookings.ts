@@ -104,7 +104,7 @@ export function useBookings() {
   // Check and create profile if needed for new users
   const ensureProfileExists = useCallback(async () => {
     if (!user?.id || isGuest) {
-      console.log("No user or guest user, skipping profile check");
+    
       return false;
     }
 
@@ -117,13 +117,13 @@ export function useBookings() {
         .single();
 
       if (existingProfile) {
-        console.log("Profile exists for user:", user.id);
+
         return true;
       }
 
       if (checkError && checkError.code === "PGRST116") {
         // Profile doesn't exist, create it
-        console.log("Creating profile for new user:", user.id);
+
 
         const { error: createError } = await supabase.from("profiles").insert({
           id: user.id,
@@ -140,7 +140,7 @@ export function useBookings() {
           throw createError;
         }
 
-        console.log("Profile created successfully");
+
 
         // Give the database a moment to process
         await new Promise((resolve) => setTimeout(resolve, 1000));
@@ -155,9 +155,7 @@ export function useBookings() {
 
       // Retry if we haven't exceeded max attempts
       if (profileCheckAttempts.current < MAX_PROFILE_CHECK_ATTEMPTS) {
-        console.log(
-          `Retrying profile check (attempt ${profileCheckAttempts.current})...`,
-        );
+     
         await new Promise((resolve) => setTimeout(resolve, 1500));
         return ensureProfileExists();
       }
@@ -173,7 +171,7 @@ export function useBookings() {
 
     // Don't fetch if guest or no user
     if (!userId || isGuest) {
-      console.log("Skipping bookings fetch - no user or guest");
+
       setBookingsLoading(false);
       setRefreshing(false);
       return;
@@ -201,9 +199,7 @@ export function useBookings() {
       setError(null);
       const now = new Date().toISOString();
 
-      // First, find and update any expired pending bookings
-      console.log("Checking for expired pending bookings to update...");
-      console.log("Current time:", now);
+ 
 
       // Debug: Let's see ALL pending bookings first
       const { data: allPendingBookings, error: allPendingError } =
@@ -214,16 +210,9 @@ export function useBookings() {
           .eq("status", "pending");
 
       if (allPendingBookings && allPendingBookings.length > 0) {
-        console.log(
-          "All pending bookings:",
-          allPendingBookings.map((b) => ({
-            id: b.id,
-            time: b.booking_time,
-            isExpired: new Date(b.booking_time) < new Date(now),
-          })),
-        );
+     
       } else {
-        console.log("No pending bookings found at all");
+       
       }
 
       const { data: expiredPendingBookings, error: expiredError } =
@@ -237,20 +226,12 @@ export function useBookings() {
       if (expiredError) {
         console.error("Error fetching expired pending bookings:", expiredError);
       } else if (expiredPendingBookings && expiredPendingBookings.length > 0) {
-        console.log(
-          `Found ${expiredPendingBookings.length} expired pending bookings to update:`,
-          expiredPendingBookings.map((b) => ({
-            id: b.id,
-            time: b.booking_time,
-          })),
-        );
+    
 
         // Update all expired pending bookings
         const updatePromises = expiredPendingBookings.map(async (booking) => {
           try {
-            console.log(
-              `Updating expired booking ${booking.id} from pending to declined_by_restaurant`,
-            );
+         
             const { error: updateError } = await supabase
               .from("bookings")
               .update({
@@ -265,9 +246,7 @@ export function useBookings() {
                 updateError,
               );
             } else {
-              console.log(
-                `✅ Successfully updated booking ${booking.id} from pending to declined_by_restaurant`,
-              );
+            
             }
           } catch (error) {
             console.error(
@@ -279,38 +258,30 @@ export function useBookings() {
 
         await Promise.allSettled(updatePromises);
       } else {
-        console.log("No expired pending bookings found");
+      
       }
 
       // Debug: Let's first check if there are any accepted invitations at all
-      console.log("🎯 DEBUG: Checking for accepted invitations...");
+
       const { data: debugAcceptedInvites, error: debugError } = await supabase
         .from("booking_invites")
         .select("id, booking_id, status, to_user_id, responded_at")
         .eq("to_user_id", userId)
         .eq("status", "accepted");
 
-      console.log("🎯 DEBUG: Raw accepted invitations:", {
-        count: debugAcceptedInvites?.length || 0,
-        invites: debugAcceptedInvites,
-        error: debugError,
-      });
+    
 
       // Debug: Check what bookings exist for these invitation booking_ids
       if (debugAcceptedInvites && debugAcceptedInvites.length > 0) {
         const bookingIds = debugAcceptedInvites.map(inv => inv.booking_id);
-        console.log("🎯 DEBUG: Checking bookings for invitation booking_ids:", bookingIds);
+
 
         const { data: debugBookings, error: debugBookingsError } = await supabase
           .from("bookings")
           .select("id, booking_time, status, user_id, restaurant_id")
           .in("id", bookingIds);
 
-        console.log("🎯 DEBUG: Bookings found for invitations:", {
-          count: debugBookings?.length || 0,
-          bookings: debugBookings,
-          error: debugBookingsError,
-        });
+       
 
         // Check which bookings meet the upcoming criteria
         if (debugBookings) {
@@ -318,16 +289,7 @@ export function useBookings() {
             new Date(booking.booking_time) >= new Date(now) &&
             ["pending", "confirmed"].includes(booking.status)
           );
-          console.log("🎯 DEBUG: Bookings that meet upcoming criteria:", {
-            count: upcomingBookings.length,
-            bookings: upcomingBookings.map(b => ({
-              id: b.id,
-              booking_time: b.booking_time,
-              status: b.status,
-              is_future: new Date(b.booking_time) >= new Date(now),
-              is_active_status: ["pending", "confirmed"].includes(b.status)
-            }))
-          });
+      
         }
       }
 
@@ -358,11 +320,11 @@ export function useBookings() {
         }
 
         if (!acceptedInvites || acceptedInvites.length === 0) {
-          console.log(`🎯 DEBUG: No accepted invitations found (${timeFilter})`);
+       
           return { data: [], error: null };
         }
 
-        console.log(`🎯 DEBUG: Found accepted invitations (${timeFilter}):`, acceptedInvites.length);
+
 
         // Then get the booking details for those invitations
         const bookingIds = acceptedInvites.map(inv => inv.booking_id);
@@ -393,16 +355,7 @@ export function useBookings() {
           return { data: [], error: bookingError };
         }
 
-        console.log(`🎯 DEBUG: Found ${timeFilter} bookings for invitations:`, {
-          total_invites: acceptedInvites.length,
-          filtered_bookings: bookings?.length || 0,
-          bookings: bookings?.map(b => ({
-            id: b.id,
-            booking_time: b.booking_time,
-            status: b.status,
-            restaurant: b.restaurant?.name
-          }))
-        });
+    
 
         // Combine invitation and booking data
         const combinedData = bookings?.map(booking => {
@@ -469,44 +422,30 @@ export function useBookings() {
         const now = new Date();
 
         // Debug: Log all bookings and their status/time
-        console.log("Checking bookings for expired pending status:");
+   
         bookings.forEach((booking, index) => {
           const bookingTime = new Date(booking.booking_time);
           const isExpired = bookingTime < now;
-          console.log(
-            `Booking ${index}: ID=${booking.id}, Status=${booking.status}, Time=${booking.booking_time}, IsExpired=${isExpired}, CurrentTime=${now.toISOString()}`,
-          );
+        
         });
 
         const expiredPendingBookings = bookings.filter((booking) => {
           const bookingTime = new Date(booking.booking_time);
           const isExpired = bookingTime < now;
           const isPending = booking.status === "pending";
-          console.log(
-            `Booking ${booking.id}: isPending=${isPending}, isExpired=${isExpired}, bookingTime=${bookingTime.toISOString()}, now=${now.toISOString()}`,
-          );
+       
           return isPending && isExpired;
         });
 
-        console.log(
-          `Found ${expiredPendingBookings.length} expired pending bookings to update:`,
-          expiredPendingBookings.map((b) => ({
-            id: b.id,
-            time: b.booking_time,
-          })),
-        );
+       
 
         if (expiredPendingBookings.length > 0) {
-          console.log(
-            `Updating ${expiredPendingBookings.length} expired pending bookings to declined_by_restaurant`,
-          );
+       
 
           // Update each expired pending booking
           const updatePromises = expiredPendingBookings.map(async (booking) => {
             try {
-              console.log(
-                `Attempting to update booking ${booking.id} from pending to declined_by_restaurant`,
-              );
+             
               const { error } = await supabase
                 .from("bookings")
                 .update({
@@ -518,9 +457,7 @@ export function useBookings() {
               if (error) {
                 console.error(`Error updating booking ${booking.id}:`, error);
               } else {
-                console.log(
-                  `✅ Successfully updated booking ${booking.id} from pending to declined_by_restaurant`,
-                );
+             
                 // Update the local booking object
                 booking.status = "declined_by_restaurant";
                 booking.updated_at = new Date().toISOString();
@@ -536,7 +473,7 @@ export function useBookings() {
           // Wait for all updates to complete
           await Promise.allSettled(updatePromises);
         } else {
-          console.log("No expired pending bookings found to update");
+     
         }
       };
 
@@ -588,28 +525,14 @@ export function useBookings() {
       }
 
       // Handle invited upcoming bookings
-      console.log("🎯 DEBUG: Invitation query result status:", {
-        status: invitedUpcomingResult.status,
-        hasError: invitedUpcomingResult.status === "fulfilled" ? !!invitedUpcomingResult.value.error : true,
-        error: invitedUpcomingResult.status === "fulfilled" ? invitedUpcomingResult.value.error : invitedUpcomingResult.reason
-      });
+    
 
       if (
         invitedUpcomingResult.status === "fulfilled" &&
         !invitedUpcomingResult.value.error
       ) {
         const invitedUpcoming = invitedUpcomingResult.value.data || [];
-        console.log("🎯 DEBUG: Processed invitation bookings result:", {
-          count: invitedUpcoming.length,
-          data: invitedUpcoming.map((inv: any) => ({
-            invite_id: inv.id,
-            booking_id: inv.booking_id,
-            has_booking: !!inv.booking,
-            booking_time: inv.booking?.booking_time,
-            booking_status: inv.booking?.status,
-            restaurant_name: inv.booking?.restaurant?.name,
-          })),
-        });
+       
 
         const mappedInvitations = invitedUpcoming
           .filter((invite: any) => invite.booking) // Filter out invitations without bookings
@@ -624,16 +547,7 @@ export function useBookings() {
             }),
           );
 
-        console.log("🎯 DEBUG: Mapped accepted invitations:", {
-          count: mappedInvitations.length,
-          bookings: mappedInvitations.map((booking) => ({
-            id: booking.id,
-            booking_time: booking.booking_time,
-            status: booking.status,
-            restaurant_name: booking.restaurant?.name,
-            is_invitee: booking.is_invitee,
-          })),
-        });
+      
 
         upcomingData.push(...mappedInvitations);
       } else {
@@ -651,17 +565,7 @@ export function useBookings() {
         !invitedPastResult.value.error
       ) {
         const invitedPast = invitedPastResult.value.data || [];
-        console.log("🎯 DEBUG: Processed past invitation bookings:", {
-          count: invitedPast.length,
-          data: invitedPast.map((inv: any) => ({
-            invite_id: inv.id,
-            booking_id: inv.booking_id,
-            has_booking: !!inv.booking,
-            booking_time: inv.booking?.booking_time,
-            booking_status: inv.booking?.status,
-            restaurant_name: inv.booking?.restaurant?.name,
-          })),
-        });
+      
 
         const mappedPastInvitations = invitedPast
           .filter((invite: any) => invite.booking) // Filter out invitations without bookings
@@ -703,24 +607,12 @@ export function useBookings() {
       );
 
       // Update store with combined data
-      console.log("🎯 DEBUG: Final upcoming data before setting store:", {
-        count: upcomingData.length,
-        bookings: upcomingData.map((booking) => ({
-          id: booking.id,
-          booking_time: booking.booking_time,
-          status: booking.status,
-          restaurant_name: booking.restaurant?.name,
-          is_invitee: booking.is_invitee,
-          source: booking.is_invitee ? "invitation" : "owned",
-        })),
-      });
+     
 
       setUpcomingBookings(upcomingData);
       setPastBookings(pastData);
 
-      console.log(
-        `Fetched ${upcomingData.length} upcoming and ${pastData.length} past bookings (including invitations)`,
-      );
+   
 
       // Debug: log declined bookings specifically
       const declinedBookings = pastData.filter(
@@ -729,14 +621,7 @@ export function useBookings() {
           b.status === "cancelled_by_restaurant",
       );
       if (declinedBookings.length > 0) {
-        console.log(
-          "Found declined bookings:",
-          declinedBookings.map((b) => ({
-            id: b.id,
-            status: b.status,
-            booking_time: b.booking_time,
-          })),
-        );
+     
       }
 
       // Only throw error if both requests failed
@@ -1006,7 +891,7 @@ export function useBookings() {
   // Lifecycle Management
   useEffect(() => {
     if (!hasInitialLoad.current && user && !isGuest) {
-      console.log("Initial load for user:", user.id);
+  
       setBookingsLoading(true);
       fetchBookings();
       hasInitialLoad.current = true;
@@ -1033,16 +918,12 @@ export function useBookings() {
       return;
     }
 
-    console.log("Setting up real-time subscriptions for user:", user.id);
+ 
 
     const unsubscribe = realtimeSubscriptionService.subscribeToUser({
       userId: user.id,
       onBookingChange: (payload) => {
-        console.log(
-          "Real-time booking change:",
-          payload.eventType,
-          payload.new,
-        );
+      
 
         if (payload.eventType === "INSERT" && payload.new) {
           // New booking created - refresh data to get complete booking with restaurant info
@@ -1061,11 +942,7 @@ export function useBookings() {
         }
       },
       onBookingInviteChange: (payload) => {
-        console.log(
-          "Real-time booking invite change:",
-          payload.eventType,
-          payload.new,
-        );
+      
 
         // Booking invitations affect bookings list, refresh to get updated data
         if (
@@ -1079,10 +956,7 @@ export function useBookings() {
     });
 
     return () => {
-      console.log(
-        "Cleaning up booking real-time subscriptions for user:",
-        user.id,
-      );
+
       unsubscribe();
     };
   }, [user?.id, isGuest, handleRefresh, updateBooking]);

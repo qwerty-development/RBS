@@ -86,7 +86,7 @@ class RealtimeSubscriptionService {
     }
 
     this.isInitialized = true;
-    console.log("RealtimeSubscriptionService initialized");
+  
   }
 
   /**
@@ -95,10 +95,10 @@ class RealtimeSubscriptionService {
   private handleVisibilityChange(): void {
     if (document.hidden) {
       // App is in background, reduce subscription activity
-      console.log("App backgrounded - maintaining critical subscriptions only");
+
     } else {
       // App is active, restore full subscription activity
-      console.log("App foregrounded - restoring all subscriptions");
+   
     }
   }
 
@@ -361,10 +361,10 @@ class RealtimeSubscriptionService {
 
     // Subscribe with enhanced status handling
     channel.subscribe((status) => {
-      console.log(`Real-time subscription status for ${channelId}: ${status}`);
+
 
       if (status === "SUBSCRIBED") {
-        console.log(`✅ Real-time subscription active: ${channelId}`);
+ 
         // Reset retry attempts on successful connection
         this.retryAttempts.delete(channelId);
       } else if (status === "CHANNEL_ERROR") {
@@ -398,12 +398,10 @@ class RealtimeSubscriptionService {
       this.retryAttempts.set(channelId, currentAttempts + 1);
 
       const retryDelay = this.RETRY_DELAY * Math.pow(2, currentAttempts); // Exponential backoff
-      console.log(
-        `⚠️ Retrying subscription ${channelId} in ${retryDelay}ms (attempt ${currentAttempts + 1}/${this.MAX_RETRY_ATTEMPTS})`,
-      );
+   
 
       const retryTimeout = setTimeout(() => {
-        console.log(`🔄 Attempting to reconnect ${channelId}...`);
+  
         this.unsubscribe(channelId);
         this.createSubscription(channelId, subscriptions);
       }, retryDelay);
@@ -437,7 +435,7 @@ class RealtimeSubscriptionService {
       this.channels.delete(channelId);
       this.subscriptions.delete(channelId);
       this.retryAttempts.delete(channelId);
-      console.log(`Unsubscribed from channel: ${channelId}`);
+
     }
   }
 
@@ -457,7 +455,7 @@ class RealtimeSubscriptionService {
     this.channels.clear();
     this.subscriptions.clear();
     this.retryAttempts.clear();
-    console.log("Unsubscribed from all real-time channels");
+
   }
 
   /**
@@ -520,7 +518,7 @@ class RealtimeSubscriptionService {
   cleanup(): void {
     this.unsubscribeAll();
     this.isInitialized = false;
-    console.log("RealtimeSubscriptionService cleaned up");
+
   }
 
   /**
@@ -535,24 +533,17 @@ class RealtimeSubscriptionService {
    */
   debugStatus(): void {
     const stats = this.getStats();
-    console.log("=== RealtimeSubscriptionService Debug Status ===");
-    console.log(`Active Channels: ${stats.activeChannels}`);
-    console.log(`Total Subscriptions: ${stats.totalSubscriptions}`);
-    console.log(`Retrying Channels: ${stats.retryingChannels}`);
-    console.log(`Pending Timeouts: ${stats.pendingTimeouts}`);
-    console.log(`Service Healthy: ${this.isHealthy()}`);
+
 
     if (this.channels.size > 0) {
-      console.log("\nChannel Details:");
+  
       this.channels.forEach((channel, channelId) => {
         const subscriptions = this.subscriptions.get(channelId) || [];
         const retryCount = this.retryAttempts.get(channelId) || 0;
-        console.log(
-          `  ${channelId}: ${channel.state} (${subscriptions.length} subs, ${retryCount} retries)`,
-        );
+   
       });
     }
-    console.log("===============================================");
+ 
   }
 }
 

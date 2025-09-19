@@ -19,12 +19,10 @@ interface Review {
 }
 
 const fetchReviews = async (id: string) => {
-  console.log("=== Fetch Reviews Function ===");
-  console.log("Attempting to fetch reviews with ID:", id);
-  console.log("ID type:", typeof id);
+  
 
   if (!id) {
-    console.log("❌ No user ID provided");
+
     return [];
   }
 
@@ -40,9 +38,7 @@ const fetchReviews = async (id: string) => {
       throw errorReviews;
     }
 
-    console.log("✅ Successfully fetched reviews:");
-    console.log("Number of reviews:", reviews?.length);
-    console.log("Reviews data:", JSON.stringify(reviews, null, 2));
+
     return reviews;
   } catch (error) {
     console.error("❌ Error in fetchReviews:", error);
@@ -67,34 +63,30 @@ export default function ReviewsPage() {
 
   // Log when the component renders and when ID changes
   useEffect(() => {
-    console.log("=== Component Render ===");
-    console.log("Current ID from params:", userId);
-    console.log("ID type:", typeof userId);
-    console.log("All params:", params);
+   
   }, [userId, params]);
 
   useEffect(() => {
     const loadReviews = async () => {
-      console.log("=== Load Reviews Effect ===");
-      console.log("ID available:", !!userId);
+      
 
       if (!userId) {
-        console.log("❌ No ID available yet");
+       
         setIsLoading(false);
         return;
       }
 
       try {
-        console.log("🔄 Starting to fetch reviews...");
+        
         setIsLoading(true);
         const data = await fetchReviews(userId);
-        console.log("✅ Setting reviews state with data");
+        
         setReviews(data);
       } catch (error) {
         console.error("❌ Error in loadReviews:", error);
       } finally {
         setIsLoading(false);
-        console.log("🏁 Finished loading reviews");
+       
       }
     };
 

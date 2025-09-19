@@ -138,9 +138,7 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
 
     // Check if any modal is already open
     if (isAnyModalOpen) {
-      console.log(
-        `Restaurant ${restaurant.id} press blocked - modal already open`,
-      );
+    
       return;
     }
 

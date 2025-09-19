@@ -12,41 +12,41 @@ export function LocationTestButton() {
     if (testing) return;
 
     setTesting(true);
-    console.log("🧪 Starting location service test...");
+
 
     try {
       // Test 1: Check permissions
-      console.log("🔐 Testing permissions...");
+   
       const { status } = await Location.getForegroundPermissionsAsync();
-      console.log("🔐 Current permission status:", status);
+
 
       if (status !== "granted") {
-        console.log("🔐 Requesting permissions...");
+
         const { status: newStatus } =
           await Location.requestForegroundPermissionsAsync();
-        console.log("🔐 New permission status:", newStatus);
+
       }
 
       // Test 2: Get current position
-      console.log("📍 Getting current position...");
+
       const position = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
         timeout: 10000,
       });
-      console.log("📍 GPS position:", position.coords);
+
 
       // Test 3: Reverse geocode
-      console.log("🏠 Testing reverse geocoding...");
+
       const [address] = await Location.reverseGeocodeAsync({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       });
-      console.log("🏠 Address:", address);
+ 
 
       // Test 4: Use LocationService
-      console.log("🔧 Testing LocationService...");
+  
       const locationData = await LocationService.getCurrentLocation();
-      console.log("🔧 LocationService result:", locationData);
+
 
       Alert.alert(
         "Location Test Results",

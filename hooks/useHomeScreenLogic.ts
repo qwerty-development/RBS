@@ -91,7 +91,7 @@ export function useHomeScreenLogic() {
 
       if (savedLocation) {
         const parsedLocation = JSON.parse(savedLocation);
-        console.log("Using saved location:", parsedLocation);
+     
         setLocation(parsedLocation);
         return;
       }
@@ -124,7 +124,7 @@ export function useHomeScreenLogic() {
         district: address.district || address.subregion || "Central District",
       };
 
-      console.log("Using GPS location:", gpsLocation);
+    
       setLocation(gpsLocation);
     } catch (error) {
       console.error("Location error:", error);
@@ -147,7 +147,7 @@ export function useHomeScreenLogic() {
           location.city !== parsedLocation.city ||
           location.district !== parsedLocation.district
         ) {
-          console.log("Location updated:", parsedLocation);
+ 
           setLocation(parsedLocation);
         }
       }
@@ -318,7 +318,7 @@ export function useHomeScreenLogic() {
   // FIXED: handleCuisinePress now correctly handles cuisineId string parameter
   const handleCuisinePress = useCallback(
     (cuisineId: string) => {
-      console.log("Navigating to cuisine:", cuisineId);
+
 
       if (
         !cuisineId ||

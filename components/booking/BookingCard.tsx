@@ -304,10 +304,7 @@ export function BookingCard({
     : booking.status;
 
   // Debug logging for status
-  console.log(
-    `BookingCard Debug - ID: ${booking.id}, Original Status: ${booking.status}, Effective Status: ${effectiveStatus}, IsPendingAndPassed: ${isPendingAndPassed}`,
-  );
-
+ 
   const statusConfig =
     BOOKING_STATUS_CONFIG[
       effectiveStatus as keyof typeof BOOKING_STATUS_CONFIG

@@ -347,59 +347,37 @@ export function useOffers() {
   // Claim and redeem offer in one operation (for booking confirmation)
   const claimAndRedeemOffer = useCallback(
     async (offerId: string, bookingId: string) => {
-      console.log("🎯 claimAndRedeemOffer called with:", {
-        offerId,
-        bookingId,
-        profileId: profile?.id,
-      });
+   
 
       if (!profile?.id) {
-        console.log("❌ No profile ID available");
+ 
         return false;
       }
 
       try {
-        console.log(
-          "🎯 Looking for offer in offers array. Total offers:",
-          offers.length,
-        );
+      
         const offer = offers.find((o) => o.id === offerId);
-        console.log("🎯 Found offer:", offer ? "YES" : "NO");
+   
 
         if (!offer) {
-          console.log("❌ Offer not found in offers array");
-          console.log(
-            "🎯 Available offer IDs:",
-            offers.map((o) => o.id),
-          );
+        
           throw new Error("Offer not found");
         }
 
         // Check if offer is valid
         const now = new Date();
         const validUntil = new Date(offer.valid_until);
-        console.log("🎯 Checking offer validity:", {
-          now: now.toISOString(),
-          validUntil: validUntil.toISOString(),
-        });
+  
 
         if (now > validUntil) {
-          console.log("❌ Offer has expired");
+       
           throw new Error("Offer has expired");
         }
 
         const claimDate = now.toISOString();
         const expiryDate = calculateExpiryDate(claimDate, offer.valid_until);
 
-        console.log("🎯 Inserting user offer record:", {
-          user_id: profile.id,
-          offer_id: offerId,
-          booking_id: bookingId,
-          claimed_at: claimDate,
-          used_at: claimDate,
-          expires_at: expiryDate.toISOString(),
-          status: "used",
-        });
+     
 
         // Insert user offer directly as used (claimed and redeemed in one step)
         const { data, error } = await supabase
@@ -417,11 +395,11 @@ export function useOffers() {
           .single();
 
         if (error) {
-          console.log("❌ Database insert error:", error);
+    
           throw error;
         }
 
-        console.log("✅ Successfully inserted user offer:", data);
+ 
 
         // Update local state
         const newUserOffer: UserOfferData = {
@@ -441,12 +419,7 @@ export function useOffers() {
           ),
         );
 
-        console.log(
-          "✅ Successfully claimed and redeemed offer:",
-          offerId,
-          "for booking:",
-          bookingId,
-        );
+      
         return true;
       } catch (err: any) {
         console.error("❌ Error claiming and redeeming offer:", err);
@@ -547,7 +520,7 @@ export function useOffers() {
           prev.map((o) => (o.id === offerId ? enrichOffer(o, undefined) : o)),
         );
 
-        console.log("Released claimed offer:", offerId);
+
         return true;
       } catch (err: any) {
         console.error("Error releasing claimed offer:", err);

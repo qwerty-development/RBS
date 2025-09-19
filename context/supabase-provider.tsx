@@ -35,7 +35,7 @@ const hideSplashImmediately = () => {
   if (!splashHideAttempted) {
     splashHideAttempted = true;
     SplashScreen.hideAsync().catch(() => {});
-    console.log("🚀 AGGRESSIVE: Native splash hide attempted immediately");
+
   }
 };
 
@@ -46,7 +46,7 @@ setTimeout(hideSplashImmediately, 1000); // 1s - third attempt
 setTimeout(hideSplashImmediately, 2000); // 2s - final backup
 
 // Initial prevention (but will be overridden quickly)
-SplashScreen.preventAutoHideAsync().catch(console.warn);
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 // Profile type definition
 type Profile = {
@@ -136,11 +136,11 @@ function AuthContent({ children }: PropsWithChildren) {
     isTripleSlashed: true,
   });
 
-  console.log("🎯 OAuth Redirect URI:", redirectUri);
+ 
 
   // NEW: Continue as guest function
   const continueAsGuest = useCallback(async () => {
-    console.log("👻 Continuing as guest...");
+
     try {
       await AsyncStorage.setItem(GUEST_MODE_KEY, "true");
       setIsGuest(true);
@@ -150,26 +150,26 @@ function AuthContent({ children }: PropsWithChildren) {
       // Navigate to main app
       router.replace("/(protected)/(tabs)");
     } catch (error) {
-      console.error("Failed to save guest mode status", error);
+      // Failed to save guest mode status
     }
   }, [router]);
 
   // NEW: Convert guest to user (redirect to welcome)
   const convertGuestToUser = useCallback(async () => {
-    console.log("🔄 Converting guest to user...");
+
     try {
       await AsyncStorage.removeItem(GUEST_MODE_KEY);
       setIsGuest(false);
       router.replace("/welcome");
     } catch (error) {
-      console.error("Failed to clear guest mode status", error);
+      // Failed to clear guest mode status
     }
   }, [router]);
 
   // NEW: Database readiness check
   const checkDatabaseReadiness = useCallback(async (): Promise<boolean> => {
     try {
-      console.log("🔄 Checking database readiness...");
+    
 
       // Simple query to test database connectivity
       const { data, error } = await supabase
@@ -178,14 +178,14 @@ function AuthContent({ children }: PropsWithChildren) {
         .limit(1);
 
       if (error) {
-        console.warn("❌ Database readiness check failed:", error.message);
+        // Database readiness check failed
         return false;
       }
 
-      console.log("✅ Database readiness check successful");
+    
       return true;
     } catch (error) {
-      console.error("❌ Database readiness check error:", error);
+      // Database readiness check error
       return false;
     }
   }, []);
@@ -194,7 +194,7 @@ function AuthContent({ children }: PropsWithChildren) {
   const fetchProfile = useCallback(
     async (userId: string): Promise<Profile | null> => {
       try {
-        console.log("🔄 Fetching profile for user:", userId);
+     
 
         const { data, error } = await supabase
           .from("profiles")
@@ -203,23 +203,21 @@ function AuthContent({ children }: PropsWithChildren) {
           .single();
 
         if (error) {
-          console.error("❌ Error fetching profile:", error);
+          // Error fetching profile
 
           // If profile doesn't exist, try to create it
           if (error.code === "PGRST116") {
-            console.log(
-              "⚠️ Profile not found, will be created on next sign-up",
-            );
+          
             return null;
           }
 
           throw error;
         }
 
-        console.log("✅ Profile fetched successfully");
+
         return data;
       } catch (error) {
-        console.error("❌ Unexpected error fetching profile:", error);
+        // Unexpected error fetching profile
         return null;
       }
     },
@@ -230,7 +228,7 @@ function AuthContent({ children }: PropsWithChildren) {
   const processOAuthUser = useCallback(
     async (session: Session): Promise<Profile | null> => {
       try {
-        console.log("🔄 Processing OAuth user:", session.user.id);
+      
 
         // Check if user exists in profiles table
         const { data: existingProfile, error: fetchError } = await supabase
@@ -265,7 +263,7 @@ function AuthContent({ children }: PropsWithChildren) {
             updated_at: new Date().toISOString(),
           };
 
-          console.log("🔄 Creating new profile for OAuth user");
+         
 
           const { data: createdProfile, error: createError } = await supabase
             .from("profiles")
@@ -274,23 +272,20 @@ function AuthContent({ children }: PropsWithChildren) {
             .single();
 
           if (createError) {
-            console.error(
-              "❌ Error creating profile after OAuth:",
-              createError,
-            );
+            // Error creating profile after OAuth
             return null;
           }
 
           return createdProfile as Profile;
         } else if (fetchError) {
-          console.error("❌ Error fetching user profile:", fetchError);
+          // Error fetching user profile
           return null;
         }
 
         // Profile exists, return it
         return existingProfile as Profile;
       } catch (error) {
-        console.error("❌ Error processing OAuth user:", error);
+        // Error processing OAuth user
         return null;
       }
     },
@@ -307,7 +302,7 @@ function AuthContent({ children }: PropsWithChildren) {
         dateOfBirth?: string,
       ) => {
         try {
-          console.log("🔄 Starting sign-up process for:", email);
+   
 
           // Enhanced input validation
           if (!InputValidator.isValidEmail(email)) {
@@ -385,7 +380,7 @@ function AuthContent({ children }: PropsWithChildren) {
             });
 
           if (authError) {
-            console.error("❌ Auth sign-up error:", authError);
+            // Auth sign-up error
 
             // Monitor failed registration attempts
             await SecurityMonitor.monitorSuspiciousActivity({
@@ -401,18 +396,18 @@ function AuthContent({ children }: PropsWithChildren) {
             throw authError;
           }
 
-          console.log("✅ Auth sign-up successful");
+      
 
           // Create profile if user was created
           if (authData.user && !authData.session) {
-            console.log("ℹ️ User created but needs email confirmation");
+        
             Alert.alert(
               "Check Your Email",
               "We've sent you a confirmation link. Please check your email and click the link to activate your account.",
               [{ text: "OK" }],
             );
           } else if (authData.user && authData.session) {
-            console.log("🔄 Creating user profile...");
+        
 
             // Register device for the new user
             await DeviceSecurity.registerDeviceForUser(authData.user.id);
@@ -436,12 +431,9 @@ function AuthContent({ children }: PropsWithChildren) {
               });
 
             if (profileError) {
-              console.error(
-                "⚠️ Profile creation error (non-critical):",
-                profileError,
-              );
+              // Profile creation error (non-critical)
             } else {
-              console.log("✅ Profile created successfully");
+ 
             }
           }
 
@@ -458,7 +450,7 @@ function AuthContent({ children }: PropsWithChildren) {
             });
           }
         } catch (error) {
-          console.error("❌ Sign-up error:", error);
+          // Sign-up error
           throw error;
         }
       },
@@ -475,7 +467,7 @@ function AuthContent({ children }: PropsWithChildren) {
     withSecurityMiddleware(
       async (email: string, password: string) => {
         try {
-          console.log("🔄 Starting sign-in process for:", email);
+      
 
           // Input validation
           if (!InputValidator.isValidEmail(email)) {
@@ -527,7 +519,7 @@ function AuthContent({ children }: PropsWithChildren) {
           });
 
           if (error) {
-            console.error("❌ Sign-in error:", error);
+            // Sign-in error
 
             // Monitor failed login attempts
             await SecurityMonitor.monitorSuspiciousActivity({
@@ -561,9 +553,9 @@ function AuthContent({ children }: PropsWithChildren) {
             }
           }
 
-          console.log("✅ Sign-in successful");
+     
         } catch (error) {
-          console.error("❌ Sign-in error:", error);
+          // Sign-in error
           throw error;
         }
       },
@@ -578,7 +570,7 @@ function AuthContent({ children }: PropsWithChildren) {
 
   const signOut = useCallback(async () => {
     try {
-      console.log("🔄 Starting sign-out process...");
+
 
       // Clear guest mode
       await AsyncStorage.removeItem(GUEST_MODE_KEY);
@@ -586,13 +578,13 @@ function AuthContent({ children }: PropsWithChildren) {
 
       const { error } = await supabase.auth.signOut();
       if (error) {
-        console.error("❌ Sign-out error:", error);
+        // Sign-out error
         throw error;
       }
 
-      console.log("✅ Sign-out successful");
+    
     } catch (error) {
-      console.error("❌ Sign-out error:", error);
+      // Sign-out error
       throw error;
     }
   }, []);
@@ -604,7 +596,7 @@ function AuthContent({ children }: PropsWithChildren) {
       }
 
       try {
-        console.log("🔄 Updating profile...");
+     
 
         const { data, error } = await supabase
           .from("profiles")
@@ -614,14 +606,14 @@ function AuthContent({ children }: PropsWithChildren) {
           .single();
 
         if (error) {
-          console.error("❌ Profile update error:", error);
+          // Profile update error
           throw error;
         }
 
         setProfile(data);
-        console.log("✅ Profile updated successfully");
+        // Profile updated successfully
       } catch (error) {
-        console.error("❌ Error updating profile:", error);
+        // Error updating profile
         throw error;
       }
     },
@@ -632,14 +624,14 @@ function AuthContent({ children }: PropsWithChildren) {
     if (!user) return;
 
     try {
-      console.log("🔄 Refreshing profile...");
+      // Refreshing profile
       const profileData = await fetchProfile(user.id);
       if (profileData) {
         setProfile(profileData);
-        console.log("✅ Profile refreshed successfully");
+        // Profile refreshed successfully
       }
     } catch (error) {
-      console.error("❌ Error refreshing profile:", error);
+      // Error refreshing profile
     }
   }, [user, fetchProfile]);
 
@@ -683,14 +675,14 @@ function AuthContent({ children }: PropsWithChildren) {
         });
 
         if (error) {
-          console.error("❌ Apple auth error:", error);
+          // Apple auth error
           return { error };
         }
 
         if (data.session) {
           setSession(data.session);
           setUser(data.session.user);
-          console.log("✅ User signed in with Apple:", data.user);
+          // User signed in with Apple
 
           // Process OAuth user profile
           const userProfile = await processOAuthUser(data.session);
@@ -708,11 +700,11 @@ function AuthContent({ children }: PropsWithChildren) {
       return {};
     } catch (error: any) {
       if (error.code === "ERR_REQUEST_CANCELED") {
-        console.log("User canceled Apple sign-in");
+        // User canceled Apple sign-in
         return {}; // Not an error, just a cancellation
       }
 
-      console.error("❌ Apple authentication error:", error);
+      // Apple authentication error
       return { error: error as Error };
     }
   }, [processOAuthUser]);
@@ -731,11 +723,11 @@ function AuthContent({ children }: PropsWithChildren) {
 
       // Set timeout to clear OAuth flow state if it takes too long
       oAuthFlowTimeout.current = setTimeout(() => {
-        console.log("⏰ OAuth flow timeout, clearing state");
+        // OAuth flow timeout, clearing state
         setIsOAuthFlow(false);
       }, 60000); // 1 minute timeout
 
-      console.log("🚀 Starting Google sign in");
+      // Starting Google sign in
 
       // Create the redirect URI - use expo-auth-session format
       const redirectUrl = makeRedirectUri({
@@ -745,7 +737,7 @@ function AuthContent({ children }: PropsWithChildren) {
         native: "qwerty-plate://google",
       });
 
-      console.log("🎯 Using redirect URL:", redirectUrl);
+      // Using redirect URL
 
       // Step 1: Start OAuth flow
       const { data, error } = await supabase.auth.signInWithOAuth({
@@ -762,18 +754,18 @@ function AuthContent({ children }: PropsWithChildren) {
       });
 
       if (error || !data?.url) {
-        console.error("❌ Error initiating Google OAuth:", error);
+        // Error initiating Google OAuth
         return { error: error || new Error("No OAuth URL received") };
       }
 
-      console.log("🌐 Opening Google auth session");
+      // Opening Google auth session
 
       // Step 2: Set up a URL listener BEFORE opening the browser
       let urlSubscription: any;
       const urlPromise = new Promise<string>((resolve, reject) => {
         // Listen for the redirect
         urlSubscription = Linking.addEventListener("url", (event) => {
-          console.log("🔗 Received URL:", event.url);
+          // Received URL
           if (
             event.url.includes("google") ||
             event.url.includes("#access_token") ||
@@ -814,7 +806,7 @@ function AuthContent({ children }: PropsWithChildren) {
           urlPromise.then((url) => ({ type: "success" as const, url })),
         ]);
 
-        console.log("📱 Auth result:", result);
+        // Auth result
 
         // Clean up the URL listener
         if (urlSubscription) {
@@ -822,7 +814,7 @@ function AuthContent({ children }: PropsWithChildren) {
         }
 
         if (result.type === "success" && result.url) {
-          console.log("✅ OAuth callback received");
+          // OAuth callback received
 
           // Step 5: Parse the callback URL
           const url = new URL(result.url);
@@ -841,24 +833,24 @@ function AuthContent({ children }: PropsWithChildren) {
           const error_description = params.get("error_description");
 
           if (error_description) {
-            console.error("❌ OAuth error:", error_description);
+            // OAuth error
             return { error: new Error(error_description) };
           }
 
           // Step 6: Handle code exchange
           if (code && !access_token) {
-            console.log("🔄 Exchanging code for session");
+            // Exchanging code for session
 
             const { data: sessionData, error: sessionError } =
               await supabase.auth.exchangeCodeForSession(code);
 
             if (sessionError) {
-              console.error("❌ Code exchange error:", sessionError);
+              // Code exchange error
               return { error: sessionError };
             }
 
             if (sessionData?.session) {
-              console.log("🎉 Session established via code exchange");
+              // Session established via code exchange
 
               // Android needs more time to process OAuth state changes
               const processingDelay = Platform.OS === "android" ? 1000 : 500;
@@ -880,7 +872,7 @@ function AuthContent({ children }: PropsWithChildren) {
 
           // Step 7: Handle direct token
           if (access_token) {
-            console.log("✅ Access token found, setting session");
+            // Access token found, setting session
 
             // Platform-specific delay for proper state handling
             const stateDelay = Platform.OS === "android" ? 800 : 300;
@@ -893,12 +885,12 @@ function AuthContent({ children }: PropsWithChildren) {
               });
 
             if (sessionError) {
-              console.error("❌ Session creation failed:", sessionError);
+              // Session creation failed
               return { error: sessionError };
             }
 
             if (sessionData?.session) {
-              console.log("🎉 Session established via tokens");
+              // Session established via tokens
               // Process OAuth user profile
               const userProfile = await processOAuthUser(sessionData.session);
               if (userProfile) {
@@ -912,7 +904,7 @@ function AuthContent({ children }: PropsWithChildren) {
           }
 
           // Step 8: Final fallback check with extended wait for Android
-          console.log("🔄 Checking for session via getSession");
+          // Checking for session via getSession
           const fallbackWait = Platform.OS === "android" ? 2000 : 1000;
           await new Promise((resolve) => setTimeout(resolve, fallbackWait));
 
@@ -921,7 +913,7 @@ function AuthContent({ children }: PropsWithChildren) {
           } = await supabase.auth.getSession();
 
           if (currentSession) {
-            console.log("✅ Session found via getSession");
+            // Session found via getSession
             // Process OAuth user profile
             const userProfile = await processOAuthUser(currentSession);
             if (userProfile) {
@@ -933,13 +925,13 @@ function AuthContent({ children }: PropsWithChildren) {
             return {};
           }
 
-          console.error("❌ No session established after OAuth");
+          // No session established after OAuth
           return { error: new Error("Failed to establish session") };
         } else if (result.type === "cancel") {
-          console.log("👤 User canceled Google sign-in");
+          // User canceled Google sign-in
           return {};
         } else {
-          console.error("❌ OAuth flow failed");
+          // OAuth flow failed
           return { error: new Error("OAuth flow failed") };
         }
       } catch (timeoutError) {
@@ -947,14 +939,14 @@ function AuthContent({ children }: PropsWithChildren) {
         if (urlSubscription) {
           urlSubscription.remove();
         }
-        console.error("⏱️ OAuth timeout:", timeoutError);
+        // OAuth timeout
 
         // Check if session was created anyway
         const {
           data: { session },
         } = await supabase.auth.getSession();
         if (session) {
-          console.log("✅ Session found despite timeout");
+          // Session found despite timeout
           // Process OAuth user profile
           const userProfile = await processOAuthUser(session);
           if (userProfile) {
@@ -969,7 +961,7 @@ function AuthContent({ children }: PropsWithChildren) {
         return { error: new Error("OAuth timeout") };
       }
     } catch (error) {
-      console.error("💥 Google sign in error:", error);
+      // Google sign in error
       return { error: error as Error };
     } finally {
       // Clear OAuth flow state after completion
@@ -985,11 +977,11 @@ function AuthContent({ children }: PropsWithChildren) {
   useEffect(() => {
     // Listen for incoming URLs when app resumes
     const handleUrl = (url: string) => {
-      console.log("🔗 App opened with URL:", url);
+      // App opened with URL
 
       // Check if it's an OAuth callback
       if (url.includes("#access_token") || url.includes("code=")) {
-        console.log("🔄 Processing OAuth callback");
+        // Processing OAuth callback
 
         // Supabase should handle this automatically
         // Just check for session after a short delay
@@ -998,7 +990,7 @@ function AuthContent({ children }: PropsWithChildren) {
             data: { session },
           } = await supabase.auth.getSession();
           if (session) {
-            console.log("✅ Session established from URL");
+            // Session established from URL
           }
         }, 500);
       }
@@ -1027,7 +1019,7 @@ function AuthContent({ children }: PropsWithChildren) {
 
     const initializeAuth = async () => {
       try {
-        console.log("🔄 Initializing auth state...");
+        // Initializing auth state
 
         const {
           data: { session },
@@ -1038,9 +1030,9 @@ function AuthContent({ children }: PropsWithChildren) {
         if (!isMounted) return;
 
         if (error) {
-          console.error("❌ Error getting session:", error);
+          // Error getting session
         } else if (session) {
-          console.log("✅ Session found during initialization");
+          // Session found during initialization
           setSession(session);
           setUser(session.user);
           setIsGuest(false);
@@ -1048,10 +1040,10 @@ function AuthContent({ children }: PropsWithChildren) {
           // Check for guest mode
           const guestModeActive = await AsyncStorage.getItem(GUEST_MODE_KEY);
           if (guestModeActive === "true") {
-            console.log("👻 Guest mode active from storage");
+            // Guest mode active from storage
             setIsGuest(true);
           } else {
-            console.log("ℹ️ No session found during initialization");
+            // No session found during initialization
           }
         }
 
@@ -1059,7 +1051,7 @@ function AuthContent({ children }: PropsWithChildren) {
         // Add retries for cold start scenarios with exponential backoff
         let databaseReadySuccess = false;
         for (let attempt = 1; attempt <= 3; attempt++) {
-          console.log(`🔄 Database readiness attempt ${attempt}/3`);
+          // Database readiness attempt
 
           const isReady = await checkDatabaseReadiness();
           if (isReady) {
@@ -1070,25 +1062,21 @@ function AuthContent({ children }: PropsWithChildren) {
           // Exponential backoff: 1s, 2s, 4s
           if (attempt < 3) {
             const delay = Math.pow(2, attempt - 1) * 1000;
-            console.log(`⏱️  Retrying database check in ${delay}ms...`);
+            // Retrying database check
             await new Promise((resolve) => setTimeout(resolve, delay));
           }
         }
 
         if (isMounted) {
           setDatabaseReady(databaseReadySuccess);
-          console.log(
-            databaseReadySuccess
-              ? "✅ Database readiness confirmed"
-              : "⚠️  Database readiness check failed after retries",
-          );
+          // Database readiness check result
         }
       } catch (error) {
-        console.error("❌ Error initializing auth:", error);
+        // Error initializing auth
       } finally {
         if (isMounted) {
           setInitialized(true);
-          console.log("✅ Auth initialization complete");
+          // Auth initialization complete
         }
       }
     };
@@ -1099,7 +1087,7 @@ function AuthContent({ children }: PropsWithChildren) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("🔄 Auth state changed:", event, !!session);
+      // Auth state changed
 
       // Check if component is still mounted before updating state
       if (!isMounted) return;
@@ -1116,7 +1104,7 @@ function AuthContent({ children }: PropsWithChildren) {
           // Don't set guest mode here - only via explicit action
         }
       } catch (error) {
-        console.error("❌ Error handling auth state change:", error);
+        // Error handling auth state change
       }
     });
 
@@ -1129,25 +1117,25 @@ function AuthContent({ children }: PropsWithChildren) {
         authSubscription.unsubscribe();
         authSubscription = null;
       }
-      console.log("🧹 Auth subscription cleaned up");
+      // Auth subscription cleaned up
     };
   }, []);
 
   // Fetch profile when user changes
   useEffect(() => {
     if (user && !profile && !isGuest) {
-      console.log("🔄 User found, fetching profile...");
+      // User found, fetching profile
       fetchProfile(user.id)
         .then((profileData) => {
           if (profileData) {
             setProfile(profileData);
-            console.log("✅ Profile loaded");
+            // Profile loaded
           } else {
-            console.log("⚠️ Profile not found");
+            // Profile not found
           }
         })
         .catch((error) => {
-          console.error("❌ Failed to fetch profile:", error);
+          // Failed to fetch profile
         });
     }
   }, [user?.id, profile, fetchProfile, isGuest]);
@@ -1181,13 +1169,10 @@ function AuthContent({ children }: PropsWithChildren) {
       if (!isSupportedScheme) return false;
 
       // If we got here, there's likely a valid deeplink pending
-      console.log(
-        "🔗 Detected pending deeplink during auth navigation:",
-        initialUrl,
-      );
+      // Detected pending deeplink during auth navigation
       return true;
     } catch (error) {
-      console.error("❌ Error checking for pending deeplinks:", error);
+      // Error checking for pending deeplinks
       return false;
     }
   }, []);
@@ -1199,38 +1184,28 @@ function AuthContent({ children }: PropsWithChildren) {
     const navigate = async () => {
       // Prevent multiple simultaneous navigation attempts
       if (navigationInProgress.current) {
-        console.log("🔒 Navigation already in progress, skipping...");
+        // Navigation already in progress, skipping
         return;
       }
 
       try {
         navigationInProgress.current = true;
-        console.log("🔄 Handling navigation...", {
-          hasSession: !!session,
-          isGuest,
-          platform: Platform.OS,
-        });
+        // Handling navigation
 
         // CRITICAL: Check for pending deeplinks during cold start
         // Give deeplink processing priority during app initialization
         const hasPendingDeeplink = await checkForPendingDeeplink();
         if (hasPendingDeeplink) {
-          console.log(
-            "🔗 Pending deeplink detected, deferring auth navigation",
-          );
+          // Pending deeplink detected, deferring auth navigation
           // Allow extra time for deeplink processing during cold start
           await new Promise((resolve) => setTimeout(resolve, 3000));
 
           // Recheck after delay - if deeplink processing failed, we'll handle navigation
           const stillPendingDeeplink = await checkForPendingDeeplink();
           if (stillPendingDeeplink) {
-            console.log(
-              "🔗 Deeplink still pending after delay, continuing with auth navigation",
-            );
+            // Deeplink still pending after delay, continuing with auth navigation
           } else {
-            console.log(
-              "🔗 Deeplink processed successfully, skipping auth navigation",
-            );
+            // Deeplink processed successfully, skipping auth navigation
             return;
           }
         }
@@ -1252,9 +1227,7 @@ function AuthContent({ children }: PropsWithChildren) {
         if (isOAuthFlow) {
           // Android devices need more time for OAuth navigation
           const oauthDelay = Platform.OS === "android" ? 3500 : 2000;
-          console.log(
-            `🔄 OAuth flow detected on ${Platform.OS}, adding ${oauthDelay}ms delay to prevent race conditions`,
-          );
+          // OAuth flow detected, adding delay to prevent race conditions
           await new Promise((resolve) => setTimeout(resolve, oauthDelay));
         } else if (Platform.OS === "android") {
           // Even non-OAuth Android navigation benefits from a small delay
@@ -1263,22 +1236,20 @@ function AuthContent({ children }: PropsWithChildren) {
 
         // Verify router is ready before navigation
         if (!router || typeof router.replace !== "function") {
-          console.warn("⚠️ Router not ready, scheduling retry");
+          // Router not ready, scheduling retry
           throw new Error("Router not ready");
         }
 
         // Simple navigation based on session or guest mode
         if (session || isGuest) {
-          console.log(
-            "✅ Session exists or guest mode, navigating to protected area",
-          );
+          // Session exists or guest mode, navigating to protected area
           router.replace("/(protected)/(tabs)");
         } else {
-          console.log("ℹ️ No session and not guest, navigating to welcome");
+          // No session and not guest, navigating to welcome
           router.replace("/welcome");
         }
       } catch (error) {
-        console.error("❌ Navigation error (will auto-recover):", error);
+        // Navigation error (will auto-recover)
 
         // SILENT fallback navigation - never throw errors to UI
         const attemptFallbackNavigation = (attempt = 1) => {
@@ -1287,19 +1258,15 @@ function AuthContent({ children }: PropsWithChildren) {
 
           setTimeout(() => {
             try {
-              console.log(
-                `🔄 Silent fallback navigation attempt ${attempt}/${maxAttempts} on ${Platform.OS}`,
-              );
+              // Silent fallback navigation attempt
 
               if (!router || typeof router.replace !== "function") {
                 if (attempt < maxAttempts) {
-                  console.log("Router still not ready, retrying silently...");
+                  // Router still not ready, retrying silently
                   attemptFallbackNavigation(attempt + 1);
                   return;
                 } else {
-                  console.log(
-                    "❌ Router unavailable after all attempts - user will see loading",
-                  );
+                  // Router unavailable after all attempts - user will see loading
                   return;
                 }
               }
@@ -1307,34 +1274,22 @@ function AuthContent({ children }: PropsWithChildren) {
               try {
                 if (session || isGuest) {
                   router.replace("/(protected)/(tabs)");
-                  console.log(
-                    "✅ Silent fallback navigation to tabs successful",
-                  );
+                  // Silent fallback navigation to tabs successful
                 } else {
                   router.replace("/welcome");
-                  console.log(
-                    "✅ Silent fallback navigation to welcome successful",
-                  );
+                  // Silent fallback navigation to welcome successful
                 }
               } catch (fallbackError) {
-                console.log(
-                  `❌ Silent fallback navigation attempt ${attempt} failed (continuing):`,
-                  fallbackError,
-                );
+                // Silent fallback navigation attempt failed (continuing)
 
                 if (attempt < maxAttempts) {
                   attemptFallbackNavigation(attempt + 1);
                 } else {
-                  console.log(
-                    "❌ All silent fallback attempts completed - user will see loading",
-                  );
+                  // All silent fallback attempts completed - user will see loading
                 }
               }
             } catch (outerError) {
-              console.log(
-                `❌ Outer error in fallback attempt ${attempt}:`,
-                outerError,
-              );
+              // Outer error in fallback attempt
               if (attempt < maxAttempts) {
                 attemptFallbackNavigation(attempt + 1);
               }

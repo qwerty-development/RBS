@@ -20,7 +20,7 @@ export default function TabsLayout() {
   const { upcomingBookings } = useBookingsStore();
   const upcomingCount = useMemo(() => {
     const count = (upcomingBookings || []).length;
-    console.log("Tab Layout: Upcoming bookings count:", count);
+ 
     return count;
   }, [upcomingBookings]);
 

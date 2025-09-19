@@ -78,7 +78,7 @@ class SecureStorage {
 }
 
 // Create Supabase client with enhanced configuration and error handling
-console.log("🔄 Creating Supabase client...");
+
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -106,17 +106,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   },
 });
 
-console.log("✅ Supabase client created successfully");
+
 
 // Test Supabase connection
 const testConnection = async () => {
   try {
-    console.log("🔄 Testing Supabase connection...");
+
     const { data, error } = await supabase.auth.getSession();
     if (error) {
       console.warn("⚠️ Supabase connection test warning:", error.message);
     } else {
-      console.log("✅ Supabase connection test successful");
+
     }
   } catch (error) {
     console.error("❌ Supabase connection test failed:", error);
@@ -133,7 +133,7 @@ let appStateListener: any = null;
 
 const handleAppStateChange = (state: string) => {
   try {
-    console.log("📱 App state changed to:", state);
+
     if (state === "active") {
       supabase.auth.startAutoRefresh();
     } else {
@@ -152,7 +152,7 @@ if (appStateListener) {
 // Add app state listener with error handling
 try {
   appStateListener = AppState.addEventListener("change", handleAppStateChange);
-  console.log("✅ App state listener registered");
+
 } catch (error) {
   console.error("❌ Failed to register app state listener:", error);
 }

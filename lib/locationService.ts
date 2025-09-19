@@ -62,11 +62,11 @@ export class LocationService {
       return null;
     }
 
-    console.log("🔍 Extracting coordinates from:", typeof location, location);
+
 
     // Handle PostGIS WKT POINT format: "POINT(longitude latitude)"
     if (typeof location === "string" && location.includes("POINT")) {
-      console.log("📍 Detected WKT POINT format");
+      // Detected WKT POINT format
       const match = location.match(/POINT\s*\(\s*([^)]+)\s*\)/i);
       if (match && match[1]) {
         const coords = match[1].trim().split(/\s+/);
@@ -75,7 +75,7 @@ export class LocationService {
           const lat = parseFloat(coords[1]);
           if (LocationService.isValidCoordinate(lat, lng)) {
             const result = { latitude: lat, longitude: lng };
-            console.log("✅ Extracted WKT coordinates:", result);
+            // Extracted WKT coordinates
             return result;
           }
         }
@@ -84,10 +84,10 @@ export class LocationService {
 
     // Handle PostGIS WKB hex format
     if (typeof location === "string" && location.match(/^0101000020/)) {
-      console.log("📍 Detected WKB hex format");
+      // Detected WKB hex format
       const coords = LocationService.parseWKB(location);
       if (coords) {
-        console.log("✅ Extracted WKB coordinates:", coords);
+        // Extracted WKB coordinates
         return coords;
       }
     }
@@ -98,11 +98,11 @@ export class LocationService {
       location?.type === "Point" &&
       Array.isArray(location.coordinates)
     ) {
-      console.log("📍 Detected GeoJSON Point");
+      // Detected GeoJSON Point
       const [lng, lat] = location.coordinates;
       if (LocationService.isValidCoordinate(lat, lng)) {
         const result = { latitude: lat, longitude: lng };
-        console.log("✅ Extracted GeoJSON coordinates:", result);
+        // Extracted GeoJSON coordinates
         return result;
       }
     }
@@ -131,12 +131,12 @@ export class LocationService {
         LocationService.isValidCoordinate(lat, lng)
       ) {
         const result = { latitude: lat, longitude: lng };
-        console.log("✅ Extracted object coordinates:", result);
+        // Extracted object coordinates
         return result;
       }
     }
 
-    console.log("❌ Could not extract coordinates from location:", location);
+    // Could not extract coordinates from location
     return null;
   }
 
@@ -146,7 +146,7 @@ export class LocationService {
       const hex = wkb.replace(/^0x/i, "");
 
       if (hex.length < 42) {
-        console.log("❌ WKB hex too short:", hex.length);
+        // WKB hex too short
         return null;
       }
 
@@ -154,7 +154,7 @@ export class LocationService {
       const coordsHex = hex.substring(18);
 
       if (coordsHex.length < 32) {
-        console.log("❌ Not enough coordinate data");
+        // Not enough coordinate data
         return null;
       }
 
@@ -167,13 +167,13 @@ export class LocationService {
 
       // Enhanced validation
       if (!LocationService.isValidCoordinate(latitude, longitude)) {
-        console.log("❌ Invalid parsed coordinates:", { latitude, longitude });
+        // Invalid parsed coordinates
         return null;
       }
 
       return { latitude, longitude };
     } catch (error) {
-      console.error("❌ WKB parsing error:", error);
+      // WKB parsing error
       return null;
     }
   }
@@ -224,15 +224,11 @@ export class LocationService {
     maxDistance?: number,
     retryCount: number = 0,
   ): Promise<any[]> {
-    console.log("🍽️ Getting restaurants with distance from:", {
-      lat: userLocation.latitude,
-      lng: userLocation.longitude,
-      maxDistance,
-    });
+    // Getting restaurants with distance
 
     try {
       // First try: PostGIS ST_X and ST_Y functions
-      console.log("🔄 Method 1: Using PostGIS ST_X/ST_Y functions");
+      // Method 1: Using PostGIS ST_X/ST_Y functions
 
       const { data: restaurants, error } = await supabase
         .from("restaurants")
@@ -247,7 +243,7 @@ export class LocationService {
         .order("average_rating", { ascending: false });
 
       if (error) {
-        console.warn("⚠️ PostGIS method failed:", error.message);
+        // PostGIS method failed
 
         // Retry once if it's a temporary error
         if (
@@ -255,7 +251,7 @@ export class LocationService {
           (error.message.includes("timeout") ||
             error.message.includes("connection"))
         ) {
-          console.log("🔄 Retrying PostGIS method...");
+          // Retrying PostGIS method
           await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
           return LocationService.getRestaurantsWithDistance(
             userLocation,
@@ -267,15 +263,11 @@ export class LocationService {
         return LocationService.fallbackMethod(userLocation, maxDistance);
       }
 
-      console.log(
-        `📊 Got ${restaurants?.length || 0} restaurants from PostGIS method`,
-      );
+      // Got restaurants from PostGIS method
 
       const processedRestaurants =
         restaurants?.map((restaurant, index) => {
-          console.log(
-            `🔍 Processing restaurant ${index + 1}: ${restaurant.name}`,
-          );
+          // Processing restaurant
 
           let coords: LocationCoordinates | null = null;
 
@@ -292,15 +284,15 @@ export class LocationService {
               latitude: restaurant.latitude,
               longitude: restaurant.longitude,
             };
-            console.log("✅ Using PostGIS coordinates:", coords);
+            // Using PostGIS coordinates
           } else {
             // Fallback to manual extraction
-            console.log("📍 PostGIS failed, trying manual extraction...");
+            // PostGIS failed, trying manual extraction
             coords = LocationService.extractCoordinates(restaurant.location);
             if (coords) {
-              console.log("✅ Manual extraction successful:", coords);
+              // Manual extraction successful
             } else {
-              console.log("❌ No coordinates found for:", restaurant.name);
+              // No coordinates found
             }
           }
 
@@ -314,9 +306,7 @@ export class LocationService {
             : null;
 
           if (distance !== null) {
-            console.log(
-              `📏 Distance to ${restaurant.name}: ${distance.toFixed(2)}km`,
-            );
+            // Distance calculated
           }
 
           // Clean up temporary fields
@@ -335,11 +325,11 @@ export class LocationService {
         maxDistance,
       );
     } catch (error) {
-      console.error("❌ Error in main method:", error);
+      // Error in main method
 
       // Retry once on unexpected errors
       if (retryCount === 0) {
-        console.log("🔄 Retrying after unexpected error...");
+        // Retrying after unexpected error
         await new Promise((resolve) => setTimeout(resolve, 1000));
         return LocationService.getRestaurantsWithDistance(
           userLocation,
@@ -357,7 +347,7 @@ export class LocationService {
     userLocation: LocationCoordinates,
     maxDistance?: number,
   ) {
-    console.log("🔄 Using fallback method with raw location parsing");
+    // Using fallback method with raw location parsing
 
     try {
       const { data: restaurants, error } = await supabase
@@ -368,13 +358,11 @@ export class LocationService {
 
       if (error) throw error;
 
-      console.log(`📊 Fallback: Got ${restaurants?.length || 0} restaurants`);
+      // Fallback: Got restaurants
 
       const processedRestaurants =
         restaurants?.map((restaurant, index) => {
-          console.log(
-            `🔍 Fallback processing restaurant ${index + 1}: ${restaurant.name}`,
-          );
+          // Fallback processing restaurant
 
           const coords = LocationService.extractCoordinates(
             restaurant.location,
@@ -390,9 +378,7 @@ export class LocationService {
             : null;
 
           if (distance !== null) {
-            console.log(
-              `📏 Distance to ${restaurant.name}: ${distance.toFixed(2)}km`,
-            );
+            // Distance calculated
           }
 
           return {
@@ -408,7 +394,7 @@ export class LocationService {
         maxDistance,
       );
     } catch (error) {
-      console.error("❌ Fallback method failed:", error);
+      // Fallback method failed
       return [];
     }
   }
@@ -419,21 +405,17 @@ export class LocationService {
     userLocation: LocationCoordinates,
     maxDistance?: number,
   ) {
-    console.log(`🔍 Filtering and sorting ${restaurants.length} restaurants`);
+    // Filtering and sorting restaurants
 
     // Filter out restaurants without coordinates
     let validRestaurants = restaurants.filter((r) => r.coordinates !== null);
-    console.log(
-      `📍 ${validRestaurants.length} restaurants have valid coordinates`,
-    );
+    // Restaurants have valid coordinates
 
     // Log some examples
     if (validRestaurants.length > 0) {
-      console.log("📊 Sample valid restaurants:");
+
       validRestaurants.slice(0, 3).forEach((r, i) => {
-        console.log(
-          `  ${i + 1}. ${r.name} - ${r.distance?.toFixed(2)}km - coords: ${JSON.stringify(r.coordinates)}`,
-        );
+        // Sample restaurant
       });
     }
 
@@ -443,9 +425,7 @@ export class LocationService {
       validRestaurants = validRestaurants.filter(
         (r) => r.distance !== null && r.distance <= maxDistance,
       );
-      console.log(
-        `📏 Distance filter (≤${maxDistance}km): ${beforeCount} → ${validRestaurants.length} restaurants`,
-      );
+     
     }
 
     // Sort by distance, with featured restaurants prioritized
@@ -461,9 +441,7 @@ export class LocationService {
       return a.distance - b.distance;
     });
 
-    console.log(
-      `✅ Final result: ${validRestaurants.length} restaurants ready for display`,
-    );
+  
     return validRestaurants;
   }
 
@@ -479,14 +457,12 @@ export class LocationService {
     try {
       // Clear any stored location first to force fresh GPS detection
       await LocationService.clearLocation();
-      console.log("📍 Cleared stored location, getting fresh GPS location");
-
-      console.log("📍 Getting fresh location...");
+ 
 
       // Request permission with better error messages
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        console.log("❌ Location permission denied, using default location");
+
         await AsyncStorage.setItem(
           STORAGE_KEY,
           JSON.stringify(DEFAULT_LOCATION),
@@ -499,15 +475,11 @@ export class LocationService {
         accuracy: Location.Accuracy.Balanced,
       });
 
-      console.log("📍 Got GPS position:", {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-        accuracy: position.coords.accuracy,
-      });
+     
 
       // For GPS location, use reverse geocoding to get actual street/area names
       // This ensures we get real location names from the map
-      console.log("📍 Using reverse geocoding to get real location names");
+
 
       let locationData: LocationData;
       try {
@@ -527,7 +499,7 @@ export class LocationService {
           timeoutPromise,
         ])) as any;
 
-        console.log("📍 Raw geocoding result:", address);
+
 
         // Extract real location names from geocoding result
         let detectedCity = "Unknown Location";
@@ -575,7 +547,7 @@ export class LocationService {
           country: address?.country || "Lebanon",
         };
 
-        console.log("📍 Reverse geocoded successfully:", locationData);
+
       } catch (geocodeError) {
         console.warn("⚠️ Reverse geocoding failed:", geocodeError);
         locationData = {
@@ -598,14 +570,7 @@ export class LocationService {
       }
 
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(locationData));
-      console.log("✅ Successfully got and stored current location:", {
-        coordinates: {
-          lat: locationData.latitude,
-          lng: locationData.longitude,
-        },
-        displayName: LocationService.getLocationDisplayName(locationData),
-        isInLebanon: LocationService.isInLebanon(locationData),
-      });
+  
       return locationData;
     } catch (error) {
       console.error("❌ Error getting location:", error);
@@ -616,13 +581,13 @@ export class LocationService {
 
   // Update stored location
   static async updateLocation(location: LocationData): Promise<void> {
-    console.log("💾 Updating stored location:", location);
+  
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(location));
   }
 
   // Clear stored location
   static async clearLocation(): Promise<void> {
-    console.log("🗑️ Clearing stored location");
+   
     await AsyncStorage.removeItem(STORAGE_KEY);
   }
 
@@ -670,10 +635,7 @@ export class LocationService {
     latitude: number,
     longitude: number,
   ): { city: string; district: string } {
-    console.log("🔍 Finding closest city to:", {
-      lat: latitude,
-      lng: longitude,
-    });
+  
 
     // Import the Lebanon locations from the LocationSelector component
     const LEBANON_LOCATIONS = [
@@ -897,11 +859,7 @@ export class LocationService {
       }
     }
 
-    console.log("📍 Closest city found:", {
-      city: closestLocation.city,
-      district: closestLocation.district,
-      distance: minDistance.toFixed(2) + "km",
-    });
+  
 
     return {
       city: closestLocation.city,

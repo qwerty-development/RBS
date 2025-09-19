@@ -13,15 +13,8 @@ export function validateEnvironment(): EnvironmentConfig {
     EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
   };
 
-  console.log("Environment validation:");
-  console.log(
-    "- EXPO_PUBLIC_SUPABASE_URL:",
-    config.EXPO_PUBLIC_SUPABASE_URL ? "✅ Present" : "❌ Missing",
-  );
-  console.log(
-    "- EXPO_PUBLIC_SUPABASE_ANON_KEY:",
-    config.EXPO_PUBLIC_SUPABASE_ANON_KEY ? "✅ Present" : "❌ Missing",
-  );
+  
+ 
 
   // Check for common issues
   if (
@@ -48,7 +41,7 @@ export function validateEnvironment(): EnvironmentConfig {
     throw new Error(errorMessage);
   }
 
-  console.log("✅ Environment validation passed");
+
   return config as EnvironmentConfig;
 }
 

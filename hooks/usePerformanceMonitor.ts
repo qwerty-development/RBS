@@ -341,7 +341,7 @@ export function useLazyLoad<T>(
       setData(result);
 
       const loadTime = performance.now() - startTime;
-      console.log(`Lazy load completed in ${loadTime.toFixed(2)}ms`);
+
 
       onLoad?.();
     } catch (err) {

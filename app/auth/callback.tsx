@@ -23,19 +23,17 @@ export default function AuthCallback() {
       : "OAuth");
 
   useEffect(() => {
-    console.log(`🔄 ${provider} auth callback route hit with params:`, params);
+
 
     // Wait for auth to initialize
     if (!initialized) {
-      console.log("⏳ Waiting for auth to initialize...");
+  
       return;
     }
 
     // If we have a session, redirect with a small delay for smooth transition
     if (session) {
-      console.log(
-        `✅ Session found in ${provider} callback, redirecting to app`,
-      );
+  
 
       // Add a longer delay to ensure completely smooth transition and mask any brief errors
       setTimeout(() => {
@@ -49,9 +47,7 @@ export default function AuthCallback() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          console.log(
-            `⏰ ${provider} auth callback timeout, redirecting to welcome`,
-          );
+        
           router.replace("/welcome");
           return 0;
         }

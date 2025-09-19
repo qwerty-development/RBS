@@ -419,12 +419,7 @@ export class AvailabilityService {
         features: table.features || [],
       }));
 
-    console.log(
-      "Processing tables for slot:",
-      time,
-      "Valid tables:",
-      validTables.length,
-    );
+ 
 
     if (validTables.length === 0 && partySize > 2) {
       // Try combinations for larger parties
@@ -1504,14 +1499,7 @@ export class AvailabilityService {
         );
       }
 
-      console.log(
-        "Available slots with tables:",
-        fullSlots.map((s) => ({
-          time: s.time,
-          tableCount: s.tables?.length || 0,
-          tableIds: s.tables?.map((t) => t.id) || [],
-        })),
-      );
+    
 
       return fullSlots;
     } catch (error) {
@@ -1678,7 +1666,7 @@ export class AvailabilityService {
    * This should be called after bookings are made or cancelled
    */
   clearRestaurantCache(restaurantId: string) {
-    console.log(`Clearing availability cache for restaurant: ${restaurantId}`);
+
 
     // Clear all cache types for this restaurant
     this.clearCombinationCache(restaurantId);
@@ -1686,7 +1674,7 @@ export class AvailabilityService {
     // Also clear restaurant config cache to ensure fresh data
     this.restaurantConfigCache.invalidate(restaurantId);
 
-    console.log(`Availability cache cleared for restaurant: ${restaurantId}`);
+
   }
 
   /**
@@ -1695,17 +1683,13 @@ export class AvailabilityService {
    */
   clearRestaurantCacheForDate(restaurantId: string, date: Date) {
     const dateStr = date.toISOString().split("T")[0];
-    console.log(
-      `Clearing availability cache for restaurant ${restaurantId} on ${dateStr}`,
-    );
+ 
 
     // For now, clear all caches for the restaurant since we don't have selective clear
     // This is still better than clearing all restaurants
     this.clearRestaurantCache(restaurantId);
 
-    console.log(
-      `Targeted cache cleared for restaurant ${restaurantId} on ${dateStr}`,
-    );
+  
   }
 
   async preloadPopularSlots(

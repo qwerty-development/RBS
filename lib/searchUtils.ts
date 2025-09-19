@@ -126,9 +126,7 @@ export const checkRestaurantAvailability = async (
         .gte("available_capacity", partySize);
 
       if (error) {
-        console.log(
-          "Database availability check failed, using conservative fallback",
-        );
+      
         // Conservative fallback - assume most restaurants have some availability
         return true;
       }

@@ -135,17 +135,12 @@ export default function PostDetailScreen() {
 
   const fetchPostDetails = useCallback(async () => {
     if (!postId) {
-      console.log("❌ No postId available, cannot fetch post details");
+   
       setLoading(false);
       return;
     }
 
-    console.log(
-      "🔄 Fetching post details for ID:",
-      postId,
-      "Profile ID:",
-      profile?.id,
-    );
+ 
 
     try {
       // Fetch post details (this doesn't require authentication)
@@ -160,7 +155,7 @@ export default function PostDetailScreen() {
         throw postError;
       }
 
-      console.log("✅ Post data fetched successfully");
+
 
       // Check if user has liked the post (only if user is authenticated)
       let likeData = null;
@@ -199,7 +194,7 @@ export default function PostDetailScreen() {
         throw commentsError;
       }
 
-      console.log("✅ Comments fetched successfully");
+
       setComments(commentsData || []);
     } catch (error) {
       console.error("❌ Error fetching post details:", error);
@@ -211,10 +206,7 @@ export default function PostDetailScreen() {
 
   const handleLike = async () => {
     if (!profile?.id || !post) {
-      console.log("❌ Cannot like: no profile or post", {
-        profileId: profile?.id,
-        postExists: !!post,
-      });
+    
       return;
     }
 
@@ -260,13 +252,13 @@ export default function PostDetailScreen() {
 
   const handleComment = async () => {
     if (!profile?.id) {
-      console.log("❌ Cannot comment: no profile ID");
+
       Alert.alert("Error", "Please sign in to comment");
       return;
     }
 
     if (!newComment.trim()) {
-      console.log("❌ Cannot comment: empty comment");
+    
       return;
     }
 
@@ -295,7 +287,7 @@ export default function PostDetailScreen() {
         throw error;
       }
 
-      console.log("✅ Comment posted successfully");
+
       setComments([...comments, data]);
       setNewComment("");
 
@@ -331,19 +323,14 @@ export default function PostDetailScreen() {
 
   // Monitor authentication state changes
   useEffect(() => {
-    console.log("🔄 Auth state changed in post detail:", {
-      profileId: profile?.id,
-      postId: postId,
-      hasProfile: !!profile,
-      loading,
-    });
+
   }, [profile, postId, loading]);
 
   // Timeout to prevent infinite loading
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (loading) {
-        console.log("⏰ Post detail loading timeout, forcing completion");
+   
         setLoading(false);
       }
     }, 10000); // 10 second timeout

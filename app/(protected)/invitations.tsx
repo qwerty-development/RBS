@@ -499,7 +499,7 @@ export default function InvitationsScreen() {
           table: "booking_invites",
         },
         async (payload: any) => {
-          console.log("Invitation update detected:", payload);
+     
           // Refresh current tab data
           if (activeTab === "received") {
             await loadReceivedInvitations();
@@ -517,7 +517,7 @@ export default function InvitationsScreen() {
           table: "bookings",
         },
         async (payload: any) => {
-          console.log("Booking update detected:", payload);
+
           // Refresh data since booking details might have changed
           await onRefresh();
         },

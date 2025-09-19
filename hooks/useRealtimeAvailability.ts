@@ -40,9 +40,7 @@ export function useRealtimeAvailability(
       return;
     }
 
-    console.log(
-      `Setting up real-time subscription for restaurant: ${restaurantId}`,
-    );
+ 
 
     // Clean up any existing subscription
     if (unsubscribeRef.current) {

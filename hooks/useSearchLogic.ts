@@ -152,13 +152,7 @@ export const useSearchLogic = (): UseSearchReturn => {
 
       try {
         if (userLocation) {
-          console.log("🔍 Search using location:", {
-            lat: userLocation.latitude,
-            lng: userLocation.longitude,
-            city: userLocation.city,
-            district: userLocation.district,
-            maxDistance: gFilters.maxDistance,
-          });
+         
 
           // Use your new LocationService method
           const restaurantsWithDistance =
@@ -290,9 +284,7 @@ export const useSearchLogic = (): UseSearchReturn => {
           }
         } else {
           // If no location, still fetch restaurants but without distance
-          console.log(
-            "No user location available, fetching restaurants without distance",
-          );
+        
 
           let supabaseQuery = supabase.from("restaurants").select("*");
 

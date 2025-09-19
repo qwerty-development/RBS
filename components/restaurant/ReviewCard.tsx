@@ -91,15 +91,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
     }
   }, [profile?.id, review.id]);
 
-  // Debug logging to help identify why report button might not show
-  console.log("ReviewCard debug:", {
-    showActions,
-    hasProfile: !!profile,
-    profileId: profile?.id,
-    reviewUserId: review.user_id,
-    isCurrentUserOwner,
-    reviewId: review.id,
-  });
+
 
   const {
     replies,
@@ -155,7 +147,7 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
 
   const handleReportSubmitted = () => {
     // The hook will automatically update the isReported state
-    console.log("Report submitted for review:", review.id);
+
   };
 
   const renderStars = (rating: number, size: number = 16) => {

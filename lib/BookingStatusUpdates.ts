@@ -32,7 +32,7 @@ export class BookingStatusUpdates {
           filter: `user_id=eq.${userId}`,
         },
         async (payload) => {
-          console.log("Booking status update received:", payload);
+    
           await this.handleBookingUpdate(payload);
         },
       )
@@ -45,13 +45,13 @@ export class BookingStatusUpdates {
           filter: `user_id=eq.${userId}`,
         },
         async (payload) => {
-          console.log("New notification received:", payload);
+    
           await this.handleNotification(payload);
         },
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          console.log("Subscribed to booking status updates");
+         
         }
       });
   }

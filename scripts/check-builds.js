@@ -7,7 +7,7 @@
 
 const { execSync } = require('child_process');
 
-console.log('🔍 Checking recent EAS builds for Plate...\n');
+
 
 try {
   // Get recent builds
@@ -19,12 +19,11 @@ try {
   const builds = JSON.parse(buildsOutput);
   
   if (builds.length === 0) {
-    console.log('No builds found. Start your first build with: npm run build:apk');
+ 
     return;
   }
 
-  console.log('Recent builds:');
-  console.log('='.repeat(80));
+
   
   builds.forEach((build, index) => {
     const date = new Date(build.createdAt).toLocaleDateString();
@@ -42,17 +41,13 @@ try {
       'canceled': '⚠️'
     }[status] || '❓';
     
-    console.log(`${index + 1}. ${statusEmoji} ${platform} (${profile})`);
-    console.log(`   Status: ${status}`);
-    console.log(`   Date: ${date} ${time}`);
+  
     if (build.artifacts?.buildUrl) {
-      console.log(`   Download: ${build.artifacts.buildUrl}`);
+
     }
-    console.log(`   View: https://expo.dev/accounts/qwerty-app/projects/Plate/builds/${build.id}`);
-    console.log('');
+
   });
   
 } catch (error) {
-  console.error('Error checking builds:', error.message);
-  console.log('\nTry running: eas build:list');
+ 
 }

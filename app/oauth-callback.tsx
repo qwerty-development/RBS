@@ -16,7 +16,7 @@ export default function OAuthCallback() {
   const [processing, setProcessing] = useState(true);
 
   useEffect(() => {
-    console.log("🔄 OAuth callback received with params:", params);
+  
 
     // Wait for auth to initialize
     if (!initialized) {
@@ -26,7 +26,7 @@ export default function OAuthCallback() {
     // If we have a session, let auth provider handle navigation
     // Don't navigate here to prevent race conditions
     if (session) {
-      console.log("✅ Session found, letting auth provider handle navigation");
+
       return;
     }
 
@@ -35,7 +35,7 @@ export default function OAuthCallback() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          console.log("⏰ OAuth callback timeout, redirecting to welcome");
+       
           router.replace("/welcome");
           return 0;
         }

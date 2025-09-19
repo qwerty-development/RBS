@@ -149,7 +149,7 @@ export default function DiningPreferencesScreen() {
               DEFAULT_PREFERENCES.special_requirements,
           };
 
-          console.log("Loading preferences:", loadedPreferences);
+ 
           setPreferences(loadedPreferences);
         } else {
           // No profile yet, use defaults

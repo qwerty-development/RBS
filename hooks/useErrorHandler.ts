@@ -341,10 +341,7 @@ export function useFormErrorHandler() {
       const errorObj = typeof error === "string" ? new Error(error) : error;
 
       if (field) {
-        console.log(
-          `Form validation error in field '${field}':`,
-          errorObj.message,
-        );
+   
       }
 
       handleError(errorObj);

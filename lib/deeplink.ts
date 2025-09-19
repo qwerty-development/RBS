@@ -316,13 +316,13 @@ export function navigateToDeepLink(
   try {
     // Skip navigation if we shouldn't ignore the URL or can't navigate yet
     if (shouldIgnoreUrl(url)) {
-      console.log("Ignoring development/invalid URL:", url);
+   
       return false;
     }
 
     // Check if we can navigate (component is mounted)
     if (options.canNavigate === false) {
-      console.log("Navigation blocked - component not mounted yet:", url);
+
       return false;
     }
 
@@ -340,20 +340,16 @@ export function navigateToDeepLink(
         url.includes("profile");
 
       if (couldBeColdStart) {
-        console.log(
-          "Potential cold start parsing issue for URL:",
-          url,
-          "- allowing fallback",
-        );
+     
       } else {
-        console.log("No valid route found for URL:", url);
+    
         return false;
       }
     }
 
     // Check if route requires authentication
     if (route?.protected && !options.isAuthenticated) {
-      console.log("Deep link requires authentication:", path);
+    
       options.onAuthRequired?.();
       return false;
     }
@@ -366,7 +362,7 @@ export function navigateToDeepLink(
         router.push(path as any);
       }
 
-      console.log("Deep link navigation successful:", url, "→", path);
+    
       return true;
     } catch (navigationError) {
       console.warn("Router navigation failed:", navigationError);

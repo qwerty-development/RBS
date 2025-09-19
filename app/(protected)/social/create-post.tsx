@@ -56,17 +56,8 @@ const debugPermissions = async () => {
         ImagePicker.getMediaLibraryPermissionsAsync(),
       ]);
 
-      console.log("📸 Camera Permissions:", {
-        status: cameraPerms.status,
-        canAskAgain: cameraPerms.canAskAgain,
-        granted: cameraPerms.granted,
-      });
 
-      console.log("🖼️ Media Library Permissions:", {
-        status: mediaPerms.status,
-        canAskAgain: mediaPerms.canAskAgain,
-        granted: mediaPerms.granted,
-      });
+   
     } catch (error) {
       console.error("❌ Error checking permissions:", error);
     }
@@ -185,11 +176,11 @@ export default function CreatePostScreen() {
 
   const pickImage = async () => {
     try {
-      console.log("📱 [pickImage] Starting image picker flow");
+     
 
       // Prevent multiple simultaneous calls
       if (uploadingImages) {
-        console.log("📱 [pickImage] Already uploading, skipping");
+        
         return;
       }
 
@@ -282,11 +273,11 @@ export default function CreatePostScreen() {
 
   const takePhoto = async () => {
     try {
-      console.log("📸 [takePhoto] Starting camera flow");
+  
 
       // Prevent multiple simultaneous calls
       if (uploadingImages) {
-        console.log("📸 [takePhoto] Already uploading, skipping");
+    
         return;
       }
 

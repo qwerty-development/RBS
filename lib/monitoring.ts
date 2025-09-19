@@ -187,10 +187,7 @@ export class AppMonitor {
     }
 
     // Console output in development
-    if (MONITORING_CONFIG.enableDebugLogs) {
-      const consoleMethod = console[level] || console.log;
-      consoleMethod(`[${component || "App"}] ${message}`, data);
-    }
+
 
     // Report errors to Sentry
     if (level === "error") {

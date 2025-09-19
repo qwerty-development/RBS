@@ -29,7 +29,7 @@ export function useDateOfBirthPrompt(): DOBPromptState {
   // Auto-hide the prompt when date of birth is set
   useEffect(() => {
     if (hasDateOfBirth && isVisible) {
-      console.log("📅 Date of birth detected, auto-hiding prompt");
+
       setIsVisible(false);
     }
   }, [hasDateOfBirth, isVisible]);

@@ -92,7 +92,7 @@ export default function CuisineScreen() {
     try {
       setLoading(true);
 
-      console.log("Fetching restaurants for cuisine:", cuisineId);
+
 
       // Build base query using actual schema columns
       let query = supabase.from("restaurants").select("*"); // No joins needed, no is_active column
@@ -110,9 +110,7 @@ export default function CuisineScreen() {
         console.error("Error with exact cuisine_type match:", exactError);
       } else if (exactData && exactData.length > 0) {
         restaurantData = exactData;
-        console.log(
-          `Found ${restaurantData.length} restaurants with exact cuisine match`,
-        );
+   
       }
 
       // Method 2: If no exact match, try case-insensitive search
@@ -126,9 +124,7 @@ export default function CuisineScreen() {
           console.error("Error with ilike search:", iLikeError);
         } else if (iLikeData && iLikeData.length > 0) {
           restaurantData = iLikeData;
-          console.log(
-            `Found ${restaurantData.length} restaurants with case-insensitive match`,
-          );
+ 
         }
       }
 
@@ -143,7 +139,7 @@ export default function CuisineScreen() {
           console.error("Error searching tags:", tagsError);
         } else if (tagsData && tagsData.length > 0) {
           restaurantData = tagsData;
-          console.log(`Found ${restaurantData.length} restaurants in tags`);
+       
         }
       }
 
@@ -164,9 +160,7 @@ export default function CuisineScreen() {
                 tag.toLowerCase().includes(cuisineId.toLowerCase()),
               ),
           );
-          console.log(
-            `Found ${restaurantData.length} restaurants with tag containing cuisine`,
-          );
+       
         }
       }
 
@@ -219,9 +213,7 @@ export default function CuisineScreen() {
       // Sort restaurants
       processedRestaurants.sort(getSortComparator(filters.sortBy));
 
-      console.log(
-        `Final result: ${processedRestaurants.length} restaurants for cuisine: ${cuisineId}`,
-      );
+   
       setRestaurants(processedRestaurants as DatabaseRestaurant[]);
     } catch (error) {
       console.error("Error in fetchCuisineRestaurants:", error);

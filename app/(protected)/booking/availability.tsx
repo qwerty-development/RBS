@@ -561,7 +561,7 @@ const DateSelector = React.memo<{
     maxDateObj.setDate(today.getDate() + maxDaysAhead - 1);
     const maxDate = maxDateObj.toISOString().split("T")[0];
 
-    console.log("Calendar date range:", { minDate, maxDate, maxDaysAhead });
+
     return { minDate, maxDate };
   }, [maxDaysAhead]);
 
@@ -576,7 +576,7 @@ const DateSelector = React.memo<{
 
   const handleCalendarDateSelect = useCallback(
     (day: any) => {
-      console.log("Calendar date selected:", day.dateString);
+   
       const selectedDate = new Date(day.dateString + "T00:00:00");
       handleDateChange(selectedDate);
       setShowCalendar(false);
@@ -975,12 +975,7 @@ export default function AvailabilitySelectionScreen() {
             restaurant.id,
             (restaurant as any).booking_window_days || 30,
           );
-          console.log(
-            "Max booking days calculated:",
-            days,
-            "Restaurant default:",
-            (restaurant as any).booking_window_days,
-          );
+      
           setMaxBookingDays(days);
         } catch (error) {
           console.error("Error fetching max booking days:", error);
@@ -1080,24 +1075,19 @@ export default function AvailabilitySelectionScreen() {
     try {
       // Prepare section preference for basic tier restaurants
       let preferredSection = null;
-      console.log(
-        "Section Debug - isBasicTier:",
-        isBasicTier,
-        "selectedSectionId:",
-        selectedSectionId,
-      );
+  
 
       if (isBasicTier && selectedSectionId && selectedSectionId !== "any") {
         const selectedSection = restaurantSections.find(
           (section) => section.id === selectedSectionId,
         );
-        console.log("Selected section found:", selectedSection);
+
         if (selectedSection) {
           preferredSection = selectedSection.name;
         }
       }
       // Note: If selectedSectionId is "any" or null, no section preference is set
-      console.log("Final preferredSection value:", preferredSection);
+   
 
       const success = await confirmBooking({
         restaurantId: params.restaurantId,
@@ -1274,10 +1264,7 @@ export default function AvailabilitySelectionScreen() {
           // Success feedback
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-          // Force refresh availability data after successful booking
-          console.log(
-            "Booking confirmed successfully, refreshing availability...",
-          );
+       
           await refresh(true); // Force refresh with cache clearing
 
           // Clear selected slot to reset the UI state
@@ -1392,7 +1379,7 @@ export default function AvailabilitySelectionScreen() {
         avatar_url: string | null;
       }[],
     ) => {
-      console.log("Invites sent:", friendIds, friendDetails);
+
       setInvitedFriends(friendIds);
       setInvitedFriendsDetails(friendDetails);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

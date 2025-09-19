@@ -135,7 +135,7 @@ export function useReviewCreate({
     }
 
     try {
-      console.log("Fetching review data:", { bookingId, restaurantId });
+  
 
       // Fetch restaurant details
       const { data: restaurantData, error: restaurantError } = await supabase

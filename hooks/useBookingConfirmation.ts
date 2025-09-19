@@ -100,7 +100,7 @@ export const useBookingConfirmation = () => {
     async (props: BookingConfirmationProps) => {
       // Prevent double submission
       if (isSubmittingRef.current) {
-        console.log("Already submitting, ignoring duplicate request");
+      
         return false;
       }
 
@@ -181,21 +181,12 @@ export const useBookingConfirmation = () => {
 
       try {
         if (debugMode) {
-          console.log("Booking confirmation - Details:", {
-            restaurantId,
-            bookingTime: bookingTime.toISOString(),
-            partySize,
-            tableIds: parsedTableIds,
-            bookingPolicy,
-          });
+        
         }
 
         // PRE-FLIGHT CHECK: Simple availability verification
         if (parsedTableIds.length > 0) {
-          console.log(
-            "Pre-flight availability check for tables:",
-            parsedTableIds,
-          );
+         
 
           const { data: bookedTables, error: conflictError } =
             await supabase.rpc("get_booked_tables_for_slot", {
@@ -213,7 +204,7 @@ export const useBookingConfirmation = () => {
             );
 
             if (hasConflict) {
-              console.log("Pre-flight check detected table conflict");
+       
               Alert.alert(
                 "Tables No Longer Available",
                 "The selected tables have just been booked by someone else. Please choose different tables or time.",
@@ -225,25 +216,7 @@ export const useBookingConfirmation = () => {
         }
 
         // Call the RPC function with detailed error logging
-        console.log("Calling RPC with params:", {
-          p_user_id: profile.id,
-          p_restaurant_id: restaurantId,
-          p_booking_time: bookingTime.toISOString(),
-          p_party_size: partySize,
-          p_table_ids: parsedTableIds.length > 0 ? parsedTableIds : null,
-          p_turn_time: turnTime,
-          p_special_requests: specialRequests || null,
-          p_occasion: occasion !== "none" ? occasion : null,
-          p_dietary_notes: dietaryNotes || null,
-          p_table_preferences: tablePreferences || null,
-          p_is_group_booking: isGroupBooking,
-          p_applied_offer_id: null, // Don't apply offer until booking is confirmed
-          p_booking_policy: bookingPolicy,
-          p_expected_loyalty_points: expectedLoyaltyPoints || 0,
-          p_applied_loyalty_rule_id: loyaltyRuleId || null,
-          // Note: p_preferred_section parameter not yet supported by database function
-          // TODO: Add p_preferred_section to create_booking_with_tables function
-        });
+       
 
         const { data: rpcResult, error: rpcError } = await supabase.rpc(
           "create_booking_with_tables",
@@ -267,7 +240,7 @@ export const useBookingConfirmation = () => {
           },
         );
 
-        console.log("RPC Response:", { rpcResult, rpcError });
+   
 
         if (rpcError) {
           if (debugMode) {
@@ -467,7 +440,7 @@ export const useBookingConfirmation = () => {
         const bookingResult: BookingResult = rpcResult;
 
         if (debugMode && bookingResult.debug_info) {
-          console.log("Booking Debug Info:", bookingResult.debug_info);
+         
         }
 
         // Claim and redeem the selected offer if one was applied

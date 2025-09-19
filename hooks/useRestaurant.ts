@@ -260,9 +260,7 @@ export function useRestaurant(
           iterations++;
         }
 
-        console.log(
-          `Generated ${slots.length} time slots from ${openTime} to ${closeTime}`,
-        );
+      
         return slots;
       } catch (error) {
         console.error("Error generating time slots:", error);
@@ -379,7 +377,7 @@ export function useRestaurant(
 
       // If database isn't ready yet and this is the first attempt, wait a bit and retry
       if (!databaseReady && retryCount === 0) {
-        console.log("Database not ready yet, scheduling retry in 2 seconds...");
+
         setTimeout(() => {
           fetchRestaurantDetails(1);
         }, 2000);
@@ -387,9 +385,7 @@ export function useRestaurant(
       }
 
       try {
-        console.log(
-          `Fetching restaurant details for ID: ${restaurantId} (attempt ${retryCount + 1})`,
-        );
+     
 
         const { data: restaurantData, error: restaurantError } = await supabase
           .from("restaurants")
@@ -406,7 +402,7 @@ export function useRestaurant(
           throw new Error("Restaurant not found");
         }
 
-        console.log("Restaurant data fetched:", restaurantData.name);
+   
         setRestaurant(restaurantData);
 
         // Check if restaurant is favorited
@@ -459,12 +455,7 @@ export function useRestaurant(
         if (reviewsError) {
           console.warn("Reviews fetch error:", reviewsError);
         } else {
-          console.log(
-            "Reviews fetched:",
-            filteredReviews.length,
-            "filtered from",
-            reviewsData?.length || 0,
-          );
+         
           setReviews(filteredReviews);
 
           // Calculate review summary from filtered reviews data
@@ -504,7 +495,7 @@ export function useRestaurant(
         // Retry logic for cold start scenarios (up to 3 attempts)
         if (retryCount < 2) {
           const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s exponential backoff
-          console.log(`⏱️  Retrying restaurant fetch in ${delay}ms...`);
+     
 
           setTimeout(() => {
             fetchRestaurantDetails(retryCount + 1);

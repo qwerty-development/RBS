@@ -29,12 +29,7 @@ export default function ProtectedLayout() {
   const authCheckTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
   useEffect(() => {
-    console.log("🔐 Auth State Change:", {
-      initialized,
-      hasSession: !!session,
-      isGuest,
-      timestamp: Date.now(),
-    });
+
 
     // Clear any existing timeout
     if (authCheckTimeout.current) {
@@ -78,7 +73,7 @@ export default function ProtectedLayout() {
 
   // Show loading while auth is stabilizing
   if (!stableAuthState.initialized) {
-    console.log("⏳ Auth stabilizing, showing loading screen");
+
     return (
       <View
         style={{
@@ -105,7 +100,7 @@ export default function ProtectedLayout() {
 
   // Show redirecting only after grace period
   if (!stableAuthState.hasAccess) {
-    console.log("🚫 No stable access, showing redirecting screen");
+  
     return (
       <View
         style={{

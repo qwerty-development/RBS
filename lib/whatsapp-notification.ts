@@ -42,13 +42,12 @@ export async function notifyRestaurantWhatsApp(
   bookingId: string,
 ): Promise<WhatsAppNotificationResult> {
   try {
-    console.log("🚀 Sending WhatsApp notification for booking:", bookingId);
-    console.log("📡 Calling URL:", WHATSAPP_FUNCTION_URL);
+ 
 
     const requestBody = {
       booking_id: bookingId,
     };
-    console.log("📦 Request body:", JSON.stringify(requestBody, null, 2));
+
 
     const response = await fetch(WHATSAPP_FUNCTION_URL, {
       method: "POST",
@@ -59,10 +58,10 @@ export async function notifyRestaurantWhatsApp(
       body: JSON.stringify(requestBody),
     });
 
-    console.log("📊 Response status:", response.status, response.statusText);
+
 
     const result = await response.json();
-    console.log("📋 Response body:", JSON.stringify(result, null, 2));
+ 
 
     if (!response.ok) {
       console.error("❌ WhatsApp notification failed:", result);
@@ -72,7 +71,7 @@ export async function notifyRestaurantWhatsApp(
       };
     }
 
-    console.log("✅ WhatsApp notification result:", result);
+  
     return result;
   } catch (error) {
     console.error("Error calling WhatsApp notification function:", error);
@@ -91,10 +90,7 @@ export async function notifyRestaurantWhatsApp(
 export async function notifyRestaurantWhatsAppNonBlocking(
   bookingId: string,
 ): Promise<void> {
-  console.log(
-    "🔥 WhatsApp notification triggered (non-blocking) for booking:",
-    bookingId,
-  );
+
   try {
     const result = await notifyRestaurantWhatsApp(bookingId);
 
@@ -105,15 +101,9 @@ export async function notifyRestaurantWhatsAppNonBlocking(
         reason: result.reason,
       });
     } else if (result.ignored) {
-      console.log("WhatsApp notification ignored:", {
-        bookingId,
-        reason: result.ignored,
-      });
+   
     } else {
-      console.log("WhatsApp notification sent successfully:", {
-        bookingId,
-        sid: result.sid,
-      });
+     
     }
   } catch (error) {
     console.error(

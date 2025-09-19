@@ -87,9 +87,7 @@ export const useBookingDetails = (bookingId: string) => {
         bookingData.status === "pending" &&
         new Date(bookingData.booking_time) < now
       ) {
-        console.log(
-          `Found expired pending booking ${bookingId}, updating to declined_by_restaurant`,
-        );
+      
 
         try {
           const { error: updateError } = await supabase
@@ -106,9 +104,7 @@ export const useBookingDetails = (bookingId: string) => {
               updateError,
             );
           } else {
-            console.log(
-              `Successfully updated booking ${bookingId} from pending to declined_by_restaurant`,
-            );
+         
             // Update the local booking data
             bookingData.status = "declined_by_restaurant";
             bookingData.updated_at = new Date().toISOString();
@@ -143,7 +139,7 @@ export const useBookingDetails = (bookingId: string) => {
           .filter((t): t is TableInfo => t !== null);
         setAssignedTables(tables);
       } else {
-        console.log("No tables found for booking:", bookingId);
+     
         setAssignedTables([]);
       }
 
@@ -173,18 +169,13 @@ export const useBookingDetails = (bookingId: string) => {
             setLoyaltyActivity(loyaltyData);
           }
         } catch (loyaltyError) {
-          console.log(
-            "Loyalty activities table not available or no data found",
-          );
+         
         }
       }
 
       // Enhanced: Fetch applied offer details using applied_offer_id
       if (bookingData.applied_offer_id) {
-        console.log(
-          "Fetching applied offer details for offer ID:",
-          bookingData.applied_offer_id,
-        );
+      
 
         try {
           // Get the special offer details
@@ -198,7 +189,7 @@ export const useBookingDetails = (bookingId: string) => {
           if (specialOfferError) {
             console.error("Error fetching special offer:", specialOfferError);
           } else if (specialOfferData) {
-            console.log("Found special offer:", specialOfferData.title);
+      
 
             // Get the user_offer details for redemption code and usage info
             const { data: userOfferData, error: userOfferError } =
@@ -238,14 +229,14 @@ export const useBookingDetails = (bookingId: string) => {
               minimum_party_size: specialOfferData.minimum_party_size,
             };
 
-            console.log("Applied offer details:", offerDetails);
+       
             setAppliedOfferDetails(offerDetails);
           }
         } catch (offerError) {
           console.error("Error fetching applied offer details:", offerError);
         }
       } else {
-        console.log("No applied offer for this booking");
+       
       }
     } catch (error) {
       console.error("Error fetching booking details:", error);

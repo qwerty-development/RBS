@@ -127,7 +127,7 @@ export const useBlockUser = (options: UseBlockUserOptions = {}) => {
 
         if (error) {
           // Fallback to manual operations if RPC doesn't exist
-          console.log("RPC not available, falling back to manual operations");
+       
 
           // First, insert the block record
           const { error: blockError } = await supabase

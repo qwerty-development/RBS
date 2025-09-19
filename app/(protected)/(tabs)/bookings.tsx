@@ -117,21 +117,21 @@ function BookingsScreenContent() {
 
   // Handle invitation actions
   const handleAcceptInvitation = async (invitationId: string) => {
-    console.log("🎯 DEBUG: Starting invitation acceptance for ID:", invitationId);
+ 
     const success = await acceptInvitation(invitationId);
     if (success) {
-      console.log("🎯 DEBUG: Invitation accepted successfully, refreshing bookings...");
+
       // Remove the accepted invitation from pending list
       setPendingInvitations((prev) =>
         prev.filter((inv) => inv.id !== invitationId),
       );
       // Add a small delay to ensure database consistency, then refresh bookings
       setTimeout(() => {
-        console.log("🎯 DEBUG: Calling handleRefresh after delay...");
+     
         handleRefresh();
       }, 1000);
     } else {
-      console.log("🎯 DEBUG: Invitation acceptance failed");
+
     }
     return success;
   };

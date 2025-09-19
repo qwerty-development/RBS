@@ -118,10 +118,7 @@ export default function SignIn() {
           );
         }
       } else {
-        // Successful Apple sign-in - let auth provider handle navigation
-        console.log(
-          "✅ Apple sign-in successful, auth provider will handle navigation",
-        );
+ 
         // Don't navigate here - auth provider will handle it to prevent race conditions
       }
     } catch (err: any) {
@@ -149,10 +146,7 @@ export default function SignIn() {
           );
         }
       } else {
-        // Successful Google sign-in - let auth provider handle navigation
-        console.log(
-          "✅ Google sign-in successful, auth provider will handle navigation",
-        );
+   
         // Don't navigate here - auth provider will handle it to prevent race conditions
       }
     } catch (err: any) {

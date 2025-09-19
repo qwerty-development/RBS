@@ -53,7 +53,7 @@ export const NotificationManager = React.memo(() => {
           filter: `to_user_id=eq.${profile.id}`,
         },
         async (payload) => {
-          console.log("New invitation received:", payload);
+  
 
           // Fetch the complete invitation data with relations
           const { data: invitation, error } = await supabase
@@ -102,7 +102,7 @@ export const NotificationManager = React.memo(() => {
           filter: `from_user_id=eq.${profile.id}`,
         },
         (payload) => {
-          console.log("Invitation status updated:", payload);
+     
           // Could show notification to sender that their invitation was accepted/declined
           // For now, we'll just log it
         },

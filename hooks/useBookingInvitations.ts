@@ -142,7 +142,7 @@ export const useBookingInvitations = () => {
   // Accept an invitation
   const acceptInvitation = useCallback(async (invitationId: string) => {
     try {
-      console.log("Starting acceptInvitation for ID:", invitationId);
+   
 
       // First, get the invitation details
       const { data: invitationData, error: inviteError } = await supabase
@@ -160,7 +160,7 @@ export const useBookingInvitations = () => {
         throw new Error("Invitation not found");
       }
 
-      console.log("Invitation data:", invitationData);
+    
 
       // Check if invitation is already processed
       if (invitationData.status !== "pending") {
@@ -185,7 +185,7 @@ export const useBookingInvitations = () => {
         );
       }
 
-      console.log("Booking data found:", bookingData);
+
 
       // Update the invitation status
       const { error: updateError } = await supabase
@@ -201,15 +201,13 @@ export const useBookingInvitations = () => {
         throw new Error(`Failed to update invitation: ${updateError.message}`);
       }
 
-      console.log("Successfully updated invitation status");
+
 
       // Update the booking's party size to include the new attendee
       const currentPartySize = bookingData.party_size || 1;
       const newPartySize = currentPartySize + 1;
 
-      console.log(
-        `Updating party size from ${currentPartySize} to ${newPartySize}`,
-      );
+
 
       const { error: partySizeError } = await supabase
         .from("bookings")
@@ -224,7 +222,7 @@ export const useBookingInvitations = () => {
         // Don't throw here - the invitation was accepted successfully
         // Party size update is a nice-to-have but not critical
       } else {
-        console.log("Successfully updated party size");
+     
       }
 
       // Update local state
@@ -246,7 +244,7 @@ export const useBookingInvitations = () => {
         "You've successfully joined this booking!",
       );
 
-      console.log("Accept invitation completed successfully");
+   
       return true;
     } catch (error: any) {
       console.error("Error accepting invitation:", error);
@@ -537,7 +535,7 @@ export const useBookingInvitations = () => {
           filter: `to_user_id=eq.${profile.id}`,
         },
         (payload) => {
-          console.log("Invitation change for received:", payload);
+    
           loadReceivedInvitations(); // Reload received invitations
         },
       )
@@ -550,7 +548,7 @@ export const useBookingInvitations = () => {
           filter: `from_user_id=eq.${profile.id}`,
         },
         (payload) => {
-          console.log("Invitation change for sent:", payload);
+        
           // Note: We don't auto-reload sent invitations here since they're loaded on-demand
         },
       )
@@ -567,7 +565,7 @@ export const useBookingInvitations = () => {
           table: "bookings",
         },
         (payload) => {
-          console.log("Booking updated:", payload);
+        
           // Reload invitations since booking details might have changed
           loadReceivedInvitations();
         },

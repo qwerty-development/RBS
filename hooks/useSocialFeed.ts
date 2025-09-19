@@ -254,7 +254,7 @@ export const useSocialFeed = () => {
     const unsubscribe = realtimeSubscriptionService.subscribeToUser({
       userId: user.id,
       onPostChange: (payload) => {
-        console.log("Post real-time update:", payload);
+   
 
         if (payload.eventType === "INSERT" && payload.new) {
           // New post - could be from a friend, so reload feed

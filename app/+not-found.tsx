@@ -4,6 +4,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { H1, Muted } from "@/components/ui/typography";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { getThemedColors, getActivityIndicatorColor } from "@/lib/utils";
+import React from "react";
 
 export default function NotFound() {
   const router = useRouter();
@@ -30,9 +31,7 @@ export default function NotFound() {
       );
 
     if (hasAuthIndicators) {
-      console.log(
-        "🔄 Detected potential OAuth callback, showing loading state",
-      );
+ 
       setIsAuthCallback(true);
 
       // Start countdown

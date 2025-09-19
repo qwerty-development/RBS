@@ -292,7 +292,7 @@ export function RestaurantMap({
   // Memoize the restaurant press handler to prevent recreating on every render
   const handleRestaurantPress = useCallback(
     (restaurantId: string) => {
-      console.log(`🍽️ Marker pressed: ${restaurantId}`);
+ 
       onRestaurantPress?.(restaurantId);
     },
     [onRestaurantPress],
@@ -319,7 +319,7 @@ export function RestaurantMap({
 
   // Memoize restaurant markers with stable keys to prevent flickering
   const restaurantMarkers = useMemo(() => {
-    console.log(`🗺️ Creating ${restaurants.length} restaurant markers`);
+ 
 
     return restaurants
       .map((restaurant) => {
@@ -338,7 +338,7 @@ export function RestaurantMap({
         }
 
         if (!coords) {
-          console.log(`❌ No coordinates for restaurant: ${restaurant.name}`);
+ 
           return null;
         }
 
@@ -370,7 +370,7 @@ export function RestaurantMap({
       return;
     }
 
-    console.log("🗺️ Map is ready, fitting to coordinates...");
+
     const coordinates: { latitude: number; longitude: number }[] = [];
 
     // Add restaurant coordinates
@@ -423,7 +423,7 @@ export function RestaurantMap({
         showsCompass={true}
         customMapStyle={colorScheme === "dark" ? darkMapStyle : undefined}
         onMapReady={() => {
-          console.log("🗺️ Map is ready!");
+ 
           setMapReady(true);
         }}
         // Performance optimizations

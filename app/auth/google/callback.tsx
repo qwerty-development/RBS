@@ -16,17 +16,17 @@ export default function GoogleOAuthCallback() {
   const [processing, setProcessing] = useState(true);
 
   useEffect(() => {
-    console.log("🎯 Google OAuth callback route hit with params:", params);
+
 
     // Wait for auth to initialize
     if (!initialized) {
-      console.log("⏳ Waiting for auth to initialize...");
+
       return;
     }
 
     // If we have a session, redirect with a small delay for smooth transition
     if (session) {
-      console.log("✅ Session found in Google callback, redirecting to app");
+  
 
       // Add a longer delay to ensure completely smooth transition and mask any brief errors
       setTimeout(() => {
@@ -40,9 +40,7 @@ export default function GoogleOAuthCallback() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          console.log(
-            "⏰ Google OAuth callback timeout, redirecting to welcome",
-          );
+        
           router.replace("/welcome");
           return 0;
         }

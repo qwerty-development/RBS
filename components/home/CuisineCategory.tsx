@@ -29,7 +29,7 @@ export function CuisineCategory({ cuisine, onPress }: CuisineCategoryProps) {
     handleHapticPress(() => {
       // Check if any modal is already open
       if (isAnyModalOpen) {
-        console.log(`Cuisine ${cuisine.id} press blocked - modal already open`);
+       
         return;
       }
 

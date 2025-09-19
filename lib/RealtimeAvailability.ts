@@ -42,7 +42,7 @@ export class RealtimeAvailability {
             filter: `restaurant_id=eq.${restaurantId}`,
           },
           (payload) => {
-            console.log("Booking change detected:", payload);
+   
 
             // Check if this is a status change that affects availability
             const newData = payload.new as any;
@@ -59,9 +59,7 @@ export class RealtimeAvailability {
                 newStatus === "no_show" ||
                 oldStatus === "pending") // When pending becomes confirmed, it may block other slots
             ) {
-              console.log(
-                `Booking status changed from ${oldStatus} to ${newStatus}, triggering immediate availability update`,
-              );
+            
             }
 
             this.notifyListeners(channelKey);
@@ -92,13 +90,13 @@ export class RealtimeAvailability {
             filter: `restaurant_id=eq.${restaurantId}`,
           },
           (payload) => {
-            console.log("Table configuration change detected:", payload);
+       
             this.notifyListeners(channelKey);
           },
         )
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
-            console.log(`Subscribed to real-time updates for ${channelKey}`);
+         
           } else if (status === "CHANNEL_ERROR") {
             console.error(`Error subscribing to restaurant:${restaurantId}`);
             // Don't retry immediately to avoid infinite loops
@@ -109,7 +107,7 @@ export class RealtimeAvailability {
                 // Only clean up if this is still the active channel
                 currentChannel.unsubscribe();
                 this.channels.delete(channelKey);
-                console.log(`Cleaned up failed subscription for ${channelKey}`);
+             
               }
             }, 1000);
           } else if (status === "TIMED_OUT") {
@@ -122,7 +120,7 @@ export class RealtimeAvailability {
               }
             }, 2000);
           } else if (status === "CLOSED") {
-            console.log(`Subscription closed for ${channelKey}`);
+          
             this.channels.delete(channelKey);
           }
         });
@@ -162,7 +160,7 @@ export class RealtimeAvailability {
    * Resubscribe to a channel after error
    */
   private async resubscribe(channelKey: string, restaurantId: string) {
-    console.log(`Attempting to resubscribe to ${channelKey}`);
+  
 
     try {
       const channel = this.channels.get(channelKey);
@@ -181,7 +179,7 @@ export class RealtimeAvailability {
         // Get the first listener to trigger recreation
         const firstListener = listeners.values().next().value;
         if (firstListener) {
-          console.log(`Recreating subscription for ${channelKey}`);
+       
           // The subscribeToRestaurant method will handle creating a new channel
         }
       }
@@ -315,7 +313,7 @@ export class RealtimeAvailability {
     this.channels.clear();
     this.listeners.clear();
 
-    console.log("RealtimeAvailability cleaned up");
+  
   }
 }
 
