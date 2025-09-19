@@ -152,8 +152,6 @@ export const useSearchLogic = (): UseSearchReturn => {
 
       try {
         if (userLocation) {
-         
-
           // Use your new LocationService method
           const restaurantsWithDistance =
             await LocationService.getRestaurantsWithDistance(
@@ -284,7 +282,6 @@ export const useSearchLogic = (): UseSearchReturn => {
           }
         } else {
           // If no location, still fetch restaurants but without distance
-        
 
           let supabaseQuery = supabase.from("restaurants").select("*");
 

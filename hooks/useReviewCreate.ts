@@ -135,8 +135,6 @@ export function useReviewCreate({
     }
 
     try {
-  
-
       // Fetch restaurant details
       const { data: restaurantData, error: restaurantError } = await supabase
         .from("restaurants")

@@ -35,7 +35,6 @@ const hideSplashImmediately = () => {
   if (!splashHideAttempted) {
     splashHideAttempted = true;
     SplashScreen.hideAsync().catch(() => {});
-
   }
 };
 
@@ -136,11 +135,8 @@ function AuthContent({ children }: PropsWithChildren) {
     isTripleSlashed: true,
   });
 
- 
-
   // NEW: Continue as guest function
   const continueAsGuest = useCallback(async () => {
-
     try {
       await AsyncStorage.setItem(GUEST_MODE_KEY, "true");
       setIsGuest(true);
@@ -156,7 +152,6 @@ function AuthContent({ children }: PropsWithChildren) {
 
   // NEW: Convert guest to user (redirect to welcome)
   const convertGuestToUser = useCallback(async () => {
-
     try {
       await AsyncStorage.removeItem(GUEST_MODE_KEY);
       setIsGuest(false);
@@ -169,8 +164,6 @@ function AuthContent({ children }: PropsWithChildren) {
   // NEW: Database readiness check
   const checkDatabaseReadiness = useCallback(async (): Promise<boolean> => {
     try {
-    
-
       // Simple query to test database connectivity
       const { data, error } = await supabase
         .from("restaurants")
@@ -182,7 +175,6 @@ function AuthContent({ children }: PropsWithChildren) {
         return false;
       }
 
-    
       return true;
     } catch (error) {
       // Database readiness check error
@@ -194,8 +186,6 @@ function AuthContent({ children }: PropsWithChildren) {
   const fetchProfile = useCallback(
     async (userId: string): Promise<Profile | null> => {
       try {
-     
-
         const { data, error } = await supabase
           .from("profiles")
           .select("*")
@@ -207,13 +197,11 @@ function AuthContent({ children }: PropsWithChildren) {
 
           // If profile doesn't exist, try to create it
           if (error.code === "PGRST116") {
-          
             return null;
           }
 
           throw error;
         }
-
 
         return data;
       } catch (error) {
@@ -228,8 +216,6 @@ function AuthContent({ children }: PropsWithChildren) {
   const processOAuthUser = useCallback(
     async (session: Session): Promise<Profile | null> => {
       try {
-      
-
         // Check if user exists in profiles table
         const { data: existingProfile, error: fetchError } = await supabase
           .from("profiles")
@@ -262,8 +248,6 @@ function AuthContent({ children }: PropsWithChildren) {
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };
-
-         
 
           const { data: createdProfile, error: createError } = await supabase
             .from("profiles")
@@ -302,8 +286,6 @@ function AuthContent({ children }: PropsWithChildren) {
         dateOfBirth?: string,
       ) => {
         try {
-   
-
           // Enhanced input validation
           if (!InputValidator.isValidEmail(email)) {
             throw new Error("Please enter a valid email address");
@@ -396,19 +378,14 @@ function AuthContent({ children }: PropsWithChildren) {
             throw authError;
           }
 
-      
-
           // Create profile if user was created
           if (authData.user && !authData.session) {
-        
             Alert.alert(
               "Check Your Email",
               "We've sent you a confirmation link. Please check your email and click the link to activate your account.",
               [{ text: "OK" }],
             );
           } else if (authData.user && authData.session) {
-        
-
             // Register device for the new user
             await DeviceSecurity.registerDeviceForUser(authData.user.id);
 
@@ -433,7 +410,6 @@ function AuthContent({ children }: PropsWithChildren) {
             if (profileError) {
               // Profile creation error (non-critical)
             } else {
- 
             }
           }
 
@@ -467,8 +443,6 @@ function AuthContent({ children }: PropsWithChildren) {
     withSecurityMiddleware(
       async (email: string, password: string) => {
         try {
-      
-
           // Input validation
           if (!InputValidator.isValidEmail(email)) {
             throw new Error("Please enter a valid email address");
@@ -552,8 +526,6 @@ function AuthContent({ children }: PropsWithChildren) {
               );
             }
           }
-
-     
         } catch (error) {
           // Sign-in error
           throw error;
@@ -570,8 +542,6 @@ function AuthContent({ children }: PropsWithChildren) {
 
   const signOut = useCallback(async () => {
     try {
-
-
       // Clear guest mode
       await AsyncStorage.removeItem(GUEST_MODE_KEY);
       setIsGuest(false);
@@ -581,8 +551,6 @@ function AuthContent({ children }: PropsWithChildren) {
         // Sign-out error
         throw error;
       }
-
-    
     } catch (error) {
       // Sign-out error
       throw error;
@@ -596,8 +564,6 @@ function AuthContent({ children }: PropsWithChildren) {
       }
 
       try {
-     
-
         const { data, error } = await supabase
           .from("profiles")
           .update(updates)

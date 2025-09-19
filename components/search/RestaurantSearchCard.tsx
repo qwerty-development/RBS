@@ -138,7 +138,6 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
 
     // Check if any modal is already open
     if (isAnyModalOpen) {
-    
       return;
     }
 

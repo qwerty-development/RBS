@@ -135,12 +135,9 @@ export default function PostDetailScreen() {
 
   const fetchPostDetails = useCallback(async () => {
     if (!postId) {
-   
       setLoading(false);
       return;
     }
-
- 
 
     try {
       // Fetch post details (this doesn't require authentication)
@@ -154,8 +151,6 @@ export default function PostDetailScreen() {
         console.error("❌ Error fetching post:", postError);
         throw postError;
       }
-
-
 
       // Check if user has liked the post (only if user is authenticated)
       let likeData = null;
@@ -194,7 +189,6 @@ export default function PostDetailScreen() {
         throw commentsError;
       }
 
-
       setComments(commentsData || []);
     } catch (error) {
       console.error("❌ Error fetching post details:", error);
@@ -206,7 +200,6 @@ export default function PostDetailScreen() {
 
   const handleLike = async () => {
     if (!profile?.id || !post) {
-    
       return;
     }
 
@@ -252,13 +245,11 @@ export default function PostDetailScreen() {
 
   const handleComment = async () => {
     if (!profile?.id) {
-
       Alert.alert("Error", "Please sign in to comment");
       return;
     }
 
     if (!newComment.trim()) {
-    
       return;
     }
 
@@ -286,7 +277,6 @@ export default function PostDetailScreen() {
         console.error("❌ Error posting comment:", error);
         throw error;
       }
-
 
       setComments([...comments, data]);
       setNewComment("");
@@ -322,15 +312,12 @@ export default function PostDetailScreen() {
   }, [post?.restaurant_id, router]);
 
   // Monitor authentication state changes
-  useEffect(() => {
-
-  }, [profile, postId, loading]);
+  useEffect(() => {}, [profile, postId, loading]);
 
   // Timeout to prevent infinite loading
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (loading) {
-   
         setLoading(false);
       }
     }, 10000); // 10 second timeout

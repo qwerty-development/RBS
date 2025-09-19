@@ -274,8 +274,6 @@ export const useWaitlist = () => {
     const unsubscribe = realtimeSubscriptionService.subscribeToUser({
       userId: user.id,
       onWaitlistChange: (payload: any) => {
-
-
         // Handle different events
         if (payload.eventType === "UPDATE") {
           const newStatus = payload.new.status;

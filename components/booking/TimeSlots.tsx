@@ -565,7 +565,6 @@ export const TableOptions = memo<{
   const handleOptionSelect = useCallback(
     (index: number) => {
       if (isProcessing || isConfirming) {
-        
         return;
       }
       setSelectedOptionIndex(index);
@@ -578,7 +577,6 @@ export const TableOptions = memo<{
     // Prevent double-clicks
     const now = Date.now();
     if (now - lastConfirmRef.current < 2000) {
-
       return;
     }
     lastConfirmRef.current = now;
@@ -589,7 +587,6 @@ export const TableOptions = memo<{
     }
 
     if (isProcessing || isConfirming) {
-
       return;
     }
 
@@ -733,7 +730,6 @@ const TableOptionCard = memo<{
   const handlePress = useCallback(() => {
     const now = Date.now();
     if (now - lastClickRef.current < 500) {
-    
       return;
     }
     lastClickRef.current = now;

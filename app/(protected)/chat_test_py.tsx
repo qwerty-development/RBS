@@ -356,8 +356,6 @@ async function sendMessageToRestoAI(
     // Fetch restaurant details if restaurant IDs were returned
     let restaurants: any[] = [];
     if (data.restaurants_to_show && data.restaurants_to_show.length > 0) {
-
-
       try {
         const { data: restaurantData, error } = await supabase
           .from("restaurants")
@@ -467,9 +465,7 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
         setIsAuthenticated(!!session?.access_token);
 
         if (session?.user?.id) {
- 
         } else {
-     
         }
       } catch (error) {
         console.error("Error loading user session:", error);
@@ -528,12 +524,9 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
     setIsLoading(true);
 
     try {
-
-
       // Sliding window: Keep last 20 messages (10 user + 10 AI pairs) for context
       // This ensures the AI remembers recent conversation without overwhelming the API
       const historyToSend = messages.slice(-20);
-
 
       // Call RestoAI API with conversation history
       const response = await sendMessageToRestoAI(
@@ -542,7 +535,6 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
         sessionId,
         userId,
       );
-     
 
       // Single atomic update: add response and clear loading
       setMessages((prev) => [...prev, response]);
@@ -603,7 +595,6 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
       }
 
       router.push(`/restaurant/${restaurant.id}`);
-
     },
     [onClose],
   );
@@ -638,7 +629,6 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
 
       // Clear local messages
       setMessages([]);
-
     } catch (error) {
       console.error("Error resetting chat:", error);
       // Still clear local messages even if API call fails

@@ -341,7 +341,6 @@ export function useFormErrorHandler() {
       const errorObj = typeof error === "string" ? new Error(error) : error;
 
       if (field) {
-   
       }
 
       handleError(errorObj);

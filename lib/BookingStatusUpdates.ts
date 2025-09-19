@@ -32,7 +32,6 @@ export class BookingStatusUpdates {
           filter: `user_id=eq.${userId}`,
         },
         async (payload) => {
-    
           await this.handleBookingUpdate(payload);
         },
       )
@@ -45,13 +44,11 @@ export class BookingStatusUpdates {
           filter: `user_id=eq.${userId}`,
         },
         async (payload) => {
-    
           await this.handleNotification(payload);
         },
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-         
         }
       });
   }

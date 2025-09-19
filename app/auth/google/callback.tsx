@@ -16,18 +16,13 @@ export default function GoogleOAuthCallback() {
   const [processing, setProcessing] = useState(true);
 
   useEffect(() => {
-
-
     // Wait for auth to initialize
     if (!initialized) {
-
       return;
     }
 
     // If we have a session, redirect with a small delay for smooth transition
     if (session) {
-  
-
       // Add a longer delay to ensure completely smooth transition and mask any brief errors
       setTimeout(() => {
         router.replace("/(protected)/(tabs)");
@@ -40,7 +35,7 @@ export default function GoogleOAuthCallback() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-        
+
           router.replace("/welcome");
           return 0;
         }

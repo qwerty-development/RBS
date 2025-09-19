@@ -55,9 +55,6 @@ const debugPermissions = async () => {
         ImagePicker.getCameraPermissionsAsync(),
         ImagePicker.getMediaLibraryPermissionsAsync(),
       ]);
-
-
-   
     } catch (error) {
       console.error("❌ Error checking permissions:", error);
     }
@@ -176,11 +173,8 @@ export default function CreatePostScreen() {
 
   const pickImage = async () => {
     try {
-     
-
       // Prevent multiple simultaneous calls
       if (uploadingImages) {
-        
         return;
       }
 
@@ -273,11 +267,8 @@ export default function CreatePostScreen() {
 
   const takePhoto = async () => {
     try {
-  
-
       // Prevent multiple simultaneous calls
       if (uploadingImages) {
-    
         return;
       }
 

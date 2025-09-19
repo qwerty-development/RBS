@@ -100,7 +100,6 @@ export const useBookingConfirmation = () => {
     async (props: BookingConfirmationProps) => {
       // Prevent double submission
       if (isSubmittingRef.current) {
-      
         return false;
       }
 
@@ -181,13 +180,10 @@ export const useBookingConfirmation = () => {
 
       try {
         if (debugMode) {
-        
         }
 
         // PRE-FLIGHT CHECK: Simple availability verification
         if (parsedTableIds.length > 0) {
-         
-
           const { data: bookedTables, error: conflictError } =
             await supabase.rpc("get_booked_tables_for_slot", {
               p_restaurant_id: restaurantId,
@@ -204,7 +200,6 @@ export const useBookingConfirmation = () => {
             );
 
             if (hasConflict) {
-       
               Alert.alert(
                 "Tables No Longer Available",
                 "The selected tables have just been booked by someone else. Please choose different tables or time.",
@@ -216,7 +211,6 @@ export const useBookingConfirmation = () => {
         }
 
         // Call the RPC function with detailed error logging
-       
 
         const { data: rpcResult, error: rpcError } = await supabase.rpc(
           "create_booking_with_tables",
@@ -239,8 +233,6 @@ export const useBookingConfirmation = () => {
             p_preferred_section: preferredSection || null,
           },
         );
-
-   
 
         if (rpcError) {
           if (debugMode) {
@@ -440,7 +432,6 @@ export const useBookingConfirmation = () => {
         const bookingResult: BookingResult = rpcResult;
 
         if (debugMode && bookingResult.debug_info) {
-         
         }
 
         // Claim and redeem the selected offer if one was applied

@@ -70,7 +70,6 @@ export class RealtimeSubscriptionService {
     const subscriptionKey = this.createSubscriptionKey(table, event, filter);
 
     if (enableLogging) {
-     
     }
 
     // Get or create subscription
@@ -273,7 +272,6 @@ export class RealtimeSubscriptionService {
         },
         (payload) => {
           if (enableLogging) {
-        
           }
           this.handleRealtimeChange(subscriptionKey, payload);
         },
@@ -346,7 +344,6 @@ export class RealtimeSubscriptionService {
     enableLogging?: boolean,
   ): void {
     if (enableLogging) {
-     
     }
 
     switch (status) {
@@ -473,7 +470,6 @@ export class RealtimeSubscriptionService {
     });
 
     this.subscriptions.clear();
-  
   }
 
   /**

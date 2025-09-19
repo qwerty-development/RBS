@@ -31,9 +31,7 @@ function BookingsScreenContent() {
     useBookingInvitations();
 
   // State for pending invitations popup
-  const [pendingInvitations, setPendingInvitations] = React.useState<any[]>(
-    [],
-  );
+  const [pendingInvitations, setPendingInvitations] = React.useState<any[]>([]);
   const [showInvitationPopup, setShowInvitationPopup] = React.useState(false);
   const [hasCheckedInvitations, setHasCheckedInvitations] =
     React.useState(false);
@@ -117,21 +115,17 @@ function BookingsScreenContent() {
 
   // Handle invitation actions
   const handleAcceptInvitation = async (invitationId: string) => {
- 
     const success = await acceptInvitation(invitationId);
     if (success) {
-
       // Remove the accepted invitation from pending list
       setPendingInvitations((prev) =>
         prev.filter((inv) => inv.id !== invitationId),
       );
       // Add a small delay to ensure database consistency, then refresh bookings
       setTimeout(() => {
-     
         handleRefresh();
       }, 1000);
     } else {
-
     }
     return success;
   };
@@ -240,7 +234,6 @@ function BookingsScreenContent() {
             className="flex-row items-center gap-2 px-3"
           >
             <Mail size={18} className="text-primary" />
-           
           </Button>
         }
       />

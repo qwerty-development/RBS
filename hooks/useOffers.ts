@@ -347,37 +347,27 @@ export function useOffers() {
   // Claim and redeem offer in one operation (for booking confirmation)
   const claimAndRedeemOffer = useCallback(
     async (offerId: string, bookingId: string) => {
-   
-
       if (!profile?.id) {
- 
         return false;
       }
 
       try {
-      
         const offer = offers.find((o) => o.id === offerId);
-   
 
         if (!offer) {
-        
           throw new Error("Offer not found");
         }
 
         // Check if offer is valid
         const now = new Date();
         const validUntil = new Date(offer.valid_until);
-  
 
         if (now > validUntil) {
-       
           throw new Error("Offer has expired");
         }
 
         const claimDate = now.toISOString();
         const expiryDate = calculateExpiryDate(claimDate, offer.valid_until);
-
-     
 
         // Insert user offer directly as used (claimed and redeemed in one step)
         const { data, error } = await supabase
@@ -395,11 +385,8 @@ export function useOffers() {
           .single();
 
         if (error) {
-    
           throw error;
         }
-
- 
 
         // Update local state
         const newUserOffer: UserOfferData = {
@@ -419,7 +406,6 @@ export function useOffers() {
           ),
         );
 
-      
         return true;
       } catch (err: any) {
         console.error("❌ Error claiming and redeeming offer:", err);
@@ -519,7 +505,6 @@ export function useOffers() {
         setOffers((prev) =>
           prev.map((o) => (o.id === offerId ? enrichOffer(o, undefined) : o)),
         );
-
 
         return true;
       } catch (err: any) {

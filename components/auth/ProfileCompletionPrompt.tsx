@@ -29,7 +29,9 @@ import { MissingField } from "@/hooks/useProfileCompletion";
 import { InputValidator } from "@/lib/security";
 
 // Lebanese Phone Number Validation
-const lebanesPhoneRegex = /^(\+961|961|03|70|71|76|78|79|80|81)\d{6,7}$/;
+// Comprehensive regex for Lebanese phone numbers (mobile and landline)
+const lebanesPhoneRegex =
+  /^(\+961|961)?(03|70|71|76|78|79|80|81|1|3|4|5|6|7|8|9)\d{5,7}$/;
 
 // Utility function to format date input with automatic dashes
 const formatDateInput = (value: string): string => {
@@ -119,6 +121,11 @@ const createFieldSchema = (field: MissingField) => {
             "Please enter a valid Lebanese phone number",
           )
           .transform((val) => {
+            // If already in +961 format, keep it as is
+            if (val.startsWith("+961")) {
+              return val;
+            }
+            // Add +961 prefix for Lebanese mobile numbers starting with 03, 7, or 8
             if (
               val.startsWith("03") ||
               val.startsWith("7") ||
@@ -126,8 +133,13 @@ const createFieldSchema = (field: MissingField) => {
             ) {
               return `+961${val.replace(/^0/, "")}`;
             }
+            // Handle 961 without + prefix
             if (val.startsWith("961")) {
               return `+${val}`;
+            }
+            // For landline numbers (1, 3-9 without 0 prefix) add +961
+            if (/^[1-9]\d{5,7}$/.test(val)) {
+              return `+961${val}`;
             }
             return val;
           }),
@@ -252,6 +264,9 @@ export const ProfileCompletionPrompt: React.FC<
 }) => {
   const { profile, updateProfile } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [enteredValues, setEnteredValues] = useState<Record<string, string>>(
+    {},
+  );
 
   const fieldConfig = currentField ? fieldConfigs[currentField] : null;
   const currentFieldIndex = currentField
@@ -281,10 +296,15 @@ export const ProfileCompletionPrompt: React.FC<
       const { first_name, last_name } = useSplitName(bestName);
 
       if (currentField === "first_name") {
+        // Use entered value if available, otherwise check if current first name is "User"
+        const enteredFirstName = enteredValues.first_name;
+        if (enteredFirstName) return enteredFirstName;
         // If the first name is "User" (generic fallback), return empty string to let user enter real name
         return first_name === "User" ? "" : first_name;
       } else {
-        return last_name;
+        // Use entered value if available, otherwise return current last name
+        const enteredLastName = enteredValues.last_name;
+        return enteredLastName || last_name;
       }
     }
 
@@ -297,7 +317,14 @@ export const ProfileCompletionPrompt: React.FC<
     }
 
     return "";
-  }, [currentField, propSplitName, splitName, getBestAvailableName, profile]);
+  }, [
+    currentField,
+    propSplitName,
+    splitName,
+    getBestAvailableName,
+    profile,
+    enteredValues,
+  ]);
 
   const form = useForm<FormData>({
     resolver: fieldConfig
@@ -314,6 +341,13 @@ export const ProfileCompletionPrompt: React.FC<
     form.reset({ value: defaultValue });
   }, [currentField, getDefaultValue, form]);
 
+  // Clear entered values when modal is closed
+  React.useEffect(() => {
+    if (!visible) {
+      setEnteredValues({});
+    }
+  }, [visible]);
+
   const handleSubmit = async (data: FormData) => {
     if (!currentField || !fieldConfig) return;
 
@@ -325,13 +359,30 @@ export const ProfileCompletionPrompt: React.FC<
 
       if (currentField === "first_name" || currentField === "last_name") {
         // For name fields, we need to update the full_name
-        const { first_name, last_name } = splitName(profile?.full_name || "");
+        // Use entered values from this session, not just profile state
+        const useSplitName = propSplitName || splitName;
+        const useGetBestName =
+          getBestAvailableName || (() => profile?.full_name || "");
+        const { first_name: currentFirstName, last_name: currentLastName } =
+          useSplitName(useGetBestName());
 
-        if (currentField === "first_name") {
-          updateData.full_name = `${data.value.trim()} ${last_name}`.trim();
-        } else {
-          updateData.full_name = `${first_name} ${data.value.trim()}`.trim();
-        }
+        // Use entered values if available, otherwise fall back to current values
+        const firstName =
+          currentField === "first_name"
+            ? data.value.trim()
+            : enteredValues.first_name || currentFirstName;
+        const lastName =
+          currentField === "last_name"
+            ? data.value.trim()
+            : enteredValues.last_name || currentLastName;
+
+        updateData.full_name = `${firstName} ${lastName}`.trim();
+
+        // Store the entered value for future reference
+        setEnteredValues((prev) => ({
+          ...prev,
+          [currentField]: data.value.trim(),
+        }));
       } else {
         // For other fields, update directly
         updateData[currentField] = data.value;
@@ -355,6 +406,8 @@ export const ProfileCompletionPrompt: React.FC<
 
       // Move to next field or complete
       if (isLastField) {
+        // Clear entered values when completing
+        setEnteredValues({});
         onComplete();
         setTimeout(() => {
           Alert.alert(
@@ -396,6 +449,8 @@ export const ProfileCompletionPrompt: React.FC<
           style: "cancel",
           onPress: () => {
             if (isLastField) {
+              // Clear entered values when completing
+              setEnteredValues({});
               onComplete();
             } else {
               onNext();

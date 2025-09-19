@@ -91,8 +91,6 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
     }
   }, [profile?.id, review.id]);
 
-
-
   const {
     replies,
     loading,
@@ -147,7 +145,6 @@ export const ReviewCard: React.FC<ReviewCardProps> = ({
 
   const handleReportSubmitted = () => {
     // The hook will automatically update the isReported state
-
   };
 
   const renderStars = (rating: number, size: number = 16) => {

@@ -42,7 +42,6 @@ export function DeepLinkProvider({
       onSplashDismissRequested,
 
       onAuthRequired: (url) => {
-      
         // Store the intended URL in a way that can be retrieved after sign-in
         // For now, just navigate to sign-in
         try {
@@ -52,9 +51,7 @@ export function DeepLinkProvider({
         }
       },
 
-      onNavigationSuccess: (url, path) => {
-      
-      },
+      onNavigationSuccess: (url, path) => {},
 
       onNavigationError: (url, error) => {
         console.error("Deep link navigation error:", url, error);

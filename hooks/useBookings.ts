@@ -104,7 +104,6 @@ export function useBookings() {
   // Check and create profile if needed for new users
   const ensureProfileExists = useCallback(async () => {
     if (!user?.id || isGuest) {
-    
       return false;
     }
 
@@ -117,13 +116,11 @@ export function useBookings() {
         .single();
 
       if (existingProfile) {
-
         return true;
       }
 
       if (checkError && checkError.code === "PGRST116") {
         // Profile doesn't exist, create it
-
 
         const { error: createError } = await supabase.from("profiles").insert({
           id: user.id,
@@ -140,8 +137,6 @@ export function useBookings() {
           throw createError;
         }
 
-
-
         // Give the database a moment to process
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -155,7 +150,6 @@ export function useBookings() {
 
       // Retry if we haven't exceeded max attempts
       if (profileCheckAttempts.current < MAX_PROFILE_CHECK_ATTEMPTS) {
-     
         await new Promise((resolve) => setTimeout(resolve, 1500));
         return ensureProfileExists();
       }
@@ -171,7 +165,6 @@ export function useBookings() {
 
     // Don't fetch if guest or no user
     if (!userId || isGuest) {
-
       setBookingsLoading(false);
       setRefreshing(false);
       return;
@@ -199,8 +192,6 @@ export function useBookings() {
       setError(null);
       const now = new Date().toISOString();
 
- 
-
       // Debug: Let's see ALL pending bookings first
       const { data: allPendingBookings, error: allPendingError } =
         await supabase
@@ -210,9 +201,7 @@ export function useBookings() {
           .eq("status", "pending");
 
       if (allPendingBookings && allPendingBookings.length > 0) {
-     
       } else {
-       
       }
 
       const { data: expiredPendingBookings, error: expiredError } =
@@ -226,12 +215,9 @@ export function useBookings() {
       if (expiredError) {
         console.error("Error fetching expired pending bookings:", expiredError);
       } else if (expiredPendingBookings && expiredPendingBookings.length > 0) {
-    
-
         // Update all expired pending bookings
         const updatePromises = expiredPendingBookings.map(async (booking) => {
           try {
-         
             const { error: updateError } = await supabase
               .from("bookings")
               .update({
@@ -246,7 +232,6 @@ export function useBookings() {
                 updateError,
               );
             } else {
-            
             }
           } catch (error) {
             console.error(
@@ -258,7 +243,6 @@ export function useBookings() {
 
         await Promise.allSettled(updatePromises);
       } else {
-      
       }
 
       // Debug: Let's first check if there are any accepted invitations at all
@@ -269,36 +253,35 @@ export function useBookings() {
         .eq("to_user_id", userId)
         .eq("status", "accepted");
 
-    
-
       // Debug: Check what bookings exist for these invitation booking_ids
       if (debugAcceptedInvites && debugAcceptedInvites.length > 0) {
-        const bookingIds = debugAcceptedInvites.map(inv => inv.booking_id);
+        const bookingIds = debugAcceptedInvites.map((inv) => inv.booking_id);
 
-
-        const { data: debugBookings, error: debugBookingsError } = await supabase
-          .from("bookings")
-          .select("id, booking_time, status, user_id, restaurant_id")
-          .in("id", bookingIds);
-
-       
+        const { data: debugBookings, error: debugBookingsError } =
+          await supabase
+            .from("bookings")
+            .select("id, booking_time, status, user_id, restaurant_id")
+            .in("id", bookingIds);
 
         // Check which bookings meet the upcoming criteria
         if (debugBookings) {
-          const upcomingBookings = debugBookings.filter(booking =>
-            new Date(booking.booking_time) >= new Date(now) &&
-            ["pending", "confirmed"].includes(booking.status)
+          const upcomingBookings = debugBookings.filter(
+            (booking) =>
+              new Date(booking.booking_time) >= new Date(now) &&
+              ["pending", "confirmed"].includes(booking.status),
           );
-      
         }
       }
 
       // Helper function to get accepted invitation bookings
-      const getAcceptedInvitationBookings = async (timeFilter: 'upcoming' | 'past') => {
+      const getAcceptedInvitationBookings = async (
+        timeFilter: "upcoming" | "past",
+      ) => {
         // First get accepted invitations
         const { data: acceptedInvites, error: inviteError } = await supabase
           .from("booking_invites")
-          .select(`
+          .select(
+            `
             id,
             booking_id,
             from_user_id,
@@ -310,40 +293,45 @@ export function useBookings() {
               full_name,
               avatar_url
             )
-          `)
+          `,
+          )
           .eq("to_user_id", userId)
           .eq("status", "accepted");
 
         if (inviteError) {
-          console.error(`🎯 DEBUG: Error getting accepted invitations (${timeFilter}):`, inviteError);
+          console.error(
+            `🎯 DEBUG: Error getting accepted invitations (${timeFilter}):`,
+            inviteError,
+          );
           return { data: [], error: inviteError };
         }
 
         if (!acceptedInvites || acceptedInvites.length === 0) {
-       
           return { data: [], error: null };
         }
 
-
-
         // Then get the booking details for those invitations
-        const bookingIds = acceptedInvites.map(inv => inv.booking_id);
+        const bookingIds = acceptedInvites.map((inv) => inv.booking_id);
         let bookingQuery = supabase
           .from("bookings")
-          .select(`
+          .select(
+            `
             *,
             restaurant:restaurants (*)
-          `)
+          `,
+          )
           .in("id", bookingIds);
 
-        if (timeFilter === 'upcoming') {
+        if (timeFilter === "upcoming") {
           bookingQuery = bookingQuery
             .gte("booking_time", now)
             .in("status", ["pending", "confirmed"])
             .order("booking_time", { ascending: true });
         } else {
           bookingQuery = bookingQuery
-            .or(`booking_time.lt.${now},status.in.(completed,cancelled_by_user,declined_by_restaurant,cancelled_by_restaurant,auto_declined,no_show)`)
+            .or(
+              `booking_time.lt.${now},status.in.(completed,cancelled_by_user,declined_by_restaurant,cancelled_by_restaurant,auto_declined,no_show)`,
+            )
             .order("booking_time", { ascending: false })
             .limit(25);
         }
@@ -351,20 +339,24 @@ export function useBookings() {
         const { data: bookings, error: bookingError } = await bookingQuery;
 
         if (bookingError) {
-          console.error(`🎯 DEBUG: Error getting booking details (${timeFilter}):`, bookingError);
+          console.error(
+            `🎯 DEBUG: Error getting booking details (${timeFilter}):`,
+            bookingError,
+          );
           return { data: [], error: bookingError };
         }
 
-    
-
         // Combine invitation and booking data
-        const combinedData = bookings?.map(booking => {
-          const invitation = acceptedInvites.find(inv => inv.booking_id === booking.id);
-          return {
-            ...invitation,
-            booking: booking
-          };
-        }) || [];
+        const combinedData =
+          bookings?.map((booking) => {
+            const invitation = acceptedInvites.find(
+              (inv) => inv.booking_id === booking.id,
+            );
+            return {
+              ...invitation,
+              booking: booking,
+            };
+          }) || [];
 
         return { data: combinedData, error: null };
       };
@@ -407,10 +399,10 @@ export function useBookings() {
           .limit(50),
 
         // Accepted invitations - upcoming bookings
-        getAcceptedInvitationBookings('upcoming'),
+        getAcceptedInvitationBookings("upcoming"),
 
         // Accepted invitations - past bookings
-        getAcceptedInvitationBookings('past'),
+        getAcceptedInvitationBookings("past"),
       ]);
 
       // Process all results and combine data
@@ -422,30 +414,24 @@ export function useBookings() {
         const now = new Date();
 
         // Debug: Log all bookings and their status/time
-   
+
         bookings.forEach((booking, index) => {
           const bookingTime = new Date(booking.booking_time);
           const isExpired = bookingTime < now;
-        
         });
 
         const expiredPendingBookings = bookings.filter((booking) => {
           const bookingTime = new Date(booking.booking_time);
           const isExpired = bookingTime < now;
           const isPending = booking.status === "pending";
-       
+
           return isPending && isExpired;
         });
 
-       
-
         if (expiredPendingBookings.length > 0) {
-       
-
           // Update each expired pending booking
           const updatePromises = expiredPendingBookings.map(async (booking) => {
             try {
-             
               const { error } = await supabase
                 .from("bookings")
                 .update({
@@ -457,7 +443,6 @@ export function useBookings() {
               if (error) {
                 console.error(`Error updating booking ${booking.id}:`, error);
               } else {
-             
                 // Update the local booking object
                 booking.status = "declined_by_restaurant";
                 booking.updated_at = new Date().toISOString();
@@ -473,7 +458,6 @@ export function useBookings() {
           // Wait for all updates to complete
           await Promise.allSettled(updatePromises);
         } else {
-     
         }
       };
 
@@ -525,14 +509,12 @@ export function useBookings() {
       }
 
       // Handle invited upcoming bookings
-    
 
       if (
         invitedUpcomingResult.status === "fulfilled" &&
         !invitedUpcomingResult.value.error
       ) {
         const invitedUpcoming = invitedUpcomingResult.value.data || [];
-       
 
         const mappedInvitations = invitedUpcoming
           .filter((invite: any) => invite.booking) // Filter out invitations without bookings
@@ -546,8 +528,6 @@ export function useBookings() {
               is_invitee: true,
             }),
           );
-
-      
 
         upcomingData.push(...mappedInvitations);
       } else {
@@ -565,7 +545,6 @@ export function useBookings() {
         !invitedPastResult.value.error
       ) {
         const invitedPast = invitedPastResult.value.data || [];
-      
 
         const mappedPastInvitations = invitedPast
           .filter((invite: any) => invite.booking) // Filter out invitations without bookings
@@ -607,12 +586,9 @@ export function useBookings() {
       );
 
       // Update store with combined data
-     
 
       setUpcomingBookings(upcomingData);
       setPastBookings(pastData);
-
-   
 
       // Debug: log declined bookings specifically
       const declinedBookings = pastData.filter(
@@ -621,7 +597,6 @@ export function useBookings() {
           b.status === "cancelled_by_restaurant",
       );
       if (declinedBookings.length > 0) {
-     
       }
 
       // Only throw error if both requests failed
@@ -891,7 +866,6 @@ export function useBookings() {
   // Lifecycle Management
   useEffect(() => {
     if (!hasInitialLoad.current && user && !isGuest) {
-  
       setBookingsLoading(true);
       fetchBookings();
       hasInitialLoad.current = true;
@@ -918,13 +892,9 @@ export function useBookings() {
       return;
     }
 
- 
-
     const unsubscribe = realtimeSubscriptionService.subscribeToUser({
       userId: user.id,
       onBookingChange: (payload) => {
-      
-
         if (payload.eventType === "INSERT" && payload.new) {
           // New booking created - refresh data to get complete booking with restaurant info
           handleRefresh();
@@ -942,8 +912,6 @@ export function useBookings() {
         }
       },
       onBookingInviteChange: (payload) => {
-      
-
         // Booking invitations affect bookings list, refresh to get updated data
         if (
           payload.eventType === "INSERT" ||
@@ -956,7 +924,6 @@ export function useBookings() {
     });
 
     return () => {
-
       unsubscribe();
     };
   }, [user?.id, isGuest, handleRefresh, updateBooking]);

@@ -39,7 +39,9 @@ import { useAuth } from "@/context/supabase-provider";
 import { InputValidator } from "@/lib/security";
 
 // 1. Lebanese Phone Number Validation
-const lebanesPhoneRegex = /^(\+961|961|03|70|71|76|78|79|80|81)\d{6,7}$/;
+// Comprehensive regex for Lebanese phone numbers (mobile and landline)
+const lebanesPhoneRegex =
+  /^(\+961|961)?(03|70|71|76|78|79|80|81|1|3|4|5|6|7|8|9)\d{5,7}$/;
 
 // 2. Form Schema
 const profileEditSchema = z.object({
@@ -86,11 +88,21 @@ const profileEditSchema = z.object({
     .string()
     .regex(lebanesPhoneRegex, "Please enter a valid Lebanese phone number")
     .transform((val) => {
+      // If already in +961 format, keep it as is
+      if (val.startsWith("+961")) {
+        return val;
+      }
+      // Add +961 prefix for Lebanese mobile numbers starting with 03, 7, or 8
       if (val.startsWith("03") || val.startsWith("7") || val.startsWith("8")) {
         return `+961${val.replace(/^0/, "")}`;
       }
+      // Handle 961 without + prefix
       if (val.startsWith("961")) {
         return `+${val}`;
+      }
+      // For landline numbers (1, 3-9 without 0 prefix) add +961
+      if (/^[1-9]\d{5,7}$/.test(val)) {
+        return `+961${val}`;
       }
       return val;
     }),

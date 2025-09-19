@@ -188,7 +188,6 @@ export class AppMonitor {
 
     // Console output in development
 
-
     // Report errors to Sentry
     if (level === "error") {
       Sentry.addBreadcrumb({

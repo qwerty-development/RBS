@@ -304,7 +304,6 @@ export function useAvailability({
   useRealtimeAvailability(restaurantId, {
     enabled: enableRealtime,
     onUpdate: () => {
-  
       refresh();
     },
     debounceMs: 1000,
@@ -488,7 +487,6 @@ export function useAvailabilityLegacy({
   useRealtimeAvailability(restaurantId, {
     enabled: enableRealtime,
     onUpdate: () => {
-     
       fetchAvailability();
     },
     debounceMs: 1000,

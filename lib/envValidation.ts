@@ -13,9 +13,6 @@ export function validateEnvironment(): EnvironmentConfig {
     EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
   };
 
-  
- 
-
   // Check for common issues
   if (
     config.EXPO_PUBLIC_SUPABASE_URL &&
@@ -40,7 +37,6 @@ export function validateEnvironment(): EnvironmentConfig {
     console.error("❌ Environment validation failed:", errorMessage);
     throw new Error(errorMessage);
   }
-
 
   return config as EnvironmentConfig;
 }

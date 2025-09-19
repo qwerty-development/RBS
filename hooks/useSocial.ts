@@ -82,8 +82,6 @@ export function useSocial() {
     const unsubscribe = realtimeSubscriptionService.subscribeToUser({
       userId: profile.id,
       onFriendRequestChange: (payload: any) => {
-     
-
         // Show notifications for new requests
         if (
           payload.eventType === "INSERT" &&
@@ -100,8 +98,6 @@ export function useSocial() {
         loadFriendRequests();
       },
       onBookingInviteChange: (payload: any) => {
-  
-
         // Show notifications for new invites
         if (
           payload.eventType === "INSERT" &&

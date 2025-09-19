@@ -259,13 +259,10 @@ export class NavigationErrorBoundary extends Component<
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Navigation Error:", error);
 
-  
-
     // Always auto-recover - platform-specific timing for best experience
     const recoveryDelay = Platform.OS === "android" ? 2000 : 1000;
 
     this.navigationTimer = setTimeout(() => {
-
       this.setState({
         hasError: false,
         error: null,

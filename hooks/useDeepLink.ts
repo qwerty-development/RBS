@@ -85,7 +85,6 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
   const log = useCallback(
     (message: string, ...args: any[]) => {
       if (finalOptions.enableLogging) {
-     
       }
     },
     [finalOptions.enableLogging],

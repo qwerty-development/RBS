@@ -304,7 +304,7 @@ export function BookingCard({
     : booking.status;
 
   // Debug logging for status
- 
+
   const statusConfig =
     BOOKING_STATUS_CONFIG[
       effectiveStatus as keyof typeof BOOKING_STATUS_CONFIG

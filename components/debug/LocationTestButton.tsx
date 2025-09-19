@@ -13,18 +13,14 @@ export function LocationTestButton() {
 
     setTesting(true);
 
-
     try {
       // Test 1: Check permissions
-   
+
       const { status } = await Location.getForegroundPermissionsAsync();
 
-
       if (status !== "granted") {
-
         const { status: newStatus } =
           await Location.requestForegroundPermissionsAsync();
-
       }
 
       // Test 2: Get current position
@@ -34,19 +30,16 @@ export function LocationTestButton() {
         timeout: 10000,
       });
 
-
       // Test 3: Reverse geocode
 
       const [address] = await Location.reverseGeocodeAsync({
         latitude: position.coords.latitude,
         longitude: position.coords.longitude,
       });
- 
 
       // Test 4: Use LocationService
-  
-      const locationData = await LocationService.getCurrentLocation();
 
+      const locationData = await LocationService.getCurrentLocation();
 
       Alert.alert(
         "Location Test Results",

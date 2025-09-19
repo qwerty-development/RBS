@@ -71,7 +71,6 @@ export function EnhancedRestaurantCard({
     handleRestaurantPress(() => {
       // Check if any modal is already open
       if (isAnyModalOpen) {
-      
         return;
       }
 

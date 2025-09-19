@@ -419,8 +419,6 @@ export class AvailabilityService {
         features: table.features || [],
       }));
 
- 
-
     if (validTables.length === 0 && partySize > 2) {
       // Try combinations for larger parties
       const combination = await this.findTableCombinationForLargeParties(
@@ -1499,8 +1497,6 @@ export class AvailabilityService {
         );
       }
 
-    
-
       return fullSlots;
     } catch (error) {
       console.error("Error getting available slots:", error);
@@ -1666,15 +1662,11 @@ export class AvailabilityService {
    * This should be called after bookings are made or cancelled
    */
   clearRestaurantCache(restaurantId: string) {
-
-
     // Clear all cache types for this restaurant
     this.clearCombinationCache(restaurantId);
 
     // Also clear restaurant config cache to ensure fresh data
     this.restaurantConfigCache.invalidate(restaurantId);
-
-
   }
 
   /**
@@ -1683,13 +1675,10 @@ export class AvailabilityService {
    */
   clearRestaurantCacheForDate(restaurantId: string, date: Date) {
     const dateStr = date.toISOString().split("T")[0];
- 
 
     // For now, clear all caches for the restaurant since we don't have selective clear
     // This is still better than clearing all restaurants
     this.clearRestaurantCache(restaurantId);
-
-  
   }
 
   async preloadPopularSlots(

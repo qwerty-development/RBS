@@ -40,7 +40,6 @@ const requestCache = new Map<string, CachedData<any>>();
 // Simple offline queue (placeholder implementation)
 const queueAction = async (type: string, data: any): Promise<void> => {
   // Placeholder for offline queue functionality
-
 };
 
 // Simple sync handler (placeholder implementation)
@@ -48,7 +47,6 @@ const registerSyncHandler = (
   handler: (action?: any) => Promise<void>,
 ): void => {
   // Placeholder for sync handler registration
-
 };
 
 // Default configuration

@@ -18,7 +18,6 @@ export default function AnimatedSplashScreen({
   useEffect(() => {
     // AGGRESSIVE FALLBACK: Always complete animation after maximum 3 seconds
     const fallbackTimer = setTimeout(() => {
-     
       onAnimationComplete();
     }, 3000);
 

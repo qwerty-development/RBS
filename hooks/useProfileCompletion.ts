@@ -120,7 +120,6 @@ export function useProfileCompletion(): ProfileCompletionState {
   // Auto-hide the prompt when profile is complete
   useEffect(() => {
     if (isProfileComplete && isVisible) {
-     
       setIsVisible(false);
     }
   }, [isProfileComplete, isVisible]);

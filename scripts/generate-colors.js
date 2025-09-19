@@ -69,4 +69,3 @@ export const colors = ${JSON.stringify(colors, null, 2)};
 
 // Write to colors.ts
 fs.writeFileSync(colorsTsPath, colorsTsContent, "utf-8");
-

@@ -40,8 +40,6 @@ export function useRealtimeAvailability(
       return;
     }
 
- 
-
     // Clean up any existing subscription
     if (unsubscribeRef.current) {
       unsubscribeRef.current();
