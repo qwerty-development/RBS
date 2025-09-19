@@ -206,7 +206,26 @@ export default function NotificationsScreen() {
           <View className="flex-row items-center justify-between">
             <Text className="font-medium">{item.title}</Text>
             <Muted className="text-xs">
-              {new Date(item.created_at).toLocaleString()}
+              {(() => {
+                const date = new Date(item.created_at);
+                const now = new Date();
+                const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+                
+                if (diffInHours < 1) {
+                  return "Just now";
+                } else if (diffInHours < 24) {
+                  return `${diffInHours}h ago`;
+                } else if (diffInHours < 48) {
+                  return "Yesterday";
+                } else {
+                  return date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                  });
+                }
+              })()}
             </Muted>
           </View>
           <Muted className="text-sm mt-1">{item.message}</Muted>

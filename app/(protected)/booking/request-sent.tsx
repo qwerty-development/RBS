@@ -310,7 +310,10 @@ export default function RequestSentScreen() {
               Request Sent!
             </H1>
             <P className="text-center text-muted-foreground text-lg">
-              Your booking request has been sent to {params.restaurantName}
+              Your booking request has been sent to{" "}
+              <Text className="font-semibold text-primary">
+                {booking?.restaurant?.name || params.restaurantName}
+              </Text>
             </P>
           </View>
 
@@ -350,64 +353,66 @@ export default function RequestSentScreen() {
           </View>
 
           <View className="bg-muted/30 rounded-xl p-4 mb-6">
-            <H3 className="mb-3">Request Details</H3>
+            <H3 className="mb-4">Request Details</H3>
 
-            {/* Prominent Date and Time Display */}
-            <View className="bg-white dark:bg-gray-800 p-4 rounded-lg mb-4 border border-border">
+            {/* Clean Date and Time Display */}
+            <View className="bg-white dark:bg-gray-800 p-4 rounded-lg mb-6 border border-border">
               <Text className="text-center text-sm text-muted-foreground mb-1">DATE & TIME</Text>
               <Text className="text-center text-xl font-bold mb-1">{formattedDate}</Text>
-              <Text className="text-center text-3xl font-extrabold text-primary mb-1">{params.bookingTime}</Text>
+
             </View>
 
-            <View className="space-y-4">
-              <View className="flex-row items-center gap-3">
-                <Users size={20} color="#666" />
-                <Text className="font-medium">
-                  {params.partySize}{" "}
-                  {parseInt(params.partySize) === 1 ? "Guest" : "Guests"}
-                </Text>
+            {/* Guest Information */}
+            <View className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-border mb-4">
+              <View className="flex-row items-center gap-2 mb-3">
+                <Users size={18} color="#666" />
+                <Text className="font-semibold text-base">Guest Information</Text>
               </View>
-
-              {booking && booking.special_requests && (
-                <View className="flex-row items-start gap-3">
-                  <Info size={20} color="#666" className="mt-1" />
-                  <View className="flex-1">
-                    <Text className="font-medium">Special Requests</Text>
-                    <Text className="text-sm text-muted-foreground">{booking.special_requests}</Text>
-                  </View>
-                </View>
-              )}
-
+              <Text className="text-lg font-medium text-primary mb-2">
+                {params.partySize} {parseInt(params.partySize) === 1 ? "Guest" : "Guests"}
+              </Text>
               {booking && booking.occasion && booking.occasion !== "none" && (
-                <View className="flex-row items-center gap-3">
-                  <Gift size={20} color="#666" />
-                  <View>
-                    <Text className="font-medium">Occasion</Text>
-                    <Text className="text-sm text-muted-foreground capitalize">{booking.occasion}</Text>
-                  </View>
-                </View>
-              )}
-
-              {booking && booking.dietary_notes && (
-                <View className="flex-row items-start gap-3">
-                  <AlertTriangle size={20} color="#666" className="mt-1" />
-                  <View className="flex-1">
-                    <Text className="font-medium">Dietary Notes</Text>
-                    <Text className="text-sm text-muted-foreground">{booking.dietary_notes}</Text>
-                  </View>
-                </View>
-              )}
-
-              {booking && booking.table_preferences && (
-                <View className="flex-row items-start gap-3">
-                  <TableIcon size={20} color="#666" className="mt-1" />
-                  <View className="flex-1">
-                    <Text className="font-medium">Table Preferences</Text>
-                    <Text className="text-sm text-muted-foreground">{booking.table_preferences}</Text>
-                  </View>
+                <View className="mt-2">
+                  <Text className="text-sm text-muted-foreground mb-1">Occasion</Text>
+                  <Text className="text-sm font-medium capitalize text-primary">{booking.occasion}</Text>
                 </View>
               )}
             </View>
+
+            {/* Table Preferences */}
+            <View className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-border mb-4">
+              <View className="flex-row items-center gap-2 mb-3">
+                <TableIcon size={18} color="#666" />
+                <Text className="font-semibold text-base">Table Preferences</Text>
+              </View>
+              {booking && booking.table_preferences ? (
+                <Text className="text-sm text-muted-foreground">{booking.table_preferences}</Text>
+              ) : (
+                <Text className="text-sm text-muted-foreground italic">No specific preferences</Text>
+              )}
+            </View>
+
+            {/* Special Requests */}
+            {booking && booking.special_requests && (
+              <View className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-border mb-4">
+                <View className="flex-row items-center gap-2 mb-3">
+                  <Info size={18} color="#666" />
+                  <Text className="font-semibold text-base">Special Requests</Text>
+                </View>
+                <Text className="text-sm text-muted-foreground">{booking.special_requests}</Text>
+              </View>
+            )}
+
+            {/* Dietary Notes */}
+            {booking && booking.dietary_notes && (
+              <View className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-border mb-4">
+                <View className="flex-row items-center gap-2 mb-3">
+                  <AlertTriangle size={18} color="#f59e0b" />
+                  <Text className="font-semibold text-base">Dietary Notes</Text>
+                </View>
+                <Text className="text-sm text-muted-foreground">{booking.dietary_notes}</Text>
+              </View>
+            )}
           </View>
 
           <View className="mb-6">

@@ -68,6 +68,7 @@ export default function HomeScreen() {
 
   const { offers: specialOffers, loading: offersLoading } = useOffers();
 
+
   // --- Animation State ---
   const scrollY = useRef(new Animated.Value(0)).current;
   const [totalHeaderHeight, setTotalHeaderHeight] = useState(0);
@@ -168,6 +169,15 @@ export default function HomeScreen() {
             </View>
           </ScrollView>
         </View>
+        
+        {/* Loyalty Widget moved above banners - only show for signed-in users */}
+        {!isGuest && (
+          <LoyaltyWidget
+            loyaltyPoints={profile?.loyalty_points || 0}
+            onPress={() => router.push('/profile/loyalty')}
+            colorScheme={colorScheme}
+          />
+        )}
 
         <SpecialOfferBannerCarousel offers={specialOffers} />
 
@@ -187,7 +197,7 @@ export default function HomeScreen() {
                   item={item}
                   variant="featured"
                   onPress={handleRestaurantPress}
-                  onToggleFavorite={() => handleToggleFavorite(item.id)}
+                  onFavoritePress={() => handleToggleFavorite(item.id)}
                 />
               )}
               keyExtractor={(item) => item.id}
@@ -213,7 +223,7 @@ export default function HomeScreen() {
                   item={item}
                   variant="featured"
                   onPress={handleRestaurantPress}
-                  onToggleFavorite={() => handleToggleFavorite(item.id)}
+                  onFavoritePress={() => handleToggleFavorite(item.id)}
                 />
               )}
               keyExtractor={(item) => item.id}
@@ -239,7 +249,7 @@ export default function HomeScreen() {
                   item={item}
                   variant="featured"
                   onPress={handleRestaurantPress}
-                  onToggleFavorite={() => handleToggleFavorite(item.id)}
+                  onFavoritePress={() => handleToggleFavorite(item.id)}
                 />
               )}
               keyExtractor={(item) => item.id}
@@ -248,15 +258,7 @@ export default function HomeScreen() {
             />
           </View>
         )}
-
-        {/* Only show loyalty widget for signed-in users */}
-        {!isGuest && (
-          <LoyaltyWidget
-            loyaltyPoints={profile?.loyalty_points || 0}
-            onPress={handleProfilePress}
-            colorScheme={colorScheme}
-          />
-        )}
+        
         {/* Add bottom padding to account for tab bar */}
         <View className="h-24" />
       </Animated.ScrollView>

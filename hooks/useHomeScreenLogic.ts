@@ -8,7 +8,17 @@ import { supabase } from "@/config/supabase";
 import { Database } from "@/types/supabase";
 
 // Use actual database types instead of hardcoded interface
-type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
+// Base type from database schema
+type BaseRestaurant = Database["public"]["Tables"]["restaurants"]["Row"];
+
+// Extended restaurant type with optional fields
+type Restaurant = BaseRestaurant & {
+  tags?: string[];
+  staticCoordinates?: { lat: number; lng: number };
+  coordinates?: { latitude: number; longitude: number };
+  // Allow any additional fields
+  [key: string]: any;
+};
 
 interface LocationData {
   latitude?: number;
@@ -195,9 +205,11 @@ export function useHomeScreenLogic() {
         .from("restaurants")
         .select("*")
         .eq("status", "active")
+        .not("average_rating", "is", null)
+        .gt("average_rating", 0)
         .order("average_rating", { ascending: false })
         .order("total_reviews", { ascending: false })
-        .limit(6);
+        .limit(5);
 
       if (error) throw error;
       setTopRatedRestaurants(data || []);
@@ -240,6 +252,7 @@ export function useHomeScreenLogic() {
   }, [location]);
 
   // Unified Data Loading
+
   const loadAllData = useCallback(async () => {
     setLoading(true);
 
@@ -259,6 +272,7 @@ export function useHomeScreenLogic() {
     fetchTrendingRestaurants,
     fetchNearbyRestaurants,
   ]);
+
 
   // Event Handlers
   const handleRefresh = useCallback(async () => {
