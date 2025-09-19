@@ -39,7 +39,6 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { FriendListSkeleton } from "@/components/skeletons/FriendListSkeleton";
 import { OptimizedList } from "@/components/ui/optimized-list";
-import { ContactsDiscovery } from "@/components/friends/ContactsDiscovery";
 
 // Type definitions
 interface Friend {
@@ -336,38 +335,6 @@ export default function FriendsScreen() {
       setProcessingIds((prev) => {
         const newSet = new Set(prev);
         newSet.delete(requestId);
-        return newSet;
-      });
-    }
-  };
-
-  const cancelFriendRequest = async (userId: string) => {
-    setProcessingIds((prev) => new Set(prev).add(userId));
-
-    try {
-      // Find and delete the pending friend request
-      const { error } = await supabase
-        .from("friend_requests")
-        .delete()
-        .eq("from_user_id", profile?.id)
-        .eq("to_user_id", userId)
-        .eq("status", "pending");
-
-      if (error) throw error;
-
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert("Success", "Friend request cancelled!");
-
-      // Refresh search results if we're searching
-      if (searchQuery) {
-        await handleSearch(searchQuery);
-      }
-    } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to cancel friend request");
-    } finally {
-      setProcessingIds((prev) => {
-        const newSet = new Set(prev);
-        newSet.delete(userId);
         return newSet;
       });
     }
@@ -772,7 +739,7 @@ export default function FriendsScreen() {
         {[
           { id: "friends", label: "My Friends", icon: Users },
           { id: "requests", label: "Requests", icon: UserPlus },
-          { id: "discover", label: "From Contacts", icon: Search },
+          { id: "discover", label: "Discover", icon: Search },
         ].map((tab) => (
           <Pressable
             key={tab.id}
@@ -809,13 +776,17 @@ export default function FriendsScreen() {
         ))}
       </View>
 
-      {/* Search Bar (for friends tab only) */}
-      {activeTab === "friends" && (
+      {/* Search Bar (for friends and discover tabs) */}
+      {(activeTab === "friends" || activeTab === "discover") && (
         <View className="px-4 py-3 bg-background border-b border-border">
           <View className="flex-row items-center bg-input rounded-xl px-4 py-2">
             <Search size={20} color="#6b7280" />
             <TextInput
-              placeholder="Search friends..."
+              placeholder={
+                activeTab === "friends"
+                  ? "Search friends..."
+                  : "Search users..."
+              }
               value={searchQuery}
               onChangeText={handleSearch}
               className="flex-1 ml-2 text-base text-gray-900 dark:text-white"
@@ -829,28 +800,25 @@ export default function FriendsScreen() {
       {/* Content */}
       {loading ? (
         <FriendListSkeleton />
-      ) : activeTab === "discover" ? (
-        <ContactsDiscovery
-          onUserPress={(userId) => router.push(`/(protected)/social/profile/${userId}` as any)}
-          onSendFriendRequest={sendFriendRequest}
-          onCancelFriendRequest={cancelFriendRequest}
-          processingIds={processingIds}
-        />
       ) : (
         (() => {
           const listData =
-            searchQuery && activeTab === "friends"
+            searchQuery && (activeTab === "friends" || activeTab === "discover")
               ? (searchResults as any[])
               : activeTab === "friends"
                 ? (friends as any[])
-                : (friendRequests as any[]);
+                : activeTab === "requests"
+                  ? (friendRequests as any[])
+                  : (suggestions as any[]);
 
           const listRenderItem =
-            searchQuery && activeTab === "friends"
+            searchQuery && (activeTab === "friends" || activeTab === "discover")
               ? (renderSearchResult as any)
               : activeTab === "friends"
                 ? (renderFriend as any)
-                : (renderFriendRequest as any);
+                : activeTab === "requests"
+                  ? (renderFriendRequest as any)
+                  : (renderSuggestion as any);
 
           if (listData.length === 0) {
             return (
@@ -874,6 +842,14 @@ export default function FriendsScreen() {
                     <UserPlus size={48} color="#9ca3af" />
                     <Text className="text-muted-foreground mt-4 text-center">
                       No pending friend requests
+                    </Text>
+                  </>
+                )}
+                {activeTab === "discover" && !searchQuery && (
+                  <>
+                    <Search size={48} color="#9ca3af" />
+                    <Text className="text-muted-foreground mt-4 text-center">
+                      No suggestions available right now
                     </Text>
                   </>
                 )}
