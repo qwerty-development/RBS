@@ -1,14 +1,6 @@
 // app/(protected)/(tabs)/favorites.tsx
 import React, { useEffect, useCallback, useState, useMemo } from "react";
-import {
-  View,
-  FlatList,
-  Pressable,
-  ActivityIndicator,
-  RefreshControl,
-  SectionList,
-  ScrollView,
-} from "react-native";
+import { View, Pressable, RefreshControl, ScrollView } from "react-native";
 import { useRouter } from "expo-router";
 import {
   Filter,
@@ -80,6 +72,7 @@ export default function FavoritesScreen() {
   );
   const [playlistError, setPlaylistError] = useState(false);
   const [invitationError, setInvitationError] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
 
   // Favorites hooks
   const {
@@ -139,51 +132,6 @@ export default function FavoritesScreen() {
     resetBannerOnRefresh,
     hasActiveFilters,
   } = useFavoritesFilters(favorites);
-
-  // --- Guest View ---
-  if (isGuest) {
-    return (
-      <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-        {/* Header */}
-        <View className="p-4">
-          <H2>My Collection</H2>
-        </View>
-
-        {/* Guest State */}
-        <View className="flex-1 items-center justify-center px-6 -mt-10">
-          <View className="w-24 h-24 rounded-full bg-primary/10 items-center justify-center mb-6">
-            <Heart size={48} className="text-primary" />
-          </View>
-
-          <H2 className="text-center mb-2">Save & Organize</H2>
-          <P className="text-center text-muted-foreground mb-8">
-            Create an account to save your favorite spots and create playlists
-            for any occasion.
-          </P>
-
-          <Button
-            onPress={convertGuestToUser}
-            size="lg"
-            className="w-full max-w-xs rounded-lg"
-          >
-            <UserPlus size={20} color="#fff" />
-            <Text className="ml-2 font-bold text-white">
-              Create a Free Account
-            </Text>
-          </Button>
-
-          <Button
-            onPress={() => router.push("/(protected)/(tabs)/search")}
-            size="lg"
-            variant="ghost"
-            className="w-full max-w-xs mt-2 rounded-lg"
-          >
-            <Text>Browse Restaurants</Text>
-          </Button>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   // Navigation functions - memoized to prevent re-renders
   const navigateToRestaurant = useCallback(
@@ -301,6 +249,18 @@ export default function FavoritesScreen() {
     }
   }, []);
 
+  // Handle guest to user conversion flow
+  const handleConvertGuestToUser = useCallback(async () => {
+    try {
+      setIsConverting(true);
+      await convertGuestToUser();
+    } catch (error) {
+      console.error("Error converting guest to user:", error);
+      setIsConverting(false);
+    }
+  }, [convertGuestToUser]);
+
+  // Effects
   useEffect(() => {
     try {
       if (activeTab === "favorites") {
@@ -390,7 +350,7 @@ export default function FavoritesScreen() {
   }, [navigateToPlaylist, removePlaylistFromState]);
 
   const PlaylistHeaderActions = useMemo(() => {
-    return () => (
+    const HeaderActions = () => (
       <View className="flex-row items-center gap-2">
         {!invitationError && (
           <Pressable
@@ -424,6 +384,7 @@ export default function FavoritesScreen() {
         </Pressable>
       </View>
     );
+    return HeaderActions;
   }, [
     navigateToInvitations,
     navigateToJoinPlaylist,
@@ -436,6 +397,52 @@ export default function FavoritesScreen() {
     activeTab === "favorites" ? favoritesLoading : playlistsLoading;
   const refreshing =
     activeTab === "favorites" ? favoritesRefreshing : playlistsRefreshing;
+
+  // --- Guest View ---
+  if (isGuest || isConverting) {
+    return (
+      <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+        {/* Header */}
+        <View className="p-4">
+          <H2>My Collection</H2>
+        </View>
+
+        {/* Guest State */}
+        <View className="flex-1 items-center justify-center px-6 -mt-10">
+          <View className="w-24 h-24 rounded-full bg-primary/10 items-center justify-center mb-6">
+            <Heart size={48} className="text-primary" />
+          </View>
+
+          <H2 className="text-center mb-2">Save & Organize</H2>
+          <P className="text-center text-muted-foreground mb-8">
+            Create an account to save your favorite spots and create playlists
+            for any occasion.
+          </P>
+
+          <Button
+            onPress={handleConvertGuestToUser}
+            size="lg"
+            className="w-full max-w-xs rounded-lg"
+            disabled={isConverting}
+          >
+            <UserPlus size={20} color="#fff" />
+            <Text className="ml-2 font-bold text-white">
+              {isConverting ? "Creating Account..." : "Create a Free Account"}
+            </Text>
+          </Button>
+
+          <Button
+            onPress={() => router.push("/(protected)/(tabs)/search")}
+            size="lg"
+            variant="ghost"
+            className="w-full max-w-xs mt-2 rounded-lg"
+          >
+            <Text>Browse Restaurants</Text>
+          </Button>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // Loading state
   if (
@@ -598,20 +605,18 @@ export default function FavoritesScreen() {
               </View>
             ) : (
               <View className="pb-24">
-                {processedFavorites?.map(
-                  (section: any, sectionIndex: number) => (
-                    <View key={section.title}>
-                      {renderSectionHeader({ section })}
-                      <View className="p-2">
-                        {section.data?.map((item: any, index: number) => (
-                          <View key={`${item?.[0]?.id || index}-${index}`}>
-                            {renderGridRow({ item })}
-                          </View>
-                        ))}
-                      </View>
+                {processedFavorites?.map((section: any) => (
+                  <View key={section.title}>
+                    {renderSectionHeader({ section })}
+                    <View className="p-2">
+                      {section.data?.map((item: any, index: number) => (
+                        <View key={`${item?.[0]?.id || index}-${index}`}>
+                          {renderGridRow({ item })}
+                        </View>
+                      ))}
                     </View>
-                  ),
-                )}
+                  </View>
+                ))}
               </View>
             )
           ) : // Playlists content
