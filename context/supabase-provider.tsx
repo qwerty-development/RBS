@@ -231,9 +231,16 @@ function AuthContent({ children }: PropsWithChildren) {
             session.user.email?.split("@")[0] ||
             "User";
 
+          // Split the full name into first and last name
+          const nameParts = userName.trim().split(/\s+/);
+          const firstName = nameParts[0] || "";
+          const lastName = nameParts.slice(1).join(" ") || "";
+
           const newProfile: Partial<Profile> = {
             id: session.user.id,
             full_name: userName,
+            first_name: firstName,
+            last_name: lastName,
             phone_number: undefined,
             date_of_birth: session.user.user_metadata.date_of_birth || null,
             avatar_url: session.user.user_metadata.avatar_url || null,

@@ -66,16 +66,20 @@ export function useProfileCompletion(): ProfileCompletionState {
     if (!profile) return [];
 
     const missing: MissingField[] = [];
-    const bestName = getBestAvailableName();
-    const { first_name, last_name } = splitName(bestName);
+
+    // Use direct database fields if available, otherwise fall back to splitting full_name
+    const firstName =
+      profile.first_name || splitName(getBestAvailableName()).first_name;
+    const lastName =
+      profile.last_name || splitName(getBestAvailableName()).last_name;
 
     // Check if first name is missing or is the generic "User" fallback
-    if (!first_name.trim() || first_name.trim() === "User") {
+    if (!firstName?.trim() || firstName.trim() === "User") {
       missing.push("first_name");
     }
 
     // Check if last name is missing
-    if (!last_name.trim()) {
+    if (!lastName?.trim()) {
       missing.push("last_name");
     }
 

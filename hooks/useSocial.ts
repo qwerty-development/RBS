@@ -34,8 +34,8 @@ export function useSocial() {
         .select(
           `
           *,
-          from_user:profiles!friend_requests_from_user_id_fkey(id, full_name, avatar_url),
-          to_user:profiles!friend_requests_to_user_id_fkey(id, full_name, avatar_url)
+          from_user:profiles!friend_requests_from_user_id_fkey(id, first_name, last_name, full_name, avatar_url),
+          to_user:profiles!friend_requests_to_user_id_fkey(id, first_name, last_name, full_name, avatar_url)
         `,
         )
         .or(`from_user_id.eq.${profile.id},to_user_id.eq.${profile.id}`)
@@ -59,8 +59,8 @@ export function useSocial() {
         .select(
           `
           *,
-          from_user:profiles!booking_invites_from_user_id_fkey(id, full_name, avatar_url),
-          to_user:profiles!booking_invites_to_user_id_fkey(id, full_name, avatar_url),
+          from_user:profiles!booking_invites_from_user_id_fkey(id, first_name, last_name, full_name, avatar_url),
+          to_user:profiles!booking_invites_to_user_id_fkey(id, first_name, last_name, full_name, avatar_url),
           booking:bookings(id, restaurant_id, booking_date, booking_time, party_size, restaurant:restaurants(name))
         `,
         )

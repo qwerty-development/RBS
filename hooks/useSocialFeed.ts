@@ -9,6 +9,8 @@ type Post = Database["public"]["Tables"]["posts"]["Row"];
 type PostWithDetails = Post & {
   user?: {
     id: string;
+    first_name?: string;
+    last_name?: string;
     full_name: string | null;
     avatar_url: string | null;
   };
@@ -57,7 +59,7 @@ export const useSocialFeed = () => {
           .select(
             `
           *,
-          user:profiles!posts_user_id_fkey(id, full_name, avatar_url),
+          user:profiles!posts_user_id_fkey(id, first_name, last_name, full_name, avatar_url),
           restaurant:restaurants(id, name, main_image_url)
         `,
           )
@@ -198,7 +200,7 @@ export const useSocialFeed = () => {
           .select(
             `
           *,
-          user:profiles!post_comments_user_id_fkey(id, full_name, avatar_url)
+          user:profiles!post_comments_user_id_fkey(id, first_name, last_name, full_name, avatar_url)
         `,
           )
           .single();

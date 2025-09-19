@@ -7,6 +7,8 @@ import { Database } from "@/types/supabase-generated";
 type BlockedUser = Database["public"]["Tables"]["blocked_users"]["Row"] & {
   blocked_profile?: {
     id: string;
+    first_name?: string;
+    last_name?: string;
     full_name: string;
     avatar_url: string | null;
   };
@@ -53,7 +55,7 @@ export const useBlockUser = (options: UseBlockUserOptions = {}) => {
       const blockedIds = Array.from(new Set(rows.map((r) => r.blocked_id)));
       const { data: profilesData, error: profilesErr } = await supabase
         .from("profiles")
-        .select("id, full_name, avatar_url")
+        .select("id, first_name, last_name, full_name, avatar_url")
         .in("id", blockedIds);
 
       if (profilesErr) {

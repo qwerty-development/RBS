@@ -146,13 +146,17 @@ export default function ProfileEditScreen() {
     };
   }, []);
 
-  const { first_name, last_name } = splitName(profile?.full_name || "");
+  // Use database fields if available, otherwise fall back to splitting full_name
+  const firstName =
+    profile?.first_name || splitName(profile?.full_name || "").first_name;
+  const lastName =
+    profile?.last_name || splitName(profile?.full_name || "").last_name;
 
   const form = useForm<ProfileEditFormData>({
     resolver: zodResolver(profileEditSchema),
     defaultValues: {
-      first_name,
-      last_name,
+      first_name: firstName,
+      last_name: lastName,
       email: user?.email || "",
       phone_number: profile?.phone_number || "",
       date_of_birth: profile?.date_of_birth || "",
@@ -227,8 +231,10 @@ export default function ProfileEditScreen() {
         const full_name =
           `${data.first_name.trim()} ${data.last_name.trim()}`.trim();
 
-        // 5.2 Update profile
+        // 5.2 Update profile with both individual fields AND computed full_name
         await updateProfile({
+          first_name: data.first_name.trim(),
+          last_name: data.last_name.trim(),
           full_name,
           phone_number: data.phone_number,
           date_of_birth: data.date_of_birth,

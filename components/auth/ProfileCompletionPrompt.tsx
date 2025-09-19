@@ -296,15 +296,30 @@ export const ProfileCompletionPrompt: React.FC<
       const { first_name, last_name } = useSplitName(bestName);
 
       if (currentField === "first_name") {
-        // Use entered value if available, otherwise check if current first name is "User"
+        // Use entered value if available
         const enteredFirstName = enteredValues.first_name;
         if (enteredFirstName) return enteredFirstName;
-        // If the first name is "User" (generic fallback), return empty string to let user enter real name
-        return first_name === "User" ? "" : first_name;
+
+        // Use database field if available
+        if (profile?.first_name) {
+          return profile.first_name === "User" ? "" : profile.first_name;
+        }
+
+        // Fall back to splitting full_name
+        const firstName = useSplitName(bestName).first_name;
+        return firstName === "User" ? "" : firstName;
       } else {
-        // Use entered value if available, otherwise return current last name
+        // Use entered value if available
         const enteredLastName = enteredValues.last_name;
-        return enteredLastName || last_name;
+        if (enteredLastName) return enteredLastName;
+
+        // Use database field if available
+        if (profile?.last_name) {
+          return profile.last_name;
+        }
+
+        // Fall back to splitting full_name
+        return useSplitName(bestName).last_name;
       }
     }
 
@@ -358,24 +373,21 @@ export const ProfileCompletionPrompt: React.FC<
       let updateData: any = {};
 
       if (currentField === "first_name" || currentField === "last_name") {
-        // For name fields, we need to update the full_name
-        // Use entered values from this session, not just profile state
-        const useSplitName = propSplitName || splitName;
-        const useGetBestName =
-          getBestAvailableName || (() => profile?.full_name || "");
-        const { first_name: currentFirstName, last_name: currentLastName } =
-          useSplitName(useGetBestName());
+        // For name fields, update both individual fields AND computed full_name
+        // Get current values from database or entered values
+        const currentFirstName =
+          profile?.first_name || enteredValues.first_name || "";
+        const currentLastName =
+          profile?.last_name || enteredValues.last_name || "";
 
         // Use entered values if available, otherwise fall back to current values
         const firstName =
-          currentField === "first_name"
-            ? data.value.trim()
-            : enteredValues.first_name || currentFirstName;
+          currentField === "first_name" ? data.value.trim() : currentFirstName;
         const lastName =
-          currentField === "last_name"
-            ? data.value.trim()
-            : enteredValues.last_name || currentLastName;
+          currentField === "last_name" ? data.value.trim() : currentLastName;
 
+        // Update both the individual field and the computed full_name
+        updateData[currentField] = data.value.trim();
         updateData.full_name = `${firstName} ${lastName}`.trim();
 
         // Store the entered value for future reference

@@ -28,11 +28,15 @@ export interface BookingInvitation {
   };
   from_user?: {
     id: string;
+    first_name?: string;
+    last_name?: string;
     full_name: string;
     avatar_url?: string;
   };
   to_user?: {
     id: string;
+    first_name?: string;
+    last_name?: string;
     full_name: string;
     avatar_url?: string;
   };
@@ -455,8 +459,8 @@ export const useBookingInvitations = () => {
           user_id,
           organizer_id,
           is_group_booking,
-          user:profiles!user_id(id, full_name),
-          organizer:profiles!organizer_id(id, full_name)
+          user:profiles!user_id(id, first_name, last_name, full_name),
+          organizer:profiles!organizer_id(id, first_name, last_name, full_name)
         `,
         )
         .eq("id", bookingId)

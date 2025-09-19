@@ -15,6 +15,8 @@ import type { Restaurant } from "@/types/restaurant";
 // Profile type definition (matching what we use in the app)
 type Profile = {
   id: string;
+  first_name?: string;
+  last_name?: string;
   full_name: string;
   phone_number?: string;
   avatar_url?: string;

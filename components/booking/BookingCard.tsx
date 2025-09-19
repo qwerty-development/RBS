@@ -94,6 +94,8 @@ interface EnhancedBooking {
   invitation_id?: string;
   invited_by?: {
     id: string;
+    first_name?: string;
+    last_name?: string;
     full_name: string;
     avatar_url?: string;
   };
@@ -232,6 +234,8 @@ export function BookingCard({
   const [otherInvitees, setOtherInvitees] = useState<
     {
       id: string;
+      first_name?: string;
+      last_name?: string;
       full_name: string;
       avatar_url?: string;
       status: "pending" | "accepted" | "declined" | "cancelled";
@@ -385,6 +389,8 @@ export function BookingCard({
             status,
             to_user:profiles!booking_invites_to_user_id_fkey (
               id,
+              first_name,
+              last_name,
               full_name,
               avatar_url
             )
@@ -399,6 +405,8 @@ export function BookingCard({
             .filter((invite) => invite.to_user) // Filter out null users
             .map((invite) => ({
               id: invite.to_user.id,
+              first_name: invite.to_user.first_name,
+              last_name: invite.to_user.last_name,
               full_name: invite.to_user.full_name,
               avatar_url: invite.to_user.avatar_url,
               status: invite.status,
@@ -724,7 +732,11 @@ export function BookingCard({
                   <View className="flex-row items-center gap-1 mb-1">
                     <UserPlus size={10} color="#10b981" />
                     <Text className="text-xs text-green-600 font-medium">
-                      Invited by {booking.invited_by.full_name}
+                      Invited by{" "}
+                      {booking.invited_by.first_name &&
+                      booking.invited_by.last_name
+                        ? `${booking.invited_by.first_name} ${booking.invited_by.last_name}`
+                        : booking.invited_by.full_name}
                     </Text>
                   </View>
                 )}
@@ -857,12 +869,18 @@ export function BookingCard({
                       source={{
                         uri:
                           invitee.avatar_url ||
-                          `https://ui-avatars.com/api/?name=${invitee.full_name}&background=e5e7eb&color=374151`,
+                          `https://ui-avatars.com/api/?name=${
+                            invitee.first_name && invitee.last_name
+                              ? `${invitee.first_name} ${invitee.last_name}`
+                              : invitee.full_name
+                          }&background=e5e7eb&color=374151`,
                       }}
                       className="w-5 h-5 rounded-full bg-gray-100"
                     />
                     <Text className="text-xs font-medium">
-                      {invitee.full_name}
+                      {invitee.first_name && invitee.last_name
+                        ? `${invitee.first_name} ${invitee.last_name}`
+                        : invitee.full_name}
                     </Text>
                     {invitee.status === "accepted" && (
                       <Check size={10} color="#10b981" />
