@@ -98,15 +98,6 @@ export default function FriendsScreen() {
   const { profile } = useAuth();
   const { colorScheme } = useColorScheme();
 
-  // Debug profile state
-  useEffect(() => {
-    console.log('FriendsScreen: Profile state changed:', {
-      hasProfile: !!profile,
-      profileId: profile?.id,
-      timestamp: Date.now()
-    });
-  }, [profile]);
-
   // State management
   const [activeTab, setActiveTab] = useState<TabType>("friends");
   const [friends, setFriends] = useState<Friend[]>([]);
