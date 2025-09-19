@@ -282,6 +282,140 @@ export function useBookings() {
         console.log("No expired pending bookings found");
       }
 
+      // Debug: Let's first check if there are any accepted invitations at all
+      console.log("🎯 DEBUG: Checking for accepted invitations...");
+      const { data: debugAcceptedInvites, error: debugError } = await supabase
+        .from("booking_invites")
+        .select("id, booking_id, status, to_user_id, responded_at")
+        .eq("to_user_id", userId)
+        .eq("status", "accepted");
+
+      console.log("🎯 DEBUG: Raw accepted invitations:", {
+        count: debugAcceptedInvites?.length || 0,
+        invites: debugAcceptedInvites,
+        error: debugError,
+      });
+
+      // Debug: Check what bookings exist for these invitation booking_ids
+      if (debugAcceptedInvites && debugAcceptedInvites.length > 0) {
+        const bookingIds = debugAcceptedInvites.map(inv => inv.booking_id);
+        console.log("🎯 DEBUG: Checking bookings for invitation booking_ids:", bookingIds);
+
+        const { data: debugBookings, error: debugBookingsError } = await supabase
+          .from("bookings")
+          .select("id, booking_time, status, user_id, restaurant_id")
+          .in("id", bookingIds);
+
+        console.log("🎯 DEBUG: Bookings found for invitations:", {
+          count: debugBookings?.length || 0,
+          bookings: debugBookings,
+          error: debugBookingsError,
+        });
+
+        // Check which bookings meet the upcoming criteria
+        if (debugBookings) {
+          const upcomingBookings = debugBookings.filter(booking =>
+            new Date(booking.booking_time) >= new Date(now) &&
+            ["pending", "confirmed"].includes(booking.status)
+          );
+          console.log("🎯 DEBUG: Bookings that meet upcoming criteria:", {
+            count: upcomingBookings.length,
+            bookings: upcomingBookings.map(b => ({
+              id: b.id,
+              booking_time: b.booking_time,
+              status: b.status,
+              is_future: new Date(b.booking_time) >= new Date(now),
+              is_active_status: ["pending", "confirmed"].includes(b.status)
+            }))
+          });
+        }
+      }
+
+      // Helper function to get accepted invitation bookings
+      const getAcceptedInvitationBookings = async (timeFilter: 'upcoming' | 'past') => {
+        // First get accepted invitations
+        const { data: acceptedInvites, error: inviteError } = await supabase
+          .from("booking_invites")
+          .select(`
+            id,
+            booking_id,
+            from_user_id,
+            status,
+            created_at,
+            responded_at,
+            from_user:profiles!booking_invites_from_user_id_fkey (
+              id,
+              full_name,
+              avatar_url
+            )
+          `)
+          .eq("to_user_id", userId)
+          .eq("status", "accepted");
+
+        if (inviteError) {
+          console.error(`🎯 DEBUG: Error getting accepted invitations (${timeFilter}):`, inviteError);
+          return { data: [], error: inviteError };
+        }
+
+        if (!acceptedInvites || acceptedInvites.length === 0) {
+          console.log(`🎯 DEBUG: No accepted invitations found (${timeFilter})`);
+          return { data: [], error: null };
+        }
+
+        console.log(`🎯 DEBUG: Found accepted invitations (${timeFilter}):`, acceptedInvites.length);
+
+        // Then get the booking details for those invitations
+        const bookingIds = acceptedInvites.map(inv => inv.booking_id);
+        let bookingQuery = supabase
+          .from("bookings")
+          .select(`
+            *,
+            restaurant:restaurants (*)
+          `)
+          .in("id", bookingIds);
+
+        if (timeFilter === 'upcoming') {
+          bookingQuery = bookingQuery
+            .gte("booking_time", now)
+            .in("status", ["pending", "confirmed"])
+            .order("booking_time", { ascending: true });
+        } else {
+          bookingQuery = bookingQuery
+            .or(`booking_time.lt.${now},status.in.(completed,cancelled_by_user,declined_by_restaurant,cancelled_by_restaurant,auto_declined,no_show)`)
+            .order("booking_time", { ascending: false })
+            .limit(25);
+        }
+
+        const { data: bookings, error: bookingError } = await bookingQuery;
+
+        if (bookingError) {
+          console.error(`🎯 DEBUG: Error getting booking details (${timeFilter}):`, bookingError);
+          return { data: [], error: bookingError };
+        }
+
+        console.log(`🎯 DEBUG: Found ${timeFilter} bookings for invitations:`, {
+          total_invites: acceptedInvites.length,
+          filtered_bookings: bookings?.length || 0,
+          bookings: bookings?.map(b => ({
+            id: b.id,
+            booking_time: b.booking_time,
+            status: b.status,
+            restaurant: b.restaurant?.name
+          }))
+        });
+
+        // Combine invitation and booking data
+        const combinedData = bookings?.map(booking => {
+          const invitation = acceptedInvites.find(inv => inv.booking_id === booking.id);
+          return {
+            ...invitation,
+            booking: booking
+          };
+        }) || [];
+
+        return { data: combinedData, error: null };
+      };
+
       // Fetch both owned bookings and accepted invitations
       const [
         upcomingResult,
@@ -320,56 +454,10 @@ export function useBookings() {
           .limit(50),
 
         // Accepted invitations - upcoming bookings
-        supabase
-          .from("booking_invites")
-          .select(
-            `
-            id,
-            booking_id,
-            from_user_id,
-            from_user:profiles!booking_invites_from_user_id_fkey (
-              id,
-              full_name,
-              avatar_url
-            ),
-            booking:bookings!inner (
-              *,
-              restaurant:restaurants (*)
-            )
-          `,
-          )
-          .eq("to_user_id", userId)
-          .eq("status", "accepted")
-          .gte("booking.booking_time", now)
-          .in("booking.status", ["pending", "confirmed"])
-          .order("booking.booking_time", { ascending: true }),
+        getAcceptedInvitationBookings('upcoming'),
 
         // Accepted invitations - past bookings
-        supabase
-          .from("booking_invites")
-          .select(
-            `
-            id,
-            booking_id,
-            from_user_id,
-            from_user:profiles!booking_invites_from_user_id_fkey (
-              id,
-              full_name,
-              avatar_url
-            ),
-            booking:bookings!inner (
-              *,
-              restaurant:restaurants (*)
-            )
-          `,
-          )
-          .eq("to_user_id", userId)
-          .eq("status", "accepted")
-          .or(
-            `booking.booking_time.lt.${now},booking.status.in.(completed,cancelled_by_user,declined_by_restaurant,cancelled_by_restaurant,auto_declined,no_show)`,
-          )
-          .order("booking.booking_time", { ascending: false })
-          .limit(25),
+        getAcceptedInvitationBookings('past'),
       ]);
 
       // Process all results and combine data
@@ -500,13 +588,32 @@ export function useBookings() {
       }
 
       // Handle invited upcoming bookings
+      console.log("🎯 DEBUG: Invitation query result status:", {
+        status: invitedUpcomingResult.status,
+        hasError: invitedUpcomingResult.status === "fulfilled" ? !!invitedUpcomingResult.value.error : true,
+        error: invitedUpcomingResult.status === "fulfilled" ? invitedUpcomingResult.value.error : invitedUpcomingResult.reason
+      });
+
       if (
         invitedUpcomingResult.status === "fulfilled" &&
         !invitedUpcomingResult.value.error
       ) {
         const invitedUpcoming = invitedUpcomingResult.value.data || [];
-        upcomingData.push(
-          ...invitedUpcoming.map(
+        console.log("🎯 DEBUG: Processed invitation bookings result:", {
+          count: invitedUpcoming.length,
+          data: invitedUpcoming.map((inv: any) => ({
+            invite_id: inv.id,
+            booking_id: inv.booking_id,
+            has_booking: !!inv.booking,
+            booking_time: inv.booking?.booking_time,
+            booking_status: inv.booking?.status,
+            restaurant_name: inv.booking?.restaurant?.name,
+          })),
+        });
+
+        const mappedInvitations = invitedUpcoming
+          .filter((invite: any) => invite.booking) // Filter out invitations without bookings
+          .map(
             (invite: any): EnhancedBooking => ({
               ...invite.booking,
               invitation_id: invite.id,
@@ -515,8 +622,20 @@ export function useBookings() {
                 : invite.from_user,
               is_invitee: true,
             }),
-          ),
-        );
+          );
+
+        console.log("🎯 DEBUG: Mapped accepted invitations:", {
+          count: mappedInvitations.length,
+          bookings: mappedInvitations.map((booking) => ({
+            id: booking.id,
+            booking_time: booking.booking_time,
+            status: booking.status,
+            restaurant_name: booking.restaurant?.name,
+            is_invitee: booking.is_invitee,
+          })),
+        });
+
+        upcomingData.push(...mappedInvitations);
       } else {
         console.error(
           "Error fetching invited upcoming bookings:",
@@ -532,8 +651,21 @@ export function useBookings() {
         !invitedPastResult.value.error
       ) {
         const invitedPast = invitedPastResult.value.data || [];
-        pastData.push(
-          ...invitedPast.map(
+        console.log("🎯 DEBUG: Processed past invitation bookings:", {
+          count: invitedPast.length,
+          data: invitedPast.map((inv: any) => ({
+            invite_id: inv.id,
+            booking_id: inv.booking_id,
+            has_booking: !!inv.booking,
+            booking_time: inv.booking?.booking_time,
+            booking_status: inv.booking?.status,
+            restaurant_name: inv.booking?.restaurant?.name,
+          })),
+        });
+
+        const mappedPastInvitations = invitedPast
+          .filter((invite: any) => invite.booking) // Filter out invitations without bookings
+          .map(
             (invite: any): EnhancedBooking => ({
               ...invite.booking,
               invitation_id: invite.id,
@@ -542,8 +674,9 @@ export function useBookings() {
                 : invite.from_user,
               is_invitee: true,
             }),
-          ),
-        );
+          );
+
+        pastData.push(...mappedPastInvitations);
       } else {
         console.error(
           "Error fetching invited past bookings:",
@@ -570,6 +703,18 @@ export function useBookings() {
       );
 
       // Update store with combined data
+      console.log("🎯 DEBUG: Final upcoming data before setting store:", {
+        count: upcomingData.length,
+        bookings: upcomingData.map((booking) => ({
+          id: booking.id,
+          booking_time: booking.booking_time,
+          status: booking.status,
+          restaurant_name: booking.restaurant?.name,
+          is_invitee: booking.is_invitee,
+          source: booking.is_invitee ? "invitation" : "owned",
+        })),
+      });
+
       setUpcomingBookings(upcomingData);
       setPastBookings(pastData);
 

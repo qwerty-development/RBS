@@ -1,7 +1,7 @@
 // app/(protected)/(tabs)/bookings.tsx
 import React, { useCallback } from "react";
 import { View, RefreshControl, ScrollView } from "react-native";
-import { Calendar, Clock, UserPlus } from "lucide-react-native";
+import { Calendar, Clock, UserPlus, Mail } from "lucide-react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -16,13 +16,27 @@ import { BookingCard } from "@/components/booking/BookingCard";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useBookings } from "@/hooks/useBookings";
 import { useAuth } from "@/context/supabase-provider";
+import { useBookingInvitations } from "@/hooks/useBookingInvitations";
 import BookingsScreenSkeleton from "@/components/skeletons/BookingsScreenSkeleton";
+import { PendingInvitationPopup } from "@/components/booking/PendingInvitationPopup";
 import { getRefreshControlColor } from "@/lib/utils";
 
 function BookingsScreenContent() {
   const router = useRouter();
   const { isGuest, convertGuestToUser, user } = useAuth();
   const { colorScheme } = useColorScheme();
+
+  // Invitations hooks
+  const { acceptInvitation, declineInvitation, getPendingInvitations } =
+    useBookingInvitations();
+
+  // State for pending invitations popup
+  const [pendingInvitations, setPendingInvitations] = React.useState<any[]>(
+    [],
+  );
+  const [showInvitationPopup, setShowInvitationPopup] = React.useState(false);
+  const [hasCheckedInvitations, setHasCheckedInvitations] =
+    React.useState(false);
 
   // --- Authenticated User Hooks (must be called before any early returns) ---
   const {
@@ -70,6 +84,77 @@ function BookingsScreenContent() {
       }
     }, [handleRefresh, user, isGuest, isInitialized]),
   );
+
+  // Check for pending invitations when screen loads
+  React.useEffect(() => {
+    const checkPendingInvitations = async () => {
+      if (!user || isGuest || hasCheckedInvitations) return;
+
+      try {
+        const pending = await getPendingInvitations();
+        if (pending.length > 0) {
+          setPendingInvitations(pending);
+          setShowInvitationPopup(true);
+        }
+        setHasCheckedInvitations(true);
+      } catch (error) {
+        console.error("Error checking pending invitations:", error);
+        setHasCheckedInvitations(true);
+      }
+    };
+
+    // Only check once when the user is authenticated and initialized
+    if (user && !isGuest && isInitialized) {
+      checkPendingInvitations();
+    }
+  }, [
+    user,
+    isGuest,
+    isInitialized,
+    hasCheckedInvitations,
+    getPendingInvitations,
+  ]);
+
+  // Handle invitation actions
+  const handleAcceptInvitation = async (invitationId: string) => {
+    console.log("🎯 DEBUG: Starting invitation acceptance for ID:", invitationId);
+    const success = await acceptInvitation(invitationId);
+    if (success) {
+      console.log("🎯 DEBUG: Invitation accepted successfully, refreshing bookings...");
+      // Remove the accepted invitation from pending list
+      setPendingInvitations((prev) =>
+        prev.filter((inv) => inv.id !== invitationId),
+      );
+      // Add a small delay to ensure database consistency, then refresh bookings
+      setTimeout(() => {
+        console.log("🎯 DEBUG: Calling handleRefresh after delay...");
+        handleRefresh();
+      }, 1000);
+    } else {
+      console.log("🎯 DEBUG: Invitation acceptance failed");
+    }
+    return success;
+  };
+
+  const handleDeclineInvitation = async (invitationId: string) => {
+    const success = await declineInvitation(invitationId);
+    if (success) {
+      // Remove the declined invitation from pending list
+      setPendingInvitations((prev) =>
+        prev.filter((inv) => inv.id !== invitationId),
+      );
+    }
+    return success;
+  };
+
+  const handleCloseInvitationPopup = () => {
+    setShowInvitationPopup(false);
+  };
+
+  const handleViewAllInvitations = () => {
+    setShowInvitationPopup(false);
+    router.push("/(protected)/invitations");
+  };
 
   // --- Guest View ---
   // If the user is a guest, show a call-to-action screen to sign up.
@@ -147,6 +232,17 @@ function BookingsScreenContent() {
       <PageHeader
         title="My Bookings"
         subtitle="Tap any booking for full details and options"
+        actions={
+          <Button
+            variant="ghost"
+            size="sm"
+            onPress={() => router.push("/(protected)/invitations")}
+            className="flex-row items-center gap-2 px-3"
+          >
+            <Mail size={18} className="text-primary" />
+           
+          </Button>
+        }
       />
 
       {/* Tabs */}
@@ -216,6 +312,16 @@ function BookingsScreenContent() {
           )}
         </View>
       </ScrollView>
+
+      {/* Pending Invitations Popup */}
+      <PendingInvitationPopup
+        invitations={pendingInvitations}
+        visible={showInvitationPopup}
+        onClose={handleCloseInvitationPopup}
+        onAccept={handleAcceptInvitation}
+        onDecline={handleDeclineInvitation}
+        onViewAll={handleViewAllInvitations}
+      />
     </SafeAreaView>
   );
 }

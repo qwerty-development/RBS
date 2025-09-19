@@ -229,6 +229,15 @@ export function BookingCard({
   const [hasReview, setHasReview] = useState(false);
   const [isAddingToCalendar, setIsAddingToCalendar] = useState(false);
   const [addedToCalendar, setAddedToCalendar] = useState(false);
+  const [otherInvitees, setOtherInvitees] = useState<
+    {
+      id: string;
+      full_name: string;
+      avatar_url?: string;
+      status: "pending" | "accepted" | "declined" | "cancelled";
+    }[]
+  >([]);
+  const [loadingInvitees, setLoadingInvitees] = useState(false);
   const { colorScheme } = useColorScheme();
 
   // Early return AFTER hooks for invalid booking data
@@ -363,6 +372,52 @@ export function BookingCard({
       isCancelled = true;
     };
   }, [booking.id, isCompleted]);
+
+  // Fetch other invitees for this booking
+  useEffect(() => {
+    const fetchOtherInvitees = async () => {
+      if (!booking.id) return;
+
+      setLoadingInvitees(true);
+      try {
+        const { data, error } = await supabase
+          .from("booking_invites")
+          .select(
+            `
+            id,
+            status,
+            to_user:profiles!booking_invites_to_user_id_fkey (
+              id,
+              full_name,
+              avatar_url
+            )
+          `,
+          )
+          .eq("booking_id", booking.id)
+          .in("status", ["pending", "accepted"])
+          .order("created_at", { ascending: true });
+
+        if (!error && data) {
+          const inviteesWithUser = data
+            .filter((invite) => invite.to_user) // Filter out null users
+            .map((invite) => ({
+              id: invite.to_user.id,
+              full_name: invite.to_user.full_name,
+              avatar_url: invite.to_user.avatar_url,
+              status: invite.status,
+            }));
+
+          setOtherInvitees(inviteesWithUser);
+        }
+      } catch (error) {
+        console.warn("Error fetching other invitees:", error);
+      } finally {
+        setLoadingInvitees(false);
+      }
+    };
+
+    fetchOtherInvitees();
+  }, [booking.id]);
 
   // --- Handlers (Unchanged from original) ---
   const handlePress = () => onPress?.();
@@ -783,6 +838,51 @@ export function BookingCard({
           {(booking.special_requests || booking.occasion) && (
             <View className="bg-muted/30 rounded-lg p-2 mb-2">
               {/* ... original implementation ... */}
+            </View>
+          )}
+
+          {/* Other Invitees Section */}
+          {otherInvitees.length > 0 && (
+            <View className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 mb-3 border border-blue-200 dark:border-blue-800">
+              <View className="flex-row items-center gap-2 mb-2">
+                <UserPlus size={14} color="#3b82f6" />
+                <Text className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                  Other Invitees ({otherInvitees.length})
+                </Text>
+              </View>
+              <View className="flex-row flex-wrap gap-2">
+                {otherInvitees.slice(0, 4).map((invitee) => (
+                  <View
+                    key={invitee.id}
+                    className="flex-row items-center gap-2 bg-background/60 rounded-lg px-2 py-1"
+                  >
+                    <Image
+                      source={{
+                        uri:
+                          invitee.avatar_url ||
+                          `https://ui-avatars.com/api/?name=${invitee.full_name}&background=e5e7eb&color=374151`,
+                      }}
+                      className="w-5 h-5 rounded-full bg-gray-100"
+                    />
+                    <Text className="text-xs font-medium">
+                      {invitee.full_name}
+                    </Text>
+                    {invitee.status === "accepted" && (
+                      <Check size={10} color="#10b981" />
+                    )}
+                    {invitee.status === "pending" && (
+                      <Clock size={10} color="#f59e0b" />
+                    )}
+                  </View>
+                ))}
+                {otherInvitees.length > 4 && (
+                  <View className="flex-row items-center gap-1 bg-background/60 rounded-lg px-2 py-1">
+                    <Text className="text-xs font-medium text-muted-foreground">
+                      +{otherInvitees.length - 4} more
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
           )}
 

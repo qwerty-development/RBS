@@ -580,6 +580,52 @@ export const useBookingInvitations = () => {
     };
   }, [profile?.id, loadReceivedInvitations]);
 
+  // Get only pending invitations for notifications
+  const getPendingInvitations = useCallback(async () => {
+    if (!profile?.id) return [];
+
+    try {
+      const now = new Date().toISOString();
+
+      const { data, error } = await supabase
+        .from("booking_invites")
+        .select(
+          `
+          *,
+          booking:bookings!inner(
+            id,
+            booking_time,
+            party_size,
+            status,
+            restaurant:restaurants(
+              id,
+              name,
+              main_image_url,
+              address
+            )
+          ),
+          from_user:profiles!booking_invites_from_user_id_fkey(
+            id,
+            full_name,
+            avatar_url
+          )
+        `,
+        )
+        .eq("to_user_id", profile.id)
+        .eq("status", "pending")
+        .gte("booking.booking_time", now) // Only show future bookings
+        .in("booking.status", ["pending", "confirmed"]) // Only show active bookings
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+
+      return (data || []) as BookingInvitation[];
+    } catch (error) {
+      console.error("Error loading pending invitations:", error);
+      return [];
+    }
+  }, [profile?.id]);
+
   return {
     invitations,
     loading,
@@ -590,6 +636,7 @@ export const useBookingInvitations = () => {
     cancelEntireBooking,
     loadReceivedInvitations,
     loadSentInvitations,
+    getPendingInvitations,
     getBookingOrganizerInfo,
     canCancelEntireBooking,
     isInviteeOnly,
