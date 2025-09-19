@@ -549,7 +549,7 @@ export class LocationService {
 
 
       } catch (geocodeError) {
-        console.warn("⚠️ Reverse geocoding failed:", geocodeError);
+        // Reverse geocoding failed
         locationData = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
@@ -562,9 +562,7 @@ export class LocationService {
       // Validate coordinates are reasonable for Lebanon area
       // But be more lenient - if we have valid GPS coordinates, use them even if outside Lebanon
       if (!LocationService.isInLebanon(locationData)) {
-        console.warn(
-          "⚠️ Location outside Lebanon bounds, but using GPS coordinates anyway",
-        );
+        // Location outside Lebanon bounds, but using GPS coordinates anyway
         // Don't fall back to default - use the actual GPS location
         // This allows users outside Lebanon to still use the app
       }
@@ -573,7 +571,7 @@ export class LocationService {
   
       return locationData;
     } catch (error) {
-      console.error("❌ Error getting location:", error);
+      // Error getting location
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_LOCATION));
       return DEFAULT_LOCATION;
     }
