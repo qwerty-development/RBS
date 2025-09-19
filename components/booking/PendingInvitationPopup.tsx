@@ -41,7 +41,9 @@ export function PendingInvitationPopup({
   onViewAll,
 }: PendingInvitationPopupProps) {
   const { colorScheme } = useColorScheme();
-  const [processingInvitation, setProcessingInvitation] = useState<string | null>(null);
+  const [processingInvitation, setProcessingInvitation] = useState<
+    string | null
+  >(null);
 
   if (!visible || invitations.length === 0) return null;
 
@@ -118,7 +120,9 @@ export function PendingInvitationPopup({
             <View className="flex-row items-center gap-2">
               <UserPlus size={20} color="#3b82f6" />
               <H3 className="text-base">
-                {invitations.length === 1 ? "New Invitation" : "New Invitations"}
+                {invitations.length === 1
+                  ? "New Invitation"
+                  : "New Invitations"}
               </H3>
             </View>
             <Pressable
@@ -147,10 +151,13 @@ export function PendingInvitationPopup({
                   />
                   <View className="flex-1">
                     <Text className="font-semibold">
-                      {primaryInvitation.from_user?.full_name || "Someone"} invited you
+                      {primaryInvitation.from_user?.full_name || "Someone"}{" "}
+                      invited you
                     </Text>
                     <Muted className="text-xs">
-                      {new Date(primaryInvitation.created_at).toLocaleDateString()}
+                      {new Date(
+                        primaryInvitation.created_at,
+                      ).toLocaleDateString()}
                     </Muted>
                   </View>
                 </View>
@@ -168,10 +175,15 @@ export function PendingInvitationPopup({
                   />
                   <View className="flex-1">
                     <Text className="font-semibold">
-                      {primaryInvitation.booking?.restaurant?.name || "Restaurant"}
+                      {primaryInvitation.booking?.restaurant?.name ||
+                        "Restaurant"}
                     </Text>
-                    <Text className="text-xs text-muted-foreground" numberOfLines={1}>
-                      {primaryInvitation.booking?.restaurant?.address || "Address"}
+                    <Text
+                      className="text-xs text-muted-foreground"
+                      numberOfLines={1}
+                    >
+                      {primaryInvitation.booking?.restaurant?.address ||
+                        "Address"}
                     </Text>
                   </View>
                 </View>
@@ -182,7 +194,9 @@ export function PendingInvitationPopup({
                     <Calendar size={16} color="#3b82f6" />
                     <Text className="text-sm font-medium">
                       {primaryInvitation.booking
-                        ? formatBookingTime(primaryInvitation.booking.booking_time)
+                        ? formatBookingTime(
+                            primaryInvitation.booking.booking_time,
+                          )
                         : "Time TBD"}
                     </Text>
                   </View>
@@ -227,7 +241,10 @@ export function PendingInvitationPopup({
                     className="flex-1"
                   >
                     <View className="flex-row items-center justify-center gap-2">
-                      <X size={16} color={colorScheme === "dark" ? "white" : "black"} />
+                      <X
+                        size={16}
+                        color={colorScheme === "dark" ? "white" : "black"}
+                      />
                       <Text className="font-medium">Decline</Text>
                     </View>
                   </Button>
@@ -239,7 +256,8 @@ export function PendingInvitationPopup({
                 <View className="border-t border-border pt-4">
                   <View className="flex-row items-center justify-between">
                     <Text className="text-sm text-muted-foreground">
-                      + {remainingCount} more invitation{remainingCount !== 1 ? "s" : ""}
+                      + {remainingCount} more invitation
+                      {remainingCount !== 1 ? "s" : ""}
                     </Text>
                     <Button
                       variant="ghost"

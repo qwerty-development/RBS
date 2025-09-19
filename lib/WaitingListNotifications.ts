@@ -33,7 +33,6 @@ export class WaitingListNotifications {
           filter: `user_id=eq.${userId}`,
         },
         async (payload) => {
-     
           await this.handleWaitingListUpdate(payload);
         },
       )
@@ -49,14 +48,12 @@ export class WaitingListNotifications {
           // Handle notifications specifically for waiting list
           const notification = payload.new;
           if (notification.type === "waiting_list_available") {
-
             await this.handleWaitingListNotification(payload);
           }
         },
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-         
         }
       });
   }

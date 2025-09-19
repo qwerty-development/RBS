@@ -464,7 +464,7 @@ export function useBookingCreate() {
           const booking = bookingResult.booking;
 
           // Update the booking store immediately
-       
+
           addNewBooking(booking);
 
           // Post-booking side-effects (non-blocking)
@@ -496,7 +496,7 @@ export function useBookingCreate() {
           await Promise.allSettled(postBookingPromises);
 
           // Send WhatsApp notification to restaurant (non-blocking)
-        
+
           notifyRestaurantWhatsAppNonBlocking(booking.id);
 
           // Navigate to instant success screen
@@ -546,11 +546,11 @@ export function useBookingCreate() {
           if (bookingError) throw bookingError;
 
           // Update the booking store immediately
-   
+
           addNewBooking(booking);
 
           // Send WhatsApp notification to restaurant (non-blocking)
-         
+
           notifyRestaurantWhatsAppNonBlocking(booking.id);
 
           // Navigate to request success screen

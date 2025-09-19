@@ -118,7 +118,6 @@ export default function SignIn() {
           );
         }
       } else {
- 
         // Don't navigate here - auth provider will handle it to prevent race conditions
       }
     } catch (err: any) {
@@ -146,7 +145,6 @@ export default function SignIn() {
           );
         }
       } else {
-   
         // Don't navigate here - auth provider will handle it to prevent race conditions
       }
     } catch (err: any) {

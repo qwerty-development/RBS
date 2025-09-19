@@ -15,6 +15,8 @@ import type { Restaurant } from "@/types/restaurant";
 // Profile type definition (matching what we use in the app)
 type Profile = {
   id: string;
+  first_name?: string;
+  last_name?: string;
   full_name: string;
   phone_number?: string;
   avatar_url?: string;
@@ -558,8 +560,6 @@ export const useBookingStore = create<BookingState>()(
 
           addNewBooking: (booking) =>
             set((state) => {
-            
-
               // Add to recent bookings
               state.recentBookings.unshift(booking);
               state.recentBookings = state.recentBookings.slice(0, 50);
@@ -567,8 +567,6 @@ export const useBookingStore = create<BookingState>()(
               // Add to appropriate list based on status and date
               const bookingDate = new Date(booking.booking_time);
               const now = new Date();
-
-             
 
               if (
                 (booking.status === "pending" ||
@@ -582,12 +580,10 @@ export const useBookingStore = create<BookingState>()(
                     new Date(a.booking_time).getTime() -
                     new Date(b.booking_time).getTime(),
                 );
-              
               } else {
                 // Add to past bookings in reverse chronological order
                 state.pastBookings.unshift(booking);
                 state.pastBookings = state.pastBookings.slice(0, 50); // Keep only 50 recent
-               
               }
             }),
 

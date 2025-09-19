@@ -114,12 +114,19 @@ export const InvitationNotification = React.memo<InvitationNotificationProps>(
                   source={{
                     uri:
                       fromUser?.avatar_url ||
-                      `https://ui-avatars.com/api/?name=${fromUser?.full_name || "User"}`,
+                      `https://ui-avatars.com/api/?name=${
+                        fromUser?.first_name && fromUser?.last_name
+                          ? `${fromUser.first_name} ${fromUser.last_name}`
+                          : fromUser?.full_name || "User"
+                      }`,
                   }}
                   className="w-10 h-10 rounded-full bg-gray-100"
                 />
                 <Text className="font-semibold">
-                  {fromUser?.full_name || "Someone"} invited you
+                  {fromUser?.first_name && fromUser?.last_name
+                    ? `${fromUser.first_name} ${fromUser.last_name}`
+                    : fromUser?.full_name || "Someone"}{" "}
+                  invited you
                 </Text>
               </View>
             </View>

@@ -316,13 +316,11 @@ export function navigateToDeepLink(
   try {
     // Skip navigation if we shouldn't ignore the URL or can't navigate yet
     if (shouldIgnoreUrl(url)) {
-   
       return false;
     }
 
     // Check if we can navigate (component is mounted)
     if (options.canNavigate === false) {
-
       return false;
     }
 
@@ -340,16 +338,13 @@ export function navigateToDeepLink(
         url.includes("profile");
 
       if (couldBeColdStart) {
-     
       } else {
-    
         return false;
       }
     }
 
     // Check if route requires authentication
     if (route?.protected && !options.isAuthenticated) {
-    
       options.onAuthRequired?.();
       return false;
     }
@@ -362,7 +357,6 @@ export function navigateToDeepLink(
         router.push(path as any);
       }
 
-    
       return true;
     } catch (navigationError) {
       console.warn("Router navigation failed:", navigationError);

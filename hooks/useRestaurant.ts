@@ -260,7 +260,6 @@ export function useRestaurant(
           iterations++;
         }
 
-      
         return slots;
       } catch (error) {
         console.error("Error generating time slots:", error);
@@ -377,7 +376,6 @@ export function useRestaurant(
 
       // If database isn't ready yet and this is the first attempt, wait a bit and retry
       if (!databaseReady && retryCount === 0) {
-
         setTimeout(() => {
           fetchRestaurantDetails(1);
         }, 2000);
@@ -385,8 +383,6 @@ export function useRestaurant(
       }
 
       try {
-     
-
         const { data: restaurantData, error: restaurantError } = await supabase
           .from("restaurants")
           .select("*")
@@ -402,7 +398,6 @@ export function useRestaurant(
           throw new Error("Restaurant not found");
         }
 
-   
         setRestaurant(restaurantData);
 
         // Check if restaurant is favorited
@@ -455,7 +450,6 @@ export function useRestaurant(
         if (reviewsError) {
           console.warn("Reviews fetch error:", reviewsError);
         } else {
-         
           setReviews(filteredReviews);
 
           // Calculate review summary from filtered reviews data
@@ -495,7 +489,6 @@ export function useRestaurant(
         // Retry logic for cold start scenarios (up to 3 attempts)
         if (retryCount < 2) {
           const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s exponential backoff
-     
 
           setTimeout(() => {
             fetchRestaurantDetails(retryCount + 1);

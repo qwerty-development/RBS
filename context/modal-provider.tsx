@@ -37,11 +37,9 @@ export function ModalProvider({ children }: ModalProviderProps) {
       setModalState((prev) => {
         // If any modal is already open, prevent opening another one
         if (prev.isAnyModalOpen) {
-          
           return prev;
         }
 
-        
         return {
           isAnyModalOpen: true,
           currentModal: modalId,
@@ -57,7 +55,6 @@ export function ModalProvider({ children }: ModalProviderProps) {
   const closeModal = useCallback((modalId: string) => {
     setModalState((prev) => {
       if (prev.currentModal === modalId) {
-     
         return {
           isAnyModalOpen: false,
           currentModal: null,
@@ -68,7 +65,6 @@ export function ModalProvider({ children }: ModalProviderProps) {
   }, []);
 
   const closeAllModals = useCallback(() => {
-    
     setModalState({
       isAnyModalOpen: false,
       currentModal: null,

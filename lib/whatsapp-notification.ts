@@ -42,12 +42,9 @@ export async function notifyRestaurantWhatsApp(
   bookingId: string,
 ): Promise<WhatsAppNotificationResult> {
   try {
- 
-
     const requestBody = {
       booking_id: bookingId,
     };
-
 
     const response = await fetch(WHATSAPP_FUNCTION_URL, {
       method: "POST",
@@ -58,10 +55,7 @@ export async function notifyRestaurantWhatsApp(
       body: JSON.stringify(requestBody),
     });
 
-
-
     const result = await response.json();
- 
 
     if (!response.ok) {
       console.error("❌ WhatsApp notification failed:", result);
@@ -71,7 +65,6 @@ export async function notifyRestaurantWhatsApp(
       };
     }
 
-  
     return result;
   } catch (error) {
     console.error("Error calling WhatsApp notification function:", error);
@@ -90,7 +83,6 @@ export async function notifyRestaurantWhatsApp(
 export async function notifyRestaurantWhatsAppNonBlocking(
   bookingId: string,
 ): Promise<void> {
-
   try {
     const result = await notifyRestaurantWhatsApp(bookingId);
 
@@ -101,9 +93,7 @@ export async function notifyRestaurantWhatsAppNonBlocking(
         reason: result.reason,
       });
     } else if (result.ignored) {
-   
     } else {
-     
     }
   } catch (error) {
     console.error(

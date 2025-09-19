@@ -62,8 +62,6 @@ export class LocationService {
       return null;
     }
 
-
-
     // Handle PostGIS WKT POINT format: "POINT(longitude latitude)"
     if (typeof location === "string" && location.includes("POINT")) {
       // Detected WKT POINT format
@@ -413,7 +411,6 @@ export class LocationService {
 
     // Log some examples
     if (validRestaurants.length > 0) {
-
       validRestaurants.slice(0, 3).forEach((r, i) => {
         // Sample restaurant
       });
@@ -425,7 +422,6 @@ export class LocationService {
       validRestaurants = validRestaurants.filter(
         (r) => r.distance !== null && r.distance <= maxDistance,
       );
-     
     }
 
     // Sort by distance, with featured restaurants prioritized
@@ -441,7 +437,6 @@ export class LocationService {
       return a.distance - b.distance;
     });
 
-  
     return validRestaurants;
   }
 
@@ -457,12 +452,10 @@ export class LocationService {
     try {
       // Clear any stored location first to force fresh GPS detection
       await LocationService.clearLocation();
- 
 
       // Request permission with better error messages
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-
         await AsyncStorage.setItem(
           STORAGE_KEY,
           JSON.stringify(DEFAULT_LOCATION),
@@ -475,11 +468,8 @@ export class LocationService {
         accuracy: Location.Accuracy.Balanced,
       });
 
-     
-
       // For GPS location, use reverse geocoding to get actual street/area names
       // This ensures we get real location names from the map
-
 
       let locationData: LocationData;
       try {
@@ -498,8 +488,6 @@ export class LocationService {
           geocodePromise,
           timeoutPromise,
         ])) as any;
-
-
 
         // Extract real location names from geocoding result
         let detectedCity = "Unknown Location";
@@ -546,8 +534,6 @@ export class LocationService {
           district: detectedDistrict,
           country: address?.country || "Lebanon",
         };
-
-
       } catch (geocodeError) {
         // Reverse geocoding failed
         locationData = {
@@ -568,7 +554,7 @@ export class LocationService {
       }
 
       await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(locationData));
-  
+
       return locationData;
     } catch (error) {
       // Error getting location
@@ -579,13 +565,11 @@ export class LocationService {
 
   // Update stored location
   static async updateLocation(location: LocationData): Promise<void> {
-  
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(location));
   }
 
   // Clear stored location
   static async clearLocation(): Promise<void> {
-   
     await AsyncStorage.removeItem(STORAGE_KEY);
   }
 
@@ -633,8 +617,6 @@ export class LocationService {
     latitude: number,
     longitude: number,
   ): { city: string; district: string } {
-  
-
     // Import the Lebanon locations from the LocationSelector component
     const LEBANON_LOCATIONS = [
       // Beirut Districts
@@ -856,8 +838,6 @@ export class LocationService {
         closestLocation = location;
       }
     }
-
-  
 
     return {
       city: closestLocation.city,

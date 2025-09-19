@@ -342,7 +342,6 @@ export function useLazyLoad<T>(
 
       const loadTime = performance.now() - startTime;
 
-
       onLoad?.();
     } catch (err) {
       const error = err as Error;

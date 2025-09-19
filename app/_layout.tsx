@@ -80,7 +80,6 @@ function RootLayoutWithSplashState() {
   // EMERGENCY SPLASH DISMISSAL: Force hide splash after short delay
   useEffect(() => {
     const emergencyTimer = setTimeout(() => {
- 
       setShowSplash(false);
     }, 1500); // Short timer - deep links should dismiss immediately now
 
@@ -89,14 +88,12 @@ function RootLayoutWithSplashState() {
 
   // Handle early splash dismissal for deep links
   const handleSplashDismissRequest = () => {
-
     setSplashDismissRequested(true);
   };
 
   // Dismiss splash immediately if requested by deep link
   useEffect(() => {
     if (splashDismissRequested && showSplash) {
-
       setShowSplash(false);
     }
   }, [splashDismissRequested, showSplash]);
@@ -143,8 +140,6 @@ function RootLayoutContent({
   useEffect(() => {
     initializeNotificationHandlers((deeplink: any) => {
       try {
-   
-
         // Handle legacy "app://" format by converting to "plate://" format
         let processedUrl = deeplink;
         if (deeplink.startsWith("app://")) {
@@ -156,7 +151,6 @@ function RootLayoutContent({
 
         // The deep link will be handled by the DeepLinkProvider automatically
         // We can also manually trigger it if needed
-
       } catch (e) {
         console.warn("Failed to process notification deep link:", e);
         // Fallback to direct navigation for critical paths

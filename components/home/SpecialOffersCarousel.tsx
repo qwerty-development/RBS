@@ -52,8 +52,6 @@ export function SpecialOffersCarousel({
   // Enhanced offer press handler - goes to availability with offer applied
   const handleOfferPress = useCallback(
     async (offer: EnrichedOffer) => {
-
-
       // Check if user is logged in
       if (!profile?.id) {
         Alert.alert(
@@ -135,8 +133,6 @@ export function SpecialOffersCarousel({
   // Navigate to availability with offer details
   const navigateToAvailabilityWithOffer = useCallback(
     (offer: EnrichedOffer) => {
-
-
       router.push({
         pathname: "/booking/availability",
         params: {

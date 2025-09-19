@@ -16,8 +16,6 @@ export default function OAuthCallback() {
   const [processing, setProcessing] = useState(true);
 
   useEffect(() => {
-  
-
     // Wait for auth to initialize
     if (!initialized) {
       return;
@@ -26,7 +24,6 @@ export default function OAuthCallback() {
     // If we have a session, let auth provider handle navigation
     // Don't navigate here to prevent race conditions
     if (session) {
-
       return;
     }
 
@@ -35,7 +32,7 @@ export default function OAuthCallback() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-       
+
           router.replace("/welcome");
           return 0;
         }

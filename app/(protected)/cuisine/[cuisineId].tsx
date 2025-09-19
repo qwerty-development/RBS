@@ -92,8 +92,6 @@ export default function CuisineScreen() {
     try {
       setLoading(true);
 
-
-
       // Build base query using actual schema columns
       let query = supabase.from("restaurants").select("*"); // No joins needed, no is_active column
 
@@ -110,7 +108,6 @@ export default function CuisineScreen() {
         console.error("Error with exact cuisine_type match:", exactError);
       } else if (exactData && exactData.length > 0) {
         restaurantData = exactData;
-   
       }
 
       // Method 2: If no exact match, try case-insensitive search
@@ -124,7 +121,6 @@ export default function CuisineScreen() {
           console.error("Error with ilike search:", iLikeError);
         } else if (iLikeData && iLikeData.length > 0) {
           restaurantData = iLikeData;
- 
         }
       }
 
@@ -139,7 +135,6 @@ export default function CuisineScreen() {
           console.error("Error searching tags:", tagsError);
         } else if (tagsData && tagsData.length > 0) {
           restaurantData = tagsData;
-       
         }
       }
 
@@ -160,7 +155,6 @@ export default function CuisineScreen() {
                 tag.toLowerCase().includes(cuisineId.toLowerCase()),
               ),
           );
-       
         }
       }
 
@@ -213,7 +207,6 @@ export default function CuisineScreen() {
       // Sort restaurants
       processedRestaurants.sort(getSortComparator(filters.sortBy));
 
-   
       setRestaurants(processedRestaurants as DatabaseRestaurant[]);
     } catch (error) {
       console.error("Error in fetchCuisineRestaurants:", error);

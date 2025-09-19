@@ -86,7 +86,6 @@ class RealtimeSubscriptionService {
     }
 
     this.isInitialized = true;
-  
   }
 
   /**
@@ -95,10 +94,8 @@ class RealtimeSubscriptionService {
   private handleVisibilityChange(): void {
     if (document.hidden) {
       // App is in background, reduce subscription activity
-
     } else {
       // App is active, restore full subscription activity
-   
     }
   }
 
@@ -361,10 +358,7 @@ class RealtimeSubscriptionService {
 
     // Subscribe with enhanced status handling
     channel.subscribe((status) => {
-
-
       if (status === "SUBSCRIBED") {
- 
         // Reset retry attempts on successful connection
         this.retryAttempts.delete(channelId);
       } else if (status === "CHANNEL_ERROR") {
@@ -398,10 +392,8 @@ class RealtimeSubscriptionService {
       this.retryAttempts.set(channelId, currentAttempts + 1);
 
       const retryDelay = this.RETRY_DELAY * Math.pow(2, currentAttempts); // Exponential backoff
-   
 
       const retryTimeout = setTimeout(() => {
-  
         this.unsubscribe(channelId);
         this.createSubscription(channelId, subscriptions);
       }, retryDelay);
@@ -435,7 +427,6 @@ class RealtimeSubscriptionService {
       this.channels.delete(channelId);
       this.subscriptions.delete(channelId);
       this.retryAttempts.delete(channelId);
-
     }
   }
 
@@ -455,7 +446,6 @@ class RealtimeSubscriptionService {
     this.channels.clear();
     this.subscriptions.clear();
     this.retryAttempts.clear();
-
   }
 
   /**
@@ -518,7 +508,6 @@ class RealtimeSubscriptionService {
   cleanup(): void {
     this.unsubscribeAll();
     this.isInitialized = false;
-
   }
 
   /**
@@ -534,16 +523,12 @@ class RealtimeSubscriptionService {
   debugStatus(): void {
     const stats = this.getStats();
 
-
     if (this.channels.size > 0) {
-  
       this.channels.forEach((channel, channelId) => {
         const subscriptions = this.subscriptions.get(channelId) || [];
         const retryCount = this.retryAttempts.get(channelId) || 0;
-   
       });
     }
- 
   }
 }
 

@@ -141,15 +141,12 @@ export const useNotifications = () => {
     const unsubscribe = realtimeSubscriptionService.subscribeToUser({
       userId: user.id,
       onNotificationChange: (payload) => {
-
-
         if (payload.eventType === "INSERT" && payload.new) {
           // New notification received
           setNotifications((prev) => [payload.new!, ...prev]);
           setUnreadCount((prev) => prev + 1);
 
           // Could trigger push notification or sound here
-
         } else if (
           payload.eventType === "UPDATE" &&
           payload.new &&

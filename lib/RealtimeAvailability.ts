@@ -42,8 +42,6 @@ export class RealtimeAvailability {
             filter: `restaurant_id=eq.${restaurantId}`,
           },
           (payload) => {
-   
-
             // Check if this is a status change that affects availability
             const newData = payload.new as any;
             const oldData = payload.old as any;
@@ -59,7 +57,6 @@ export class RealtimeAvailability {
                 newStatus === "no_show" ||
                 oldStatus === "pending") // When pending becomes confirmed, it may block other slots
             ) {
-            
             }
 
             this.notifyListeners(channelKey);
@@ -90,13 +87,11 @@ export class RealtimeAvailability {
             filter: `restaurant_id=eq.${restaurantId}`,
           },
           (payload) => {
-       
             this.notifyListeners(channelKey);
           },
         )
         .subscribe((status) => {
           if (status === "SUBSCRIBED") {
-         
           } else if (status === "CHANNEL_ERROR") {
             console.error(`Error subscribing to restaurant:${restaurantId}`);
             // Don't retry immediately to avoid infinite loops
@@ -107,7 +102,6 @@ export class RealtimeAvailability {
                 // Only clean up if this is still the active channel
                 currentChannel.unsubscribe();
                 this.channels.delete(channelKey);
-             
               }
             }, 1000);
           } else if (status === "TIMED_OUT") {
@@ -120,7 +114,6 @@ export class RealtimeAvailability {
               }
             }, 2000);
           } else if (status === "CLOSED") {
-          
             this.channels.delete(channelKey);
           }
         });
@@ -160,8 +153,6 @@ export class RealtimeAvailability {
    * Resubscribe to a channel after error
    */
   private async resubscribe(channelKey: string, restaurantId: string) {
-  
-
     try {
       const channel = this.channels.get(channelKey);
       if (channel) {
@@ -179,7 +170,6 @@ export class RealtimeAvailability {
         // Get the first listener to trigger recreation
         const firstListener = listeners.values().next().value;
         if (firstListener) {
-       
           // The subscribeToRestaurant method will handle creating a new channel
         }
       }
@@ -312,8 +302,6 @@ export class RealtimeAvailability {
 
     this.channels.clear();
     this.listeners.clear();
-
-  
   }
 }
 

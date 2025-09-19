@@ -303,7 +303,6 @@ export default function HelpScreen() {
       );
 
       // In a real app, this would update the backend
-
     } catch (error) {
       console.error("Error marking FAQ as helpful:", error);
     }

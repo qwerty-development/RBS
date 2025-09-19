@@ -87,8 +87,6 @@ export const useBookingDetails = (bookingId: string) => {
         bookingData.status === "pending" &&
         new Date(bookingData.booking_time) < now
       ) {
-      
-
         try {
           const { error: updateError } = await supabase
             .from("bookings")
@@ -104,7 +102,6 @@ export const useBookingDetails = (bookingId: string) => {
               updateError,
             );
           } else {
-         
             // Update the local booking data
             bookingData.status = "declined_by_restaurant";
             bookingData.updated_at = new Date().toISOString();
@@ -139,7 +136,6 @@ export const useBookingDetails = (bookingId: string) => {
           .filter((t): t is TableInfo => t !== null);
         setAssignedTables(tables);
       } else {
-     
         setAssignedTables([]);
       }
 
@@ -168,15 +164,11 @@ export const useBookingDetails = (bookingId: string) => {
           if (loyaltyData) {
             setLoyaltyActivity(loyaltyData);
           }
-        } catch (loyaltyError) {
-         
-        }
+        } catch (loyaltyError) {}
       }
 
       // Enhanced: Fetch applied offer details using applied_offer_id
       if (bookingData.applied_offer_id) {
-      
-
         try {
           // Get the special offer details
           const { data: specialOfferData, error: specialOfferError } =
@@ -189,8 +181,6 @@ export const useBookingDetails = (bookingId: string) => {
           if (specialOfferError) {
             console.error("Error fetching special offer:", specialOfferError);
           } else if (specialOfferData) {
-      
-
             // Get the user_offer details for redemption code and usage info
             const { data: userOfferData, error: userOfferError } =
               await supabase
@@ -229,14 +219,12 @@ export const useBookingDetails = (bookingId: string) => {
               minimum_party_size: specialOfferData.minimum_party_size,
             };
 
-       
             setAppliedOfferDetails(offerDetails);
           }
         } catch (offerError) {
           console.error("Error fetching applied offer details:", offerError);
         }
       } else {
-       
       }
     } catch (error) {
       console.error("Error fetching booking details:", error);

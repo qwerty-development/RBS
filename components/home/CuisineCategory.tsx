@@ -29,7 +29,6 @@ export function CuisineCategory({ cuisine, onPress }: CuisineCategoryProps) {
     handleHapticPress(() => {
       // Check if any modal is already open
       if (isAnyModalOpen) {
-       
         return;
       }
 

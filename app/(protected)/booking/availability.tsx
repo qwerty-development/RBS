@@ -561,7 +561,6 @@ const DateSelector = React.memo<{
     maxDateObj.setDate(today.getDate() + maxDaysAhead - 1);
     const maxDate = maxDateObj.toISOString().split("T")[0];
 
-
     return { minDate, maxDate };
   }, [maxDaysAhead]);
 
@@ -576,7 +575,6 @@ const DateSelector = React.memo<{
 
   const handleCalendarDateSelect = useCallback(
     (day: any) => {
-   
       const selectedDate = new Date(day.dateString + "T00:00:00");
       handleDateChange(selectedDate);
       setShowCalendar(false);
@@ -975,7 +973,7 @@ export default function AvailabilitySelectionScreen() {
             restaurant.id,
             (restaurant as any).booking_window_days || 30,
           );
-      
+
           setMaxBookingDays(days);
         } catch (error) {
           console.error("Error fetching max booking days:", error);
@@ -1075,7 +1073,6 @@ export default function AvailabilitySelectionScreen() {
     try {
       // Prepare section preference for basic tier restaurants
       let preferredSection = null;
-  
 
       if (isBasicTier && selectedSectionId && selectedSectionId !== "any") {
         const selectedSection = restaurantSections.find(
@@ -1087,7 +1084,6 @@ export default function AvailabilitySelectionScreen() {
         }
       }
       // Note: If selectedSectionId is "any" or null, no section preference is set
-   
 
       const success = await confirmBooking({
         restaurantId: params.restaurantId,
@@ -1264,7 +1260,6 @@ export default function AvailabilitySelectionScreen() {
           // Success feedback
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-       
           await refresh(true); // Force refresh with cache clearing
 
           // Clear selected slot to reset the UI state
@@ -1379,7 +1374,6 @@ export default function AvailabilitySelectionScreen() {
         avatar_url: string | null;
       }[],
     ) => {
-
       setInvitedFriends(friendIds);
       setInvitedFriendsDetails(friendDetails);
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

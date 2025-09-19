@@ -19,10 +19,7 @@ interface Review {
 }
 
 const fetchReviews = async (id: string) => {
-  
-
   if (!id) {
-
     return [];
   }
 
@@ -37,7 +34,6 @@ const fetchReviews = async (id: string) => {
       console.error("❌ Supabase error:", errorReviews);
       throw errorReviews;
     }
-
 
     return reviews;
   } catch (error) {
@@ -62,31 +58,24 @@ export default function ReviewsPage() {
   const isDark = colorScheme === "dark";
 
   // Log when the component renders and when ID changes
-  useEffect(() => {
-   
-  }, [userId, params]);
+  useEffect(() => {}, [userId, params]);
 
   useEffect(() => {
     const loadReviews = async () => {
-      
-
       if (!userId) {
-       
         setIsLoading(false);
         return;
       }
 
       try {
-        
         setIsLoading(true);
         const data = await fetchReviews(userId);
-        
+
         setReviews(data);
       } catch (error) {
         console.error("❌ Error in loadReviews:", error);
       } finally {
         setIsLoading(false);
-       
       }
     };
 

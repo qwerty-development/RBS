@@ -42,7 +42,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               profile?.avatar_url
                 ? { uri: profile.avatar_url }
                 : {
-                    uri: `https://ui-avatars.com/api/?name=${profile?.full_name || "User"}&background=dc2626&color=fff`,
+                    uri: `https://ui-avatars.com/api/?name=${
+                      profile?.first_name && profile?.last_name
+                        ? `${profile.first_name} ${profile.last_name}`
+                        : profile?.full_name || "User"
+                    }&background=dc2626&color=fff`,
                   }
             }
             className="w-24 h-24 rounded-full"
@@ -59,7 +63,11 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </View>
       </Pressable>
 
-      <H2 className="mt-3">{profile?.full_name}</H2>
+      <H2 className="mt-3">
+        {profile?.first_name && profile?.last_name
+          ? `${profile.first_name} ${profile.last_name}`
+          : profile?.full_name}
+      </H2>
       <Muted>{user?.email}</Muted>
       {profile?.date_of_birth && (
         <Muted className="text-xs">

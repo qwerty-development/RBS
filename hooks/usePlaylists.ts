@@ -146,7 +146,7 @@ export const usePlaylists = () => {
         if (ownerIds.length > 0) {
           const { data: owners, error: ownersError } = await supabase
             .from("profiles")
-            .select("id, full_name, avatar_url")
+            .select("id, first_name, last_name, full_name, avatar_url")
             .in("id", ownerIds);
 
           if (ownersError) {
