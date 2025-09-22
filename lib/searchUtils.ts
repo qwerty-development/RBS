@@ -174,7 +174,18 @@ async function checkRestaurantHours(
     const closure = restaurant.restaurant_closures?.find(
       (c: any) => dateStr >= c.start_date && dateStr <= c.end_date,
     );
-    if (closure) return false;
+    if (closure) {
+      // Full-day closure (no specific times)
+      if (!closure.start_time || !closure.end_time) {
+        return false;
+      }
+
+      // Partial closure - check if requested time conflicts
+      if (isTimeWithinRange(time, closure.start_time, closure.end_time)) {
+        return false;
+      }
+      // If time doesn't conflict with partial closure, continue checking regular hours
+    }
 
     // Check special hours
     const special = restaurant.restaurant_special_hours?.find(
@@ -183,7 +194,24 @@ async function checkRestaurantHours(
     if (special) {
       if (special.is_closed) return false;
       if (special.open_time && special.close_time) {
-        return isTimeWithinRange(time, special.open_time, special.close_time);
+        // Check if within special hours
+        const withinSpecialHours = isTimeWithinRange(
+          time,
+          special.open_time,
+          special.close_time,
+        );
+
+        // Also check if it conflicts with partial closures
+        if (
+          withinSpecialHours &&
+          closure &&
+          closure.start_time &&
+          closure.end_time
+        ) {
+          return !isTimeWithinRange(time, closure.start_time, closure.end_time);
+        }
+
+        return withinSpecialHours;
       }
     }
 
@@ -198,7 +226,14 @@ async function checkRestaurantHours(
     for (const shift of regularShifts) {
       if (shift.open_time && shift.close_time) {
         if (isTimeWithinRange(time, shift.open_time, shift.close_time)) {
-          return true; // Time is within at least one shift
+          // Time is within shift hours, but check if it conflicts with partial closures
+          if (closure && closure.start_time && closure.end_time) {
+            // If there's a partial closure and time conflicts with it, this shift is not available
+            if (isTimeWithinRange(time, closure.start_time, closure.end_time)) {
+              continue; // Try next shift
+            }
+          }
+          return true; // Time is within this shift and doesn't conflict with partial closures
         }
       }
     }

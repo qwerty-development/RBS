@@ -265,7 +265,9 @@ export default function HomeScreen() {
               title="Recently Visited"
               subtitle="Places you've completed bookings at"
               actionLabel="See All"
-              onAction={() => router.push('/(protected)/(tabs)/bookings?tab=past')}
+              onAction={() =>
+                router.push("/(protected)/(tabs)/bookings?tab=past")
+              }
             />
             <FlatList
               horizontal
@@ -284,7 +286,7 @@ export default function HomeScreen() {
             />
           </View>
         )}
-        
+
         {/* Add bottom padding to account for tab bar */}
         <View className="h-24" />
       </Animated.ScrollView>

@@ -52,8 +52,9 @@ export function useHomeScreenLogic() {
   );
 
   // Recently visited (completed bookings) - unique restaurants
-  const [recentlyVisitedRestaurants, setRecentlyVisitedRestaurants] =
-    useState<Restaurant[]>([]);
+  const [recentlyVisitedRestaurants, setRecentlyVisitedRestaurants] = useState<
+    Restaurant[]
+  >([]);
 
   const [nearbyRestaurants, setNearbyRestaurants] = useState<Restaurant[]>([]);
   const [location, setLocation] = useState<LocationData | null>(null);

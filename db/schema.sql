@@ -95,12 +95,21 @@ CREATE TABLE public.bookings (
   is_shared_booking boolean DEFAULT false,
   decline_note text,
   preferred_section text,
+  cancelled_at timestamp with time zone,
+  cancelled_by_staff uuid,
+  cancellation_reason text,
+  cancellation_note text,
+  declined_at timestamp with time zone,
+  declined_by_staff uuid,
+  declined_reason text,
   CONSTRAINT bookings_pkey PRIMARY KEY (id),
   CONSTRAINT bookings_applied_loyalty_rule_id_fkey FOREIGN KEY (applied_loyalty_rule_id) REFERENCES public.restaurant_loyalty_rules(id),
   CONSTRAINT bookings_applied_offer_id_fkey FOREIGN KEY (applied_offer_id) REFERENCES public.special_offers(id),
   CONSTRAINT bookings_organizer_id_fkey FOREIGN KEY (organizer_id) REFERENCES public.profiles(id),
   CONSTRAINT bookings_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id),
-  CONSTRAINT bookings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+  CONSTRAINT bookings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
+  CONSTRAINT bookings_cancelled_by_staff_fkey FOREIGN KEY (cancelled_by_staff) REFERENCES public.profiles(id),
+  CONSTRAINT bookings_declined_by_staff_fkey FOREIGN KEY (declined_by_staff) REFERENCES public.profiles(id)
 );
 CREATE TABLE public.customer_notes (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -596,6 +605,8 @@ CREATE TABLE public.profiles (
   email text UNIQUE CHECK (email IS NULL OR email ~ '.+@.+'::text),
   date_of_birth date,
   onboarded boolean DEFAULT false,
+  first_name text DEFAULT ''::text,
+  last_name text DEFAULT ''::text,
   CONSTRAINT profiles_pkey PRIMARY KEY (id),
   CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
 );
@@ -643,6 +654,8 @@ CREATE TABLE public.restaurant_closures (
   reason text NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
   created_by uuid NOT NULL,
+  start_time time without time zone,
+  end_time time without time zone,
   CONSTRAINT restaurant_closures_pkey PRIMARY KEY (id),
   CONSTRAINT restaurant_closures_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id),
   CONSTRAINT restaurant_closures_restaurant_id_fkey FOREIGN KEY (restaurant_id) REFERENCES public.restaurants(id)

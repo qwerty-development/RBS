@@ -288,7 +288,25 @@ export class AvailabilityService {
         .sort()
         .map((time) => ({ time }));
 
-      // For basic tier restaurants, return all time slots without availability checking
+      // Filter out slots that conflict with partial closures
+      let filteredSlots = uniqueSlots;
+      if (
+        operatingHours.partialClosures &&
+        operatingHours.partialClosures.length > 0
+      ) {
+        filteredSlots = uniqueSlots.filter((slot) => {
+          return !operatingHours.partialClosures!.some((closure) => {
+            // Check if slot falls within partial closure time
+            return this.isTimeWithinRange(
+              slot.time,
+              closure.start_time,
+              closure.end_time,
+            );
+          });
+        });
+      }
+
+      // For basic tier restaurants, return filtered time slots without availability checking
       let availableSlots: TimeSlotBasic[];
       if (restaurantTier === "basic") {
         // Filter out slots that are less than 15 minutes from now
@@ -296,7 +314,7 @@ export class AvailabilityService {
         const minimumBookingTime = new Date(now.getTime() + 15 * 60 * 1000);
         const dateStr = date.toISOString().split("T")[0];
 
-        availableSlots = uniqueSlots
+        availableSlots = filteredSlots
           .filter((slot) => {
             const startTime = new Date(`${dateStr}T${slot.time}:00`);
             return startTime > minimumBookingTime;
@@ -313,7 +331,7 @@ export class AvailabilityService {
         availableSlots = await this.batchQuickAvailabilityChecks(
           restaurantId,
           date,
-          uniqueSlots,
+          filteredSlots,
           turnTime,
           partySize,
         );
@@ -632,7 +650,7 @@ export class AvailabilityService {
     return data.tier;
   }
 
-  // FIXED: Updated getOperatingHoursForDate to handle multiple shifts
+  // FIXED: Updated getOperatingHoursForDate to handle multiple shifts and partial closures
   private getOperatingHoursForDate(
     restaurantConfig: any,
     date: Date,
@@ -640,18 +658,42 @@ export class AvailabilityService {
     shifts: { openTime: string; closeTime: string }[];
     isClosed: boolean;
     closureReason?: string;
+    partialClosures?: {
+      start_time: string;
+      end_time: string;
+      reason: string;
+    }[];
   } {
     const dateStr = format(date, "yyyy-MM-dd");
     const dayOfWeek = format(date, "EEEE").toLowerCase();
 
-    // Check for closures first
-    const closure = restaurantConfig.closures?.find(
-      (closure: any) =>
-        dateStr >= closure.start_date && dateStr <= closure.end_date,
-    );
+    // Check for closures
+    const closures =
+      restaurantConfig.closures?.filter(
+        (closure: any) =>
+          dateStr >= closure.start_date && dateStr <= closure.end_date,
+      ) || [];
 
-    if (closure) {
-      return { shifts: [], isClosed: true, closureReason: closure.reason };
+    // Separate full day closures from partial closures
+    const fullDayClosures = closures.filter(
+      (closure: any) => !closure.start_time && !closure.end_time,
+    );
+    const partialClosures = closures
+      .filter((closure: any) => closure.start_time && closure.end_time)
+      .map((closure: any) => ({
+        start_time: closure.start_time,
+        end_time: closure.end_time,
+        reason: closure.reason,
+      }));
+
+    // If there's a full day closure, return closed
+    if (fullDayClosures.length > 0) {
+      return {
+        shifts: [],
+        isClosed: true,
+        closureReason: fullDayClosures[0].reason,
+        partialClosures,
+      };
     }
 
     // Check for special hours
@@ -661,7 +703,7 @@ export class AvailabilityService {
 
     if (specialHours) {
       if (specialHours.is_closed) {
-        return { shifts: [], isClosed: true };
+        return { shifts: [], isClosed: true, partialClosures };
       }
       return {
         shifts: [
@@ -671,6 +713,7 @@ export class AvailabilityService {
           },
         ],
         isClosed: false,
+        partialClosures,
       };
     }
 
@@ -691,6 +734,7 @@ export class AvailabilityService {
       return {
         shifts: shifts,
         isClosed: shifts.length === 0,
+        partialClosures,
       };
     }
 
@@ -698,6 +742,7 @@ export class AvailabilityService {
     return {
       shifts: [],
       isClosed: true,
+      partialClosures,
     };
   }
 
@@ -1731,5 +1776,25 @@ export class AvailabilityService {
         console.warn("Preload failed:", error);
       }
     }, 1000);
+  }
+
+  /**
+   * Check if a given time falls within a partial closure time range
+   */
+  private isTimeWithinRange(
+    time: string,
+    startTime: string | null,
+    endTime: string | null,
+  ): boolean {
+    if (!startTime || !endTime) {
+      return false; // If no time range specified, no conflict
+    }
+
+    // Convert time strings to comparable format (HH:mm)
+    const timeFormatted = time.substring(0, 5); // Extract HH:mm from HH:mm:ss
+    const startFormatted = startTime.substring(0, 5);
+    const endFormatted = endTime.substring(0, 5);
+
+    return timeFormatted >= startFormatted && timeFormatted <= endFormatted;
   }
 }

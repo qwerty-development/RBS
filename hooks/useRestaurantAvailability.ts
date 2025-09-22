@@ -21,6 +21,8 @@ interface SpecialHours {
 interface Closure {
   start_date: string;
   end_date: string;
+  start_time: string | null;
+  end_time: string | null;
   reason: string;
 }
 
@@ -69,7 +71,7 @@ export function useRestaurantAvailability(restaurantId: string) {
           .gte("date", today),
         supabase
           .from("restaurant_closures")
-          .select("*")
+          .select("*, start_date, end_date, start_time, end_time, reason")
           .eq("restaurant_id", restaurantId)
           .gte("end_date", today),
       ]);
@@ -97,7 +99,11 @@ export function useRestaurantAvailability(restaurantId: string) {
           (c) => dateStr >= c.start_date && dateStr <= c.end_date,
         );
         if (closure) {
-          continue; // Skip this day
+          // For full-day closures (no specific times), skip the day
+          if (!closure.start_time || !closure.end_time) {
+            continue; // Skip this day
+          }
+          // For partial closures, we'll handle this in the time-specific checks later
         }
 
         // Check special hours
@@ -152,10 +158,16 @@ export function useRestaurantAvailability(restaurantId: string) {
         (c) => dateStr >= c.start_date && dateStr <= c.end_date,
       );
       if (closure) {
-        return {
-          isOpen: false,
-          reason: closure.reason || "Temporarily closed",
-        };
+        // Full-day closure (no specific times)
+        if (!closure.start_time || !closure.end_time) {
+          return {
+            isOpen: false,
+            reason: closure.reason || "Temporarily closed",
+          };
+        }
+
+        // Partial closure - we'll check this when evaluating specific times
+        // For now, continue to check regular/special hours
       }
 
       // Check special hours
@@ -172,6 +184,31 @@ export function useRestaurantAvailability(restaurantId: string) {
           const isWithinHours = time
             ? isTimeWithinRange(time, special.open_time, special.close_time)
             : true;
+
+          // Check if time conflicts with partial closure
+          const partialClosure = closures.find(
+            (c) =>
+              dateStr >= c.start_date &&
+              dateStr <= c.end_date &&
+              c.start_time &&
+              c.end_time,
+          );
+
+          if (
+            time &&
+            partialClosure &&
+            isTimeWithinRange(
+              time,
+              partialClosure.start_time!,
+              partialClosure.end_time!,
+            )
+          ) {
+            return {
+              isOpen: false,
+              reason:
+                partialClosure.reason || "Temporarily closed during this time",
+            };
+          }
 
           return {
             isOpen: isWithinHours,
@@ -218,6 +255,30 @@ export function useRestaurantAvailability(restaurantId: string) {
 
       // If time is provided, check if it's within ANY shift
       if (time) {
+        // First check if time conflicts with partial closure
+        const partialClosure = closures.find(
+          (c) =>
+            dateStr >= c.start_date &&
+            dateStr <= c.end_date &&
+            c.start_time &&
+            c.end_time,
+        );
+
+        if (
+          partialClosure &&
+          isTimeWithinRange(
+            time,
+            partialClosure.start_time!,
+            partialClosure.end_time!,
+          )
+        ) {
+          return {
+            isOpen: false,
+            reason:
+              partialClosure.reason || "Temporarily closed during this time",
+          };
+        }
+
         let isWithinAnyShift = false;
 
         for (const shift of dayShifts) {
@@ -250,6 +311,7 @@ export function useRestaurantAvailability(restaurantId: string) {
     slotDuration: number = 30,
   ): string[] => {
     const availability = checkAvailability(date);
+    const dateStr = format(date, "yyyy-MM-dd");
 
     if (!availability.isOpen || !availability.hours) {
       return [];
@@ -257,6 +319,15 @@ export function useRestaurantAvailability(restaurantId: string) {
 
     const slots: string[] = [];
     const mealDuration = 90; // Assume 90 minutes for a meal
+
+    // Get partial closures for this date
+    const partialClosures = closures.filter(
+      (c) =>
+        dateStr >= c.start_date &&
+        dateStr <= c.end_date &&
+        c.start_time &&
+        c.end_time,
+    );
 
     // UPDATED: Generate slots for ALL shifts
     for (const shift of availability.hours) {
@@ -273,9 +344,16 @@ export function useRestaurantAvailability(restaurantId: string) {
       ) {
         const hour = Math.floor(minutes / 60);
         const min = minutes % 60;
-        slots.push(
-          `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`,
+        const timeSlot = `${hour.toString().padStart(2, "0")}:${min.toString().padStart(2, "0")}`;
+
+        // Check if this slot conflicts with any partial closures
+        const conflictsWithClosure = partialClosures.some((closure) =>
+          isTimeWithinRange(timeSlot, closure.start_time!, closure.end_time!),
         );
+
+        if (!conflictsWithClosure) {
+          slots.push(timeSlot);
+        }
       }
     }
 

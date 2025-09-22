@@ -2796,28 +2796,34 @@ export type Database = {
           created_at: string | null;
           created_by: string;
           end_date: string;
+          end_time: string | null;
           id: string;
           reason: string;
           restaurant_id: string;
           start_date: string;
+          start_time: string | null;
         };
         Insert: {
           created_at?: string | null;
           created_by: string;
           end_date: string;
+          end_time?: string | null;
           id?: string;
           reason: string;
           restaurant_id: string;
           start_date: string;
+          start_time?: string | null;
         };
         Update: {
           created_at?: string | null;
           created_by?: string;
           end_date?: string;
+          end_time?: string | null;
           id?: string;
           reason?: string;
           restaurant_id?: string;
           start_date?: string;
+          start_time?: string | null;
         };
         Relationships: [
           {

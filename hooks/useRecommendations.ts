@@ -272,7 +272,14 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
 
         // Check for closures first
         if (closuresResult.data) {
-          return { shifts: [], isOpen: false };
+          // Full-day closure (no specific times)
+          if (
+            !closuresResult.data.start_time ||
+            !closuresResult.data.end_time
+          ) {
+            return { shifts: [], isOpen: false };
+          }
+          // Partial closure - will be handled in time-specific checks later
         }
 
         // Check for special hours
@@ -280,25 +287,46 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
           if (specialHoursResult.data.is_closed) {
             return { shifts: [], isOpen: false };
           }
+
+          let shifts = [
+            {
+              open: specialHoursResult.data.open_time || "11:00",
+              close: specialHoursResult.data.close_time || "22:00",
+            },
+          ];
+
+          // Filter out time ranges that conflict with partial closures
+          if (
+            closuresResult.data &&
+            closuresResult.data.start_time &&
+            closuresResult.data.end_time
+          ) {
+            shifts = filterShiftsForPartialClosure(shifts, closuresResult.data);
+          }
+
           return {
-            shifts: [
-              {
-                open: specialHoursResult.data.open_time || "11:00",
-                close: specialHoursResult.data.close_time || "22:00",
-              },
-            ],
-            isOpen: true,
+            shifts,
+            isOpen: shifts.length > 0,
           };
         }
 
         // UPDATED: Use ALL regular hour shifts
         if (hoursResult.data && hoursResult.data.length > 0) {
-          const shifts = hoursResult.data
+          let shifts = hoursResult.data
             .filter((h) => h.open_time && h.close_time)
             .map((h) => ({
               open: h.open_time!,
               close: h.close_time!,
             }));
+
+          // Filter out time ranges that conflict with partial closures
+          if (
+            closuresResult.data &&
+            closuresResult.data.start_time &&
+            closuresResult.data.end_time
+          ) {
+            shifts = filterShiftsForPartialClosure(shifts, closuresResult.data);
+          }
 
           return {
             shifts: shifts,
@@ -801,4 +829,31 @@ export function useOccasionRecommendations(occasion: string) {
   }, [occasion]);
 
   return { restaurants, loading };
+}
+
+/**
+ * Helper function to filter shifts that conflict with partial closures
+ */
+function filterShiftsForPartialClosure(
+  shifts: { open: string; close: string }[],
+  closure: { start_time: string; end_time: string },
+): { open: string; close: string }[] {
+  return shifts.filter((shift) => {
+    // Check if shift overlaps with closure period
+    const shiftStart = timeToMinutes(shift.open);
+    const shiftEnd = timeToMinutes(shift.close);
+    const closureStart = timeToMinutes(closure.start_time);
+    const closureEnd = timeToMinutes(closure.end_time);
+
+    // If shift ends before closure starts, or shift starts after closure ends, no conflict
+    return shiftEnd <= closureStart || shiftStart >= closureEnd;
+  });
+}
+
+/**
+ * Convert time string (HH:mm or HH:mm:ss) to minutes since midnight
+ */
+function timeToMinutes(timeStr: string): number {
+  const [hours, minutes] = timeStr.split(":").map(Number);
+  return hours * 60 + minutes;
 }

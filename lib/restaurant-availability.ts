@@ -71,12 +71,29 @@ export class RestaurantAvailability {
       }
 
       if (closures) {
-        const result = {
-          isOpen: false,
-          reason: closures.reason || "Temporarily closed",
-        };
-        this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
-        return result;
+        // Check if it's a full day closure or partial closure
+        if (!closures.start_time && !closures.end_time) {
+          // Full day closure
+          const result = {
+            isOpen: false,
+            reason: closures.reason || "Temporarily closed",
+          };
+          this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
+          return result;
+        } else if (closures.start_time && closures.end_time && time) {
+          // Partial closure - check if the requested time falls within closure hours
+          if (
+            this.isTimeWithinRange(time, closures.start_time, closures.end_time)
+          ) {
+            const result = {
+              isOpen: false,
+              reason: `${closures.reason || "Temporarily closed"} (${this.formatTime(closures.start_time)} - ${this.formatTime(closures.end_time)})`,
+            };
+            this.cache.set(cacheKey, { data: result, timestamp: Date.now() });
+            return result;
+          }
+          // If time is outside closure hours, continue with normal availability check
+        }
       }
 
       // Check for special hours
@@ -226,7 +243,7 @@ export class RestaurantAvailability {
   }
 
   /**
-   * Get available time slots for a specific date (MULTIPLE SHIFTS SUPPORT)
+   * Get available time slots for a specific date (MULTIPLE SHIFTS SUPPORT with PARTIAL CLOSURE filtering)
    */
   async getAvailableTimeSlots(
     restaurantId: string,
@@ -239,6 +256,19 @@ export class RestaurantAvailability {
     if (!availability.isOpen || !availability.hours) {
       return [];
     }
+
+    // Get closures for this date to filter out partial closures
+    const dateStr = format(date, "yyyy-MM-dd");
+    const { data: closures } = await supabase
+      .from("restaurant_closures")
+      .select("*")
+      .eq("restaurant_id", restaurantId)
+      .lte("start_date", dateStr)
+      .gte("end_date", dateStr);
+
+    const partialClosure = closures?.find(
+      (closure) => closure.start_time && closure.end_time,
+    );
 
     const slots: string[] = [];
     const mealDuration = 90; // Assume 90 minutes for a meal
@@ -263,7 +293,52 @@ export class RestaurantAvailability {
 
         // Check if there's enough time before closing for a typical meal
         if (minutes + mealDuration <= endMinutes) {
-          slots.push(timeStr);
+          // Check if this slot conflicts with any partial closure
+          let isSlotAvailable = true;
+
+          if (
+            partialClosure &&
+            partialClosure.start_time &&
+            partialClosure.end_time
+          ) {
+            // Check if the slot (and meal duration) overlaps with partial closure
+            const slotEndTime = `${Math.floor((minutes + mealDuration) / 60)
+              .toString()
+              .padStart(
+                2,
+                "0",
+              )}:${((minutes + mealDuration) % 60).toString().padStart(2, "0")}`;
+
+            // Slot conflicts if it starts during closure or ends during closure
+            if (
+              this.isTimeWithinRange(
+                timeStr,
+                partialClosure.start_time,
+                partialClosure.end_time,
+              ) ||
+              this.isTimeWithinRange(
+                slotEndTime,
+                partialClosure.start_time,
+                partialClosure.end_time,
+              ) ||
+              (this.isTimeWithinRange(
+                partialClosure.start_time,
+                timeStr,
+                slotEndTime,
+              ) &&
+                this.isTimeWithinRange(
+                  partialClosure.end_time,
+                  timeStr,
+                  slotEndTime,
+                ))
+            ) {
+              isSlotAvailable = false;
+            }
+          }
+
+          if (isSlotAvailable) {
+            slots.push(timeStr);
+          }
         }
       }
     }
@@ -363,32 +438,39 @@ export class RestaurantAvailability {
   }
 
   /**
+   * Format a time string into a readable format
+   */
+  private formatTime(time: string): string {
+    const [hour, minute] = time.split(":").map(Number);
+    const period = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+    return `${displayHour}:${minute.toString().padStart(2, "0")} ${period}`;
+  }
+
+  /**
    * Format hours for display (MULTIPLE SHIFTS SUPPORT)
    */
   formatHoursDisplay(
     hours: { open: string; close: string } | { open: string; close: string }[],
   ): string {
-    const formatTime = (time: string) => {
-      const [hour, minute] = time.split(":").map(Number);
-      const period = hour >= 12 ? "PM" : "AM";
-      const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
-      return `${displayHour}:${minute.toString().padStart(2, "0")} ${period}`;
-    };
-
     // Handle single shift (backward compatibility)
     if (!Array.isArray(hours)) {
-      return `${formatTime(hours.open)} - ${formatTime(hours.close)}`;
+      return `${this.formatTime(hours.open)} - ${this.formatTime(hours.close)}`;
     }
 
     // Handle multiple shifts
     if (hours.length === 0) return "Closed";
+
     if (hours.length === 1) {
-      return `${formatTime(hours[0].open)} - ${formatTime(hours[0].close)}`;
+      return `${this.formatTime(hours[0].open)} - ${this.formatTime(hours[0].close)}`;
     }
 
     // Multiple shifts format
     return hours
-      .map((shift) => `${formatTime(shift.open)} - ${formatTime(shift.close)}`)
+      .map(
+        (shift) =>
+          `${this.formatTime(shift.open)} - ${this.formatTime(shift.close)}`,
+      )
       .join(", ");
   }
 }
