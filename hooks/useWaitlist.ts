@@ -6,17 +6,18 @@ import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Alert } from "react-native";
 import type { Database } from "@/types/supabase";
+import type { TableType } from "@/types/waitlist";
 import { realtimeSubscriptionService } from "@/lib/RealtimeSubscriptionService";
 
 type WaitlistRow = Database["public"]["Tables"]["waitlist"]["Row"];
 
-interface WaitlistEntry {
-  restaurantId: string;
+export interface WaitlistEntry {
   userId: string;
+  restaurantId: string;
   desiredDate: string;
   desiredTimeRange: string;
   partySize: number;
-  table_type: "any" | "indoor" | "outdoor" | "bar" | "private";
+  table_type: TableType;
   special_requests?: string;
 }
 

@@ -34,7 +34,7 @@ export default function WaitlistScreen() {
 
   useEffect(() => {
     if (!isAuthenticated) {
-      router.replace("/(auth)/login");
+      router.replace("/sign-in");
     }
   }, [isAuthenticated]);
 

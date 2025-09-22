@@ -25,8 +25,9 @@ import { H3, Muted } from "@/components/ui/typography";
 import {
   TimeRangeSearchParams,
   TABLE_TYPES,
-  TableType,
 } from "./TimeRangeSelector";
+import type { WaitlistEntry } from "@/hooks/useWaitlist";
+import type { TableType } from "@/types/waitlist";
 
 // Re-export the WaitlistEntry from the hook for compatibility
 export { type WaitlistEntry } from "@/hooks/useWaitlist";
