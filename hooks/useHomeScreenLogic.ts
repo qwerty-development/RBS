@@ -51,6 +51,10 @@ export function useHomeScreenLogic() {
     [],
   );
 
+  // Recently visited (completed bookings) - unique restaurants
+  const [recentlyVisitedRestaurants, setRecentlyVisitedRestaurants] =
+    useState<Restaurant[]>([]);
+
   const [nearbyRestaurants, setNearbyRestaurants] = useState<Restaurant[]>([]);
   const [location, setLocation] = useState<LocationData | null>(null);
 
@@ -251,6 +255,37 @@ export function useHomeScreenLogic() {
     }
   }, [location]);
 
+  // Fetch restaurants the user has completed bookings for (deduped, recent first)
+  const fetchRecentlyVisitedRestaurants = useCallback(async () => {
+    try {
+      if (!profile?.id) {
+        setRecentlyVisitedRestaurants([]);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("bookings")
+        .select("restaurant:restaurants(*), booking_time")
+        .eq("user_id", profile.id)
+        .eq("status", "completed")
+        .order("booking_time", { ascending: false });
+
+      if (error) throw error;
+
+      const uniqueByRestaurant = new Map<string, Restaurant>();
+      (data || []).forEach((row: any) => {
+        const restaurant = row?.restaurant as Restaurant | undefined;
+        if (restaurant?.id && !uniqueByRestaurant.has(restaurant.id)) {
+          uniqueByRestaurant.set(restaurant.id, restaurant);
+        }
+      });
+
+      setRecentlyVisitedRestaurants(Array.from(uniqueByRestaurant.values()));
+    } catch (error) {
+      console.error("Error fetching recently visited restaurants:", error);
+    }
+  }, [profile?.id]);
+
   // Unified Data Loading
 
   const loadAllData = useCallback(async () => {
@@ -262,6 +297,7 @@ export function useHomeScreenLogic() {
       fetchTopRatedRestaurants(),
       fetchTrendingRestaurants(),
       fetchNearbyRestaurants(),
+      fetchRecentlyVisitedRestaurants(),
     ]);
 
     setLoading(false);
@@ -271,6 +307,7 @@ export function useHomeScreenLogic() {
     fetchTopRatedRestaurants,
     fetchTrendingRestaurants,
     fetchNearbyRestaurants,
+    fetchRecentlyVisitedRestaurants,
   ]);
 
   // Event Handlers
@@ -413,6 +450,7 @@ export function useHomeScreenLogic() {
     newRestaurants,
     topRatedRestaurants,
     trendingRestaurants,
+    recentlyVisitedRestaurants,
 
     nearbyRestaurants,
     location,
