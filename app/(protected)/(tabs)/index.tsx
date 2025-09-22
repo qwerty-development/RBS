@@ -53,6 +53,7 @@ export default function HomeScreen() {
     featuredRestaurants,
     newRestaurants,
     topRatedRestaurants,
+    recentlyVisitedRestaurants,
     location,
     refreshing,
     loading,
@@ -247,6 +248,32 @@ export default function HomeScreen() {
             <FlatList
               horizontal
               data={topRatedRestaurants}
+              renderItem={({ item }) => (
+                <RestaurantCard
+                  item={item}
+                  variant="featured"
+                  onPress={handleRestaurantPress}
+                  onFavoritePress={() => handleToggleFavorite(item.id)}
+                />
+              )}
+              keyExtractor={(item) => item.id}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ paddingHorizontal: 16 }}
+            />
+          </View>
+        )}
+
+        {recentlyVisitedRestaurants.length > 0 && (
+          <View className="mb-6">
+            <SectionHeader
+              title="Recently Visited"
+              subtitle="Places you've completed bookings at"
+              actionLabel="See All"
+              onAction={() => router.push('/(protected)/(tabs)/bookings?tab=past')}
+            />
+            <FlatList
+              horizontal
+              data={recentlyVisitedRestaurants}
               renderItem={({ item }) => (
                 <RestaurantCard
                   item={item}
