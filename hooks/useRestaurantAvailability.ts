@@ -38,6 +38,11 @@ interface AvailabilityStatus {
     date: Date;
     time: string;
   };
+  partialClosures?: {
+    start_time: string;
+    end_time: string;
+    reason: string;
+  }[];
 }
 
 export function useRestaurantAvailability(restaurantId: string) {
@@ -298,9 +303,23 @@ export function useRestaurantAvailability(restaurantId: string) {
       }
 
       // No specific time provided, return all shifts
+      // But include partial closure info for UI awareness
+      const partialClosures = closures.filter(
+        (c) => 
+          dateStr >= c.start_date && 
+          dateStr <= c.end_date && 
+          c.start_time && 
+          c.end_time
+      );
+
       return {
         isOpen: true,
         hours: dayShifts,
+        partialClosures: partialClosures.length > 0 ? partialClosures.map(c => ({
+          start_time: c.start_time!,
+          end_time: c.end_time!,
+          reason: c.reason
+        })) : undefined,
       };
     },
     [regularHours, specialHours, closures, findNextOpenTime],
