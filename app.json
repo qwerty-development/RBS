@@ -8,9 +8,7 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "owner": "qwerty-app",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "runtimeVersion": "1.0.0",
     "updates": {
       "url": "https://u.expo.dev/9cb3f29d-a85c-439a-ac34-513843ed9279",
@@ -62,13 +60,7 @@
             ]
           }
         ],
-        "LSApplicationQueriesSchemes": [
-          "mailto",
-          "tel",
-          "sms",
-          "https",
-          "http"
-        ]
+        "LSApplicationQueriesSchemes": ["mailto", "tel", "sms", "https", "http"]
       },
       "associatedDomains": [
         "applinks:plate-app.com",
@@ -118,10 +110,7 @@
               "scheme": "plate"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         },
         {
           "action": "VIEW",
@@ -136,10 +125,7 @@
               "host": "www.plate-app.com"
             }
           ],
-          "category": [
-            "BROWSABLE",
-            "DEFAULT"
-          ]
+          "category": ["BROWSABLE", "DEFAULT"]
         }
       ],
       "package": "com.notqwerty.plate"
@@ -181,8 +167,8 @@
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io/",
-          "project": "plate",
-          "organization": "qwerty-5v"
+          "project": "react-native",
+          "organization": "qwerty-i1"
         }
       ]
     ],

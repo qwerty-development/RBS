@@ -100,6 +100,7 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-background">
+      
       <HomeHeader
         profile={profile}
         isGuest={isGuest} // Pass guest status
@@ -111,6 +112,7 @@ export default function HomeScreen() {
         onLocationPress={handleLocationPress}
         onProfilePress={isGuest ? convertGuestToUser : handleProfilePress}
       />
+      
 
       <Animated.ScrollView
         ref={(ref) => {
@@ -132,6 +134,7 @@ export default function HomeScreen() {
         }
       >
         <View style={{ height: totalHeaderHeight }} />
+        
 
         {/* Guest Banner */}
         {isGuest && (
