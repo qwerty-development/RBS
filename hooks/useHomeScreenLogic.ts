@@ -310,7 +310,6 @@ export function useHomeScreenLogic() {
     fetchRecentlyVisitedRestaurants,
   ]);
 
-
   // Event Handlers
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);

@@ -29,8 +29,8 @@ import AnimatedSplashScreen from "@/components/AnimatedSplashScreen";
 
 // Initialize Sentry
 Sentry.init({
-  dsn: 'https://3912f8e5caacfa65785887c17e0bf45e@o4510062241972224.ingest.us.sentry.io/4510062245052416',
-  environment: __DEV__ ? 'development' : 'production',
+  dsn: "https://3912f8e5caacfa65785887c17e0bf45e@o4510062241972224.ingest.us.sentry.io/4510062245052416",
+  environment: __DEV__ ? "development" : "production",
   debug: __DEV__,
   enableAutoSessionTracking: true,
   tracesSampleRate: __DEV__ ? 1.0 : 0.1,

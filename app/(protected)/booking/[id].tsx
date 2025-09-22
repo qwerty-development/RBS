@@ -545,7 +545,9 @@ export default function BookingDetailsScreen() {
                   <Calendar size={18} color={colors[colorScheme].primary} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground mb-1">DATE & TIME</Text>
+                  <Text className="text-xs text-muted-foreground mb-1">
+                    DATE & TIME
+                  </Text>
                   <Text className="font-semibold text-base text-primary dark:text-white">
                     {isToday
                       ? "Today"
@@ -579,7 +581,9 @@ export default function BookingDetailsScreen() {
                   <Users size={18} color={colors[colorScheme].primary} />
                 </View>
                 <View>
-                  <Text className="text-xs text-muted-foreground mb-1">GUESTS</Text>
+                  <Text className="text-xs text-muted-foreground mb-1">
+                    GUESTS
+                  </Text>
                   <Text className="font-medium text-foreground">
                     {booking.party_size}{" "}
                     {booking.party_size === 1 ? "Guest" : "Guests"}
@@ -587,22 +591,25 @@ export default function BookingDetailsScreen() {
                 </View>
               </View>
             </View>
-            
+
             {/* Table Preferences */}
-            {booking.table_preferences && booking.table_preferences.length > 0 && (
-              <View className="flex-row items-start gap-3 mb-3 pb-3 border-b border-border">
-                <View className="bg-primary/10 rounded-full p-2 mt-0.5">
-                  <TableIcon size={18} color={colors[colorScheme].primary} />
+            {booking.table_preferences &&
+              booking.table_preferences.length > 0 && (
+                <View className="flex-row items-start gap-3 mb-3 pb-3 border-b border-border">
+                  <View className="bg-primary/10 rounded-full p-2 mt-0.5">
+                    <TableIcon size={18} color={colors[colorScheme].primary} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-xs text-muted-foreground mb-1">
+                      TABLE PREFERENCE
+                    </Text>
+                    <Text className="font-medium text-foreground">
+                      {booking.table_preferences.join(", ")}
+                    </Text>
+                  </View>
                 </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground mb-1">TABLE PREFERENCE</Text>
-                  <Text className="font-medium text-foreground">
-                    {booking.table_preferences.join(", ")}
-                  </Text>
-                </View>
-              </View>
-            )}
-              
+              )}
+
             {/* Special Offer */}
             {appliedOfferDetails && (
               <View className="flex-row items-start gap-3 mb-3 pb-3 border-b border-border">
@@ -610,7 +617,9 @@ export default function BookingDetailsScreen() {
                   <Gift size={18} color="#10b981" />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground mb-1">SPECIAL OFFER</Text>
+                  <Text className="text-xs text-muted-foreground mb-1">
+                    SPECIAL OFFER
+                  </Text>
                   <Text className="font-medium text-foreground">
                     {appliedOfferDetails.title}
                   </Text>
@@ -630,9 +639,11 @@ export default function BookingDetailsScreen() {
               <View className="mt-4">
                 <View className="flex-row items-center gap-2 mb-3">
                   <Info size={16} color={colors[colorScheme].primary} />
-                  <H3 className="text-base font-medium">Additional Information</H3>
+                  <H3 className="text-base font-medium">
+                    Additional Information
+                  </H3>
                 </View>
-                
+
                 <View className="space-y-0">
                   {/* Occasion with purple separator line */}
                   {booking.occasion && (
@@ -641,7 +652,9 @@ export default function BookingDetailsScreen() {
                         <View className="bg-purple-100 dark:bg-purple-800/50 rounded-full p-1.5">
                           <Gift size={14} color="#8b5cf6" />
                         </View>
-                        <Text className="font-medium text-sm text-purple-800 dark:text-purple-200">Occasion</Text>
+                        <Text className="font-medium text-sm text-purple-800 dark:text-purple-200">
+                          Occasion
+                        </Text>
                       </View>
                       <Text className="text-foreground text-sm capitalize ml-8 mb-3">
                         {booking.occasion}
@@ -651,20 +664,23 @@ export default function BookingDetailsScreen() {
                   )}
 
                   {/* Dietary Notes with amber separator line */}
-                  {booking.dietary_notes && booking.dietary_notes.length > 0 && (
-                    <View className="pt-3 pb-3">
-                      <View className="flex-row items-center gap-2 mb-1">
-                        <View className="bg-amber-100 dark:bg-amber-800/50 rounded-full p-1.5">
-                          <Utensils size={14} color="#f59e0b" />
+                  {booking.dietary_notes &&
+                    booking.dietary_notes.length > 0 && (
+                      <View className="pt-3 pb-3">
+                        <View className="flex-row items-center gap-2 mb-1">
+                          <View className="bg-amber-100 dark:bg-amber-800/50 rounded-full p-1.5">
+                            <Utensils size={14} color="#f59e0b" />
+                          </View>
+                          <Text className="font-medium text-sm text-amber-800 dark:text-amber-200">
+                            Dietary Notes
+                          </Text>
                         </View>
-                        <Text className="font-medium text-sm text-amber-800 dark:text-amber-200">Dietary Notes</Text>
+                        <Text className="text-foreground text-sm ml-8 mb-3">
+                          {booking.dietary_notes.join(", ")}
+                        </Text>
+                        <View className="h-0.5 bg-amber-200 dark:bg-amber-800" />
                       </View>
-                      <Text className="text-foreground text-sm ml-8 mb-3">
-                        {booking.dietary_notes.join(", ")}
-                      </Text>
-                      <View className="h-0.5 bg-amber-200 dark:bg-amber-800" />
-                    </View>
-                  )}
+                    )}
 
                   {/* Special Requests with blue separator line */}
                   {booking.special_requests && (
@@ -673,7 +689,9 @@ export default function BookingDetailsScreen() {
                         <View className="bg-blue-100 dark:bg-blue-800/50 rounded-full p-1.5">
                           <MessageSquare size={14} color="#3b82f6" />
                         </View>
-                        <Text className="font-medium text-sm text-blue-800 dark:text-blue-200">Special Requests</Text>
+                        <Text className="font-medium text-sm text-blue-800 dark:text-blue-200">
+                          Special Requests
+                        </Text>
                       </View>
                       <Text className="text-foreground text-sm ml-8 mb-3">
                         {booking.special_requests.trim()}

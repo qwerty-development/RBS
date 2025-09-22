@@ -26,7 +26,8 @@
       "Bash(git restore:*)",
       "mcp__supabase__get_logs",
       "Bash(npm run android:*)",
-      "mcp__supabase__execute_sql"
+      "mcp__supabase__execute_sql",
+      "Bash(node:*)"
     ],
     "deny": []
   },

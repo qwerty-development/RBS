@@ -8,14 +8,12 @@ import {
   Sparkles,
   Users,
   Crown,
-  Car,
   TreePine,
   Utensils,
   Eye,
   ChevronDown,
   ChevronUp,
   User,
-  Clipboard,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
@@ -395,16 +393,47 @@ export const TimeSlots = memo<{
     }, [slots]);
 
     if (error) {
+      // Detect closure errors - any error that's not a generic "Failed to load" message
+      const isClosureError = error && (
+        !error.includes("Failed to load") ||
+        error.includes("Sold Out") ||
+        error.includes("Closed") ||
+        error.includes("closed") ||
+        error.toLowerCase().includes("renovation") ||
+        error.toLowerCase().includes("holiday") ||
+        !error.startsWith("Failed")
+      );
+
       return (
         <View className="bg-card border border-border rounded-xl p-4">
           <View className="flex-row items-center gap-3 mb-3">
-            <Clock size={20} color="#ef4444" />
+            <Clock size={20} color="#3b82f6" />
             <Text className="font-semibold text-lg">Available Times</Text>
           </View>
           <View className="items-center py-8">
-            <Text className="text-red-600 dark:text-red-400 text-center">
-              {error}
-            </Text>
+            {isClosureError ? (
+              // Show closure reason with orange styling
+              <View className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800 w-full">
+                <View className="flex-row items-start gap-3">
+                  <Clock size={20} color="#f97316" className="mt-0.5 flex-shrink-0" />
+                  <View className="flex-1">
+                    <Text className="font-semibold text-orange-800 dark:text-orange-200 mb-2 text-center">
+                      Restaurant Closed
+                    </Text>
+                    <Text className="text-orange-700 dark:text-orange-300 text-center font-medium">
+                      {error}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            ) : (
+              // Show generic error with red styling
+              <View className="bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800 w-full">
+                <Text className="text-red-600 dark:text-red-400 text-center font-medium">
+                  {error}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       );
@@ -433,6 +462,33 @@ export const TimeSlots = memo<{
     }
 
     if (processedSlots.length === 0) {
+      // If no slots and no error, but we're not loading, show enhanced message
+      if (!loading && !error) {
+
+        // Show a more helpful message that hints at closure
+        return (
+          <View className="bg-card border border-border rounded-xl p-4">
+            <View className="flex-row items-center gap-3 mb-3">
+              <Clock size={20} color="#3b82f6" />
+              <Text className="font-semibold text-lg">Available Times</Text>
+            </View>
+            <View className="items-center py-8">
+              <View className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800 w-full">
+                <Text className="text-yellow-800 dark:text-yellow-200 text-center font-medium">
+                  No available times for this date and party size.
+                </Text>
+                <Text className="text-sm text-yellow-600 dark:text-yellow-400 text-center mt-2">
+                  Restaurant may be closed or fully booked.
+                </Text>
+                <Text className="text-sm text-yellow-600 dark:text-yellow-400 text-center mt-1">
+                  Try selecting a different date or smaller party size.
+                </Text>
+              </View>
+            </View>
+          </View>
+        );
+      }
+
       return (
         <View className="bg-card border border-border rounded-xl p-4">
           <View className="flex-row items-center gap-3 mb-3">
@@ -541,7 +597,7 @@ export const TableOptions = memo<{
   onBack?: () => void;
   loading: boolean;
   isConfirming?: boolean;
-}>(({ slotOptions, onConfirm, onBack, loading, isConfirming = false }) => {
+}>(({ slotOptions, onConfirm, loading, isConfirming = false }) => {
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const confirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);

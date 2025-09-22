@@ -15,6 +15,12 @@ export interface TimeSlotBasic {
   available: boolean;
 }
 
+export interface AvailabilityError {
+  type: "closure" | "general";
+  message: string;
+  closureReason?: string;
+}
+
 export interface SlotTableOptions {
   time: string;
   options: TableOption[];
@@ -249,8 +255,18 @@ export class AvailabilityService {
       // UPDATED: Get operating hours with multiple shifts
       const operatingHours = this.getOperatingHoursForDate(restaurant, date);
 
-      // If restaurant is closed on this date, return empty slots
+      // If restaurant is closed on this date, throw error with closure reason
       if (operatingHours.isClosed || operatingHours.shifts.length === 0) {
+
+        // DON'T cache when there's a closure - always throw error for UI handling
+        if (operatingHours.closureReason) {
+          const error = new Error(operatingHours.closureReason) as any;
+          error.type = "closure";
+          error.closureReason = operatingHours.closureReason;
+          throw error;
+        }
+
+        // Only cache empty results if there's no closure reason (general unavailability)
         this.timeSlotsCache.set(cacheKey, []);
         return [];
       }
@@ -311,8 +327,15 @@ export class AvailabilityService {
       }
 
       return availableSlots;
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error getting available time slots:", error);
+
+      // Re-throw closure errors so they reach the UI
+      if (error?.type === "closure") {
+        throw error;
+      }
+
+      // Return empty array for other types of errors
       return [];
     }
   }
@@ -617,9 +640,11 @@ export class AvailabilityService {
   ): {
     shifts: { openTime: string; closeTime: string }[];
     isClosed: boolean;
+    closureReason?: string;
   } {
     const dateStr = format(date, "yyyy-MM-dd");
     const dayOfWeek = format(date, "EEEE").toLowerCase();
+
 
     // Check for closures first
     const closure = restaurantConfig.closures?.find(
@@ -627,8 +652,9 @@ export class AvailabilityService {
         dateStr >= closure.start_date && dateStr <= closure.end_date,
     );
 
+
     if (closure) {
-      return { shifts: [], isClosed: true };
+      return { shifts: [], isClosed: true, closureReason: closure.reason };
     }
 
     // Check for special hours

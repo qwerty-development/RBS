@@ -357,24 +357,34 @@ export default function RequestSentScreen() {
 
             {/* Clean Date and Time Display */}
             <View className="bg-white dark:bg-gray-800 p-4 rounded-lg mb-6 border border-border">
-              <Text className="text-center text-sm text-muted-foreground mb-1">DATE & TIME</Text>
-              <Text className="text-center text-xl font-bold mb-1">{formattedDate}</Text>
-
+              <Text className="text-center text-sm text-muted-foreground mb-1">
+                DATE & TIME
+              </Text>
+              <Text className="text-center text-xl font-bold mb-1">
+                {formattedDate}
+              </Text>
             </View>
 
             {/* Guest Information */}
             <View className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-border mb-4">
               <View className="flex-row items-center gap-2 mb-3">
                 <Users size={18} color="#666" />
-                <Text className="font-semibold text-base">Guest Information</Text>
+                <Text className="font-semibold text-base">
+                  Guest Information
+                </Text>
               </View>
               <Text className="text-lg font-medium text-primary mb-2">
-                {params.partySize} {parseInt(params.partySize) === 1 ? "Guest" : "Guests"}
+                {params.partySize}{" "}
+                {parseInt(params.partySize) === 1 ? "Guest" : "Guests"}
               </Text>
               {booking && booking.occasion && booking.occasion !== "none" && (
                 <View className="mt-2">
-                  <Text className="text-sm text-muted-foreground mb-1">Occasion</Text>
-                  <Text className="text-sm font-medium capitalize text-primary">{booking.occasion}</Text>
+                  <Text className="text-sm text-muted-foreground mb-1">
+                    Occasion
+                  </Text>
+                  <Text className="text-sm font-medium capitalize text-primary">
+                    {booking.occasion}
+                  </Text>
                 </View>
               )}
             </View>
@@ -383,12 +393,18 @@ export default function RequestSentScreen() {
             <View className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-border mb-4">
               <View className="flex-row items-center gap-2 mb-3">
                 <TableIcon size={18} color="#666" />
-                <Text className="font-semibold text-base">Table Preferences</Text>
+                <Text className="font-semibold text-base">
+                  Table Preferences
+                </Text>
               </View>
               {booking && booking.table_preferences ? (
-                <Text className="text-sm text-muted-foreground">{booking.table_preferences}</Text>
+                <Text className="text-sm text-muted-foreground">
+                  {booking.table_preferences}
+                </Text>
               ) : (
-                <Text className="text-sm text-muted-foreground italic">No specific preferences</Text>
+                <Text className="text-sm text-muted-foreground italic">
+                  No specific preferences
+                </Text>
               )}
             </View>
 
@@ -397,9 +413,13 @@ export default function RequestSentScreen() {
               <View className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-border mb-4">
                 <View className="flex-row items-center gap-2 mb-3">
                   <Info size={18} color="#666" />
-                  <Text className="font-semibold text-base">Special Requests</Text>
+                  <Text className="font-semibold text-base">
+                    Special Requests
+                  </Text>
                 </View>
-                <Text className="text-sm text-muted-foreground">{booking.special_requests}</Text>
+                <Text className="text-sm text-muted-foreground">
+                  {booking.special_requests}
+                </Text>
               </View>
             )}
 
@@ -410,7 +430,9 @@ export default function RequestSentScreen() {
                   <AlertTriangle size={18} color="#f59e0b" />
                   <Text className="font-semibold text-base">Dietary Notes</Text>
                 </View>
-                <Text className="text-sm text-muted-foreground">{booking.dietary_notes}</Text>
+                <Text className="text-sm text-muted-foreground">
+                  {booking.dietary_notes}
+                </Text>
               </View>
             )}
           </View>

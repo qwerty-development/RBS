@@ -600,7 +600,7 @@ export function BookingCard({
           booking.occasion ? `🎉 Occasion: ${booking.occasion}` : "",
           "",
           "⏰ Please arrive 10-15 minutes early",
-          "📱 Booked via TableReserve",
+          "📱 Booked via Plate",
         ]
           .filter(Boolean)
           .join("\n"),

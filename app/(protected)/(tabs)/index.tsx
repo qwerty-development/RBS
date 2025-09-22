@@ -69,7 +69,6 @@ export default function HomeScreen() {
 
   const { offers: specialOffers, loading: offersLoading } = useOffers();
 
-
   // --- Animation State ---
   const scrollY = useRef(new Animated.Value(0)).current;
   const [totalHeaderHeight, setTotalHeaderHeight] = useState(0);
@@ -101,7 +100,6 @@ export default function HomeScreen() {
 
   return (
     <View className="flex-1 bg-background">
-      
       <HomeHeader
         profile={profile}
         isGuest={isGuest} // Pass guest status
@@ -113,7 +111,6 @@ export default function HomeScreen() {
         onLocationPress={handleLocationPress}
         onProfilePress={isGuest ? convertGuestToUser : handleProfilePress}
       />
-      
 
       <Animated.ScrollView
         ref={(ref) => {
@@ -135,7 +132,6 @@ export default function HomeScreen() {
         }
       >
         <View style={{ height: totalHeaderHeight }} />
-        
 
         {/* Guest Banner */}
         {isGuest && (
@@ -173,12 +169,12 @@ export default function HomeScreen() {
             </View>
           </ScrollView>
         </View>
-        
+
         {/* Loyalty Widget moved above banners - only show for signed-in users */}
         {!isGuest && (
           <LoyaltyWidget
             loyaltyPoints={profile?.loyalty_points || 0}
-            onPress={() => router.push('/profile/loyalty')}
+            onPress={() => router.push("/profile/loyalty")}
             colorScheme={colorScheme}
           />
         )}
