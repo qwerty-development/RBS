@@ -597,7 +597,7 @@ export const TableOptions = memo<{
   onBack?: () => void;
   loading: boolean;
   isConfirming?: boolean;
-}>(({ slotOptions, onConfirm, onBack, loading, isConfirming = false }) => {
+}>(({ slotOptions, onConfirm, loading, isConfirming = false }) => {
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const confirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
