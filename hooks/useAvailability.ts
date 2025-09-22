@@ -121,7 +121,8 @@ export function useAvailability({
         let errorMessage = "Failed to load available times";
         if (err?.type === "closure") {
           // Use the error message (which contains the closure reason)
-          errorMessage = err.message || err.closureReason || "Restaurant is closed";
+          errorMessage =
+            err.message || err.closureReason || "Restaurant is closed";
         }
 
         setState((prev) => ({

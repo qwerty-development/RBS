@@ -1716,8 +1716,6 @@ export default function AvailabilitySelectionScreen() {
                 </View>
               )}
 
-             
-
               {/* Loyalty Points Display for Time Step - only when time is selected */}
               {bookingDateTime && !isRequestBooking && hasLoyaltyProgram && (
                 <LoyaltyPointsDisplay

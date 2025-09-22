@@ -257,7 +257,6 @@ export class AvailabilityService {
 
       // If restaurant is closed on this date, throw error with closure reason
       if (operatingHours.isClosed || operatingHours.shifts.length === 0) {
-
         // DON'T cache when there's a closure - always throw error for UI handling
         if (operatingHours.closureReason) {
           const error = new Error(operatingHours.closureReason) as any;
@@ -645,13 +644,11 @@ export class AvailabilityService {
     const dateStr = format(date, "yyyy-MM-dd");
     const dayOfWeek = format(date, "EEEE").toLowerCase();
 
-
     // Check for closures first
     const closure = restaurantConfig.closures?.find(
       (closure: any) =>
         dateStr >= closure.start_date && dateStr <= closure.end_date,
     );
-
 
     if (closure) {
       return { shifts: [], isClosed: true, closureReason: closure.reason };

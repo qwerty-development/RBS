@@ -394,15 +394,15 @@ export const TimeSlots = memo<{
 
     if (error) {
       // Detect closure errors - any error that's not a generic "Failed to load" message
-      const isClosureError = error && (
-        !error.includes("Failed to load") ||
-        error.includes("Sold Out") ||
-        error.includes("Closed") ||
-        error.includes("closed") ||
-        error.toLowerCase().includes("renovation") ||
-        error.toLowerCase().includes("holiday") ||
-        !error.startsWith("Failed")
-      );
+      const isClosureError =
+        error &&
+        (!error.includes("Failed to load") ||
+          error.includes("Sold Out") ||
+          error.includes("Closed") ||
+          error.includes("closed") ||
+          error.toLowerCase().includes("renovation") ||
+          error.toLowerCase().includes("holiday") ||
+          !error.startsWith("Failed"));
 
       return (
         <View className="bg-card border border-border rounded-xl p-4">
@@ -415,7 +415,11 @@ export const TimeSlots = memo<{
               // Show closure reason with orange styling
               <View className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800 w-full">
                 <View className="flex-row items-start gap-3">
-                  <Clock size={20} color="#f97316" className="mt-0.5 flex-shrink-0" />
+                  <Clock
+                    size={20}
+                    color="#f97316"
+                    className="mt-0.5 flex-shrink-0"
+                  />
                   <View className="flex-1">
                     <Text className="font-semibold text-orange-800 dark:text-orange-200 mb-2 text-center">
                       Restaurant Closed
@@ -464,7 +468,6 @@ export const TimeSlots = memo<{
     if (processedSlots.length === 0) {
       // If no slots and no error, but we're not loading, show enhanced message
       if (!loading && !error) {
-
         // Show a more helpful message that hints at closure
         return (
           <View className="bg-card border border-border rounded-xl p-4">
