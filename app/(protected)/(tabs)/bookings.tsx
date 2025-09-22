@@ -1,6 +1,11 @@
 // app/(protected)/(tabs)/bookings.tsx
 import React, { useCallback } from "react";
-import { View, RefreshControl, ScrollView, ActivityIndicator } from "react-native";
+import {
+  View,
+  RefreshControl,
+  ScrollView,
+  ActivityIndicator,
+} from "react-native";
 import { Calendar, Clock, UserPlus, Mail } from "lucide-react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -73,24 +78,36 @@ function BookingsScreenContent() {
       return [];
     }
   }, [activeTab, bookings.upcoming, bookings.past]);
-  
+
   // Reference to track when we're near the end of the list for infinite scrolling
   const flatListRef = React.useRef<ScrollView>(null);
   const onScroll = React.useCallback(
     (event: any) => {
       // Only handle scrolling for past bookings
-      if (activeTab !== "past" || !hasMorePastBookings || loadingMorePastBookings) return;
-      
-      const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+      if (
+        activeTab !== "past" ||
+        !hasMorePastBookings ||
+        loadingMorePastBookings
+      )
+        return;
+
+      const { layoutMeasurement, contentOffset, contentSize } =
+        event.nativeEvent;
       const paddingToBottom = 20; // Load more when within 20px of the bottom
-      const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= 
+      const isCloseToBottom =
+        layoutMeasurement.height + contentOffset.y >=
         contentSize.height - paddingToBottom;
-      
+
       if (isCloseToBottom) {
         loadMorePastBookings();
       }
     },
-    [activeTab, hasMorePastBookings, loadingMorePastBookings, loadMorePastBookings]
+    [
+      activeTab,
+      hasMorePastBookings,
+      loadingMorePastBookings,
+      loadMorePastBookings,
+    ],
   );
 
   // Refresh bookings when the tab becomes focused (handles Android back navigation)
@@ -331,11 +348,14 @@ function BookingsScreenContent() {
               {activeTab === "past" && hasMorePastBookings && (
                 <View className="py-4 items-center">
                   {loadingMorePastBookings ? (
-                    <ActivityIndicator size="small" color={colorScheme === "dark" ? "#ffffff" : "#000000"} />
+                    <ActivityIndicator
+                      size="small"
+                      color={colorScheme === "dark" ? "#ffffff" : "#000000"}
+                    />
                   ) : (
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onPress={loadMorePastBookings}
                       className="mt-2"
                     >

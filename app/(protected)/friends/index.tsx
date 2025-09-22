@@ -223,7 +223,10 @@ export default function FriendsScreen() {
 
   const executeSearch = async () => {
     if (searchQuery.length < 2) {
-      Alert.alert("Search Error", "Please enter at least 2 characters to search");
+      Alert.alert(
+        "Search Error",
+        "Please enter at least 2 characters to search",
+      );
       return;
     }
 
@@ -815,7 +818,7 @@ export default function FriendsScreen() {
               placeholderTextColor="#6b7280"
             />
             {activeTab === "discover" && (
-              <Pressable 
+              <Pressable
                 onPress={executeSearch}
                 className="ml-2 bg-primary px-3 py-1.5 rounded-lg"
                 disabled={searchLoading}
@@ -825,7 +828,9 @@ export default function FriendsScreen() {
                 </Text>
               </Pressable>
             )}
-            {searchLoading && <ActivityIndicator size="small" className="ml-2" />}
+            {searchLoading && (
+              <ActivityIndicator size="small" className="ml-2" />
+            )}
           </View>
         </View>
       )}

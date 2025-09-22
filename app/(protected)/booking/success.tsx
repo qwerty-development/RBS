@@ -375,17 +375,26 @@ export default function BookingSuccessScreen() {
             <View className="items-center">
               <Muted className="text-sm mb-2">YOUR RESERVATION</Muted>
               <View className="flex-row items-center justify-center gap-2 mb-2">
-                <Calendar size={18} color={colorScheme === 'dark' ? '#9ca3af' : '#6b7280'} />
+                <Calendar
+                  size={18}
+                  color={colorScheme === "dark" ? "#9ca3af" : "#6b7280"}
+                />
                 <Text className="text-xl font-bold">
-                  {new Date(params.bookingDate || '').toLocaleDateString('en-US', {
-                    weekday: 'long',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
+                  {new Date(params.bookingDate || "").toLocaleDateString(
+                    "en-US",
+                    {
+                      weekday: "long",
+                      month: "long",
+                      day: "numeric",
+                    },
+                  )}
                 </Text>
               </View>
               <View className="flex-row items-center justify-center gap-2">
-                <Clock size={18} color={colorScheme === 'dark' ? '#9ca3af' : '#6b7280'} />
+                <Clock
+                  size={18}
+                  color={colorScheme === "dark" ? "#9ca3af" : "#6b7280"}
+                />
                 <Text className="text-3xl font-extrabold text-primary">
                   {params.bookingTime}
                 </Text>

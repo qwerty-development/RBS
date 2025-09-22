@@ -1788,7 +1788,7 @@ VERIFICATION:
 
 HOW TO REQUEST:
 • In-app data export feature
-• Email request to privacy@tablereserve.com
+• Email request to privacy@plate.com
 • Written request with identity verification
 • Response within 30 days of valid request`,
         },

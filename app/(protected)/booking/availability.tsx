@@ -1716,22 +1716,7 @@ export default function AvailabilitySelectionScreen() {
                 </View>
               )}
 
-              {/* Error message */}
-              {error && (
-                <View className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 border border-red-200 dark:border-red-800">
-                  <Text className="text-red-600 dark:text-red-400 text-sm font-medium">
-                    {error}
-                  </Text>
-                  <Pressable
-                    onPress={() => refresh(true)}
-                    className="mt-2 self-start"
-                  >
-                    <Text className="text-red-600 dark:text-red-400 text-sm underline">
-                      Retry
-                    </Text>
-                  </Pressable>
-                </View>
-              )}
+             
 
               {/* Loyalty Points Display for Time Step - only when time is selected */}
               {bookingDateTime && !isRequestBooking && hasLoyaltyProgram && (

@@ -209,8 +209,10 @@ export default function NotificationsScreen() {
               {(() => {
                 const date = new Date(item.created_at);
                 const now = new Date();
-                const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-                
+                const diffInHours = Math.floor(
+                  (now.getTime() - date.getTime()) / (1000 * 60 * 60),
+                );
+
                 if (diffInHours < 1) {
                   return "Just now";
                 } else if (diffInHours < 24) {
@@ -222,7 +224,7 @@ export default function NotificationsScreen() {
                     month: "short",
                     day: "numeric",
                     hour: "2-digit",
-                    minute: "2-digit"
+                    minute: "2-digit",
                   });
                 }
               })()}

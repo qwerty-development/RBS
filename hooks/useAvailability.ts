@@ -112,13 +112,21 @@ export function useAvailability({
         }));
 
         lastParamsRef.current = paramsKey;
-      } catch (err) {
+      } catch (err: any) {
         if (signal?.aborted) return;
 
         console.error("Error fetching time slots:", err);
+
+        // Check if this is a closure error
+        let errorMessage = "Failed to load available times";
+        if (err?.type === "closure") {
+          // Use the error message (which contains the closure reason)
+          errorMessage = err.message || err.closureReason || "Restaurant is closed";
+        }
+
         setState((prev) => ({
           ...prev,
-          error: "Failed to load available times",
+          error: errorMessage,
           timeSlots: [],
           timeSlotsLoading: false,
         }));

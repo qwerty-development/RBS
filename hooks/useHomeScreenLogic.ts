@@ -273,7 +273,6 @@ export function useHomeScreenLogic() {
     fetchNearbyRestaurants,
   ]);
 
-
   // Event Handlers
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);

@@ -90,7 +90,7 @@ export function useBookings() {
   );
   const [error, setError] = useState<Error | null>(null);
   const [isInitialized, setIsInitialized] = useState(false);
-  
+
   // Pagination for past bookings
   const [pastBookingsPage, setPastBookingsPage] = useState(1);
   const [hasMorePastBookings, setHasMorePastBookings] = useState(true);
@@ -865,17 +865,18 @@ export function useBookings() {
   // Load more past bookings function
   const loadMorePastBookings = useCallback(async () => {
     // Don't load more if we're already loading or there are no more bookings
-    if (loadingMorePastBookings || !hasMorePastBookings || !user?.id || isGuest) return;
-    
+    if (loadingMorePastBookings || !hasMorePastBookings || !user?.id || isGuest)
+      return;
+
     setLoadingMorePastBookings(true);
-    
+
     try {
       const nextPage = pastBookingsPage + 1;
       const startIndex = pastBookingsPage * ITEMS_PER_PAGE;
       const endIndex = startIndex + ITEMS_PER_PAGE - 1;
-      
+
       const now = new Date().toISOString();
-      
+
       // Fetch the next page of past bookings
       const { data: ownedPast, error } = await supabase
         .from("bookings")
@@ -891,9 +892,9 @@ export function useBookings() {
         )
         .order("booking_time", { ascending: false })
         .range(startIndex, endIndex);
-      
+
       if (error) throw error;
-      
+
       if (ownedPast && ownedPast.length > 0) {
         // Format the additional bookings
         const formattedBookings = ownedPast.map(
@@ -904,11 +905,11 @@ export function useBookings() {
             is_invitee: false,
           }),
         );
-        
+
         // Append to existing past bookings
         setPastBookings([...pastBookings, ...formattedBookings]);
         setPastBookingsPage(nextPage);
-        
+
         // Check if we have more bookings to load
         setHasMorePastBookings(formattedBookings.length === ITEMS_PER_PAGE);
       } else {
@@ -919,8 +920,17 @@ export function useBookings() {
     } finally {
       setLoadingMorePastBookings(false);
     }
-  }, [pastBookingsPage, loadingMorePastBookings, hasMorePastBookings, user, isGuest, pastBookings, setPastBookings, ITEMS_PER_PAGE]);
-  
+  }, [
+    pastBookingsPage,
+    loadingMorePastBookings,
+    hasMorePastBookings,
+    user,
+    isGuest,
+    pastBookings,
+    setPastBookings,
+    ITEMS_PER_PAGE,
+  ]);
+
   // Refresh Handler
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
@@ -1017,7 +1027,7 @@ export function useBookings() {
     leaveBooking,
     rebookRestaurant,
     reviewBooking,
-    
+
     // Pagination for past bookings
     loadingMorePastBookings,
     hasMorePastBookings,

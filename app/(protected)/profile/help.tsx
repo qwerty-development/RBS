@@ -148,7 +148,7 @@ const CONTACT_METHODS: ContactMethod[] = [
     type: "email",
     title: "Email Support",
     subtitle: "Get help via email",
-    value: "support@tablereserve.com",
+    value: "support@plate.com",
     icon: Mail,
     available: true,
     hours: "Response within 24 hours",
