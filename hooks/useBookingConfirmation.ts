@@ -167,22 +167,7 @@ export const useBookingConfirmation = () => {
       // --- BASIC TIER WAITLIST TIME CHECK ---
       // Check if this is a scheduled waitlist time for basic tier restaurants
       try {
-        console.log(
-          "🔍 WAITLIST DEBUG: Starting waitlist check for restaurant:",
-          restaurantId,
-        );
-        console.log(
-          "🔍 WAITLIST DEBUG: Booking time:",
-          bookingTime.toISOString(),
-        );
-        console.log(
-          "🔍 WAITLIST DEBUG: Check date:",
-          bookingTime.toISOString().split("T")[0],
-        );
-        console.log(
-          "🔍 WAITLIST DEBUG: Check time:",
-          bookingTime.toTimeString().substring(0, 5),
-        );
+       
 
         // Get restaurant info to check tier
         const { data: restaurant, error: restaurantError } = await supabase
@@ -191,15 +176,10 @@ export const useBookingConfirmation = () => {
           .eq("id", restaurantId)
           .single();
 
-        console.log("🔍 WAITLIST DEBUG: Restaurant query result:", {
-          restaurant,
-          restaurantError,
-        });
+      
 
         if (!restaurantError && restaurant?.tier === "basic") {
-          console.log(
-            "🔍 WAITLIST DEBUG: Restaurant is basic tier, checking waitlist time...",
-          );
+       
 
           // Check if this is a waitlist time
           const { data: isWaitlistTime, error: waitlistCheckError } =
@@ -209,15 +189,10 @@ export const useBookingConfirmation = () => {
               check_time: bookingTime.toTimeString().substring(0, 5),
             });
 
-          console.log("🔍 WAITLIST DEBUG: RPC is_waitlist_time result:", {
-            isWaitlistTime,
-            waitlistCheckError,
-          });
+        
 
           if (!waitlistCheckError && isWaitlistTime) {
-            console.log(
-              "🔍 WAITLIST DEBUG: ✅ IS WAITLIST TIME - showing alert!",
-            );
+          
             // This is a scheduled waitlist time - redirect to waitlist creation
             Alert.alert(
               "Scheduled Waitlist Time",

@@ -799,11 +799,7 @@ export class AvailabilityService {
     if (cached !== undefined) return cached;
 
     try {
-      console.log("🔍 AVAILABILITY DEBUG: Checking waitlist time for:", {
-        restaurantId,
-        date: date.toISOString().split("T")[0],
-        time,
-      });
+      
 
       // Use the existing database function to check waitlist time
       const { data: isWaitlistTime } = await supabase.rpc("is_waitlist_time", {
@@ -812,11 +808,11 @@ export class AvailabilityService {
         check_time: time,
       });
 
-      console.log("🔍 AVAILABILITY DEBUG: RPC result:", { isWaitlistTime });
+   
 
       const result = Boolean(isWaitlistTime);
       this.restaurantConfigCache.set(cacheKey, result);
-      console.log("🔍 AVAILABILITY DEBUG: Final result for", time, ":", result);
+
       return result;
     } catch (error) {
       console.warn("Error checking waitlist time:", error);
