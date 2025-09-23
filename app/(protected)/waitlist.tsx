@@ -24,29 +24,22 @@ import {
   Users,
   MapPin,
   AlertCircle,
-  CheckCircle,
   XCircle,
   Info,
   History,
-  Bell,
 } from "lucide-react-native";
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
 import type { WaitingStatus } from "@/types/waitlist";
 
 // Define tab types for waitlist status filtering
-type WaitlistTab = "active" | "notified" | "history";
+type WaitlistTab = "active" | "history";
 
 // Define tab configuration
 const WAITLIST_TABS = [
   {
     id: "active" as WaitlistTab,
     title: "Active",
-    statuses: ["active"] as WaitingStatus[],
-  },
-  {
-    id: "notified" as WaitlistTab,
-    title: "Notified",
-    statuses: ["notified"] as WaitingStatus[],
+    statuses: ["active", "notified"] as WaitingStatus[],
   },
   {
     id: "history" as WaitlistTab,
@@ -77,7 +70,6 @@ export default function WaitlistScreen() {
   const tabCounts = useMemo(() => {
     const counts: Record<WaitlistTab, number> = {
       active: 0,
-      notified: 0,
       history: 0,
     };
 
@@ -127,7 +119,7 @@ export default function WaitlistScreen() {
       case "notified":
         return AlertCircle;
       case "booked":
-        return CheckCircle;
+        return Calendar; // Using Calendar instead of CheckCircle
       case "expired":
         return XCircle;
       default:
@@ -150,21 +142,6 @@ export default function WaitlistScreen() {
     );
   };
 
-  const handleBookNow = (entry: any) => {
-    // Navigate to booking screen with pre-filled data
-    router.push({
-      pathname: "/(protected)/booking/availability",
-      params: {
-        restaurantId: entry.restaurant_id,
-        date: entry.desired_date,
-        time: entry.desired_time_range.split("-")[0],
-        partySize: entry.party_size.toString(),
-        fromWaitlist: "true",
-        waitlistId: entry.id,
-      },
-    });
-  };
-
   // Helper function to get empty state for each tab
   const getEmptyState = () => {
     switch (activeTab) {
@@ -176,13 +153,6 @@ export default function WaitlistScreen() {
             "You're not currently on any restaurant waitlists. Join one when tables aren't available for your preferred time.",
           actionLabel: "Browse Restaurants",
           onAction: () => router.push("/(protected)/(tabs)/search"),
-        };
-      case "notified":
-        return {
-          icon: Bell,
-          title: "No Notifications",
-          subtitle:
-            "You haven't been notified about any available tables recently.",
         };
       case "history":
         return {
@@ -253,14 +223,9 @@ export default function WaitlistScreen() {
               const waitlistMessage = getWaitlistEntryMessage(entry);
 
               return (
-                <Pressable
+                <View
                   key={entry.id}
                   className="bg-card rounded-lg p-4 border border-border"
-                  onPress={() => {
-                    if (isNotified) {
-                      handleBookNow(entry);
-                    }
-                  }}
                 >
                   {/* Restaurant Info */}
                   <View className="flex-row items-start justify-between mb-3">
@@ -370,7 +335,7 @@ export default function WaitlistScreen() {
                         </Text>
                       </View>
                       <Text className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-                        A table is ready! Tap to book now (expires in 15 min)
+                        A table was available for your requested time
                       </Text>
                     </View>
                   )}
@@ -384,17 +349,7 @@ export default function WaitlistScreen() {
 
                   {/* Actions */}
                   <View className="flex-row gap-2 mt-4">
-                    {isNotified ? (
-                      <Button
-                        className="flex-1"
-                        onPress={() => handleBookNow(entry)}
-                      >
-                        <CheckCircle size={16} color="white" />
-                        <Text className="text-primary-foreground font-medium ml-2">
-                          Book Now
-                        </Text>
-                      </Button>
-                    ) : entry.status === "active" ? (
+                    {entry.status === "active" ? (
                       <>
                         <Button
                           variant="outline"
@@ -418,45 +373,22 @@ export default function WaitlistScreen() {
                         </Button>
                       </>
                     ) : (
-                      // For history entries (expired, cancelled, booked)
-                      <View className="flex-row gap-2 w-full">
-                        <Button
-                          variant="outline"
-                          className="flex-1"
-                          onPress={() =>
-                            router.push({
-                              pathname: "/(protected)/restaurant/[id]",
-                              params: { id: entry.restaurant_id },
-                            })
-                          }
-                        >
-                          <Text className="font-medium">View Restaurant</Text>
-                        </Button>
-                        {(entry.status === "expired" ||
-                          entry.status === "cancelled") && (
-                          <Button
-                            className="flex-1"
-                            onPress={() =>
-                              router.push({
-                                pathname: "/(protected)/booking/availability",
-                                params: {
-                                  restaurantId: entry.restaurant_id,
-                                  date: entry.desired_date,
-                                  time: entry.desired_time_range.split("-")[0],
-                                  partySize: entry.party_size.toString(),
-                                },
-                              })
-                            }
-                          >
-                            <Text className="text-primary-foreground font-medium">
-                              Book Again
-                            </Text>
-                          </Button>
-                        )}
-                      </View>
+                      // For all other entries (notified, expired, cancelled, booked) - view only
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onPress={() =>
+                          router.push({
+                            pathname: "/(protected)/restaurant/[id]",
+                            params: { id: entry.restaurant_id },
+                          })
+                        }
+                      >
+                        <Text className="font-medium">View Restaurant</Text>
+                      </Button>
                     )}
                   </View>
-                </Pressable>
+                </View>
               );
             })}
           </View>

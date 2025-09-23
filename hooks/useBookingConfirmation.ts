@@ -167,8 +167,6 @@ export const useBookingConfirmation = () => {
       // --- BASIC TIER WAITLIST TIME CHECK ---
       // Check if this is a scheduled waitlist time for basic tier restaurants
       try {
-       
-
         // Get restaurant info to check tier
         const { data: restaurant, error: restaurantError } = await supabase
           .from("restaurants")
@@ -176,11 +174,7 @@ export const useBookingConfirmation = () => {
           .eq("id", restaurantId)
           .single();
 
-      
-
         if (!restaurantError && restaurant?.tier === "basic") {
-       
-
           // Check if this is a waitlist time
           const { data: isWaitlistTime, error: waitlistCheckError } =
             await supabase.rpc("is_waitlist_time", {
@@ -189,10 +183,7 @@ export const useBookingConfirmation = () => {
               check_time: bookingTime.toTimeString().substring(0, 5),
             });
 
-        
-
           if (!waitlistCheckError && isWaitlistTime) {
-          
             // This is a scheduled waitlist time - redirect to waitlist creation
             Alert.alert(
               "Scheduled Waitlist Time",
