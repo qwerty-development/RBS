@@ -1,7 +1,7 @@
 // app/(protected)/waitlist.tsx
 // Mobile app waitlist screen for React Native
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   ScrollView,
@@ -14,7 +14,9 @@ import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { H2, H3, Muted } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
-import { useWaitlist } from "@/hooks/useWaitlist";
+import { TabButton } from "@/components/ui/tab-button";
+import { EmptyState } from "@/components/ui/empty-state";
+import { useWaitlist, getWaitlistEntryMessage } from "@/hooks/useWaitlist";
 import { useRouter } from "expo-router";
 import {
   Clock,
@@ -24,13 +26,71 @@ import {
   AlertCircle,
   CheckCircle,
   XCircle,
+  Info,
+  History,
+  Bell,
 } from "lucide-react-native";
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
+import type { WaitingStatus } from "@/types/waitlist";
+
+// Define tab types for waitlist status filtering
+type WaitlistTab = "active" | "notified" | "history";
+
+// Define tab configuration
+const WAITLIST_TABS = [
+  {
+    id: "active" as WaitlistTab,
+    title: "Active",
+    statuses: ["active"] as WaitingStatus[],
+  },
+  {
+    id: "notified" as WaitlistTab,
+    title: "Notified",
+    statuses: ["notified"] as WaitingStatus[],
+  },
+  {
+    id: "history" as WaitlistTab,
+    title: "History",
+    statuses: ["booked", "expired", "cancelled"] as WaitingStatus[],
+  },
+];
 
 export default function WaitlistScreen() {
   const router = useRouter();
   const { myWaitlist, loading, getMyWaitlist, leaveWaitlist, isAuthenticated } =
     useWaitlist();
+
+  // Tab state for filtering waitlist entries
+  const [activeTab, setActiveTab] = useState<WaitlistTab>("active");
+
+  // Filter waitlist entries based on active tab
+  const filteredWaitlist = useMemo(() => {
+    const currentTab = WAITLIST_TABS.find((tab) => tab.id === activeTab);
+    if (!currentTab) return [];
+
+    return myWaitlist.filter((entry) =>
+      currentTab.statuses.includes(entry.status),
+    );
+  }, [myWaitlist, activeTab]);
+
+  // Count entries for each tab
+  const tabCounts = useMemo(() => {
+    const counts: Record<WaitlistTab, number> = {
+      active: 0,
+      notified: 0,
+      history: 0,
+    };
+
+    myWaitlist.forEach((entry) => {
+      WAITLIST_TABS.forEach((tab) => {
+        if (tab.statuses.includes(entry.status)) {
+          counts[tab.id]++;
+        }
+      });
+    });
+
+    return counts;
+  }, [myWaitlist]);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -105,6 +165,41 @@ export default function WaitlistScreen() {
     });
   };
 
+  // Helper function to get empty state for each tab
+  const getEmptyState = () => {
+    switch (activeTab) {
+      case "active":
+        return {
+          icon: Clock,
+          title: "No Active Waitlists",
+          subtitle:
+            "You're not currently on any restaurant waitlists. Join one when tables aren't available for your preferred time.",
+          actionLabel: "Browse Restaurants",
+          onAction: () => router.push("/(protected)/(tabs)/search"),
+        };
+      case "notified":
+        return {
+          icon: Bell,
+          title: "No Notifications",
+          subtitle:
+            "You haven't been notified about any available tables recently.",
+        };
+      case "history":
+        return {
+          icon: History,
+          title: "No Waitlist History",
+          subtitle:
+            "Your completed, expired, and cancelled waitlist entries will appear here.",
+        };
+      default:
+        return {
+          icon: Clock,
+          title: "No Waitlist Entries",
+          subtitle: "You haven't joined any waitlists yet.",
+        };
+    }
+  };
+
   if (loading && myWaitlist.length === 0) {
     return (
       <SafeAreaView className="flex-1 bg-background">
@@ -126,35 +221,36 @@ export default function WaitlistScreen() {
         <Muted>Your restaurant waiting list entries</Muted>
       </View>
 
+      {/* Tabs */}
+      <View className="flex-row border-b border-border bg-background">
+        {WAITLIST_TABS.map((tab) => (
+          <TabButton
+            key={tab.id}
+            title={tab.title}
+            isActive={activeTab === tab.id}
+            onPress={() => setActiveTab(tab.id)}
+            count={tabCounts[tab.id]}
+          />
+        ))}
+      </View>
+
       <ScrollView
         className="flex-1"
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={getMyWaitlist} />
         }
       >
-        {myWaitlist.length === 0 ? (
+        {filteredWaitlist.length === 0 ? (
           <View className="flex-1 items-center justify-center py-20">
-            <Clock size={48} color="#9ca3af" />
-            <H3 className="mt-4">No Waitlist Entries</H3>
-            <Muted className="mt-2 text-center px-8">
-              Join a restaurant's waitlist when tables aren't available for your
-              preferred time
-            </Muted>
-            <Button
-              className="mt-6"
-              onPress={() => router.push("/(protected)/(tabs)/search")}
-            >
-              <Text className="text-primary-foreground font-medium">
-                Browse Restaurants
-              </Text>
-            </Button>
+            <EmptyState {...getEmptyState()} />
           </View>
         ) : (
           <View className="p-4 space-y-4">
-            {myWaitlist.map((entry) => {
+            {filteredWaitlist.map((entry) => {
               const StatusIcon = getStatusIcon(entry.status);
               const statusColor = getStatusColor(entry.status);
               const isNotified = entry.status === "notified";
+              const waitlistMessage = getWaitlistEntryMessage(entry);
 
               return (
                 <Pressable
@@ -179,19 +275,67 @@ export default function WaitlistScreen() {
                         </View>
                       )}
                     </View>
-                    <View
-                      className="px-2 py-1 rounded-full flex-row items-center"
-                      style={{ backgroundColor: `${statusColor}20` }}
-                    >
-                      <StatusIcon size={14} color={statusColor} />
-                      <Text
-                        className="ml-1 text-xs font-medium capitalize"
-                        style={{ color: statusColor }}
+                    <View className="flex-row items-center gap-2">
+                      {/* Scheduled Entry Badge */}
+                      {waitlistMessage.badgeText && (
+                        <View
+                          className="px-2 py-1 rounded-full flex-row items-center"
+                          style={{
+                            backgroundColor: entry.is_scheduled_entry
+                              ? "#f59e0b20"
+                              : "#10b98120",
+                          }}
+                        >
+                          <Info
+                            size={12}
+                            color={
+                              entry.is_scheduled_entry ? "#f59e0b" : "#10b981"
+                            }
+                          />
+                          <Text
+                            className="ml-1 text-xs font-medium"
+                            style={{
+                              color: entry.is_scheduled_entry
+                                ? "#f59e0b"
+                                : "#10b981",
+                            }}
+                          >
+                            {waitlistMessage.badgeText}
+                          </Text>
+                        </View>
+                      )}
+                      {/* Status Badge */}
+                      <View
+                        className="px-2 py-1 rounded-full flex-row items-center"
+                        style={{ backgroundColor: `${statusColor}20` }}
                       >
-                        {entry.status}
-                      </Text>
+                        <StatusIcon size={14} color={statusColor} />
+                        <Text
+                          className="ml-1 text-xs font-medium capitalize"
+                          style={{ color: statusColor }}
+                        >
+                          {entry.status}
+                        </Text>
+                      </View>
                     </View>
                   </View>
+
+                  {/* Entry Type Explanation */}
+                  {entry.is_scheduled_entry === true && (
+                    <View className="mb-3 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
+                      <View className="flex-row items-start">
+                        <Info size={16} color="#f59e0b" className="mt-0.5" />
+                        <View className="ml-2 flex-1">
+                          <Text className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                            {waitlistMessage.title}
+                          </Text>
+                          <Text className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                            {waitlistMessage.description}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
 
                   {/* Waitlist Details */}
                   <View className="space-y-2">
@@ -250,7 +394,7 @@ export default function WaitlistScreen() {
                           Book Now
                         </Text>
                       </Button>
-                    ) : (
+                    ) : entry.status === "active" ? (
                       <>
                         <Button
                           variant="outline"
@@ -273,6 +417,43 @@ export default function WaitlistScreen() {
                           </Text>
                         </Button>
                       </>
+                    ) : (
+                      // For history entries (expired, cancelled, booked)
+                      <View className="flex-row gap-2 w-full">
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onPress={() =>
+                            router.push({
+                              pathname: "/(protected)/restaurant/[id]",
+                              params: { id: entry.restaurant_id },
+                            })
+                          }
+                        >
+                          <Text className="font-medium">View Restaurant</Text>
+                        </Button>
+                        {(entry.status === "expired" ||
+                          entry.status === "cancelled") && (
+                          <Button
+                            className="flex-1"
+                            onPress={() =>
+                              router.push({
+                                pathname: "/(protected)/booking/availability",
+                                params: {
+                                  restaurantId: entry.restaurant_id,
+                                  date: entry.desired_date,
+                                  time: entry.desired_time_range.split("-")[0],
+                                  partySize: entry.party_size.toString(),
+                                },
+                              })
+                            }
+                          >
+                            <Text className="text-primary-foreground font-medium">
+                              Book Again
+                            </Text>
+                          </Button>
+                        )}
+                      </View>
                     )}
                   </View>
                 </Pressable>

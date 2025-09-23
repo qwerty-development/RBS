@@ -36,6 +36,7 @@ import {
   Heart,
   ChevronLeft, // Added for guest view
   Camera, // Added for my posts
+  ClockIcon, // Added for waitlist
 } from "lucide-react-native";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -64,6 +65,7 @@ const iconMap: { [key: string]: any } = {
   LogOut,
   MapPin,
   Clock,
+  ClockIcon,
   CreditCard,
   UserPlus,
   MessageCircle,
@@ -282,6 +284,13 @@ export default function ProfileScreen() {
           subtitle: "Reviews you've written",
           icon: "MessageCircle",
           onPress: () => router.push("/profile/reviews"),
+        },
+        {
+          id: "waitlist",
+          title: "My Waitlist",
+          subtitle: "View your restaurant waitlist entries",
+          icon: "ClockIcon",
+          onPress: () => router.push("/(protected)/waitlist"),
         },
         {
           id: "loyalty",

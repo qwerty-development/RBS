@@ -13,6 +13,7 @@ export interface TimeSlot {
 export interface TimeSlotBasic {
   time: string;
   available: boolean;
+  isWaitlistTime?: boolean; // New field for waitlist time indication
 }
 
 export interface AvailabilityError {
@@ -306,7 +307,7 @@ export class AvailabilityService {
         });
       }
 
-      // For basic tier restaurants, return filtered time slots without availability checking
+      // For basic tier restaurants, return filtered time slots with waitlist time checking
       let availableSlots: TimeSlotBasic[];
       if (restaurantTier === "basic") {
         // Filter out slots that are less than 15 minutes from now
@@ -314,12 +315,26 @@ export class AvailabilityService {
         const minimumBookingTime = new Date(now.getTime() + 15 * 60 * 1000);
         const dateStr = date.toISOString().split("T")[0];
 
-        availableSlots = filteredSlots
-          .filter((slot) => {
-            const startTime = new Date(`${dateStr}T${slot.time}:00`);
-            return startTime > minimumBookingTime;
-          })
-          .map((slot) => ({ time: slot.time, available: true }));
+        const filteredBasicSlots = filteredSlots.filter((slot) => {
+          const startTime = new Date(`${dateStr}T${slot.time}:00`);
+          return startTime > minimumBookingTime;
+        });
+
+        // For basic tier restaurants, check each slot for waitlist time
+        availableSlots = await Promise.all(
+          filteredBasicSlots.map(async (slot) => {
+            const isWaitlistTime = await this.checkIsWaitlistTime(
+              restaurantId,
+              date,
+              slot.time,
+            );
+            return {
+              time: slot.time,
+              available: true,
+              isWaitlistTime,
+            };
+          }),
+        );
       } else {
         // For pro and higher tiers, get turn time and use real availability checking
         const turnTime = await this.getTurnTimeForParty(
@@ -565,7 +580,9 @@ export class AvailabilityService {
           this.quickAvailabilityCache.set(cacheKey, hasAvailability);
         }
 
-        return hasAvailability ? { time: slot.time, available: true } : null;
+        return hasAvailability
+          ? { time: slot.time, available: true, isWaitlistTime: false }
+          : null;
       });
 
       const batchResults = await Promise.all(batchPromises);
@@ -766,6 +783,45 @@ export class AvailabilityService {
     this.restaurantConfigCache.set(cacheKey, turnTime);
 
     return turnTime;
+  }
+
+  /**
+   * Check if a specific time slot is during scheduled waitlist hours for basic tier restaurants
+   */
+  private async checkIsWaitlistTime(
+    restaurantId: string,
+    date: Date,
+    time: string,
+  ): Promise<boolean> {
+    const cacheKey = `waitlist-time:${restaurantId}:${date.toISOString().split("T")[0]}:${time}`;
+    let cached = this.restaurantConfigCache.get(cacheKey);
+
+    if (cached !== undefined) return cached;
+
+    try {
+      console.log("🔍 AVAILABILITY DEBUG: Checking waitlist time for:", {
+        restaurantId,
+        date: date.toISOString().split("T")[0],
+        time,
+      });
+
+      // Use the existing database function to check waitlist time
+      const { data: isWaitlistTime } = await supabase.rpc("is_waitlist_time", {
+        restaurant_id: restaurantId,
+        check_date: date.toISOString().split("T")[0],
+        check_time: time,
+      });
+
+      console.log("🔍 AVAILABILITY DEBUG: RPC result:", { isWaitlistTime });
+
+      const result = Boolean(isWaitlistTime);
+      this.restaurantConfigCache.set(cacheKey, result);
+      console.log("🔍 AVAILABILITY DEBUG: Final result for", time, ":", result);
+      return result;
+    } catch (error) {
+      console.warn("Error checking waitlist time:", error);
+      return false; // Default to non-waitlist on error
+    }
   }
 
   private prefetchNextDay(
@@ -1606,6 +1662,7 @@ export class AvailabilityService {
       matchingTypes: string[];
       totalCapacity: number;
       requiresCombination: boolean;
+      isWaitlistTime?: boolean;
     }[]
   > {
     const {
@@ -1691,6 +1748,7 @@ export class AvailabilityService {
                 matchingTypes,
                 totalCapacity: primaryOption.totalCapacity,
                 requiresCombination: primaryOption.requiresCombination,
+                isWaitlistTime: slot.isWaitlistTime,
               });
             }
           }

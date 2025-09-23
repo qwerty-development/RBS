@@ -164,6 +164,132 @@ export const useBookingConfirmation = () => {
         preferredSection,
       } = modifiedProps;
 
+      // --- BASIC TIER WAITLIST TIME CHECK ---
+      // Check if this is a scheduled waitlist time for basic tier restaurants
+      try {
+        console.log(
+          "🔍 WAITLIST DEBUG: Starting waitlist check for restaurant:",
+          restaurantId,
+        );
+        console.log(
+          "🔍 WAITLIST DEBUG: Booking time:",
+          bookingTime.toISOString(),
+        );
+        console.log(
+          "🔍 WAITLIST DEBUG: Check date:",
+          bookingTime.toISOString().split("T")[0],
+        );
+        console.log(
+          "🔍 WAITLIST DEBUG: Check time:",
+          bookingTime.toTimeString().substring(0, 5),
+        );
+
+        // Get restaurant info to check tier
+        const { data: restaurant, error: restaurantError } = await supabase
+          .from("restaurants")
+          .select("tier")
+          .eq("id", restaurantId)
+          .single();
+
+        console.log("🔍 WAITLIST DEBUG: Restaurant query result:", {
+          restaurant,
+          restaurantError,
+        });
+
+        if (!restaurantError && restaurant?.tier === "basic") {
+          console.log(
+            "🔍 WAITLIST DEBUG: Restaurant is basic tier, checking waitlist time...",
+          );
+
+          // Check if this is a waitlist time
+          const { data: isWaitlistTime, error: waitlistCheckError } =
+            await supabase.rpc("is_waitlist_time", {
+              restaurant_id: restaurantId,
+              check_date: bookingTime.toISOString().split("T")[0],
+              check_time: bookingTime.toTimeString().substring(0, 5),
+            });
+
+          console.log("🔍 WAITLIST DEBUG: RPC is_waitlist_time result:", {
+            isWaitlistTime,
+            waitlistCheckError,
+          });
+
+          if (!waitlistCheckError && isWaitlistTime) {
+            console.log(
+              "🔍 WAITLIST DEBUG: ✅ IS WAITLIST TIME - showing alert!",
+            );
+            // This is a scheduled waitlist time - redirect to waitlist creation
+            Alert.alert(
+              "Scheduled Waitlist Time",
+              "This time slot is available through our waitlist system. You'll be automatically notified when a table becomes available during your selected time.",
+              [
+                { text: "Cancel", style: "cancel" },
+                {
+                  text: "Join Waitlist",
+                  onPress: async () => {
+                    try {
+                      // Create waitlist entry
+                      const { error: waitlistError } = await supabase
+                        .from("waitlist")
+                        .insert({
+                          user_id: profile.id,
+                          restaurant_id: restaurantId,
+                          desired_date: bookingTime.toISOString().split("T")[0],
+                          desired_time_range: bookingTime
+                            .toTimeString()
+                            .substring(0, 5),
+                          party_size: partySize,
+                          table_type: "any",
+                          status: "active",
+                          special_requests: specialRequests || null,
+                          is_scheduled_entry: true, // Mark as automatically created
+                        });
+
+                      if (waitlistError) {
+                        throw waitlistError;
+                      }
+
+                      // Success feedback
+                      await Haptics.notificationAsync(
+                        Haptics.NotificationFeedbackType.Success,
+                      );
+
+                      Alert.alert(
+                        "Added to Waitlist",
+                        "You've been added to the waitlist! We'll notify you as soon as a table becomes available.",
+                        [
+                          {
+                            text: "View Waitlist",
+                            onPress: () => router.push("/(protected)/waitlist"),
+                          },
+                        ],
+                      );
+                    } catch (error: any) {
+                      console.error("Error joining waitlist:", error);
+                      Alert.alert(
+                        "Error",
+                        "Failed to join waitlist. Please try again.",
+                      );
+                    }
+                  },
+                },
+              ],
+            );
+
+            // Stop the booking process
+            setLoading(false);
+            isSubmittingRef.current = false;
+            if (submissionTimeoutRef.current) {
+              clearTimeout(submissionTimeoutRef.current);
+            }
+            return false;
+          }
+        }
+      } catch (error) {
+        console.error("Error checking waitlist time:", error);
+        // Continue with normal booking if waitlist check fails
+      }
+
       // Parse table IDs
       const parsedTableIds = parseTableIds(tableIds);
 

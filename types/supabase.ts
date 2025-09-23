@@ -5699,6 +5699,7 @@ export type Database = {
           guest_name: string | null;
           guest_phone: string | null;
           id: string;
+          is_scheduled_entry: boolean | null;
           notification_expires_at: string | null;
           notified_at: string | null;
           party_size: number;
@@ -5719,6 +5720,7 @@ export type Database = {
           guest_name?: string | null;
           guest_phone?: string | null;
           id?: string;
+          is_scheduled_entry?: boolean | null;
           notification_expires_at?: string | null;
           notified_at?: string | null;
           party_size: number;
@@ -5739,6 +5741,7 @@ export type Database = {
           guest_name?: string | null;
           guest_phone?: string | null;
           id?: string;
+          is_scheduled_entry?: boolean | null;
           notification_expires_at?: string | null;
           notified_at?: string | null;
           party_size?: number;

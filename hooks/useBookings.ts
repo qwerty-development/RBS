@@ -8,6 +8,7 @@ import { useAuth } from "@/context/supabase-provider";
 import { useBookingsStore } from "@/stores";
 import { realtimeSubscriptionService } from "@/lib/RealtimeSubscriptionService";
 import type { Database } from "@/types/supabase";
+import type { WaitingStatus, TableType } from "@/types/waitlist";
 
 // Enhanced booking type that includes invitation info
 interface EnhancedBooking {
@@ -66,6 +67,41 @@ interface EnhancedBooking {
   is_invitee?: boolean;
 }
 
+// Enhanced waitlist entry type for consistent display
+interface EnhancedWaitlistEntry {
+  id: string;
+  user_id: string | null;
+  restaurant_id: string;
+  desired_date: string;
+  desired_time_range: string;
+  party_size: number;
+  table_type: TableType;
+  status: WaitingStatus;
+  special_requests?: string | null;
+  is_scheduled_entry?: boolean | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+  expires_at?: string | null;
+  notification_expires_at?: string | null;
+  notified_at?: string | null;
+  converted_booking_id?: string | null;
+  guest_email?: string | null;
+  guest_name?: string | null;
+  guest_phone?: string | null;
+  restaurant?: {
+    id: string;
+    name: string;
+    main_image_url?: string;
+    address?: string;
+    [key: string]: any;
+  };
+  // Mark as waitlist entry for UI differentiation
+  isWaitlistEntry: true;
+}
+
+// Union type for items that can appear in bookings list
+type BookingOrWaitlistItem = EnhancedBooking | EnhancedWaitlistEntry;
+
 type TabType = "upcoming" | "past";
 
 export function useBookings() {
@@ -103,8 +139,8 @@ export function useBookings() {
 
   // Use store data for bookings
   const bookings = {
-    upcoming: upcomingBookings || [],
-    past: pastBookings || [],
+    upcoming: (upcomingBookings || []) as BookingOrWaitlistItem[],
+    past: (pastBookings || []) as BookingOrWaitlistItem[],
   };
 
   // Check and create profile if needed for new users
@@ -367,12 +403,78 @@ export function useBookings() {
         return { data: combinedData, error: null };
       };
 
-      // Fetch both owned bookings and accepted invitations
+      // Helper function to fetch user's waitlist entries
+      const fetchWaitlistEntries = async (): Promise<{
+        upcoming: EnhancedWaitlistEntry[];
+        past: EnhancedWaitlistEntry[];
+      }> => {
+        try {
+          // First run automation to update expired entries
+          await supabase.rpc("process_waitlist_automation");
+
+          const { data: waitlistData, error: waitlistError } = await supabase
+            .from("waitlist")
+            .select(
+              `
+              *,
+              restaurant:restaurants(id, name, address, main_image_url)
+            `,
+            )
+            .eq("user_id", userId);
+
+          if (waitlistError) {
+            console.error("Error fetching waitlist:", waitlistError);
+            return { upcoming: [], past: [] };
+          }
+
+          const allWaitlist = waitlistData || [];
+          const now = new Date();
+          const todayDateString = now.toISOString().split("T")[0];
+
+          // Categorize waitlist entries
+          const upcomingWaitlist: EnhancedWaitlistEntry[] = [];
+          const pastWaitlist: EnhancedWaitlistEntry[] = [];
+
+          allWaitlist.forEach((entry) => {
+            const enhancedEntry: EnhancedWaitlistEntry = {
+              ...entry,
+              restaurant: Array.isArray(entry.restaurant)
+                ? entry.restaurant[0]
+                : entry.restaurant,
+              isWaitlistEntry: true,
+            };
+
+            // Determine if upcoming or past based on status and date
+            const isPastStatus = ["expired", "cancelled", "booked"].includes(
+              entry.status,
+            );
+            const isPastDate = entry.desired_date < todayDateString;
+
+            if (isPastStatus || isPastDate) {
+              pastWaitlist.push(enhancedEntry);
+            } else {
+              // active, notified status entries that haven't passed the date yet
+              upcomingWaitlist.push(enhancedEntry);
+            }
+          });
+
+          return {
+            upcoming: upcomingWaitlist,
+            past: pastWaitlist,
+          };
+        } catch (error) {
+          console.error("Error fetching waitlist data:", error);
+          return { upcoming: [], past: [] };
+        }
+      };
+
+      // Fetch both owned bookings, accepted invitations, and waitlist entries
       const [
         upcomingResult,
         pastResult,
         invitedUpcomingResult,
         invitedPastResult,
+        waitlistResult,
       ] = await Promise.allSettled([
         // Owned upcoming bookings
         supabase
@@ -409,11 +511,14 @@ export function useBookings() {
 
         // Accepted invitations - past bookings
         getAcceptedInvitationBookings("past"),
+
+        // User's waitlist entries
+        fetchWaitlistEntries(),
       ]);
 
       // Process all results and combine data
-      let upcomingData: EnhancedBooking[] = [];
-      let pastData: EnhancedBooking[] = [];
+      let upcomingData: BookingOrWaitlistItem[] = [];
+      let pastData: BookingOrWaitlistItem[] = [];
 
       // Helper function to update expired pending bookings to declined_by_restaurant
       const updateExpiredPendingBookings = async (bookings: any[]) => {
@@ -575,20 +680,46 @@ export function useBookings() {
         );
       }
 
+      // Handle waitlist data
+      if (waitlistResult.status === "fulfilled") {
+        const waitlistData = waitlistResult.value;
+        upcomingData.push(...waitlistData.upcoming);
+        pastData.push(...waitlistData.past);
+      } else {
+        console.error("Error fetching waitlist data:", waitlistResult.reason);
+      }
+
       // Sort combined data
-      // Update expired pending bookings before sorting (check both upcoming and past data)
-      await updateExpiredPendingBookings(upcomingData);
-      await updateExpiredPendingBookings(pastData);
+      // Update expired pending bookings before sorting (check only booking items)
+      const bookingItems = upcomingData.filter(
+        (item): item is EnhancedBooking => !("isWaitlistEntry" in item),
+      );
+      const pastBookingItems = pastData.filter(
+        (item): item is EnhancedBooking => !("isWaitlistEntry" in item),
+      );
+      await updateExpiredPendingBookings(bookingItems);
+      await updateExpiredPendingBookings(pastBookingItems);
+
+      // Helper function to get sortable date from booking or waitlist item
+      const getSortableDate = (item: BookingOrWaitlistItem): Date => {
+        if ("isWaitlistEntry" in item) {
+          // For waitlist entries, combine desired_date and desired_time_range
+          const timeRange = item.desired_time_range;
+          const startTime = timeRange.includes("-")
+            ? timeRange.split("-")[0].trim()
+            : timeRange.split(",")[0]?.replace("[", "").trim() || "00:00";
+          return new Date(`${item.desired_date}T${startTime}`);
+        } else {
+          // For bookings, use booking_time
+          return new Date(item.booking_time);
+        }
+      };
 
       upcomingData.sort(
-        (a, b) =>
-          new Date(a.booking_time).getTime() -
-          new Date(b.booking_time).getTime(),
+        (a, b) => getSortableDate(a).getTime() - getSortableDate(b).getTime(),
       );
       pastData.sort(
-        (a, b) =>
-          new Date(b.booking_time).getTime() -
-          new Date(a.booking_time).getTime(),
+        (a, b) => getSortableDate(b).getTime() - getSortableDate(a).getTime(),
       );
 
       // Update store with combined data
@@ -862,6 +993,91 @@ export function useBookings() {
     [router],
   );
 
+  // Waitlist management functions
+  const leaveWaitlist = useCallback(
+    async (waitlistId: string, restaurantName?: string): Promise<boolean> => {
+      if (!user?.id) {
+        Alert.alert("Error", "Please log in to manage your waitlist");
+        return false;
+      }
+
+      return new Promise((resolve) => {
+        Alert.alert(
+          "Leave Waitlist?",
+          `Are you sure you want to leave the waitlist${
+            restaurantName ? ` for ${restaurantName}` : ""
+          }?`,
+          [
+            { text: "Cancel", style: "cancel", onPress: () => resolve(false) },
+            {
+              text: "Leave",
+              style: "destructive",
+              onPress: async () => {
+                setProcessingBookingId(waitlistId);
+
+                try {
+                  const { error } = await supabase
+                    .from("waitlist")
+                    .update({ status: "cancelled" })
+                    .eq("id", waitlistId)
+                    .eq("user_id", user.id);
+
+                  if (error) throw error;
+
+                  await Haptics.notificationAsync(
+                    Haptics.NotificationFeedbackType.Success,
+                  );
+
+                  Alert.alert(
+                    "Success",
+                    "You've been removed from the waitlist",
+                  );
+
+                  // Refresh bookings to reflect changes
+                  handleRefresh();
+
+                  resolve(true);
+                } catch (error) {
+                  console.error("Error leaving waitlist:", error);
+                  Alert.alert("Error", "Failed to leave waitlist");
+                  resolve(false);
+                } finally {
+                  setProcessingBookingId(null);
+                }
+              },
+            },
+          ],
+        );
+      });
+    },
+    [user?.id, handleRefresh],
+  );
+
+  const navigateToWaitlistBooking = useCallback(
+    (waitlistEntry: EnhancedWaitlistEntry) => {
+      if (waitlistEntry.status !== "notified") {
+        return;
+      }
+
+      try {
+        router.push({
+          pathname: "/(protected)/booking/availability",
+          params: {
+            restaurantId: waitlistEntry.restaurant_id,
+            date: waitlistEntry.desired_date,
+            time: waitlistEntry.desired_time_range.split("-")[0],
+            partySize: waitlistEntry.party_size.toString(),
+            fromWaitlist: "true",
+            waitlistId: waitlistEntry.id,
+          },
+        });
+      } catch (err) {
+        console.error("Navigation error:", err);
+      }
+    },
+    [router],
+  );
+
   // Load more past bookings function
   const loadMorePastBookings = useCallback(async () => {
     // Don't load more if we're already loading or there are no more bookings
@@ -999,6 +1215,30 @@ export function useBookings() {
           handleRefresh();
         }
       },
+      onWaitlistChange: (payload) => {
+        // Waitlist changes affect the bookings list, refresh to get updated data
+        if (
+          payload.eventType === "INSERT" ||
+          payload.eventType === "UPDATE" ||
+          payload.eventType === "DELETE"
+        ) {
+          // Handle specific status changes with user notifications
+          if (payload.eventType === "UPDATE" && payload.new && payload.old) {
+            const newStatus = payload.new.status;
+            const oldStatus = payload.old?.status;
+
+            if (oldStatus === "active" && newStatus === "notified") {
+              // Don't show alert here as it's already handled by useWaitlist hook
+              // Just refresh the data
+            } else if (newStatus === "expired") {
+              // Don't show alert here as it's already handled by useWaitlist hook
+              // Just refresh the data
+            }
+          }
+
+          handleRefresh();
+        }
+      },
     });
 
     return () => {
@@ -1028,9 +1268,16 @@ export function useBookings() {
     rebookRestaurant,
     reviewBooking,
 
+    // Waitlist management
+    leaveWaitlist,
+    navigateToWaitlistBooking,
+
     // Pagination for past bookings
     loadingMorePastBookings,
     hasMorePastBookings,
     loadMorePastBookings,
   };
 }
+
+// Export types for use in components
+export type { EnhancedBooking, EnhancedWaitlistEntry, BookingOrWaitlistItem };

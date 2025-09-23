@@ -429,6 +429,76 @@ export function useBookingCreate() {
       bookingDateTime.setHours(hours, minutes, 0, 0);
 
       try {
+        // --- BASIC TIER WAITLIST TIME CHECK ---
+        // For basic tier restaurants, check if this is a scheduled waitlist time
+        if (restaurant.tier === "basic") {
+          const { data: isWaitlistTime, error: waitlistCheckError } =
+            await supabase.rpc("is_waitlist_time", {
+              restaurant_id: restaurant.id,
+              check_date: bookingDate.toISOString().split("T")[0],
+              check_time: bookingTime,
+            });
+
+          if (waitlistCheckError) {
+            console.error("Error checking waitlist time:", waitlistCheckError);
+            // Continue with normal booking if check fails
+          } else if (isWaitlistTime) {
+            // This is a scheduled waitlist time for basic tier - automatically join waitlist
+            try {
+              // Create waitlist entry
+              const { error: waitlistError } = await supabase
+                .from("waitlist")
+                .insert({
+                  user_id: profile.id,
+                  restaurant_id: restaurant.id,
+                  desired_date: bookingDate.toISOString().split("T")[0],
+                  desired_time_range: bookingTime,
+                  party_size: totalPartySize,
+                  table_type: "any",
+                  status: "active",
+                  special_requests: formData.specialRequests || null,
+                  is_scheduled_entry: true, // Mark as automatically created for scheduled waitlist time
+                });
+
+              if (waitlistError) {
+                throw waitlistError;
+              }
+
+              // Success - show confirmation and navigate
+              await Haptics.notificationAsync(
+                Haptics.NotificationFeedbackType.Success,
+              );
+
+              Alert.alert(
+                "Added to Waitlist",
+                "This time slot is designated for waitlist only. You've been added to the waitlist and we'll notify you if a table becomes available.",
+                [
+                  {
+                    text: "View Waitlist",
+                    onPress: () => router.replace("/(protected)/waitlist"),
+                  },
+                  {
+                    text: "OK",
+                    onPress: () => router.back(),
+                  },
+                ],
+              );
+
+              setSubmitting(false);
+              return;
+            } catch (waitlistError) {
+              console.error("Error joining waitlist:", waitlistError);
+              Alert.alert(
+                "Waitlist Error",
+                "Failed to join waitlist for this time slot. Please try again or contact support.",
+                [{ text: "OK" }],
+              );
+              setSubmitting(false);
+              return;
+            }
+          }
+        }
+
         // --- INSTANT BOOKING LOGIC ---
         if (!isRequestBooking) {
           // This single RPC function handles booking creation, table assignment, and loyalty point awarding in one transaction.

@@ -311,6 +311,8 @@ const TimeSlotItem = memo<{
     (SCREEN_WIDTH - containerPadding - gapTotal) / 4,
   );
 
+  const isWaitlist = slot.isWaitlistTime;
+
   return (
     <Pressable
       onPress={handlePress}
@@ -318,17 +320,38 @@ const TimeSlotItem = memo<{
         width: slotWidth,
         marginBottom: 12,
       }}
-      className={`py-3 rounded-lg items-center border-2 ${
-        isSelected ? "bg-primary border-primary" : "bg-muted border-border"
+      className={`py-3 rounded-lg items-center border-2 relative ${
+        isSelected
+          ? isWaitlist
+            ? "bg-amber-500 border-amber-500"
+            : "bg-primary border-primary"
+          : isWaitlist
+            ? "bg-amber-50 border-amber-200"
+            : "bg-muted border-border"
       }`}
     >
       <Text
-        className={`font-semibold text-sm ${
-          isSelected ? "text-primary-foreground" : "text-foreground"
+        className={`font-semibold text-xs ${
+          isSelected
+            ? isWaitlist
+              ? "text-white"
+              : "text-primary-foreground"
+            : isWaitlist
+              ? "text-amber-700"
+              : "text-foreground"
         }`}
       >
         {slot.time}
       </Text>
+      {isWaitlist && (
+        <Text
+          className={`text-xs mt-0.5 ${
+            isSelected ? "text-white" : "text-amber-600"
+          }`}
+        >
+          Waitlist
+        </Text>
+      )}
     </Pressable>
   );
 });

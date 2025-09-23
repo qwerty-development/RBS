@@ -18,6 +18,7 @@ import {
   ChevronDown,
   ChevronUp,
   Timer,
+  Info,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 
@@ -66,6 +67,7 @@ export interface TimeRangeResult {
   allTableTypes: TableType[]; // All table types available in this slot
   totalCapacity: number;
   requiresCombination: boolean;
+  isWaitlistTime?: boolean; // Indicates if this is a scheduled waitlist time slot for basic tier restaurants
 }
 
 interface TimeRangeSelectorProps {
@@ -426,11 +428,18 @@ const SearchResultCard = React.memo<{
   return (
     <Pressable
       onPress={onSelect}
-      className="bg-card border border-border rounded-xl p-4 mb-3"
+      className={`bg-card rounded-xl p-4 mb-3 ${
+        result.isWaitlistTime
+          ? "border-2 border-amber-200 dark:border-amber-800"
+          : "border border-border"
+      }`}
     >
       <View className="flex-row items-center justify-between mb-2">
         <View className="flex-row items-center gap-2">
-          <Clock size={16} color="#3b82f6" />
+          <Clock
+            size={16}
+            color={result.isWaitlistTime ? "#f59e0b" : "#3b82f6"}
+          />
           <Text className="font-bold text-lg">{result.timeSlot}</Text>
           {result.requiresCombination && (
             <View className="bg-amber-100 dark:bg-amber-900/30 rounded-full px-2 py-1">
@@ -439,12 +448,27 @@ const SearchResultCard = React.memo<{
               </Text>
             </View>
           )}
+          {result.isWaitlistTime && (
+            <View className="bg-amber-100 dark:bg-amber-900/30 rounded-full px-2 py-1">
+              <Text className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+                Waitlist
+              </Text>
+            </View>
+          )}
         </View>
-        <View className="bg-green-100 dark:bg-green-900/30 rounded-full px-2 py-1">
-          <Text className="text-xs text-green-700 dark:text-green-300 font-bold">
-            Available
-          </Text>
-        </View>
+        {result.isWaitlistTime ? (
+          <View className="bg-amber-100 dark:bg-amber-900/30 rounded-full px-2 py-1">
+            <Text className="text-xs text-amber-700 dark:text-amber-300 font-bold">
+              Join Waitlist
+            </Text>
+          </View>
+        ) : (
+          <View className="bg-green-100 dark:bg-green-900/30 rounded-full px-2 py-1">
+            <Text className="text-xs text-green-700 dark:text-green-300 font-bold">
+              Available
+            </Text>
+          </View>
+        )}
       </View>
 
       <View className="flex-row items-center gap-4 mb-3">
@@ -491,6 +515,22 @@ const SearchResultCard = React.memo<{
               {result.tableOptions.length > 2 ? "s" : ""}
             </Text>
           )}
+        </View>
+      )}
+
+      {result.isWaitlistTime && (
+        <View className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-3 mt-3">
+          <View className="flex-row items-center gap-2 mb-1">
+            <Timer size={14} color="#f59e0b" />
+            <Text className="font-medium text-sm text-amber-800 dark:text-amber-200">
+              Scheduled Waitlist Time
+            </Text>
+          </View>
+          <Text className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+            This restaurant offers waitlist slots during peak hours. You&apos;ll
+            be automatically notified when a table becomes available during your
+            selected time.
+          </Text>
         </View>
       )}
     </Pressable>
@@ -750,6 +790,22 @@ export const TimeRangeSelector: React.FC<TimeRangeSelectorProps> = ({
                 onToggleType={handleTableTypeToggle}
                 searchResults={allSearchResults}
               />
+
+              {/* Educational Note about Waitlist Times */}
+              <View className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                <View className="flex-row items-center gap-2 mb-2">
+                  <Info size={16} color="#3b82f6" />
+                  <Text className="font-medium text-blue-800 dark:text-blue-200">
+                    About Scheduled Waitlist Times
+                  </Text>
+                </View>
+                <Text className="text-sm text-blue-700 dark:text-blue-300 leading-relaxed">
+                  Some restaurants offer waitlist-only time slots during peak
+                  hours. These appear in amber and automatically add you to the
+                  waitlist with priority notifications when tables become
+                  available.
+                </Text>
+              </View>
 
               {/* Search Button */}
               <Button

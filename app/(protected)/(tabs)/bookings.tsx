@@ -18,8 +18,9 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { TabButton } from "@/components/ui/tab-button";
 import { PageHeader } from "@/components/ui/page-header";
 import { BookingCard } from "@/components/booking/BookingCard";
+import { WaitlistCard } from "@/components/booking/WaitlistCard";
 import { useColorScheme } from "@/lib/useColorScheme";
-import { useBookings } from "@/hooks/useBookings";
+import { useBookings, type EnhancedWaitlistEntry } from "@/hooks/useBookings";
 import { useAuth } from "@/context/supabase-provider";
 import { useBookingInvitations } from "@/hooks/useBookingInvitations";
 import BookingsScreenSkeleton from "@/components/skeletons/BookingsScreenSkeleton";
@@ -59,6 +60,9 @@ function BookingsScreenContent() {
     leaveBooking,
     rebookRestaurant,
     reviewBooking,
+    // Waitlist management
+    leaveWaitlist,
+    navigateToWaitlistBooking,
     // Pagination for past bookings
     loadingMorePastBookings,
     hasMorePastBookings,
@@ -68,10 +72,10 @@ function BookingsScreenContent() {
   // Safe access to bookings with fallback - stabilize the reference
   const currentBookings = React.useMemo(() => {
     try {
-      const bookingsList =
+      const itemsList =
         activeTab === "upcoming" ? bookings.upcoming : bookings.past;
-      const safeList = Array.isArray(bookingsList) ? bookingsList : [];
-      // Return empty array if no valid bookings to prevent render issues
+      const safeList = Array.isArray(itemsList) ? itemsList : [];
+      // Return empty array if no valid items to prevent render issues
       return safeList.filter((item) => item && item.id);
     } catch (error) {
       console.warn("Error accessing bookings:", error);
@@ -330,20 +334,44 @@ function BookingsScreenContent() {
             </View>
           ) : (
             <View className="p-4 pb-24">
-              {currentBookings.map((item) => (
-                <BookingCard
-                  key={item.id}
-                  booking={item}
-                  variant={activeTab}
-                  onPress={() => navigateToBookingDetails(item.id)}
-                  onCancel={cancelBooking}
-                  onLeave={leaveBooking}
-                  onRebook={rebookRestaurant}
-                  onReview={reviewBooking}
-                  onNavigateToRestaurant={navigateToRestaurant}
-                  processingBookingId={processingBookingId}
-                />
-              ))}
+              {currentBookings.map((item) => {
+                // Check if this is a waitlist entry or a booking
+                if ("isWaitlistEntry" in item && item.isWaitlistEntry) {
+                  // Render waitlist card
+                  const waitlistEntry = item as EnhancedWaitlistEntry;
+                  return (
+                    <WaitlistCard
+                      key={`waitlist-${item.id}`}
+                      waitlistEntry={waitlistEntry}
+                      onPress={() => {
+                        if (waitlistEntry.status === "notified") {
+                          navigateToWaitlistBooking(waitlistEntry);
+                        }
+                      }}
+                      onLeaveWaitlist={leaveWaitlist}
+                      onBookNow={navigateToWaitlistBooking}
+                      onNavigateToRestaurant={navigateToRestaurant}
+                      processingWaitlistId={processingBookingId}
+                    />
+                  );
+                } else {
+                  // Render booking card
+                  return (
+                    <BookingCard
+                      key={`booking-${item.id}`}
+                      booking={item}
+                      variant={activeTab}
+                      onPress={() => navigateToBookingDetails(item.id)}
+                      onCancel={cancelBooking}
+                      onLeave={leaveBooking}
+                      onRebook={rebookRestaurant}
+                      onReview={reviewBooking}
+                      onNavigateToRestaurant={navigateToRestaurant}
+                      processingBookingId={processingBookingId}
+                    />
+                  );
+                }
+              })}
               {/* Load more indicator for past bookings */}
               {activeTab === "past" && hasMorePastBookings && (
                 <View className="py-4 items-center">

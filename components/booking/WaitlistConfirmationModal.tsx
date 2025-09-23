@@ -22,10 +22,7 @@ import * as Haptics from "expo-haptics";
 import { Text } from "@/components/ui/text";
 import { Button } from "@/components/ui/button";
 import { H3, Muted } from "@/components/ui/typography";
-import {
-  TimeRangeSearchParams,
-  TABLE_TYPES,
-} from "./TimeRangeSelector";
+import { TimeRangeSearchParams, TABLE_TYPES } from "./TimeRangeSelector";
 import type { WaitlistEntry } from "@/hooks/useWaitlist";
 import type { TableType } from "@/types/waitlist";
 

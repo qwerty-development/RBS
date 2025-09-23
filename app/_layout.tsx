@@ -31,9 +31,9 @@ import AnimatedSplashScreen from "@/components/AnimatedSplashScreen";
 Sentry.init({
   dsn: "https://3912f8e5caacfa65785887c17e0bf45e@o4510062241972224.ingest.us.sentry.io/4510062245052416",
   environment: __DEV__ ? "development" : "production",
-  debug: __DEV__,
+  debug: false,
   enableAutoSessionTracking: true,
-  tracesSampleRate: __DEV__ ? 1.0 : 0.1,
+  tracesSampleRate: 0.1,
 });
 
 LogBox.ignoreAllLogs();

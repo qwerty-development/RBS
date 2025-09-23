@@ -30,6 +30,31 @@ interface WaitlistItem extends WaitlistRow {
   };
 }
 
+// Helper function to get appropriate messaging for waitlist entries
+export const getWaitlistEntryMessage = (
+  entry: WaitlistItem,
+): {
+  title: string;
+  description: string;
+  badgeText?: string;
+} => {
+  const isScheduledEntry = entry.is_scheduled_entry === true;
+
+  if (isScheduledEntry) {
+    return {
+      title: "Scheduled Waitlist Time",
+      description: `You were automatically added to the waitlist during a scheduled waitlist period for ${entry.restaurant?.name || "this restaurant"}. You'll be notified if a table becomes available.`,
+      badgeText: "Auto-Added",
+    };
+  } else {
+    return {
+      title: "Manual Waitlist Entry",
+      description: `You joined the waitlist for ${entry.restaurant?.name || "this restaurant"}. You'll be notified when a table becomes available.`,
+      badgeText: "Manual",
+    };
+  }
+};
+
 export const useWaitlist = () => {
   const { user } = useAuth();
   const [myWaitlist, setMyWaitlist] = useState<WaitlistItem[]>([]);
@@ -45,7 +70,7 @@ export const useWaitlist = () => {
       // First run automation to update expired entries
       await supabase.rpc("process_waitlist_automation");
 
-      // Get active entries
+      // Get all entries (not just active/notified for waitlist page history)
       const { data, error } = await supabase
         .from("waitlist")
         .select(
@@ -55,7 +80,6 @@ export const useWaitlist = () => {
         `,
         )
         .eq("user_id", user.id)
-        .in("status", ["active", "notified"])
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -123,6 +147,7 @@ export const useWaitlist = () => {
             table_type: entry.table_type,
             special_requests: entry.special_requests,
             status: "active",
+            is_scheduled_entry: false, // Manual entry
           })
           .select(
             `

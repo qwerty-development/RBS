@@ -38,6 +38,7 @@ export function useTimeRangeSearch() {
           ) as any[], // Collect all available table types
           totalCapacity: result.totalCapacity,
           requiresCombination: result.requiresCombination,
+          isWaitlistTime: result.isWaitlistTime, // Pass through waitlist time flag
         }));
       } catch (err) {
         const errorMessage =
