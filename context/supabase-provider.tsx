@@ -359,7 +359,7 @@ function AuthContent({ children }: PropsWithChildren) {
               email,
               password,
               options: {
-                emailRedirectTo: Linking.createURL("/auth-confirm"),
+                emailRedirectTo: "https://plate-app.com/verify-email",
                 data: {
                   full_name: fullName,
                   phone_number: phoneNumber,
