@@ -211,6 +211,11 @@ function RootLayoutContent({
           },
         }}
       >
+        {/* Disable gestures for the entire protected group to block back-swipe from home */}
+        <Stack.Screen name="(protected)" options={{ gestureEnabled: false }} />
+        {/* Disable back-swipe on auth entry points to prevent navigating back to welcome */}
+        <Stack.Screen name="sign-in" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="sign-up" options={{ gestureEnabled: false }} />
         <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         <Stack.Screen
           name="auth/google/callback"
