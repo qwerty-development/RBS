@@ -137,10 +137,20 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
         return false;
       }
 
-      // NAVIGATION FIRST: Allow navigation to proceed immediately to dismiss splash
-      // Components will handle database readiness with their own retry logic
+      // CRITICAL FIX: Wait for database readiness for data-dependent routes
+      // This prevents cold start crashes where components try to load data before DB is ready
       if (!databaseReady) {
-        log("Database not ready yet, but proceeding with navigation - components will retry:", url);
+        log("Database not ready yet, delaying deep link processing:", url);
+
+        // Store the URL for processing after database is ready
+        setState((prev) => ({
+          ...prev,
+          isProcessing: false,
+          initialUrl: url,
+          error: "Database not ready - waiting for initialization",
+        }));
+
+        return false;
       }
 
       // NUCLEAR OPTION: If splash screen is visible, dismiss it and delay processing
@@ -396,6 +406,40 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
     log,
   ]);
 
+  // NEW: Process pending deep link after database becomes ready
+  useEffect(() => {
+    if (
+      authInitialized &&
+      databaseReady &&
+      isMounted &&
+      isNavigationReady &&
+      state.initialUrl &&
+      state.error?.includes("Database not ready") &&
+      !processedUrls.current.has(state.initialUrl)
+    ) {
+      // Double-check URL filtering before processing
+      if (shouldIgnoreUrl(state.initialUrl)) {
+        log(
+          "Ignoring development URL in database ready effect:",
+          state.initialUrl,
+        );
+        return;
+      }
+
+      log("Database ready, processing pending deep link:", state.initialUrl);
+      processDeepLink(state.initialUrl);
+    }
+  }, [
+    shouldIgnoreUrl,
+    authInitialized,
+    databaseReady,
+    isMounted,
+    isNavigationReady,
+    state.initialUrl,
+    state.error,
+    processDeepLink,
+    log,
+  ]);
 
   // Process pending deep link when splash screen is dismissed
   useEffect(() => {
