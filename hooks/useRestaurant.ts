@@ -376,9 +376,7 @@ export function useRestaurant(
 
       // BRUTE FORCE: Try immediately regardless of database readiness state
       // If it fails, we'll retry with exponential backoff
-      console.log(
-        `[useRestaurant] Fetching restaurant details for ${restaurantId}, attempt ${retryCount + 1}`,
-      );
+      console.log(`[useRestaurant] Fetching restaurant details for ${restaurantId}, attempt ${retryCount + 1}`);
 
       try {
         const { data: restaurantData, error: restaurantError } = await supabase
@@ -477,9 +475,7 @@ export function useRestaurant(
         }
 
         // Success - set loading to false
-        console.log(
-          `[useRestaurant] Successfully loaded restaurant details for ${restaurantId}`,
-        );
+        console.log(`[useRestaurant] Successfully loaded restaurant details for ${restaurantId}`);
         setLoading(false);
       } catch (error) {
         console.error(
@@ -490,8 +486,7 @@ export function useRestaurant(
         // AGGRESSIVE RETRY: Up to 5 attempts with faster initial retries
         if (retryCount < 4) {
           // Fast retries: 500ms, 1s, 2s, 4s
-          const delay =
-            retryCount === 0 ? 500 : Math.pow(2, retryCount - 1) * 1000;
+          const delay = retryCount === 0 ? 500 : Math.pow(2, retryCount - 1) * 1000;
 
           setTimeout(() => {
             fetchRestaurantDetails(retryCount + 1);

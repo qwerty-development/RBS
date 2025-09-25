@@ -79,12 +79,11 @@ class DeviceInfoUtil {
       const appName = Constants.expoConfig?.name || "Plate";
       const osName = Platform.OS;
       const osVersion = Platform.Version;
-      const nativeApplicationVersion =
-        Constants.nativeApplicationVersion || "unknown";
-
+      const nativeApplicationVersion = Constants.nativeApplicationVersion || "unknown";
+      
       // Format similar to web user agent but for React Native
       this.cachedUserAgent = `${appName}/${appVersion} (${osName} ${osVersion}; Expo/${Constants.expoVersion || "unknown"}; Native/${nativeApplicationVersion})`;
-
+      
       return this.cachedUserAgent;
     } catch (error) {
       console.error("Failed to generate user agent:", error);
@@ -105,25 +104,25 @@ class DeviceInfoUtil {
       // Use a reliable IP detection service with AbortController for timeout
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-
-      const response = await fetch("https://api.ipify.org?format=json", {
+      
+      const response = await fetch('https://api.ipify.org?format=json', {
         signal: controller.signal,
       });
-
+      
       clearTimeout(timeoutId);
-
+      
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-
+      
       const data = await response.json();
       this.cachedIpAddress = data.ip || null;
-
+      
       // Cache for 5 minutes
       setTimeout(() => {
         this.cachedIpAddress = null;
       }, 300000);
-
+      
       return this.cachedIpAddress;
     } catch (error) {
       console.error("Failed to get IP address:", error);

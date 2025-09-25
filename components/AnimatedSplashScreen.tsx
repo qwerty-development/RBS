@@ -6,56 +6,48 @@ const { width, height } = Dimensions.get("window");
 
 interface AnimatedSplashScreenProps {
   onAnimationComplete: () => void;
-  skipAnimation?: boolean; // NUCLEAR: Option to skip animation completely
 }
 
 export default function AnimatedSplashScreen({
   onAnimationComplete,
-  skipAnimation = false,
 }: AnimatedSplashScreenProps) {
   const backgroundOpacity = useRef(new Animated.Value(1)).current;
   const textOpacity = useRef(new Animated.Value(0)).current;
   const splashOpacity = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    // NUCLEAR: If skipAnimation is true, complete immediately
-    if (skipAnimation) {
-      onAnimationComplete();
-      return;
-    }
-
-    // NUCLEAR FALLBACK: Always complete animation ASAP
+    // AGGRESSIVE FALLBACK: Always complete animation after maximum 3 seconds
     const fallbackTimer = setTimeout(() => {
       onAnimationComplete();
-    }, 500);
+    }, 3000);
 
     const runAnimation = async () => {
       try {
-        // Step 1: Text fades in NUCLEAR FAST
+        // Step 1: Text fades in (background is already at 100% opacity)
         await new Promise((resolve) => {
           Animated.timing(textOpacity, {
             toValue: 1,
-            duration: 100, // NUCLEAR: Super fast
+            duration: 800,
             easing: Easing.out(Easing.cubic),
             useNativeDriver: true,
           }).start(resolve);
         });
 
-        // NUCLEAR: Minimal wait
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        // Wait a moment (reduced from 1000ms to 500ms)
+        await new Promise((resolve) => setTimeout(resolve, 500));
 
-        // Step 2: NUCLEAR fade out
+        // Step 2: Fade out animation (faster)
         await new Promise((resolve) => {
           Animated.timing(splashOpacity, {
             toValue: 0,
-            duration: 50, // NUCLEAR: Super fast
+            duration: 200, // Reduced from 300ms
             easing: Easing.bezier(0.4, 0.4, 0.4, 0.4),
             useNativeDriver: true,
           }).start(resolve);
         });
 
-        // NUCLEAR: No final wait
-        await new Promise((resolve) => setTimeout(resolve, 10));
+        // Shorter final wait (reduced from 400ms)
+        await new Promise((resolve) => setTimeout(resolve, 200));
 
         clearTimeout(fallbackTimer);
         // Animation complete
@@ -72,13 +64,7 @@ export default function AnimatedSplashScreen({
     return () => {
       clearTimeout(fallbackTimer);
     };
-  }, [
-    backgroundOpacity,
-    textOpacity,
-    splashOpacity,
-    onAnimationComplete,
-    skipAnimation,
-  ]);
+  }, [backgroundOpacity, textOpacity, splashOpacity, onAnimationComplete]);
 
   return (
     <Animated.View

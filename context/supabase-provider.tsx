@@ -166,16 +166,16 @@ function AuthContent({ children }: PropsWithChildren) {
     try {
       // Create a promise that times out after 2 seconds
       const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Database check timeout")), 2000),
+        setTimeout(() => reject(new Error('Database check timeout')), 2000)
       );
 
       // Race the database query against the timeout
-      const queryPromise = supabase.from("restaurants").select("id").limit(1);
+      const queryPromise = supabase
+        .from("restaurants")
+        .select("id")
+        .limit(1);
 
-      const { data, error } = await Promise.race([
-        queryPromise,
-        timeoutPromise,
-      ]);
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
 
       if (error) {
         // Database readiness check failed
@@ -470,9 +470,9 @@ function AuthContent({ children }: PropsWithChildren) {
             let userId = null;
             try {
               const { data: profileData } = await supabase
-                .from("profiles")
-                .select("id")
-                .eq("email", email)
+                .from('profiles')
+                .select('id')
+                .eq('email', email)
                 .single();
               userId = profileData?.id || null;
             } catch (profileError) {
@@ -520,9 +520,9 @@ function AuthContent({ children }: PropsWithChildren) {
             let userId = null;
             try {
               const { data: profileData } = await supabase
-                .from("profiles")
-                .select("id")
-                .eq("email", email)
+                .from('profiles')
+                .select('id')
+                .eq('email', email)
                 .single();
               userId = profileData?.id || null;
             } catch (profileError) {
@@ -554,7 +554,7 @@ function AuthContent({ children }: PropsWithChildren) {
             // Check if user is flagged for suspicious activity
             const suspiciousFlags =
               await SecurityMonitor.checkUserSuspiciousFlags(data.user.id);
-
+              
             if (
               suspiciousFlags.isFlagged &&
               suspiciousFlags.riskLevel === "high"
@@ -1065,10 +1065,10 @@ function AuthContent({ children }: PropsWithChildren) {
             break;
           }
 
-          // NUCLEAR: Ultra short delays to avoid blocking splash
+          // Short delays: 200ms, 500ms to avoid blocking splash (total max ~1 second)
           if (attempt < 3) {
-            const delay = attempt === 1 ? 50 : 100;
-            // NUCLEAR: Retrying database check with minimal delay
+            const delay = attempt === 1 ? 200 : 500;
+            // Retrying database check with short delay
             await new Promise((resolve) => setTimeout(resolve, delay));
           }
         }
@@ -1089,7 +1089,7 @@ function AuthContent({ children }: PropsWithChildren) {
               } catch (error) {
                 // Background retry failed, components will handle individual retries
               }
-            }, 1000); // NUCLEAR: Retry after 1 second
+            }, 5000); // Retry after 5 seconds
           }
         }
       } catch (error) {

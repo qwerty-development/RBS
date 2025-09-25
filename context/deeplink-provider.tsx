@@ -37,7 +37,7 @@ export function DeepLinkProvider({
       autoHandle: true,
       fallbackPath: "/(protected)/(tabs)", // Better fallback for authenticated users
       enableLogging: __DEV__,
-      processDelay: 0, // NUCLEAR: No delay - process immediately
+      processDelay: 2500, // Increased delay for cold start scenarios
       isSplashVisible,
       onSplashDismissRequested,
 
