@@ -374,7 +374,7 @@ export function useRestaurant(
         return;
       }
 
-      // If database isn't ready yet and this is the first attempt, wait a bit and retry
+      // CRITICAL FIX: If database isn't ready yet and this is the first attempt, wait and retry
       if (!databaseReady && retryCount === 0) {
         setTimeout(() => {
           fetchRestaurantDetails(1);

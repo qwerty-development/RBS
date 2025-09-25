@@ -137,13 +137,10 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
         return false;
       }
 
-      // For database-dependent routes, we'll let them handle the database readiness internally
-      // This prevents splash screen hanging while still ensuring data loads properly
+      // NAVIGATION FIRST: Allow navigation to proceed immediately to dismiss splash
+      // Components will handle database readiness with their own retry logic
       if (!databaseReady) {
-        log(
-          "Database not ready yet, but proceeding with navigation - component will handle retry:",
-          url,
-        );
+        log("Database not ready yet, but proceeding with navigation - components will retry:", url);
       }
 
       // NUCLEAR OPTION: If splash screen is visible, dismiss it and delay processing
@@ -398,6 +395,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
     processDeepLink,
     log,
   ]);
+
 
   // Process pending deep link when splash screen is dismissed
   useEffect(() => {

@@ -161,14 +161,21 @@ function AuthContent({ children }: PropsWithChildren) {
     }
   }, [router]);
 
-  // NEW: Database readiness check
+  // NEW: Database readiness check with timeout
   const checkDatabaseReadiness = useCallback(async (): Promise<boolean> => {
     try {
-      // Simple query to test database connectivity
-      const { data, error } = await supabase
+      // Create a promise that times out after 2 seconds
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Database check timeout')), 2000)
+      );
+
+      // Race the database query against the timeout
+      const queryPromise = supabase
         .from("restaurants")
         .select("id")
         .limit(1);
+
+      const { data, error } = await Promise.race([queryPromise, timeoutPromise]);
 
       if (error) {
         // Database readiness check failed
@@ -177,7 +184,7 @@ function AuthContent({ children }: PropsWithChildren) {
 
       return true;
     } catch (error) {
-      // Database readiness check error
+      // Database readiness check error (including timeout)
       return false;
     }
   }, []);
@@ -352,7 +359,7 @@ function AuthContent({ children }: PropsWithChildren) {
               email,
               password,
               options: {
-                emailRedirectTo: Linking.createURL("/auth-confirm"),
+                emailRedirectTo: "https://plate-app.com/verify-email",
                 data: {
                   full_name: fullName,
                   phone_number: phoneNumber,
@@ -1047,7 +1054,7 @@ function AuthContent({ children }: PropsWithChildren) {
         }
 
         // NEW: Check database readiness after auth initialization
-        // Add retries for cold start scenarios with exponential backoff
+        // Fast check with minimal delays to avoid blocking splash dismissal
         let databaseReadySuccess = false;
         for (let attempt = 1; attempt <= 3; attempt++) {
           // Database readiness attempt
@@ -1058,10 +1065,10 @@ function AuthContent({ children }: PropsWithChildren) {
             break;
           }
 
-          // Exponential backoff: 1s, 2s, 4s
+          // Short delays: 200ms, 500ms to avoid blocking splash (total max ~1 second)
           if (attempt < 3) {
-            const delay = Math.pow(2, attempt - 1) * 1000;
-            // Retrying database check
+            const delay = attempt === 1 ? 200 : 500;
+            // Retrying database check with short delay
             await new Promise((resolve) => setTimeout(resolve, delay));
           }
         }
@@ -1069,6 +1076,21 @@ function AuthContent({ children }: PropsWithChildren) {
         if (isMounted) {
           setDatabaseReady(databaseReadySuccess);
           // Database readiness check result
+
+          // Even if database check failed, components will retry individually
+          if (!databaseReadySuccess) {
+            // Schedule a background retry after a short delay
+            setTimeout(async () => {
+              try {
+                const retryResult = await checkDatabaseReadiness();
+                if (retryResult && isMounted) {
+                  setDatabaseReady(true);
+                }
+              } catch (error) {
+                // Background retry failed, components will handle individual retries
+              }
+            }, 5000); // Retry after 5 seconds
+          }
         }
       } catch (error) {
         // Error initializing auth
