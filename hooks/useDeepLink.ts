@@ -137,20 +137,13 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
         return false;
       }
 
-      // CRITICAL FIX: Wait for database readiness for data-dependent routes
-      // This prevents cold start crashes where components try to load data before DB is ready
+      // For database-dependent routes, we'll let them handle the database readiness internally
+      // This prevents splash screen hanging while still ensuring data loads properly
       if (!databaseReady) {
-        log("Database not ready yet, delaying deep link processing:", url);
-
-        // Store the URL for processing after database is ready
-        setState((prev) => ({
-          ...prev,
-          isProcessing: false,
-          initialUrl: url,
-          error: "Database not ready - waiting for initialization",
-        }));
-
-        return false;
+        log(
+          "Database not ready yet, but proceeding with navigation - component will handle retry:",
+          url,
+        );
       }
 
       // NUCLEAR OPTION: If splash screen is visible, dismiss it and delay processing
@@ -402,41 +395,6 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
     isMounted,
     isNavigationReady,
     state.initialUrl,
-    processDeepLink,
-    log,
-  ]);
-
-  // NEW: Process pending deep link after database becomes ready
-  useEffect(() => {
-    if (
-      authInitialized &&
-      databaseReady &&
-      isMounted &&
-      isNavigationReady &&
-      state.initialUrl &&
-      state.error?.includes("Database not ready") &&
-      !processedUrls.current.has(state.initialUrl)
-    ) {
-      // Double-check URL filtering before processing
-      if (shouldIgnoreUrl(state.initialUrl)) {
-        log(
-          "Ignoring development URL in database ready effect:",
-          state.initialUrl,
-        );
-        return;
-      }
-
-      log("Database ready, processing pending deep link:", state.initialUrl);
-      processDeepLink(state.initialUrl);
-    }
-  }, [
-    shouldIgnoreUrl,
-    authInitialized,
-    databaseReady,
-    isMounted,
-    isNavigationReady,
-    state.initialUrl,
-    state.error,
     processDeepLink,
     log,
   ]);

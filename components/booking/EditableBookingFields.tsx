@@ -70,10 +70,7 @@ export const EditableBookingFields: React.FC<EditableBookingFieldsProps> = ({
       Alert.alert("Success", "Booking details updated successfully");
     } catch (error) {
       console.error("Error updating booking fields:", error);
-      Alert.alert(
-        "Error",
-        "Failed to update booking details. Please try again.",
-      );
+      Alert.alert("Error", "Failed to update booking details. Please try again.");
     } finally {
       setIsUpdating(false);
     }
@@ -89,16 +86,12 @@ export const EditableBookingFields: React.FC<EditableBookingFieldsProps> = ({
       .split(",")
       .map((note) => note.trim())
       .filter((note) => note.length > 0);
-    setEditValues({
-      ...editValues,
-      dietary_notes: notes.length > 0 ? notes : null,
-    });
+    setEditValues({ ...editValues, dietary_notes: notes.length > 0 ? notes : null });
   };
 
-  const hasAnyData =
-    currentValues.occasion ||
-    currentValues.special_requests ||
-    (currentValues.dietary_notes && currentValues.dietary_notes.length > 0);
+  const hasAnyData = currentValues.occasion || 
+                     currentValues.special_requests || 
+                     (currentValues.dietary_notes && currentValues.dietary_notes.length > 0);
 
   if (!hasAnyData && !canEdit) {
     return null; // Don't show anything if no data and can't edit
@@ -111,7 +104,7 @@ export const EditableBookingFields: React.FC<EditableBookingFieldsProps> = ({
           <Info size={16} color={colors[colorScheme].primary} />
           <Text className="text-base font-medium">Additional Information</Text>
         </View>
-
+        
         {canEdit && !isEditing && (
           <Pressable
             onPress={() => setIsEditing(true)}
@@ -132,9 +125,7 @@ export const EditableBookingFields: React.FC<EditableBookingFieldsProps> = ({
             </Text>
             <Input
               value={editValues.occasion || ""}
-              onChangeText={(text) =>
-                setEditValues({ ...editValues, occasion: text })
-              }
+              onChangeText={(text) => setEditValues({ ...editValues, occasion: text })}
               placeholder="e.g., Birthday, Anniversary, Business meeting"
               className="mb-0"
             />
@@ -163,9 +154,7 @@ export const EditableBookingFields: React.FC<EditableBookingFieldsProps> = ({
             </Text>
             <Input
               value={editValues.special_requests || ""}
-              onChangeText={(text) =>
-                setEditValues({ ...editValues, special_requests: text })
-              }
+              onChangeText={(text) => setEditValues({ ...editValues, special_requests: text })}
               placeholder="Any special requests for your visit"
               multiline
               numberOfLines={3}
@@ -186,7 +175,7 @@ export const EditableBookingFields: React.FC<EditableBookingFieldsProps> = ({
                 <Text>Cancel</Text>
               </View>
             </Button>
-
+            
             <Button
               onPress={handleSave}
               disabled={isUpdating}
@@ -220,23 +209,22 @@ export const EditableBookingFields: React.FC<EditableBookingFieldsProps> = ({
           )}
 
           {/* Dietary Notes with amber separator line */}
-          {currentValues.dietary_notes &&
-            currentValues.dietary_notes.length > 0 && (
-              <View className="pt-3 pb-3">
-                <View className="flex-row items-center gap-2 mb-1">
-                  <View className="bg-amber-100 dark:bg-amber-800/50 rounded-full p-1.5">
-                    <Utensils size={14} color="#f59e0b" />
-                  </View>
-                  <Text className="font-medium text-sm text-amber-800 dark:text-amber-200">
-                    Dietary Notes
-                  </Text>
+          {currentValues.dietary_notes && currentValues.dietary_notes.length > 0 && (
+            <View className="pt-3 pb-3">
+              <View className="flex-row items-center gap-2 mb-1">
+                <View className="bg-amber-100 dark:bg-amber-800/50 rounded-full p-1.5">
+                  <Utensils size={14} color="#f59e0b" />
                 </View>
-                <Text className="text-foreground text-sm ml-8 mb-3">
-                  {currentValues.dietary_notes.join(", ")}
+                <Text className="font-medium text-sm text-amber-800 dark:text-amber-200">
+                  Dietary Notes
                 </Text>
-                <View className="h-0.5 bg-amber-200 dark:bg-amber-800" />
               </View>
-            )}
+              <Text className="text-foreground text-sm ml-8 mb-3">
+                {currentValues.dietary_notes.join(", ")}
+              </Text>
+              <View className="h-0.5 bg-amber-200 dark:bg-amber-800" />
+            </View>
+          )}
 
           {/* Special Requests with blue separator line */}
           {currentValues.special_requests && (
@@ -255,7 +243,7 @@ export const EditableBookingFields: React.FC<EditableBookingFieldsProps> = ({
               <View className="h-0.5 bg-blue-200 dark:bg-blue-800" />
             </View>
           )}
-
+          
           {/* Show placeholder when no data and can edit */}
           {!hasAnyData && canEdit && (
             <View className="py-4 px-3 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/30">
