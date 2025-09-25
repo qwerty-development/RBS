@@ -94,18 +94,10 @@ export const useRestaurantReviews = (restaurantId: string) => {
         if (restaurantError) throw restaurantError;
         setRestaurant(restaurantData);
 
-        // Build reviews query
+        // Build reviews query - fetch reviews without user details first
         let reviewsQuery = supabase
           .from("reviews")
-          .select(
-            `
-          *,
-          user:profiles!inner (
-            full_name,
-            avatar_url
-          )
-        `,
-          )
+          .select("*")
           .eq("restaurant_id", restaurantId);
 
         // Apply rating filter
@@ -159,7 +151,41 @@ export const useRestaurantReviews = (restaurantId: string) => {
           );
         }
 
-        setReviews(filteredReviews);
+        // Fetch user profile info using RPC function
+        let reviewsWithUserInfo = filteredReviews;
+        if (filteredReviews.length > 0) {
+          const userIds = filteredReviews.map((review) => review.user_id);
+          const { data: userProfilesData, error: profilesError } = await supabase
+            .rpc("get_public_profile_info", { user_ids: userIds });
+
+          if (!profilesError && userProfilesData) {
+            // Create a map for quick lookup
+            const profilesMap = new Map(
+              userProfilesData.map((profile: { user_id: string; full_name: string; avatar_url: string | null }) => [profile.user_id, profile])
+            );
+
+            // Add user info to reviews
+            reviewsWithUserInfo = filteredReviews.map((review) => ({
+              ...review,
+              user: profilesMap.get(review.user_id) || {
+                full_name: "Anonymous",
+                avatar_url: null,
+              },
+            }));
+          } else {
+            console.warn("Error fetching user profiles:", profilesError);
+            // Fallback: add anonymous user info
+            reviewsWithUserInfo = filteredReviews.map((review) => ({
+              ...review,
+              user: {
+                full_name: "Anonymous",
+                avatar_url: null,
+              },
+            }));
+          }
+        }
+
+        setReviews(reviewsWithUserInfo);
       } catch (error) {
         console.error("Error fetching data:", error);
         Alert.alert("Error", "Failed to load reviews");

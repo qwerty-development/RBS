@@ -412,18 +412,10 @@ export function useRestaurant(
           setIsFavorite(!!favoriteData);
         }
 
-        // Fetch reviews with user details
+        // Fetch reviews without user details first
         const { data: reviewsData, error: reviewsError } = await supabase
           .from("reviews")
-          .select(
-            `
-          *,
-          user:profiles (
-            full_name,
-            avatar_url
-          )
-        `,
-          )
+          .select("*")
           .eq("restaurant_id", restaurantId)
           .order("created_at", { ascending: false })
           .limit(20);
@@ -447,13 +439,47 @@ export function useRestaurant(
           }
         }
 
+        // Now fetch user profile info for the reviews using RPC function
+        let reviewsWithUserInfo = filteredReviews;
+        if (filteredReviews.length > 0) {
+          const userIds = filteredReviews.map((review) => review.user_id);
+          const { data: userProfilesData, error: profilesError } = await supabase
+            .rpc("get_public_profile_info", { user_ids: userIds });
+
+          if (!profilesError && userProfilesData) {
+            // Create a map for quick lookup
+            const profilesMap = new Map(
+              userProfilesData.map((profile: { user_id: string; full_name: string; avatar_url: string | null }) => [profile.user_id, profile])
+            );
+
+            // Add user info to reviews
+            reviewsWithUserInfo = filteredReviews.map((review) => ({
+              ...review,
+              user: profilesMap.get(review.user_id) || {
+                full_name: "Anonymous",
+                avatar_url: null,
+              },
+            }));
+          } else {
+            console.warn("Error fetching user profiles:", profilesError);
+            // Fallback: add anonymous user info
+            reviewsWithUserInfo = filteredReviews.map((review) => ({
+              ...review,
+              user: {
+                full_name: "Anonymous",
+                avatar_url: null,
+              },
+            }));
+          }
+        }
+
         if (reviewsError) {
           console.warn("Reviews fetch error:", reviewsError);
         } else {
-          setReviews(filteredReviews);
+          setReviews(reviewsWithUserInfo);
 
-          // Calculate review summary from filtered reviews data
-          const calculatedSummary = calculateReviewSummary(filteredReviews);
+          // Calculate review summary from reviews with user info
+          const calculatedSummary = calculateReviewSummary(reviewsWithUserInfo);
           if (calculatedSummary) {
             const updatedRestaurant = {
               ...restaurantData,
