@@ -45,7 +45,7 @@ type LoyaltyActivity = {
 };
 
 export const useBookingDetails = (bookingId: string) => {
-  const { profile } = useAuth();
+  const { profile, databaseReady } = useAuth();
   const { updateBooking } = useBookingsStore();
 
   const [booking, setBooking] = useState<Booking | null>(null);
@@ -58,7 +58,7 @@ export const useBookingDetails = (bookingId: string) => {
     useState<AppliedOfferDetails | null>(null);
   const [assignedTables, setAssignedTables] = useState<TableInfo[]>([]);
 
-  // BRUTE FORCE FIX: Always attempt data loading immediately
+  // Enhanced fetch booking details with table information and cold start retry logic
   const fetchBookingDetails = useCallback(
     async (retryCount = 0) => {
       if (!bookingId) {
@@ -66,9 +66,13 @@ export const useBookingDetails = (bookingId: string) => {
         return;
       }
 
-      // BRUTE FORCE: Try immediately regardless of database readiness state
-      // If it fails, we'll retry with exponential backoff
-      console.log(`[useBookingDetails] Fetching booking details for ${bookingId}, attempt ${retryCount + 1}`);
+      // CRITICAL FIX: If database isn't ready yet and this is the first attempt, wait and retry
+      if (!databaseReady && retryCount === 0) {
+        setTimeout(() => {
+          fetchBookingDetails(1);
+        }, 2000);
+        return;
+      }
 
       try {
         // Fetch booking with enhanced data
@@ -238,7 +242,6 @@ export const useBookingDetails = (bookingId: string) => {
         }
 
         // Success - all data loaded
-        console.log(`[useBookingDetails] Successfully loaded booking details for ${bookingId}`);
         setLoading(false);
       } catch (error) {
         console.error(
@@ -246,10 +249,9 @@ export const useBookingDetails = (bookingId: string) => {
           error,
         );
 
-        // AGGRESSIVE RETRY: Up to 5 attempts with faster initial retries
-        if (retryCount < 4) {
-          // Fast retries: 500ms, 1s, 2s, 4s
-          const delay = retryCount === 0 ? 500 : Math.pow(2, retryCount - 1) * 1000;
+        // Retry logic for cold start scenarios (up to 3 attempts)
+        if (retryCount < 2) {
+          const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s exponential backoff
 
           setTimeout(() => {
             fetchBookingDetails(retryCount + 1);
@@ -258,12 +260,11 @@ export const useBookingDetails = (bookingId: string) => {
         }
 
         // Final failure after all retries
-        console.error("Failed to load booking details after all retries");
         Alert.alert("Error", "Failed to load booking details");
         setLoading(false);
       }
     },
-    [bookingId, profile?.id],
+    [bookingId, profile?.id, databaseReady],
   );
 
   // Enhanced cancel booking with loyalty points handling
@@ -374,11 +375,10 @@ export const useBookingDetails = (bookingId: string) => {
     );
   }, [booking]);
 
-  // Initialize data fetch - IMMEDIATE execution
+  // Lifecycle
   useEffect(() => {
-    // Call immediately without waiting for any state
     fetchBookingDetails();
-  }, [bookingId]); // Only depend on bookingId to avoid unnecessary re-calls
+  }, [fetchBookingDetails]);
 
   return {
     booking,
