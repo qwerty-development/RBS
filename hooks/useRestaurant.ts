@@ -88,7 +88,7 @@ export function useRestaurant(
   restaurantId: string | undefined,
 ): UseRestaurantReturn {
   const router = useRouter();
-  const { profile, databaseReady } = useAuth();
+  const { profile } = useAuth();
 
   // Core state
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -366,7 +366,7 @@ export function useRestaurant(
     [restaurantId, restaurant, availabilityService, profile?.id],
   );
 
-  // Main data fetching with retry logic for cold start scenarios
+  // BRUTE FORCE FIX: Always attempt data loading immediately
   const fetchRestaurantDetails = useCallback(
     async (retryCount = 0) => {
       if (!restaurantId) {
@@ -374,13 +374,9 @@ export function useRestaurant(
         return;
       }
 
-      // CRITICAL FIX: If database isn't ready yet and this is the first attempt, wait and retry
-      if (!databaseReady && retryCount === 0) {
-        setTimeout(() => {
-          fetchRestaurantDetails(1);
-        }, 2000);
-        return;
-      }
+      // BRUTE FORCE: Try immediately regardless of database readiness state
+      // If it fails, we'll retry with exponential backoff
+      console.log(`[useRestaurant] Fetching restaurant details for ${restaurantId}, attempt ${retryCount + 1}`);
 
       try {
         const { data: restaurantData, error: restaurantError } = await supabase
@@ -479,6 +475,7 @@ export function useRestaurant(
         }
 
         // Success - set loading to false
+        console.log(`[useRestaurant] Successfully loaded restaurant details for ${restaurantId}`);
         setLoading(false);
       } catch (error) {
         console.error(
@@ -486,9 +483,10 @@ export function useRestaurant(
           error,
         );
 
-        // Retry logic for cold start scenarios (up to 3 attempts)
-        if (retryCount < 2) {
-          const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s exponential backoff
+        // AGGRESSIVE RETRY: Up to 5 attempts with faster initial retries
+        if (retryCount < 4) {
+          // Fast retries: 500ms, 1s, 2s, 4s
+          const delay = retryCount === 0 ? 500 : Math.pow(2, retryCount - 1) * 1000;
 
           setTimeout(() => {
             fetchRestaurantDetails(retryCount + 1);
@@ -497,11 +495,12 @@ export function useRestaurant(
         }
 
         // Final failure after all retries
+        console.error("Failed to load restaurant details after all retries");
         Alert.alert("Error", "Failed to load restaurant details");
         setLoading(false);
       }
     },
-    [restaurantId, profile?.id, calculateReviewSummary, databaseReady],
+    [restaurantId, profile?.id, calculateReviewSummary],
   );
 
   // Action handlers
@@ -598,10 +597,11 @@ export function useRestaurant(
     });
   }, [restaurantId, restaurant, router]);
 
-  // Initialize data fetch
+  // Initialize data fetch - IMMEDIATE execution
   useEffect(() => {
+    // Call immediately without waiting for any state
     fetchRestaurantDetails();
-  }, [fetchRestaurantDetails]);
+  }, [restaurantId]); // Only depend on restaurantId to avoid unnecessary re-calls
 
   // Subscribe to real-time updates
   useEffect(() => {
