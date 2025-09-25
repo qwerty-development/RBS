@@ -140,7 +140,10 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
       // NAVIGATION FIRST: Allow navigation to proceed immediately to dismiss splash
       // Components will handle database readiness with their own retry logic
       if (!databaseReady) {
-        log("Database not ready yet, but proceeding with navigation - components will retry:", url);
+        log(
+          "Database not ready yet, but proceeding with navigation - components will retry:",
+          url,
+        );
       }
 
       // NUCLEAR OPTION: If splash screen is visible, dismiss it and delay processing
@@ -152,7 +155,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
         // Immediately dismiss splash
         finalOptions.onSplashDismissRequested();
 
-        // Store URL and delay processing by 2 seconds to let everything stabilize
+        // NUCLEAR: Minimal delay for navigation
         setTimeout(() => {
           log("NUCLEAR: Retrying deep link after splash dismissal:", url);
           if (isMounted) {
@@ -179,7 +182,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
               router.push("/(protected)/(tabs)");
             }
           }
-        }, 2000);
+        }, 100); // NUCLEAR: Just 100ms delay
 
         return false;
       }
@@ -396,7 +399,6 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
     log,
   ]);
 
-
   // Process pending deep link when splash screen is dismissed
   useEffect(() => {
     if (
@@ -459,10 +461,10 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
   useEffect(() => {
     setIsMounted(true);
 
-    // Give the navigation system time to initialize
+    // NUCLEAR: Minimal navigation ready delay
     const navigationTimer = setTimeout(() => {
       setIsNavigationReady(true);
-    }, 500); // Small delay to ensure navigation is ready
+    }, 50); // NUCLEAR: Minimal delay
 
     return () => {
       setIsMounted(false);

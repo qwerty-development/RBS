@@ -12,6 +12,7 @@ import {
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
 import { LogBox, View, Text } from "react-native";
+import * as Linking from "expo-linking";
 import React, { useEffect, useState } from "react";
 import {
   ErrorBoundary,
@@ -85,12 +86,34 @@ function NetworkStatusBar() {
 function RootLayoutWithSplashState() {
   const [showSplash, setShowSplash] = useState(true);
   const [splashDismissRequested, setSplashDismissRequested] = useState(false);
+  const [isDeepLinkColdStart, setIsDeepLinkColdStart] = useState(false);
 
-  // EMERGENCY SPLASH DISMISSAL: Force hide splash after short delay
+  // NUCLEAR: Check for deep link on cold start
+  useEffect(() => {
+    const checkInitialUrl = async () => {
+      try {
+        const initialUrl = await Linking.getInitialURL();
+        if (
+          initialUrl &&
+          !initialUrl.includes("localhost") &&
+          !initialUrl.startsWith("exp://")
+        ) {
+          console.log("NUCLEAR: Deep link detected on cold start:", initialUrl);
+          setIsDeepLinkColdStart(true);
+        }
+      } catch (error) {
+        console.warn("Failed to check initial URL:", error);
+      }
+    };
+
+    checkInitialUrl();
+  }, []);
+
+  // NUCLEAR SPLASH DISMISSAL: Force hide splash ASAP
   useEffect(() => {
     const emergencyTimer = setTimeout(() => {
       setShowSplash(false);
-    }, 1500); // Short timer - deep links should dismiss immediately now
+    }, 300); // NUCLEAR: Ultra short timer
 
     return () => clearTimeout(emergencyTimer);
   }, []);
@@ -117,6 +140,7 @@ function RootLayoutWithSplashState() {
           <RootLayoutContent
             showSplash={showSplash}
             setShowSplash={setShowSplash}
+            isDeepLinkColdStart={isDeepLinkColdStart}
           />
         </NavigationErrorBoundary>
       </ModalProvider>
@@ -127,9 +151,11 @@ function RootLayoutWithSplashState() {
 function RootLayoutContent({
   showSplash,
   setShowSplash,
+  isDeepLinkColdStart,
 }: {
   showSplash: boolean;
   setShowSplash: (show: boolean) => void;
+  isDeepLinkColdStart: boolean;
 }) {
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
@@ -200,6 +226,7 @@ function RootLayoutContent({
       {showSplash && (
         <AnimatedSplashScreen
           onAnimationComplete={() => setShowSplash(false)}
+          skipAnimation={isDeepLinkColdStart}
         />
       )}
       <NetworkStatusBar />

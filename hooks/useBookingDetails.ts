@@ -68,7 +68,9 @@ export const useBookingDetails = (bookingId: string) => {
 
       // BRUTE FORCE: Try immediately regardless of database readiness state
       // If it fails, we'll retry with exponential backoff
-      console.log(`[useBookingDetails] Fetching booking details for ${bookingId}, attempt ${retryCount + 1}`);
+      console.log(
+        `[useBookingDetails] Fetching booking details for ${bookingId}, attempt ${retryCount + 1}`,
+      );
 
       try {
         // Fetch booking with enhanced data
@@ -238,7 +240,9 @@ export const useBookingDetails = (bookingId: string) => {
         }
 
         // Success - all data loaded
-        console.log(`[useBookingDetails] Successfully loaded booking details for ${bookingId}`);
+        console.log(
+          `[useBookingDetails] Successfully loaded booking details for ${bookingId}`,
+        );
         setLoading(false);
       } catch (error) {
         console.error(
@@ -249,7 +253,8 @@ export const useBookingDetails = (bookingId: string) => {
         // AGGRESSIVE RETRY: Up to 5 attempts with faster initial retries
         if (retryCount < 4) {
           // Fast retries: 500ms, 1s, 2s, 4s
-          const delay = retryCount === 0 ? 500 : Math.pow(2, retryCount - 1) * 1000;
+          const delay =
+            retryCount === 0 ? 500 : Math.pow(2, retryCount - 1) * 1000;
 
           setTimeout(() => {
             fetchBookingDetails(retryCount + 1);
