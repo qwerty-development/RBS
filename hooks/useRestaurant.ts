@@ -88,7 +88,7 @@ export function useRestaurant(
   restaurantId: string | undefined,
 ): UseRestaurantReturn {
   const router = useRouter();
-  const { profile } = useAuth();
+  const { profile, session, initialized: authInitialized } = useAuth();
 
   // Core state
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
@@ -398,16 +398,23 @@ export function useRestaurant(
 
         setRestaurant(restaurantData);
 
-        // Check if restaurant is favorited
-        if (profile?.id) {
-          const { data: favoriteData } = await supabase
-            .from("favorites")
-            .select("id")
-            .eq("user_id", profile.id)
-            .eq("restaurant_id", restaurantId)
-            .single();
+        // Check if restaurant is favorited (only if authenticated)
+        if (profile?.id && authInitialized && session) {
+          try {
+            const { data: favoriteData } = await supabase
+              .from("favorites")
+              .select("id")
+              .eq("user_id", profile.id)
+              .eq("restaurant_id", restaurantId)
+              .single();
 
-          setIsFavorite(!!favoriteData);
+            setIsFavorite(!!favoriteData);
+          } catch (favoriteError) {
+            console.log("Failed to check favorites (likely auth not ready):", favoriteError);
+            setIsFavorite(false);
+          }
+        } else {
+          setIsFavorite(false);
         }
 
         // Fetch reviews with user details
@@ -428,20 +435,25 @@ export function useRestaurant(
 
         // Filter out reviews from blocked users client-side if user is authenticated
         let filteredReviews = reviewsData || [];
-        if (profile?.id && reviewsData) {
-          // Get blocked user IDs
-          const { data: blockedData } = await supabase
-            .from("blocked_users")
-            .select("blocked_id")
-            .eq("blocker_id", profile.id);
+        if (profile?.id && reviewsData && authInitialized && session) {
+          try {
+            // Get blocked user IDs
+            const { data: blockedData } = await supabase
+              .from("blocked_users")
+              .select("blocked_id")
+              .eq("blocker_id", profile.id);
 
-          if (blockedData?.length) {
-            const blockedUserIds = new Set(
-              blockedData.map((b) => b.blocked_id),
-            );
-            filteredReviews = reviewsData.filter(
-              (review) => !blockedUserIds.has(review.user_id),
-            );
+            if (blockedData?.length) {
+              const blockedUserIds = new Set(
+                blockedData.map((b) => b.blocked_id),
+              );
+              filteredReviews = reviewsData.filter(
+                (review) => !blockedUserIds.has(review.user_id),
+              );
+            }
+          } catch (blockedError) {
+            console.log("Failed to check blocked users (likely auth not ready):", blockedError);
+            // Just use all reviews if blocked check fails
           }
         }
 
@@ -505,7 +517,7 @@ export function useRestaurant(
         setLoading(false);
       }
     },
-    [restaurantId, profile?.id, calculateReviewSummary],
+    [restaurantId, profile?.id, calculateReviewSummary, authInitialized, session],
   );
 
   // Action handlers
@@ -606,7 +618,7 @@ export function useRestaurant(
   useEffect(() => {
     // Call immediately without waiting for any state
     fetchRestaurantDetails();
-  }, [restaurantId]); // Only depend on restaurantId to avoid unnecessary re-calls
+  }, [restaurantId, authInitialized, session, profile]); // Include auth dependencies
 
   // Subscribe to real-time updates
   useEffect(() => {

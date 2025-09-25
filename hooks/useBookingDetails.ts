@@ -45,7 +45,7 @@ type LoyaltyActivity = {
 };
 
 export const useBookingDetails = (bookingId: string) => {
-  const { profile } = useAuth();
+  const { profile, session, initialized: authInitialized } = useAuth();
   const { updateBooking } = useBookingsStore();
 
   const [booking, setBooking] = useState<Booking | null>(null);
@@ -58,7 +58,7 @@ export const useBookingDetails = (bookingId: string) => {
     useState<AppliedOfferDetails | null>(null);
   const [assignedTables, setAssignedTables] = useState<TableInfo[]>([]);
 
-  // BRUTE FORCE FIX: Always attempt data loading immediately
+  // AUTH-FIRST FIX: Wait for authentication before attempting data loading
   const fetchBookingDetails = useCallback(
     async (retryCount = 0) => {
       if (!bookingId) {
@@ -66,10 +66,35 @@ export const useBookingDetails = (bookingId: string) => {
         return;
       }
 
-      // BRUTE FORCE: Try immediately regardless of database readiness state
-      // If it fails, we'll retry with exponential backoff
+      // RLS FIX: Ensure auth is initialized and session exists
+      if (!authInitialized) {
+        console.log(
+          `[useBookingDetails] Auth not initialized yet, retrying in 100ms (attempt ${retryCount + 1})`,
+        );
+        if (retryCount < 10) {
+          setTimeout(() => fetchBookingDetails(retryCount + 1), 100);
+        } else {
+          console.error("[useBookingDetails] Auth never initialized after 10 attempts");
+          setLoading(false);
+        }
+        return;
+      }
+
+      if (!session && !profile) {
+        console.log(
+          `[useBookingDetails] No session or profile available, retrying in 100ms (attempt ${retryCount + 1})`,
+        );
+        if (retryCount < 10) {
+          setTimeout(() => fetchBookingDetails(retryCount + 1), 100);
+        } else {
+          console.error("[useBookingDetails] No session available after 10 attempts");
+          setLoading(false);
+        }
+        return;
+      }
+
       console.log(
-        `[useBookingDetails] Fetching booking details for ${bookingId}, attempt ${retryCount + 1}`,
+        `[useBookingDetails] Auth ready, fetching booking details for ${bookingId}, attempt ${retryCount + 1}`,
       );
 
       try {
@@ -268,7 +293,7 @@ export const useBookingDetails = (bookingId: string) => {
         setLoading(false);
       }
     },
-    [bookingId, profile?.id],
+    [bookingId, profile?.id, authInitialized, session],
   );
 
   // Enhanced cancel booking with loyalty points handling
@@ -379,11 +404,11 @@ export const useBookingDetails = (bookingId: string) => {
     );
   }, [booking]);
 
-  // Initialize data fetch - IMMEDIATE execution
+  // Initialize data fetch - AUTH-AWARE execution
   useEffect(() => {
-    // Call immediately without waiting for any state
+    // Call when auth is ready or bookingId changes
     fetchBookingDetails();
-  }, [bookingId]); // Only depend on bookingId to avoid unnecessary re-calls
+  }, [bookingId, authInitialized, session, profile]); // Include auth dependencies
 
   return {
     booking,
