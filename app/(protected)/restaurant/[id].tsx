@@ -20,6 +20,10 @@ import {
   Timer,
   X,
   Share2,
+  Instagram,
+  Facebook,
+  Twitter,
+  ExternalLink,
 } from "lucide-react-native";
 import {
   ScrollView,
@@ -467,6 +471,152 @@ const FeaturesSection: React.FC<{ restaurant: Restaurant }> = ({
                 {feature.text}
               </Text>
             </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+};
+
+// Social Media Section
+const SocialMediaSection: React.FC<{
+  restaurant: Restaurant;
+  onSocialPress: (url: string, platform: string) => void;
+}> = ({ restaurant, onSocialPress }) => {
+  const socialLinks = [];
+
+  // Check for Instagram
+  if ((restaurant as any).instagram_handle) {
+    const handle = (restaurant as any).instagram_handle;
+    const url = handle.startsWith("@")
+      ? `https://instagram.com/${handle.slice(1)}`
+      : `https://instagram.com/${handle}`;
+    socialLinks.push({
+      id: "instagram",
+      icon: Instagram,
+      label: "Instagram",
+      url: url,
+      color: "#E4405F",
+      handle: handle.startsWith("@") ? handle : `@${handle}`,
+    });
+  } else if ((restaurant as any).instagram_url) {
+    socialLinks.push({
+      id: "instagram",
+      icon: Instagram,
+      label: "Instagram",
+      url: (restaurant as any).instagram_url,
+      color: "#E4405F",
+      handle: "Instagram",
+    });
+  }
+
+  // Check for Facebook
+  if ((restaurant as any).facebook_url) {
+    socialLinks.push({
+      id: "facebook",
+      icon: Facebook,
+      label: "Facebook",
+      url: (restaurant as any).facebook_url,
+      color: "#1877F2",
+      handle: "Facebook",
+    });
+  }
+
+  // Check for Twitter
+  if ((restaurant as any).twitter_handle) {
+    const handle = (restaurant as any).twitter_handle;
+    const url = handle.startsWith("@")
+      ? `https://twitter.com/${handle.slice(1)}`
+      : `https://twitter.com/${handle}`;
+    socialLinks.push({
+      id: "twitter",
+      icon: Twitter,
+      label: "Twitter",
+      url: url,
+      color: "#1DA1F2",
+      handle: handle.startsWith("@") ? handle : `@${handle}`,
+    });
+  } else if ((restaurant as any).twitter_url) {
+    socialLinks.push({
+      id: "twitter",
+      icon: Twitter,
+      label: "Twitter",
+      url: (restaurant as any).twitter_url,
+      color: "#1DA1F2",
+      handle: "Twitter",
+    });
+  }
+
+  // Check for TikTok
+  if ((restaurant as any).tiktok_handle) {
+    const handle = (restaurant as any).tiktok_handle;
+    const url = handle.startsWith("@")
+      ? `https://tiktok.com/${handle}`
+      : `https://tiktok.com/@${handle}`;
+    socialLinks.push({
+      id: "tiktok",
+      icon: ExternalLink,
+      label: "TikTok",
+      url: url,
+      color: "#FF0050",
+      handle: handle.startsWith("@") ? handle : `@${handle}`,
+    });
+  } else if ((restaurant as any).tiktok_url) {
+    socialLinks.push({
+      id: "tiktok",
+      icon: ExternalLink,
+      label: "TikTok",
+      url: (restaurant as any).tiktok_url,
+      color: "#FF0050",
+      handle: "TikTok",
+    });
+  }
+
+  // Check for LinkedIn
+  if ((restaurant as any).linkedin_url) {
+    socialLinks.push({
+      id: "linkedin",
+      icon: ExternalLink,
+      label: "LinkedIn",
+      url: (restaurant as any).linkedin_url,
+      color: "#0A66C2",
+      handle: "LinkedIn",
+    });
+  }
+
+  if (socialLinks.length === 0) return null;
+
+  return (
+    <View className="px-4 py-3 border-b border-border/50">
+      <Text className="text-base font-semibold mb-3 text-foreground">
+        Connect With Us
+      </Text>
+      <View className="flex-row flex-wrap gap-3">
+        {socialLinks.map((social) => {
+          const IconComponent = social.icon;
+          return (
+            <Pressable
+              key={social.id}
+              onPress={() => onSocialPress(social.url, social.id)}
+              className="flex-row items-center gap-2 p-3 rounded-xl border border-border bg-background min-w-[120px] flex-1"
+            >
+              <View className="w-6 h-6 items-center justify-center">
+                <IconComponent size={16} color={social.color} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-medium text-foreground">
+                  {social.label}
+                </Text>
+                {social.handle !== social.label && (
+                  <Text
+                    className="text-xs text-muted-foreground"
+                    numberOfLines={1}
+                  >
+                    {social.handle}
+                  </Text>
+                )}
+              </View>
+            </Pressable>
           );
         })}
       </View>
@@ -927,6 +1077,15 @@ export default function RestaurantDetailsScreen() {
     });
   }, [router, restaurant?.id, handleQuickActionPress]);
 
+  const handleSocialPress = useCallback(
+    (url: string, platform: string) => {
+      handleQuickActionPress(() => {
+        Linking.openURL(url);
+      });
+    },
+    [handleQuickActionPress],
+  );
+
   const { handlePress: handleModalPress } = useModalPress();
 
   const handleImagePress = useCallback(
@@ -1053,9 +1212,16 @@ export default function RestaurantDetailsScreen() {
         {/* 5. About and Features */}
         <AboutSection restaurant={restaurant} />
         <FeaturesSection restaurant={restaurant} />
+
+        {/* 6. Social Media */}
+        <SocialMediaSection
+          restaurant={restaurant}
+          onSocialPress={handleSocialPress}
+        />
+
         <RestaurantLoyaltyRules restaurantId={id as string} />
 
-        {/* 6. Reviews */}
+        {/* 7. Reviews */}
         <ReviewsSummary
           restaurant={restaurant}
           reviews={reviews}

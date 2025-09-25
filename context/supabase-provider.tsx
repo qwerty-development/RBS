@@ -463,9 +463,9 @@ function AuthContent({ children }: PropsWithChildren) {
             let userId = null;
             try {
               const { data: profileData } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('email', email)
+                .from("profiles")
+                .select("id")
+                .eq("email", email)
                 .single();
               userId = profileData?.id || null;
             } catch (profileError) {
@@ -513,9 +513,9 @@ function AuthContent({ children }: PropsWithChildren) {
             let userId = null;
             try {
               const { data: profileData } = await supabase
-                .from('profiles')
-                .select('id')
-                .eq('email', email)
+                .from("profiles")
+                .select("id")
+                .eq("email", email)
                 .single();
               userId = profileData?.id || null;
             } catch (profileError) {
@@ -547,7 +547,7 @@ function AuthContent({ children }: PropsWithChildren) {
             // Check if user is flagged for suspicious activity
             const suspiciousFlags =
               await SecurityMonitor.checkUserSuspiciousFlags(data.user.id);
-              
+
             if (
               suspiciousFlags.isFlagged &&
               suspiciousFlags.riskLevel === "high"
