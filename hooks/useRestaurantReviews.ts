@@ -155,13 +155,21 @@ export const useRestaurantReviews = (restaurantId: string) => {
         let reviewsWithUserInfo = filteredReviews;
         if (filteredReviews.length > 0) {
           const userIds = filteredReviews.map((review) => review.user_id);
-          const { data: userProfilesData, error: profilesError } = await supabase
-            .rpc("get_public_profile_info", { user_ids: userIds });
+          const { data: userProfilesData, error: profilesError } =
+            await supabase.rpc("get_public_profile_info", {
+              user_ids: userIds,
+            });
 
           if (!profilesError && userProfilesData) {
             // Create a map for quick lookup
             const profilesMap = new Map(
-              userProfilesData.map((profile: { user_id: string; full_name: string; avatar_url: string | null }) => [profile.user_id, profile])
+              userProfilesData.map(
+                (profile: {
+                  user_id: string;
+                  full_name: string;
+                  avatar_url: string | null;
+                }) => [profile.user_id, profile],
+              ),
             );
 
             // Add user info to reviews

@@ -23,6 +23,11 @@ import { useAuth } from "@/context/supabase-provider";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { Checkbox } from "@/components/ui/checkbox";
 import SignUpScreenSkeleton from "@/components/skeletons/SignUpScreenSkeleton";
+import {
+  formatDDMMYYYYInput,
+  isValidDDMMYYYYFormat,
+  convertDDMMYYYYToYYYYMMDD,
+} from "@/utils/birthday";
 
 // Lebanese phone number validation regex
 const lebanesPhoneRegex = /^(\+961|961|03|70|71|76|78|79|80|81)\d{6,7}$/;
@@ -63,7 +68,12 @@ const formSchema = z
       .string()
       .min(1, "Please enter your date of birth.")
       .refine((date) => {
-        const parsedDate = new Date(date);
+        return isValidDDMMYYYYFormat(date);
+      }, "Please enter a valid date in DD-MM-YYYY format.")
+      .refine((date) => {
+        // Convert DD-MM-YYYY to YYYY-MM-DD for validation
+        const yyyymmddFormat = convertDDMMYYYYToYYYYMMDD(date);
+        const parsedDate = new Date(yyyymmddFormat);
         const today = new Date();
         const age = today.getFullYear() - parsedDate.getFullYear();
         const monthDiff = today.getMonth() - parsedDate.getMonth();
@@ -122,12 +132,15 @@ export default function SignUp() {
   async function onSubmit(data: FormData) {
     try {
       setLoading(true);
+      // Convert DD-MM-YYYY to YYYY-MM-DD for database storage
+      const dobForDatabase = convertDDMMYYYYToYYYYMMDD(data.dateOfBirth);
+
       await signUp(
         data.email,
         data.password,
         data.fullName,
         data.phoneNumber,
-        data.dateOfBirth,
+        dobForDatabase,
       );
 
       // Success - navigation handled by AuthContext
@@ -230,12 +243,16 @@ export default function SignUp() {
                   render={({ field }) => (
                     <FormInput
                       label="Date of Birth"
-                      placeholder="YYYY-MM-DD"
+                      placeholder="DD-MM-YYYY"
                       description="Must be at least 13 years old to register"
                       autoCapitalize="none"
                       autoCorrect={false}
                       keyboardType="numeric"
                       {...field}
+                      onChangeText={(value) => {
+                        const formattedValue = formatDDMMYYYYInput(value);
+                        field.onChange(formattedValue);
+                      }}
                     />
                   )}
                 />
