@@ -52,7 +52,7 @@ export function DirectionsButton({
   iconClassName,
   textClassName,
 }: DirectionsButtonProps) {
-  // Directions handler - follows the same pattern as search functionality
+  // Directions handler - shows choice between Apple Maps and Google Maps
   const handleDirections = useCallback(async () => {
     if (onDirections) {
       // Use the provided onDirections handler if available
@@ -60,7 +60,7 @@ export function DirectionsButton({
       return;
     }
 
-    // Default directions implementation using processed coordinates
+    // Get coordinates
     const r: any = restaurant;
     let coords =
       r.staticCoordinates ||
@@ -90,25 +90,50 @@ export function DirectionsButton({
       };
     }
 
-    const scheme = Platform.select({
-      ios: "maps:0,0?q=",
-      android: "geo:0,0?q=",
-    });
     const latLng = `${coords.lat},${coords.lng}`;
     const label = encodeURIComponent(restaurant.name);
-    const url = Platform.select({
-      ios: `${scheme}${label}@${latLng}`,
-      android: `${scheme}${latLng}(${label})`,
-    });
 
-    if (url) {
-      try {
-        await Linking.openURL(url);
-      } catch (error) {
-        console.error("Error opening maps:", error);
-        Alert.alert("Error", "Unable to open maps application");
-      }
-    }
+    // Show choice dialog
+    Alert.alert(
+      "Choose Maps App",
+      "Select your preferred maps application:",
+      [
+        {
+          text: "Apple Maps",
+          onPress: async () => {
+            const url = Platform.select({
+              ios: `maps:0,0?q=${label}@${latLng}`,
+              android: `geo:0,0?q=${latLng}(${label})`,
+            });
+            if (url) {
+              try {
+                await Linking.openURL(url);
+              } catch (error) {
+                console.error("Error opening Apple Maps:", error);
+                Alert.alert("Error", "Unable to open Apple Maps");
+              }
+            }
+          },
+        },
+        {
+          text: "Google Maps",
+          onPress: async () => {
+            const url = `https://www.google.com/maps/dir/?api=1&destination=${latLng}&destination_place_id=${label}`;
+            try {
+              await Linking.openURL(url);
+            } catch (error) {
+              console.error("Error opening Google Maps:", error);
+              Alert.alert("Error", "Unable to open Google Maps");
+            }
+          },
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ],
+      { cancelable: true }
+    );
   }, [restaurant, onDirections]);
 
   // Helper function to extract coordinates from PostGIS location

@@ -193,6 +193,9 @@ export default function BookingDetailsScreen() {
 
   // Declined explanation state
   const [showDeclinedExplanation, setShowDeclinedExplanation] = useState(false);
+  
+  // Waitlist origin state
+  const [isWaitlistOrigin, setIsWaitlistOrigin] = useState(false);
 
   // Use custom hook for all booking logic
   const {
@@ -250,6 +253,29 @@ export default function BookingDetailsScreen() {
 
     fetchRestaurantLoyaltyDetails();
   }, [booking?.applied_loyalty_rule_id, booking?.status, booking?.id]);
+
+  // Check if booking came from waitlist entry
+  useEffect(() => {
+    const checkWaitlistOrigin = async () => {
+      if (!booking?.id) return;
+
+      try {
+        const { data: waitlistData, error } = await supabase
+          .from("waitlist")
+          .select("id, status")
+          .eq("converted_booking_id", booking.id)
+          .single();
+
+        if (!error && waitlistData) {
+          setIsWaitlistOrigin(true);
+        }
+      } catch (err) {
+        console.error("Error checking waitlist origin:", err);
+      }
+    };
+
+    checkWaitlistOrigin();
+  }, [booking?.id]);
 
   // Additional state for pending bookings
   const isPending = booking?.status === "pending" && !isPendingAndPassed;
@@ -503,10 +529,25 @@ export default function BookingDetailsScreen() {
           {/* Declined Status Extra Info */}
           {isDeclined && showDeclinedExplanation && (
             <View className="mt-3 bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
-              <Text className="text-sm text-red-700 dark:text-red-300">
-                The restaurant couldn't accommodate your request at this time.
-                This could be due to full capacity or special events.
-              </Text>
+              {isWaitlistOrigin ? (
+                <Text className="text-sm text-red-700 dark:text-red-300">
+                  You were waitlisted but the booking has expired. The restaurant couldn't accommodate your request at this time.
+                </Text>
+              ) : booking.decline_note && booking.decline_note.trim() ? (
+                <View>
+                  <Text className="text-sm font-semibold text-red-800 dark:text-red-200 mb-2">
+                    Reason:
+                  </Text>
+                  <Text className="text-sm text-red-700 dark:text-red-300">
+                    {booking.decline_note.trim()}
+                  </Text>
+                </View>
+              ) : (
+                <Text className="text-sm text-red-700 dark:text-red-300">
+                  The restaurant couldn't accommodate your request at this time.
+                  This could be due to full capacity or special events.
+                </Text>
+              )}
             </View>
           )}
         </View>

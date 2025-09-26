@@ -702,26 +702,25 @@ export function BookingCard({
       >
         {/* Restaurant Header */}
         <View className="flex-row p-3">
-          <Image
-            source={{
-              uri:
-                booking.restaurant?.main_image_url ||
-                booking.restaurant?.image_url ||
-                "https://via.placeholder.com/60x60?text=No+Image",
-            }}
-            className="w-16 h-16 rounded-lg bg-muted"
-            contentFit="cover"
-            onError={(error) => {
-              console.warn("Error loading restaurant image:", error);
-            }}
-            placeholder="https://via.placeholder.com/60x60?text=Loading"
-            transition={200}
-          />
+          <Pressable onPress={handleRestaurantPress}>
+            <Image
+              source={{
+                uri:
+                  booking.restaurant?.main_image_url ||
+                  booking.restaurant?.image_url ||
+                  "https://via.placeholder.com/60x60?text=No+Image",
+              }}
+              className="w-16 h-16 rounded-lg bg-muted"
+              contentFit="cover"
+              onError={(error) => {
+                console.warn("Error loading restaurant image:", error);
+              }}
+              placeholder="https://via.placeholder.com/60x60?text=Loading"
+              transition={200}
+            />
+          </Pressable>
           <View className="flex-1 ml-3">
-            <Pressable
-              onPress={handleRestaurantPress}
-              className="flex-row items-start justify-between"
-            >
+            <View className="flex-row items-start justify-between">
               <View className="flex-1">
                 <H3 className="mb-1 text-base">
                   {booking.restaurant.name || "Restaurant"}
@@ -741,27 +740,14 @@ export function BookingCard({
                   </View>
                 )}
 
-                <Text className="text-muted-foreground text-xs">
+                <Text className="text-muted-foreground text-xs mb-1">
                   {booking.restaurant.cuisine_type || "Cuisine"}
+                </Text>
+                <Text className="text-muted-foreground text-xs">
+                  {booking.restaurant.address || "Address"}
                 </Text>
               </View>
               <ChevronRight size={16} color="#666" />
-            </Pressable>
-
-            {/* Status Badge */}
-            <View className="flex-row items-center gap-1 mt-1">
-              <StatusIcon size={14} color={finalStatusConfig.color} />
-              <Text
-                className="text-xs font-medium"
-                style={{ color: finalStatusConfig.color }}
-              >
-                {finalStatusConfig.label}
-              </Text>
-              {isPending && timeSinceRequest && (
-                <Text className="text-xs text-muted-foreground">
-                  • {timeSinceRequest}
-                </Text>
-              )}
             </View>
           </View>
         </View>
@@ -769,30 +755,6 @@ export function BookingCard({
         {/* Booking Details - Compact Layout */}
         <View className="px-3 pb-3">
           {/* --- Contextual Messages for Pending/Declined --- */}
-          {isPending && !isPendingAndPassed && (
-            <View className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 mb-3 border border-orange-200">
-              <Text className="text-sm text-center text-orange-800 dark:text-orange-200">
-                The restaurant will confirm your request shortly. We'll notify
-                you as soon as they respond.
-              </Text>
-            </View>
-          )}
-          {(isDeclined || isPendingAndPassed) && (
-            <View className="bg-red-50 dark:bg-red-900/20 rounded-lg p-3 mb-3 border border-red-200">
-              <Text className="text-sm text-center text-red-800 dark:text-red-200">
-                Unfortunately, the restaurant couldn't accommodate this request.
-                {booking.decline_note && booking.decline_note.trim() ? (
-                  <>
-                    {"\n\n"}
-                    <Text className="font-medium">Reason: </Text>
-                    {booking.decline_note.trim()}
-                  </>
-                ) : (
-                  " Please try another time."
-                )}
-              </Text>
-            </View>
-          )}
 
           {/* --- Core Details Section - More Prominent --- */}
           <View className="bg-primary/5 rounded-lg p-3 mb-3 border border-primary/10">
@@ -901,7 +863,71 @@ export function BookingCard({
             </View>
           )}
 
+          {/* Status Bar for Past Bookings */}
+          {variant === "past" && (
+            <View 
+              className="w-full py-3 px-4 mb-3 rounded-lg"
+              style={{
+                backgroundColor: 
+                  booking.status === "completed" ? "#dcfce7" : // Light green
+                  booking.status === "cancelled_by_user" || booking.status === "cancelled_by_restaurant" || booking.status === "declined_by_restaurant" ? "#fef2f2" : // Light red
+                  booking.status === "no_show" ? "#fef3c7" : // Light orange
+                  "#f3f4f6" // Default light gray
+              }}
+            >
+              <View className="flex-row items-center justify-center gap-2">
+                <StatusIcon 
+                  size={16} 
+                  color={
+                    booking.status === "completed" ? "#16a34a" : // Green
+                    booking.status === "cancelled_by_user" || booking.status === "cancelled_by_restaurant" || booking.status === "declined_by_restaurant" ? "#dc2626" : // Red
+                    booking.status === "no_show" ? "#ea580c" : // Orange
+                    "#6b7280" // Default gray
+                  } 
+                />
+                <Text 
+                  className="text-sm font-semibold"
+                  style={{
+                    color: 
+                      booking.status === "completed" ? "#16a34a" : // Green
+                      booking.status === "cancelled_by_user" || booking.status === "cancelled_by_restaurant" || booking.status === "declined_by_restaurant" ? "#dc2626" : // Red
+                      booking.status === "no_show" ? "#ea580c" : // Orange
+                      "#6b7280" // Default gray
+                  }}
+                >
+                  {booking.status === "cancelled_by_restaurant" ? "Cancelled by Restaurant" : finalStatusConfig.label}
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* --- Contextual Messages for Pending/Declined --- */}
+
+          {/* Status Display for Upcoming Bookings */}
+          {variant === "upcoming" && (
+            <View className="mb-3">
+              {isConfirmed && (
+                <View className="bg-green-50 dark:bg-green-900/20 rounded-lg p-3 border border-green-200 dark:border-green-800">
+                  <View className="flex-row items-center justify-center gap-2">
+                    <CheckCircle size={16} color="#16a34a" />
+                    <Text className="text-sm font-semibold text-green-800 dark:text-green-200">
+                      Confirmed
+                    </Text>
+                  </View>
+                </View>
+              )}
+              {isPending && !isPendingAndPassed && (
+                <View className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 border border-orange-200 dark:border-orange-800">
+                  <View className="flex-row items-center justify-center gap-2">
+                    <Clock size={16} color="#f59e0b" />
+                    <Text className="text-sm font-semibold text-orange-800 dark:text-orange-200">
+                      Waiting Restaurant Confirmation
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
 
           {/* --- Quick Action Buttons - Compact Layout --- */}
           {showQuickActions && (
@@ -986,24 +1012,6 @@ export function BookingCard({
                     </View>
                   </Button>
                 )}
-              {(isPast || isDeclined || isPendingAndPassed) && onRebook && (
-                <Button
-                  size="sm"
-                  variant="default"
-                  onPress={handleRebook}
-                  className="flex-1 bg-primary rounded-lg"
-                >
-                  <View className="flex-row items-center gap-1">
-                    <RotateCcw
-                      size={12}
-                      color={colors[colorScheme].primaryForeground}
-                    />
-                    <Text className="text-xs text-primary-foreground">
-                      Book Again
-                    </Text>
-                  </View>
-                </Button>
-              )}
             </View>
           )}
         </View>
