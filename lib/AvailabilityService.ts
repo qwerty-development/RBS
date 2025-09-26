@@ -274,7 +274,7 @@ export class AvailabilityService {
       // UPDATED: Generate slots for ALL shifts
       const allBaseSlots: { time: string }[] = [];
       for (const shift of operatingHours.shifts) {
-        const shiftSlots = await this.generate15MinuteSlots(
+        const shiftSlots = await this.generate30MinuteSlots(
           shift.openTime,
           shift.closeTime,
           restaurantId,
@@ -1487,7 +1487,7 @@ export class AvailabilityService {
   }
 
   // SIMPLIFIED: Generate slots for ALL restaurant hours without turn time restrictions
-  private async generate15MinuteSlots(
+  private async generate30MinuteSlots(
     openTime: string,
     closeTime: string,
     restaurantId: string,
@@ -1501,8 +1501,8 @@ export class AvailabilityService {
     let currentHour = openHour;
     let currentMin = openMin;
 
-    // Round up to nearest 15-minute interval
-    currentMin = Math.ceil(currentMin / 15) * 15;
+    // Round up to nearest 30-minute interval
+    currentMin = Math.ceil(currentMin / 30) * 30;
     if (currentMin === 60) {
       currentMin = 0;
       currentHour++;
@@ -1526,7 +1526,7 @@ export class AvailabilityService {
           .padStart(2, "0")}`,
       });
 
-      currentMin += 15;
+      currentMin += 30;
       if (currentMin >= 60) {
         currentMin = 0;
         currentHour++;

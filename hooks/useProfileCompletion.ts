@@ -15,6 +15,7 @@ interface ProfileCompletionState {
   missingFields: MissingField[];
   isProfileComplete: boolean;
   currentField?: MissingField;
+  moveToNextField: () => void;
   getBestAvailableName: () => string;
   getAppleName: () => string | null;
   splitName: (fullName: string) => { first_name: string; last_name: string };
@@ -83,14 +84,14 @@ export function useProfileCompletion(): ProfileCompletionState {
       missing.push("last_name");
     }
 
-    // Check if phone number is missing
-    if (!profile.phone_number?.trim()) {
-      missing.push("phone_number");
-    }
-
     // Check if date of birth is missing
     if (!profile.date_of_birth) {
       missing.push("date_of_birth");
+    }
+
+    // Check if phone number is missing
+    if (!profile.phone_number?.trim()) {
+      missing.push("phone_number");
     }
 
     return missing;

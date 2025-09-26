@@ -140,7 +140,7 @@ const Button = React.forwardRef<
     // Get accessibility props
     const accessibilityProps = getButtonProps(buttonLabel, {
       loading,
-      disabled: props.disabled,
+      disabled: Boolean(props.disabled),
       destructive: destructive || variant === "destructive",
       hint: accessibilityHint,
     });
@@ -148,7 +148,35 @@ const Button = React.forwardRef<
     // Handle press with haptic feedback and double-click prevention
     const handlePress = React.useCallback(() => {
       if (onPress && !props.disabled && !loading) {
-        handleHapticPress(() => onPress());
+        handleHapticPress(() => {
+          // Create a mock GestureResponderEvent for onPress
+          const mockEvent = {
+            nativeEvent: {
+              locationX: 0,
+              locationY: 0,
+              pageX: 0,
+              pageY: 0,
+              timestamp: Date.now(),
+              identifier: 0,
+              force: 1,
+            },
+            currentTarget: null,
+            target: null,
+            bubbles: false,
+            cancelable: true,
+            defaultPrevented: false,
+            eventPhase: 0,
+            isTrusted: true,
+            preventDefault: () => {},
+            stopPropagation: () => {},
+            timeStamp: Date.now(),
+            type: 'press',
+            persist: () => {},
+            isDefaultPrevented: () => false,
+            isPropagationStopped: () => false,
+          };
+          onPress(mockEvent as any);
+        });
       }
     }, [onPress, props.disabled, loading, handleHapticPress]);
 

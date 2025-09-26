@@ -23,20 +23,27 @@ import { useAuth } from "@/context/supabase-provider";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { Checkbox } from "@/components/ui/checkbox";
 import SignUpScreenSkeleton from "@/components/skeletons/SignUpScreenSkeleton";
+import {
+  formatDDMMYYYYInput,
+  isValidDDMMYYYYFormat,
+  convertDDMMYYYYToYYYYMMDD,
+} from "@/utils/birthday";
 
 // Lebanese phone number validation regex
 const lebanesPhoneRegex = /^(\+961|961|03|70|71|76|78|79|80|81)\d{6,7}$/;
 
 const formSchema = z
   .object({
-    fullName: z
+    first_name: z
       .string()
-      .min(2, "Please enter at least 2 characters.")
-      .max(50, "Please enter fewer than 50 characters.")
-      .regex(
-        /^[a-zA-Z\s\u0600-\u06FF\u002D\u0027]+$/,
-        "Please enter a valid name.",
-      ),
+      .min(1, "First name is required")
+      .max(25, "First name must be less than 25 characters")
+      .regex(/^[a-zA-Z\s\u0600-\u06FF]+$/, "Please enter a valid first name"),
+    last_name: z
+      .string()
+      .min(1, "Last name is required")
+      .max(25, "Last name must be less than 25 characters")
+      .regex(/^[a-zA-Z\s\u0600-\u06FF]+$/, "Please enter a valid last name"),
     email: z
       .string()
       .email("Please enter a valid email address.")
@@ -63,7 +70,12 @@ const formSchema = z
       .string()
       .min(1, "Please enter your date of birth.")
       .refine((date) => {
-        const parsedDate = new Date(date);
+        return isValidDDMMYYYYFormat(date);
+      }, "Please enter a valid date in DD-MM-YYYY format.")
+      .refine((date) => {
+        // Convert DD-MM-YYYY to YYYY-MM-DD for validation
+        const yyyymmddFormat = convertDDMMYYYYToYYYYMMDD(date);
+        const parsedDate = new Date(yyyymmddFormat);
         const today = new Date();
         const age = today.getFullYear() - parsedDate.getFullYear();
         const monthDiff = today.getMonth() - parsedDate.getMonth();
@@ -109,7 +121,8 @@ export default function SignUp() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      fullName: "",
+      first_name: "",
+      last_name: "",
       email: "",
       phoneNumber: "",
       dateOfBirth: "",
@@ -122,12 +135,21 @@ export default function SignUp() {
   async function onSubmit(data: FormData) {
     try {
       setLoading(true);
+      // Convert DD-MM-YYYY to YYYY-MM-DD for database storage
+      const dobForDatabase = convertDDMMYYYYToYYYYMMDD(data.dateOfBirth);
+
+      // Combine first and last name into full name
+      const fullName =
+        `${data.first_name.trim()} ${data.last_name.trim()}`.trim();
+
       await signUp(
         data.email,
         data.password,
-        data.fullName,
+        fullName,
         data.phoneNumber,
-        data.dateOfBirth,
+        dobForDatabase,
+        data.first_name.trim(),
+        data.last_name.trim(),
       );
 
       // Success - navigation handled by AuthContext
@@ -179,13 +201,28 @@ export default function SignUp() {
               <View className="gap-4">
                 <FormField
                   control={form.control}
-                  name="fullName"
+                  name="first_name"
                   render={({ field }) => (
                     <FormInput
-                      label="Full Name"
-                      placeholder="John Doe"
+                      label="First Name"
+                      placeholder="John"
                       autoCapitalize="words"
-                      autoComplete="name"
+                      autoComplete="given-name"
+                      autoCorrect={false}
+                      {...field}
+                    />
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="last_name"
+                  render={({ field }) => (
+                    <FormInput
+                      label="Last Name"
+                      placeholder="Doe"
+                      autoCapitalize="words"
+                      autoComplete="family-name"
                       autoCorrect={false}
                       {...field}
                     />
@@ -230,12 +267,16 @@ export default function SignUp() {
                   render={({ field }) => (
                     <FormInput
                       label="Date of Birth"
-                      placeholder="YYYY-MM-DD"
+                      placeholder="DD-MM-YYYY"
                       description="Must be at least 13 years old to register"
                       autoCapitalize="none"
                       autoCorrect={false}
                       keyboardType="numeric"
                       {...field}
+                      onChangeText={(value) => {
+                        const formattedValue = formatDDMMYYYYInput(value);
+                        field.onChange(formattedValue);
+                      }}
                     />
                   )}
                 />

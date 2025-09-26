@@ -17,44 +17,23 @@ import { Button } from "@/components/ui/button";
 import { Form, FormField, FormInput } from "@/components/ui/form";
 import { useAuth } from "@/context/supabase-provider";
 import { supabase } from "@/config/supabase";
-
-// Utility function to format date input with automatic dashes
-const formatDateInput = (value: string): string => {
-  // Remove all non-numeric characters
-  const numbers = value.replace(/\D/g, "");
-
-  // Apply formatting based on length
-  if (numbers.length <= 4) {
-    return numbers;
-  } else if (numbers.length <= 6) {
-    return `${numbers.slice(0, 4)}-${numbers.slice(4)}`;
-  } else {
-    return `${numbers.slice(0, 4)}-${numbers.slice(4, 6)}-${numbers.slice(6, 8)}`;
-  }
-};
-
-// Utility function to validate date format
-const isValidDateFormat = (dateString: string): boolean => {
-  const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-  if (!dateRegex.test(dateString)) return false;
-
-  const date = new Date(dateString);
-  return (
-    date instanceof Date &&
-    !isNaN(date.getTime()) &&
-    dateString === date.toISOString().split("T")[0]
-  );
-};
+import {
+  formatDDMMYYYYInput,
+  isValidDDMMYYYYFormat,
+  convertDDMMYYYYToYYYYMMDD,
+} from "@/utils/birthday";
 
 const dobSchema = z.object({
   dateOfBirth: z
     .string()
     .min(1, "Please enter your date of birth.")
     .refine((date) => {
-      return isValidDateFormat(date);
-    }, "Please enter a valid date in YYYY-MM-DD format.")
+      return isValidDDMMYYYYFormat(date);
+    }, "Please enter a valid date in DD-MM-YYYY format.")
     .refine((date) => {
-      const parsedDate = new Date(date);
+      // Convert DD-MM-YYYY to YYYY-MM-DD for validation
+      const yyyymmddFormat = convertDDMMYYYYToYYYYMMDD(date);
+      const parsedDate = new Date(yyyymmddFormat);
       const today = new Date();
       const age = today.getFullYear() - parsedDate.getFullYear();
       const monthDiff = today.getMonth() - parsedDate.getMonth();
@@ -67,7 +46,9 @@ const dobSchema = z.object({
       );
     }, "You must be at least 13 years old.")
     .refine((date) => {
-      const parsedDate = new Date(date);
+      // Convert DD-MM-YYYY to YYYY-MM-DD for validation
+      const yyyymmddFormat = convertDDMMYYYYToYYYYMMDD(date);
+      const parsedDate = new Date(yyyymmddFormat);
       const today = new Date();
       return parsedDate <= today;
     }, "Date of birth cannot be in the future."),
@@ -118,10 +99,13 @@ export const DateOfBirthPrompt: React.FC<DateOfBirthPromptProps> = ({
         return;
       }
 
+      // Convert DD-MM-YYYY to YYYY-MM-DD for database storage
+      const dobForDatabase = convertDDMMYYYYToYYYYMMDD(data.dateOfBirth);
+
       // Update profile with date of birth
       const { error } = await supabase
         .from("profiles")
-        .update({ date_of_birth: data.dateOfBirth })
+        .update({ date_of_birth: dobForDatabase })
         .eq("id", profile?.id);
 
       if (error) {
@@ -129,7 +113,7 @@ export const DateOfBirthPrompt: React.FC<DateOfBirthPromptProps> = ({
       }
 
       // Update local profile state immediately
-      await updateProfile({ date_of_birth: data.dateOfBirth });
+      await updateProfile({ date_of_birth: dobForDatabase });
 
       // Call onComplete immediately to hide the modal
       onComplete();
@@ -238,8 +222,8 @@ export const DateOfBirthPrompt: React.FC<DateOfBirthPromptProps> = ({
                     <FormInput
                       {...field}
                       label="Date of Birth"
-                      placeholder="YYYY-MM-DD"
-                      description="Enter your birth year, month, and day (dashes added automatically)"
+                      placeholder="DD-MM-YYYY"
+                      description="Enter your birth day, month, and year (dashes added automatically)"
                       autoCapitalize="none"
                       autoCorrect={false}
                       keyboardType="numeric"
@@ -247,7 +231,7 @@ export const DateOfBirthPrompt: React.FC<DateOfBirthPromptProps> = ({
                       returnKeyType="done"
                       onSubmitEditing={Keyboard.dismiss}
                       onChangeText={(text: string) => {
-                        const formatted = formatDateInput(text);
+                        const formatted = formatDDMMYYYYInput(text);
                         field.onChange(formatted);
                       }}
                     />

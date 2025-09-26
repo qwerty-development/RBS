@@ -8,7 +8,7 @@ import {
   Noop,
   useFormContext,
 } from "react-hook-form";
-import { View } from "react-native";
+import { View, TextInput } from "react-native";
 import Animated, { FadeInDown, FadeOut } from "react-native-reanimated";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -233,10 +233,10 @@ const FormInput = React.forwardRef<
 FormInput.displayName = "FormInput";
 
 const FormTextarea = React.forwardRef<
-  React.ComponentRef<typeof Textarea>,
+  TextInput,
   FormItemProps<typeof Textarea, string>
 >(({ label, description, onChange, ...props }, ref) => {
-  const textareaRef = React.useRef<React.ComponentRef<typeof Textarea>>(null);
+  const textareaRef = React.useRef<TextInput>(null);
   const {
     error,
     formItemNativeID,
@@ -246,10 +246,10 @@ const FormTextarea = React.forwardRef<
 
   React.useImperativeHandle(ref, () => {
     if (!textareaRef.current) {
-      return {} as React.ComponentRef<typeof Textarea>;
+      return {} as TextInput;
     }
     return textareaRef.current;
-  }, [textareaRef.current]);
+  }, []);
 
   function handleOnLabelPress() {
     if (!textareaRef.current) {
@@ -272,6 +272,7 @@ const FormTextarea = React.forwardRef<
 
       <Textarea
         ref={textareaRef}
+        label={label || ""}
         aria-labelledby={formItemNativeID}
         aria-describedby={
           !error
@@ -279,8 +280,8 @@ const FormTextarea = React.forwardRef<
             : `${formDescriptionNativeID} ${formMessageNativeID}`
         }
         aria-invalid={!!error}
-        onChangeText={onChange}
         {...props}
+        onChangeText={onChange}
       />
       {!!description && <FormDescription>{description}</FormDescription>}
       <FormMessage />

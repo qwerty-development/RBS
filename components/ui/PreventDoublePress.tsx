@@ -1,8 +1,8 @@
 // components/ui/PreventDoublePress.tsx
 import React, { useRef, useCallback } from "react";
-import { Pressable, PressableProps } from "react-native";
+import { Pressable, PressableProps, GestureResponderEvent } from "react-native";
 
-interface PreventDoublePressProps extends PressableProps {
+interface PreventDoublePressProps extends Omit<PressableProps, 'children' | 'onPress'> {
   /**
    * Debounce delay in milliseconds to prevent double-clicks
    * @default 300
@@ -17,6 +17,10 @@ interface PreventDoublePressProps extends PressableProps {
    * Children function that receives the press handler
    */
   children: (props: { onPress: () => void }) => React.ReactNode;
+  /**
+   * Press handler
+   */
+  onPress?: (event: GestureResponderEvent) => void;
 }
 
 /**
@@ -33,7 +37,7 @@ export function PreventDoublePress({
   const lastPressTime = useRef<number>(0);
   const isProcessing = useRef<boolean>(false);
 
-  const handlePress = useCallback(() => {
+  const handlePress = useCallback((event: GestureResponderEvent) => {
     if (!onPress) return;
 
     const now = Date.now();
@@ -53,7 +57,7 @@ export function PreventDoublePress({
     }
 
     try {
-      onPress();
+      onPress(event);
     } catch (error) {
       console.error("Error in PreventDoublePress handler:", error);
     } finally {
@@ -66,9 +70,16 @@ export function PreventDoublePress({
     }
   }, [onPress, debounceMs, enableDebounce]);
 
+  // Create a wrapper function that matches the expected signature
+  const wrappedHandler = useCallback(() => {
+    // Call handlePress with a dummy event when needed through children
+    const mockEvent = {} as unknown as GestureResponderEvent;
+    handlePress(mockEvent);
+  }, [handlePress]);
+
   return (
     <Pressable {...pressableProps} onPress={handlePress}>
-      {children({ onPress: handlePress })}
+      {children({ onPress: wrappedHandler })}
     </Pressable>
   );
 }

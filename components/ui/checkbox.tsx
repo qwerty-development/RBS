@@ -1,6 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
-import { Pressable, View } from "react-native";
+import { Pressable } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 // Note: Add this Checkbox component to your UI components
 const Checkbox = ({ checked, onCheckedChange, className }: any) => {
@@ -13,7 +14,7 @@ const Checkbox = ({ checked, onCheckedChange, className }: any) => {
         className,
       )}
     >
-      {checked && <View className="h-3 w-3 bg-white rounded-sm" />}
+      {checked && <Ionicons name="checkmark" size={14} color="white" />}
     </Pressable>
   );
 };

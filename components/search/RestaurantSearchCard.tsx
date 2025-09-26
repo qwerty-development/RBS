@@ -12,6 +12,8 @@ import {
   Navigation,
   Heart,
   Trash2,
+  Zap,
+  Timer,
 } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { Image } from "@/components/image";
@@ -247,17 +249,30 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
         {restaurant.booking_policy && (
           <View className="absolute top-3 left-3">
             <View
-              className={`px-2 py-1 rounded-full ${
+              className={`px-2 py-1 rounded-lg border bg-background/90 backdrop-blur-sm ${
                 restaurant.booking_policy === "instant"
-                  ? "bg-green-500/90"
-                  : "bg-orange-500/90"
+                  ? "border-emerald-200 dark:border-emerald-800"
+                  : "border-amber-200 dark:border-amber-800"
               }`}
             >
-              <Text className="text-xs text-white font-medium">
-                {restaurant.booking_policy === "instant"
-                  ? "Instant"
-                  : "Request"}
-              </Text>
+              <View className="flex-row items-center gap-1">
+                {restaurant.booking_policy === "instant" ? (
+                  <Zap size={10} color="#10b981" />
+                ) : (
+                  <Timer size={10} color="#f59e0b" />
+                )}
+                <Text
+                  className={`text-xs font-medium ${
+                    restaurant.booking_policy === "instant"
+                      ? "text-emerald-700 dark:text-emerald-300"
+                      : "text-amber-700 dark:text-amber-300"
+                  }`}
+                >
+                  {restaurant.booking_policy === "instant"
+                    ? "Instant"
+                    : "Request"}
+                </Text>
+              </View>
             </View>
           </View>
         )}

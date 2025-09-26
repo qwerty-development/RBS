@@ -1,6 +1,7 @@
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 import * as Sentry from "@sentry/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import Constants from "expo-constants";
 import { supabase } from "../config/supabase";
 
 // Enhanced Security configuration
@@ -57,6 +58,97 @@ const SECURITY_CONFIG = {
     emailPattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
   },
 };
+
+/**
+ * Device and network information utility for security logging
+ */
+class DeviceInfoUtil {
+  private static cachedUserAgent: string | null = null;
+  private static cachedIpAddress: string | null = null;
+
+  /**
+   * Generate a user agent string for React Native/Expo
+   */
+  static async getUserAgent(): Promise<string> {
+    if (this.cachedUserAgent) {
+      return this.cachedUserAgent;
+    }
+
+    try {
+      const appVersion = Constants.expoConfig?.version || "1.0.0";
+      const appName = Constants.expoConfig?.name || "Plate";
+      const osName = Platform.OS;
+      const osVersion = Platform.Version;
+      const nativeApplicationVersion =
+        Constants.nativeApplicationVersion || "unknown";
+
+      // Format similar to web user agent but for React Native
+      this.cachedUserAgent = `${appName}/${appVersion} (${osName} ${osVersion}; Expo/${Constants.expoVersion || "unknown"}; Native/${nativeApplicationVersion})`;
+
+      return this.cachedUserAgent;
+    } catch (error) {
+      console.error("Failed to generate user agent:", error);
+      return "Plate/1.0.0 (React Native; Unknown Device)";
+    }
+  }
+
+  /**
+   * Get device's public IP address
+   */
+  static async getIpAddress(): Promise<string | null> {
+    // Use cached IP for a few minutes to avoid excessive API calls
+    if (this.cachedIpAddress) {
+      return this.cachedIpAddress;
+    }
+
+    try {
+      // Use a reliable IP detection service with AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+
+      const response = await fetch("https://api.ipify.org?format=json", {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      this.cachedIpAddress = data.ip || null;
+
+      // Cache for 5 minutes
+      setTimeout(() => {
+        this.cachedIpAddress = null;
+      }, 300000);
+
+      return this.cachedIpAddress;
+    } catch (error) {
+      console.error("Failed to get IP address:", error);
+      return null; // Fallback to null if IP detection fails
+    }
+  }
+
+  /**
+   * Get comprehensive device and network info for security logging
+   */
+  static async getSecurityInfo(): Promise<{
+    userAgent: string;
+    ipAddress: string | null;
+  }> {
+    const [userAgent, ipAddress] = await Promise.all([
+      this.getUserAgent(),
+      this.getIpAddress(),
+    ]);
+
+    return {
+      userAgent,
+      ipAddress,
+    };
+  }
+}
 
 /**
  * Enhanced fraud detection and abuse prevention
@@ -222,18 +314,23 @@ export class FraudDetection {
     reasons: string[];
   }) {
     try {
-      await supabase.from("security_audit_log").insert({
+      // Get device and network info
+      const securityInfo = await DeviceInfoUtil.getSecurityInfo();
+
+      const insertData = {
         user_id: activity.userId,
         restaurant_id: activity.restaurantId,
         activity_type: activity.type,
-        risk_score: activity.riskScore,
+        risk_score: Math.round(activity.riskScore * 100), // Convert to integer (0.6 -> 60)
         details: {
           reasons: activity.reasons,
           timestamp: new Date().toISOString(),
         },
-        ip_address: null, // Would be filled by backend
-        user_agent: null, // Would be filled by backend
-      });
+        ip_address: securityInfo.ipAddress, // Now populated with actual IP
+        user_agent: securityInfo.userAgent, // Now populated with device info
+      };
+
+      await supabase.from("security_audit_log").insert(insertData);
     } catch (error) {
       console.error("Failed to log suspicious activity:", error);
     }
@@ -1597,15 +1694,20 @@ export class SecurityMonitor {
 
   private static async logSecurityEvent(activity: any) {
     try {
-      await supabase.from("security_audit_log").insert({
-        user_id: activity.userId,
+      // Get device and network info
+      const securityInfo = await DeviceInfoUtil.getSecurityInfo();
+
+      const insertData: any = {
+        user_id: activity.userId || null, // Allow NULL for anonymous events
         activity_type: activity.type,
-        details: activity.metadata,
-        ip_address: null, // Would be filled by backend
-        user_agent: null, // Would be filled by backend
-        risk_score: this.calculateRiskScore(activity.type),
-        created_at: new Date().toISOString(),
-      });
+        details: activity.metadata || {},
+        ip_address: securityInfo.ipAddress, // Now populated with actual IP
+        user_agent: securityInfo.userAgent, // Now populated with device info
+        risk_score: Math.round(this.calculateRiskScore(activity.type) * 100), // Convert to integer (0.6 -> 60)
+        restaurant_id: activity.restaurantId || null,
+      };
+
+      await supabase.from("security_audit_log").insert(insertData);
     } catch (error) {
       console.error("Failed to log security event:", error);
     }

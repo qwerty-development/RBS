@@ -61,27 +61,30 @@ export function GradientCard({
   const gradientToHex = hslToHex(themedColors.cardGradientTo);
 
   const getGradientProps = () => {
+    const defaultFrom = gradientFromHex || "#000000";
+    const defaultTo = gradientToHex || "#333333";
+    
     switch (variant) {
       case "subtle":
         return {
-          colors: [gradientFromHex, gradientToHex],
+          colors: [defaultFrom, defaultTo] as const,
           start: { x: 0, y: 0 },
           end: { x: 1, y: 1 },
-          locations: [0, 1],
+          locations: [0, 1] as const,
         };
       case "elevated":
         return {
-          colors: [gradientFromHex, gradientToHex, gradientFromHex],
+          colors: [defaultFrom, defaultTo, defaultFrom] as const,
           start: { x: 0, y: 0 },
           end: { x: 1, y: 1 },
-          locations: [0, 0.5, 1],
+          locations: [0, 0.5, 1] as const,
         };
       default:
         return {
-          colors: [gradientFromHex, gradientToHex],
+          colors: [defaultFrom, defaultTo] as const,
           start: { x: 0, y: 0 },
           end: { x: 0, y: 1 },
-          locations: [0, 1],
+          locations: [0, 1] as const,
         };
     }
   };
@@ -144,11 +147,11 @@ export function SimpleGradientCard({
       <LinearGradient
         colors={[
           themedColors.cardGradientFrom.replace(/hsl\(([^)]+)\)/, (_, hsl) => {
-            const [h, s, l] = hsl.split(",").map((v) => v.trim());
+            const [h, s, l] = hsl.split(",").map((v: string) => v.trim());
             return `hsla(${h}, ${s}, ${l}, 0.8)`;
           }),
           themedColors.cardGradientTo.replace(/hsl\(([^)]+)\)/, (_, hsl) => {
-            const [h, s, l] = hsl.split(",").map((v) => v.trim());
+            const [h, s, l] = hsl.split(",").map((v: string) => v.trim());
             return `hsla(${h}, ${s}, ${l}, 0.9)`;
           }),
         ]}

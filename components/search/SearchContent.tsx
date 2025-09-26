@@ -155,6 +155,7 @@ export const SearchContent = ({
     <ScrollView
       className="flex-1"
       showsVerticalScrollIndicator={false}
+      keyboardShouldPersistTaps="handled"
       refreshControl={
         <RefreshControl
           refreshing={refreshing}

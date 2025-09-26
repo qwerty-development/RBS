@@ -1,31 +1,18 @@
 // app/(protected)/booking/[id].tsx - Updated with restaurant loyalty support
 import React, { useState, useEffect } from "react";
-import {
-  ScrollView,
-  View,
-  Pressable,
-  ActivityIndicator,
-  Alert,
-  Share,
-} from "react-native";
+import { ScrollView, View, Pressable, Alert, Share } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Copy,
   Calendar,
-  Clock,
   Users,
   Timer,
   Bell,
-  XCircle,
-  RefreshCw,
   Trophy,
   AlertCircle,
   Info,
-  Share2,
   Gift,
   TableIcon,
-  MessageSquare,
-  Utensils,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
@@ -35,7 +22,6 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { H3, P } from "@/components/ui/typography";
 import { NavigationHeader } from "@/components/ui/navigation-header";
-import { LoyaltyPointsCard } from "@/components/ui/loyalty-points-card";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { supabase } from "@/config/supabase";
 import { colors } from "@/constants/colors";
@@ -44,11 +30,10 @@ import { colors } from "@/constants/colors";
 import {
   BookingDetailsHeader,
   BookingActionsBar,
-  BookingMapSection,
   BookingContactSection,
-  BookingSpecialRequests,
   AppliedOfferCard,
   BookingInvitationsSection,
+  EditableBookingFields,
 } from "@/components/booking";
 import { BookingTableInfo } from "@/components/booking/BookingTableInfo";
 
@@ -59,7 +44,6 @@ import { useBookingDetails } from "@/hooks/useBookingDetails";
 import { BOOKING_STATUS_CONFIG } from "@/constants/bookingConstants";
 import BookingDetailsScreenSkeleton from "@/components/skeletons/BookingDetailsScreenSkeleton";
 import { useShare } from "@/hooks/useShare";
-import { ShareModal } from "@/components/ui/share-modal";
 
 // Types
 interface LoyaltyRuleDetails {
@@ -78,11 +62,9 @@ const RestaurantLoyaltyStatus: React.FC<{
   if (!rule) return null;
 
   const isPending = booking.status === "pending";
-  const isConfirmed = booking.status === "confirmed";
   const isCancelled =
     booking.status === "cancelled_by_user" ||
     booking.status === "declined_by_restaurant";
-  const isCompleted = booking.status === "completed";
 
   return (
     <View className="mx-4 mb-6">
@@ -121,18 +103,18 @@ const RestaurantLoyaltyStatus: React.FC<{
           >
             {isPending ? (
               <>
-                You'll earn{" "}
+                You&apos;ll earn{" "}
                 <Text className="font-bold">
                   {booking.expected_loyalty_points || rule.points_to_award}{" "}
                   points
                 </Text>{" "}
-                from "{rule.rule_name}" if confirmed
+                from &ldquo;{rule.rule_name}&rdquo; if confirmed
               </>
             ) : isCancelled ? (
               wasRefunded ? (
                 <>
-                  The {booking.loyalty_points_earned || 0} points from "
-                  {rule.rule_name}" have been refunded to the restaurant
+                  The {booking.loyalty_points_earned || 0} points from &ldquo;
+                  {rule.rule_name}&rdquo; have been refunded to the restaurant
                 </>
               ) : (
                 <>No points were awarded for this cancelled booking</>
@@ -143,7 +125,7 @@ const RestaurantLoyaltyStatus: React.FC<{
                 <Text className="font-bold">
                   {booking.loyalty_points_earned} points
                 </Text>{" "}
-                from "{rule.rule_name}"
+                from &ldquo;{rule.rule_name}&rdquo;
               </>
             )}
           </Text>
@@ -174,7 +156,13 @@ const RestaurantLoyaltyStatus: React.FC<{
 
 export default function BookingDetailsScreen() {
   const [isMounted, setIsMounted] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
+
+  // State for booking field updates
+  const [bookingFields, setBookingFields] = useState<{
+    occasion?: string | null;
+    special_requests?: string | null;
+    dietary_notes?: string[] | null;
+  }>({});
 
   const { shareBooking: shareBookingWithDeepLink } = useShare();
 
@@ -211,8 +199,27 @@ export default function BookingDetailsScreen() {
     isTomorrow,
     cancelBooking,
     copyOfferCode,
-    refresh,
   } = useBookingDetails(params.id || "");
+
+  // Initialize booking fields when booking data loads
+  useEffect(() => {
+    if (booking) {
+      setBookingFields({
+        occasion: booking.occasion,
+        special_requests: booking.special_requests,
+        dietary_notes: booking.dietary_notes,
+      });
+    }
+  }, [booking]);
+
+  // Handler for booking field updates
+  const handleBookingFieldsUpdate = (updatedFields: {
+    occasion?: string | null;
+    special_requests?: string | null;
+    dietary_notes?: string[] | null;
+  }) => {
+    setBookingFields(updatedFields);
+  };
 
   // Fetch restaurant loyalty details
   useEffect(() => {
@@ -278,13 +285,16 @@ export default function BookingDetailsScreen() {
   }, [booking?.id]);
 
   // Additional state for pending bookings
+  const bookingDate = booking ? new Date(booking.booking_time) : new Date();
+
+  // Check if pending booking has passed its time (should be treated as declined)
+  const isPendingAndPassed =
+    booking?.status === "pending" && bookingDate < new Date();
+
   const isPending = booking?.status === "pending" && !isPendingAndPassed;
   const isDeclined = booking?.status === "declined_by_restaurant";
-  const isCancelled =
-    booking?.status === "cancelled_by_user" ||
-    booking?.status === "declined_by_restaurant";
   const timeSinceRequest =
-    isPending && booking
+    isPending && booking && booking.created_at
       ? Math.floor(
           (Date.now() - new Date(booking.created_at).getTime()) / (1000 * 60),
         )
@@ -360,7 +370,7 @@ export default function BookingDetailsScreen() {
 
       // Fallback to basic sharing
       const statusText = isPending
-        ? "I've requested a table"
+        ? "I&apos;ve requested a table"
         : isDeclined
           ? "My booking request was declined"
           : "I have a reservation";
@@ -421,7 +431,8 @@ export default function BookingDetailsScreen() {
         <View className="flex-1 items-center justify-center px-4">
           <H3 className="text-center mb-2">Booking not found</H3>
           <P className="text-center text-muted-foreground mb-4">
-            The booking you're looking for doesn't exist or has been removed.
+            The booking you&apos;re looking for doesn&apos;t exist or has been
+            removed.
           </P>
           <Button variant="outline" onPress={() => router.back()}>
             <Text>Go Back</Text>
@@ -430,12 +441,6 @@ export default function BookingDetailsScreen() {
       </SafeAreaView>
     );
   }
-
-  const bookingDate = new Date(booking.booking_time);
-
-  // Check if pending booking has passed its time (should be treated as declined)
-  const isPendingAndPassed =
-    booking.status === "pending" && bookingDate < new Date();
 
   // Use declined status for pending bookings that have passed their time
   const effectiveStatus = isPendingAndPassed
@@ -515,7 +520,7 @@ export default function BookingDetailsScreen() {
               </View>
               <Text className="text-sm text-orange-700 dark:text-orange-300">
                 The restaurant typically responds within {timeRemaining}{" "}
-                minutes. We'll notify you immediately when they confirm.
+                minutes. We&apos;ll notify you immediately when they confirm.
               </Text>
               <View className="flex-row items-center gap-2 mt-3">
                 <Bell size={16} color={colors[colorScheme].primary} />
@@ -662,87 +667,27 @@ export default function BookingDetailsScreen() {
                     SPECIAL OFFER
                   </Text>
                   <Text className="font-medium text-foreground">
-                    {appliedOfferDetails.title}
+                    {appliedOfferDetails.special_offer_title}
                   </Text>
-                  {appliedOfferDetails.discount && (
+                  {appliedOfferDetails.discount_percentage && (
                     <Text className="text-xs text-green-600 dark:text-green-400 mt-0.5">
-                      {appliedOfferDetails.discount}% discount applied
+                      {appliedOfferDetails.discount_percentage}% discount
+                      applied
                     </Text>
                   )}
                 </View>
               </View>
             )}
 
-            {/* Additional Information Section - Improved Design */}
-            {(booking.occasion ||
-              booking.special_requests ||
-              booking.dietary_notes?.length) && (
-              <View className="mt-4">
-                <View className="flex-row items-center gap-2 mb-3">
-                  <Info size={16} color={colors[colorScheme].primary} />
-                  <H3 className="text-base font-medium">
-                    Additional Information
-                  </H3>
-                </View>
-
-                <View className="space-y-0">
-                  {/* Occasion with purple separator line */}
-                  {booking.occasion && (
-                    <View className="pb-3">
-                      <View className="flex-row items-center gap-2 mb-1">
-                        <View className="bg-purple-100 dark:bg-purple-800/50 rounded-full p-1.5">
-                          <Gift size={14} color="#8b5cf6" />
-                        </View>
-                        <Text className="font-medium text-sm text-purple-800 dark:text-purple-200">
-                          Occasion
-                        </Text>
-                      </View>
-                      <Text className="text-foreground text-sm capitalize ml-8 mb-3">
-                        {booking.occasion}
-                      </Text>
-                      <View className="h-0.5 bg-purple-200 dark:bg-purple-800" />
-                    </View>
-                  )}
-
-                  {/* Dietary Notes with amber separator line */}
-                  {booking.dietary_notes &&
-                    booking.dietary_notes.length > 0 && (
-                      <View className="pt-3 pb-3">
-                        <View className="flex-row items-center gap-2 mb-1">
-                          <View className="bg-amber-100 dark:bg-amber-800/50 rounded-full p-1.5">
-                            <Utensils size={14} color="#f59e0b" />
-                          </View>
-                          <Text className="font-medium text-sm text-amber-800 dark:text-amber-200">
-                            Dietary Notes
-                          </Text>
-                        </View>
-                        <Text className="text-foreground text-sm ml-8 mb-3">
-                          {booking.dietary_notes.join(", ")}
-                        </Text>
-                        <View className="h-0.5 bg-amber-200 dark:bg-amber-800" />
-                      </View>
-                    )}
-
-                  {/* Special Requests with blue separator line */}
-                  {booking.special_requests && (
-                    <View className="pt-3 pb-3">
-                      <View className="flex-row items-center gap-2 mb-1">
-                        <View className="bg-blue-100 dark:bg-blue-800/50 rounded-full p-1.5">
-                          <MessageSquare size={14} color="#3b82f6" />
-                        </View>
-                        <Text className="font-medium text-sm text-blue-800 dark:text-blue-200">
-                          Special Requests
-                        </Text>
-                      </View>
-                      <Text className="text-foreground text-sm ml-8 mb-3">
-                        {booking.special_requests.trim()}
-                      </Text>
-                      <View className="h-0.5 bg-blue-200 dark:bg-blue-800" />
-                    </View>
-                  )}
-                </View>
-              </View>
-            )}
+            {/* Additional Information Section - Editable */}
+            <EditableBookingFields
+              bookingId={booking.id}
+              currentValues={bookingFields}
+              onUpdate={handleBookingFieldsUpdate}
+              canEdit={
+                booking.status === "pending" || booking.status === "confirmed"
+              }
+            />
 
             {/* Guest Information Section */}
             {(booking.guest_name || booking.guest_email) && (

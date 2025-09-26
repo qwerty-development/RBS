@@ -37,6 +37,12 @@ import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { InputValidator } from "@/lib/security";
+import {
+  formatDDMMYYYYInput,
+  isValidDDMMYYYYFormat,
+  convertDDMMYYYYToYYYYMMDD,
+  convertYYYYMMDDToDDMMYYYY,
+} from "@/utils/birthday";
 
 // 1. Lebanese Phone Number Validation
 // Comprehensive regex for Lebanese phone numbers (mobile and landline)
@@ -111,7 +117,13 @@ const profileEditSchema = z.object({
     .optional()
     .refine((date) => {
       if (!date) return true; // Optional field
-      const parsedDate = new Date(date);
+      return isValidDDMMYYYYFormat(date);
+    }, "Please enter a valid date in DD-MM-YYYY format.")
+    .refine((date) => {
+      if (!date) return true; // Optional field
+      // Convert DD-MM-YYYY to YYYY-MM-DD for validation
+      const yyyymmddFormat = convertDDMMYYYYToYYYYMMDD(date);
+      const parsedDate = new Date(yyyymmddFormat);
       const today = new Date();
       const age = today.getFullYear() - parsedDate.getFullYear();
       const monthDiff = today.getMonth() - parsedDate.getMonth();
@@ -129,7 +141,7 @@ const profileEditSchema = z.object({
 type ProfileEditFormData = z.infer<typeof profileEditSchema>;
 
 export default function ProfileEditScreen() {
-  const { profile, user, updateProfile } = useAuth();
+  const { profile, user, updateProfile }: any = useAuth();
   const { colorScheme } = useColorScheme();
   const router = useRouter();
 
@@ -159,7 +171,9 @@ export default function ProfileEditScreen() {
       last_name: lastName,
       email: user?.email || "",
       phone_number: profile?.phone_number || "",
-      date_of_birth: profile?.date_of_birth || "",
+      date_of_birth: profile?.date_of_birth
+        ? convertYYYYMMDDToDDMMYYYY(profile.date_of_birth)
+        : "",
     },
   });
 
@@ -237,7 +251,9 @@ export default function ProfileEditScreen() {
           last_name: data.last_name.trim(),
           full_name,
           phone_number: data.phone_number,
-          date_of_birth: data.date_of_birth,
+          date_of_birth: data.date_of_birth
+            ? convertDDMMYYYYToYYYYMMDD(data.date_of_birth)
+            : data.date_of_birth,
           avatar_url: avatarUrl,
         });
 
@@ -389,7 +405,7 @@ export default function ProfileEditScreen() {
                             placeholder={
                               profile?.date_of_birth
                                 ? "Set and cannot be changed"
-                                : "YYYY-MM-DD"
+                                : "DD-MM-YYYY"
                             }
                             description={
                               profile?.date_of_birth
@@ -403,6 +419,13 @@ export default function ProfileEditScreen() {
                             }
                             {...field}
                             value={field.value ?? ""}
+                            onChangeText={(value) => {
+                              if (!profile?.date_of_birth) {
+                                const formattedValue =
+                                  formatDDMMYYYYInput(value);
+                                field.onChange(formattedValue);
+                              }
+                            }}
                           />
                           {profile?.date_of_birth && (
                             <View className="flex-row items-center mt-2 px-3 py-2 bg-muted/50 rounded-lg">

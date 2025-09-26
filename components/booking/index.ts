@@ -15,5 +15,6 @@ export { BookingContactSection } from "./BookingContactSection";
 export { BookingSpecialRequests } from "./BookingSpecialRequests";
 export { AppliedOfferCard } from "./AppliedOfferCard";
 export { BookingInvitationsSection } from "./BookingInvitationsSection";
+export { EditableBookingFields } from "./EditableBookingFields";
 export { SectionSelector } from "./SectionSelector";
 export { InlineOfferSelector } from "./InlineOfferSelector";

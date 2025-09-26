@@ -50,6 +50,8 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 // Profile type definition
 type Profile = {
   id: string;
+  first_name?: string;
+  last_name?: string;
   full_name: string;
   phone_number?: string;
   date_of_birth?: string;
@@ -83,6 +85,8 @@ type AuthState = {
     fullName: string,
     phoneNumber?: string,
     dateOfBirth?: string,
+    firstName?: string,
+    lastName?: string,
   ) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -231,16 +235,9 @@ function AuthContent({ children }: PropsWithChildren) {
             session.user.email?.split("@")[0] ||
             "User";
 
-          // Split the full name into first and last name
-          const nameParts = userName.trim().split(/\s+/);
-          const firstName = nameParts[0] || "";
-          const lastName = nameParts.slice(1).join(" ") || "";
-
           const newProfile: Partial<Profile> = {
             id: session.user.id,
             full_name: userName,
-            first_name: firstName,
-            last_name: lastName,
             phone_number: undefined,
             date_of_birth: session.user.user_metadata.date_of_birth || null,
             avatar_url: session.user.user_metadata.avatar_url || null,
@@ -291,6 +288,8 @@ function AuthContent({ children }: PropsWithChildren) {
         fullName: string,
         phoneNumber?: string,
         dateOfBirth?: string,
+        firstName?: string,
+        lastName?: string,
       ) => {
         try {
           // Enhanced input validation
@@ -359,7 +358,7 @@ function AuthContent({ children }: PropsWithChildren) {
               email,
               password,
               options: {
-                emailRedirectTo: Linking.createURL("/auth-confirm"),
+                emailRedirectTo: "https://plate-app.com/verify-email",
                 data: {
                   full_name: fullName,
                   phone_number: phoneNumber,
@@ -401,6 +400,8 @@ function AuthContent({ children }: PropsWithChildren) {
               .insert({
                 id: authData.user.id,
                 full_name: fullName,
+                first_name: firstName || "",
+                last_name: lastName || "",
                 phone_number: phoneNumber,
                 date_of_birth: dateOfBirth,
                 loyalty_points: 0,
@@ -466,8 +467,22 @@ function AuthContent({ children }: PropsWithChildren) {
           );
 
           if (!rateLimitResult.allowed) {
+            // Try to get user_id from email for better security tracking
+            let userId = null;
+            try {
+              const { data: profileData } = await supabase
+                .from("profiles")
+                .select("id")
+                .eq("email", email)
+                .single();
+              userId = profileData?.id || null;
+            } catch (profileError) {
+              // User doesn't exist or other error - continue with null userId
+            }
+
             await SecurityMonitor.monitorSuspiciousActivity({
               type: "multiple_failed_logins",
+              userId,
               metadata: { email, timestamp: new Date().toISOString() },
             });
 
@@ -502,15 +517,33 @@ function AuthContent({ children }: PropsWithChildren) {
           if (error) {
             // Sign-in error
 
+            // Try to get user_id from email for better security tracking
+            let userId = null;
+            try {
+              const { data: profileData } = await supabase
+                .from("profiles")
+                .select("id")
+                .eq("email", email)
+                .single();
+              userId = profileData?.id || null;
+            } catch (profileError) {
+              // User doesn't exist or other error - continue with null userId
+            }
+
             // Monitor failed login attempts
-            await SecurityMonitor.monitorSuspiciousActivity({
-              type: "multiple_failed_logins",
-              metadata: {
-                email,
-                error: error.message,
-                timestamp: new Date().toISOString(),
-              },
-            });
+            try {
+              await SecurityMonitor.monitorSuspiciousActivity({
+                type: "multiple_failed_logins",
+                userId,
+                metadata: {
+                  email,
+                  error: error.message,
+                  timestamp: new Date().toISOString(),
+                },
+              });
+            } catch (securityError) {
+              // Security monitoring failed - log but don't block user
+            }
 
             throw error;
           }
@@ -522,6 +555,7 @@ function AuthContent({ children }: PropsWithChildren) {
             // Check if user is flagged for suspicious activity
             const suspiciousFlags =
               await SecurityMonitor.checkUserSuspiciousFlags(data.user.id);
+
             if (
               suspiciousFlags.isFlagged &&
               suspiciousFlags.riskLevel === "high"
