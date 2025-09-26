@@ -343,6 +343,7 @@ function BookingsScreenContent() {
                     <WaitlistCard
                       key={`waitlist-${item.id}`}
                       waitlistEntry={waitlistEntry}
+                      variant={activeTab}
                       onPress={() => {
                         if (waitlistEntry.status === "notified") {
                           navigateToWaitlistBooking(waitlistEntry);

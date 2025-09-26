@@ -170,7 +170,7 @@ const Button = React.forwardRef<
             preventDefault: () => {},
             stopPropagation: () => {},
             timeStamp: Date.now(),
-            type: 'press',
+            type: "press",
             persist: () => {},
             isDefaultPrevented: () => false,
             isPropagationStopped: () => false,

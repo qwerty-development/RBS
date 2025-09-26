@@ -132,7 +132,7 @@ export function DirectionsButton({
           style: "cancel",
         },
       ],
-      { cancelable: true }
+      { cancelable: true },
     );
   }, [restaurant, onDirections]);
 

@@ -44,7 +44,7 @@ export function WaitlistCard({
   processingWaitlistId,
 }: WaitlistCardProps) {
   const { colorScheme } = useColorScheme();
-  
+
   const formatDate = (date: string) => {
     const d = parseISO(date);
     if (isToday(d)) return "Today";
@@ -54,8 +54,22 @@ export function WaitlistCard({
 
   const isNotified = waitlistEntry.status === "notified";
   const isProcessing = processingWaitlistId === waitlistEntry.id;
-  const waitlistMessage = getWaitlistEntryMessage(waitlistEntry);
+
   const tableTypeInfo = TABLE_TYPE_INFO[waitlistEntry.table_type];
+
+  // Determine if cancellation is allowed
+  const canCancel = 
+    waitlistEntry.status !== "booked" && 
+    waitlistEntry.status !== "cancelled" &&
+    !waitlistEntry.converted_booking_id &&
+    variant !== "past"; // Don't allow cancellation for past entries
+
+  // Get cancel button text based on status
+  const getCancelButtonText = () => {
+    if (waitlistEntry.status === "expired") return "Remove";
+    if (waitlistEntry.status === "notified") return "Cancel Entry";
+    return "Cancel Waitlist";
+  };
 
   const handlePress = () => {
     if (isNotified && onBookNow) {
@@ -170,15 +184,18 @@ export function WaitlistCard({
         )}
 
         {/* Status Bar for Waitlist */}
-        <View 
+        <View
           className="w-full py-3 px-4 mb-3 rounded-lg"
           style={{
-            backgroundColor: "#fef3c7" // Light yellow background for waitlisted
+            backgroundColor: "#fef3c7", // Light yellow background for waitlisted
           }}
         >
           <View className="flex-row items-center justify-center gap-2">
             <Clock size={16} color="#f59e0b" />
-            <Text className="text-sm font-semibold" style={{ color: "#f59e0b" }}>
+            <Text
+              className="text-sm font-semibold"
+              style={{ color: "#f59e0b" }}
+            >
               Waitlisted
             </Text>
           </View>
@@ -209,25 +226,58 @@ export function WaitlistCard({
         {/* Actions */}
         <View className="flex-row gap-2">
           {isNotified && variant === "past" ? (
+            <>
+              <Button
+                className="flex-1"
+                onPress={() => onBookNow?.(waitlistEntry)}
+                disabled={isProcessing}
+              >
+                <CheckCircle size={16} color="white" />
+                <Text className="text-primary-foreground font-medium ml-2">
+                  Book Now
+                </Text>
+              </Button>
+              {/* Allow cancellation even when notified, but only for upcoming */}
+              {canCancel && (
+                <Button
+                  variant="destructive"
+                  className="flex-1"
+                  onPress={handleLeaveWaitlist}
+                  disabled={isProcessing}
+                >
+                  <Text className="font-medium">{getCancelButtonText()}</Text>
+                </Button>
+              )}
+            </>
+          ) : canCancel ? (
             <Button
-              className="flex-1"
-              onPress={() => onBookNow?.(waitlistEntry)}
-              disabled={isProcessing}
-            >
-              <CheckCircle size={16} color="white" />
-              <Text className="text-primary-foreground font-medium ml-2">
-                Book Now
-              </Text>
-            </Button>
-          ) : waitlistEntry.status === "active" && variant === "upcoming" ? (
-            <Button
-              variant="outline"
+              variant="destructive"
               className="flex-1"
               onPress={handleLeaveWaitlist}
               disabled={isProcessing}
             >
-              <Text className="font-medium">Leave Waitlist</Text>
+              <Text className="font-medium">{getCancelButtonText()}</Text>
             </Button>
+          ) : waitlistEntry.status === "booked" ? (
+            <View className="flex-1 bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
+              <Text className="text-center text-sm font-medium text-green-800 dark:text-green-200">
+                ✅ Converted to Booking
+              </Text>
+              <Text className="text-center text-xs text-green-700 dark:text-green-300 mt-1">
+                Check your bookings page to manage
+              </Text>
+            </View>
+          ) : variant === "past" ? (
+            <View className="flex-1 bg-muted/20 rounded-lg p-3">
+              <Text className="text-center text-sm font-medium text-muted-foreground">
+                {waitlistEntry.status === "expired" ? "⏰ Expired" : 
+                 waitlistEntry.status === "cancelled" ? "❌ Cancelled" : 
+                 "📋 Past Entry"}
+              </Text>
+              <Text className="text-center text-xs text-muted-foreground mt-1">
+                This waitlist entry is from a past date
+              </Text>
+            </View>
           ) : null}
         </View>
       </View>

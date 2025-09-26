@@ -865,37 +865,54 @@ export function BookingCard({
 
           {/* Status Bar for Past Bookings */}
           {variant === "past" && (
-            <View 
+            <View
               className="w-full py-3 px-4 mb-3 rounded-lg"
               style={{
-                backgroundColor: 
-                  booking.status === "completed" ? "#dcfce7" : // Light green
-                  booking.status === "cancelled_by_user" || booking.status === "cancelled_by_restaurant" || booking.status === "declined_by_restaurant" ? "#fef2f2" : // Light red
-                  booking.status === "no_show" ? "#fef3c7" : // Light orange
-                  "#f3f4f6" // Default light gray
+                backgroundColor:
+                  booking.status === "completed"
+                    ? "#dcfce7" // Light green
+                    : booking.status === "cancelled_by_user" ||
+                        booking.status === "cancelled_by_restaurant" ||
+                        booking.status === "declined_by_restaurant"
+                      ? "#fef2f2" // Light red
+                      : booking.status === "no_show"
+                        ? "#fef3c7" // Light orange
+                        : "#f3f4f6", // Default light gray
               }}
             >
               <View className="flex-row items-center justify-center gap-2">
-                <StatusIcon 
-                  size={16} 
+                <StatusIcon
+                  size={16}
                   color={
-                    booking.status === "completed" ? "#16a34a" : // Green
-                    booking.status === "cancelled_by_user" || booking.status === "cancelled_by_restaurant" || booking.status === "declined_by_restaurant" ? "#dc2626" : // Red
-                    booking.status === "no_show" ? "#ea580c" : // Orange
-                    "#6b7280" // Default gray
-                  } 
+                    booking.status === "completed"
+                      ? "#16a34a" // Green
+                      : booking.status === "cancelled_by_user" ||
+                          booking.status === "cancelled_by_restaurant" ||
+                          booking.status === "declined_by_restaurant"
+                        ? "#dc2626" // Red
+                        : booking.status === "no_show"
+                          ? "#ea580c" // Orange
+                          : "#6b7280" // Default gray
+                  }
                 />
-                <Text 
+                <Text
                   className="text-sm font-semibold"
                   style={{
-                    color: 
-                      booking.status === "completed" ? "#16a34a" : // Green
-                      booking.status === "cancelled_by_user" || booking.status === "cancelled_by_restaurant" || booking.status === "declined_by_restaurant" ? "#dc2626" : // Red
-                      booking.status === "no_show" ? "#ea580c" : // Orange
-                      "#6b7280" // Default gray
+                    color:
+                      booking.status === "completed"
+                        ? "#16a34a" // Green
+                        : booking.status === "cancelled_by_user" ||
+                            booking.status === "cancelled_by_restaurant" ||
+                            booking.status === "declined_by_restaurant"
+                          ? "#dc2626" // Red
+                          : booking.status === "no_show"
+                            ? "#ea580c" // Orange
+                            : "#6b7280", // Default gray
                   }}
                 >
-                  {booking.status === "cancelled_by_restaurant" ? "Cancelled by Restaurant" : finalStatusConfig.label}
+                  {booking.status === "cancelled_by_restaurant"
+                    ? "Cancelled by Restaurant"
+                    : finalStatusConfig.label}
                 </Text>
               </View>
             </View>

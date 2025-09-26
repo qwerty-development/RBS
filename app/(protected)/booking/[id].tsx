@@ -181,7 +181,7 @@ export default function BookingDetailsScreen() {
 
   // Declined explanation state
   const [showDeclinedExplanation, setShowDeclinedExplanation] = useState(false);
-  
+
   // Waitlist origin state
   const [isWaitlistOrigin, setIsWaitlistOrigin] = useState(false);
 
@@ -536,7 +536,8 @@ export default function BookingDetailsScreen() {
             <View className="mt-3 bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
               {isWaitlistOrigin ? (
                 <Text className="text-sm text-red-700 dark:text-red-300">
-                  You were waitlisted but the booking has expired. The restaurant couldn't accommodate your request at this time.
+                  You were waitlisted but the booking has expired. The
+                  restaurant couldn't accommodate your request at this time.
                 </Text>
               ) : booking.decline_note && booking.decline_note.trim() ? (
                 <View>

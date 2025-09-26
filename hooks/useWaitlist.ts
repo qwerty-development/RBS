@@ -183,7 +183,7 @@ export const useWaitlist = () => {
     [user, getMyWaitlist],
   );
 
-  // Leave waitlist
+  // Leave waitlist (cancel with confirmation)
   const leaveWaitlist = useCallback(
     async (waitlistId: string): Promise<boolean> => {
       if (!user) {
@@ -192,9 +192,38 @@ export const useWaitlist = () => {
       }
 
       try {
+        setLoading(true);
+
+        // First check the current status of the waitlist entry
+        const { data: waitlistEntry, error: fetchError } = await supabase
+          .from("waitlist")
+          .select("status, converted_booking_id")
+          .eq("id", waitlistId)
+          .eq("user_id", user.id)
+          .single();
+
+        if (fetchError) {
+          console.error("Failed to fetch waitlist entry:", fetchError);
+          Alert.alert("Error", "Waitlist entry not found");
+          return false;
+        }
+
+        // Prevent cancellation if already converted to booking
+        if (waitlistEntry.status === "booked" || waitlistEntry.converted_booking_id) {
+          Alert.alert(
+            "Cannot Cancel",
+            "This waitlist entry has already been converted to a booking. Please manage your booking instead."
+          );
+          return false;
+        }
+
+        // Allow cancellation for all other statuses (active, notified, expired, even cancelled)
         const { error } = await supabase
           .from("waitlist")
-          .update({ status: "cancelled" })
+          .update({
+            status: "cancelled",
+            updated_at: new Date().toISOString(),
+          })
           .eq("id", waitlistId)
           .eq("user_id", user.id);
 
@@ -202,6 +231,16 @@ export const useWaitlist = () => {
           console.error("Failed to leave waitlist:", error);
           Alert.alert("Error", "Failed to leave waitlist");
           return false;
+        }
+
+        // Clean up any pending notifications for this waitlist entry
+        try {
+          await supabase.rpc("cleanup_waitlist_notifications", {
+            p_waitlist_id: waitlistId,
+          });
+        } catch (cleanupError) {
+          // Don't fail the cancellation if cleanup fails, but log it
+          console.warn("Failed to cleanup notifications:", cleanupError);
         }
 
         Alert.alert("Success", "You've been removed from the waitlist");
@@ -214,9 +253,41 @@ export const useWaitlist = () => {
         console.error("Error leaving waitlist:", error);
         Alert.alert("Error", "Something went wrong");
         return false;
+      } finally {
+        setLoading(false);
       }
     },
     [user, getMyWaitlist],
+  );
+
+  // Cancel waitlist with confirmation dialog
+  const cancelWaitlist = useCallback(
+    async (waitlistId: string, restaurantName?: string): Promise<boolean> => {
+      return new Promise((resolve) => {
+        Alert.alert(
+          "Cancel Waitlist Entry",
+          `Are you sure you want to cancel your waitlist entry${
+            restaurantName ? ` for ${restaurantName}` : ""
+          }? This action cannot be undone.`,
+          [
+            {
+              text: "Keep Waiting",
+              style: "cancel",
+              onPress: () => resolve(false),
+            },
+            {
+              text: "Cancel Entry",
+              style: "destructive",
+              onPress: async () => {
+                const success = await leaveWaitlist(waitlistId);
+                resolve(success);
+              },
+            },
+          ],
+        );
+      });
+    },
+    [leaveWaitlist],
   );
 
   // Check if user can join waitlist for a specific restaurant/date
@@ -336,6 +407,7 @@ export const useWaitlist = () => {
     joinWaitlist,
     getMyWaitlist,
     leaveWaitlist,
+    cancelWaitlist,
     canJoinWaitlist,
     myWaitlist,
     loading,

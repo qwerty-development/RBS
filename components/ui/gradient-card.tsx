@@ -63,7 +63,7 @@ export function GradientCard({
   const getGradientProps = () => {
     const defaultFrom = gradientFromHex || "#000000";
     const defaultTo = gradientToHex || "#333333";
-    
+
     switch (variant) {
       case "subtle":
         return {

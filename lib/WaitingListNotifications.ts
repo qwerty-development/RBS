@@ -92,6 +92,11 @@ export class WaitingListNotifications {
       await this.showExpiredNotification(entry);
     } else if (newStatus === "converted") {
       await this.showBookingConfirmedNotification(entry);
+    } else if (newStatus === "cancelled") {
+      // Clean up any pending notifications when entry is cancelled
+      await WaitingListNotifications.cleanupCancelledEntryNotifications(
+        entryId,
+      );
     }
   }
 
@@ -224,43 +229,37 @@ export class WaitingListNotifications {
    * Handle notification tap - navigate to appropriate screen
    */
   static async handleNotificationTap(data: any) {
-    const { type, entryId, restaurantId, bookingId } = data;
-
-    switch (type) {
-      case "waiting_list_available":
-        // Navigate to booking flow with pre-filled data from the time range
-        // Use the preferred time if available, otherwise use the start of the range
-        const timeToUse = data.requestedTime || data.timeSlotStart;
-        const partySizeToUse = data.partySize || data.minPartySize;
-
-        router.push({
-          pathname: "/booking/availability",
-          params: {
-            restaurantId,
-            restaurantName: data.restaurantName,
-            date: data.requestedDate,
-            time: timeToUse,
-            partySize: partySizeToUse?.toString(),
-            fromWaitingList: "true",
-            waitingListEntryId: entryId,
-            timeSlotStart: data.timeSlotStart,
-            timeSlotEnd: data.timeSlotEnd,
-            minPartySize: data.minPartySize?.toString(),
-            maxPartySize: data.maxPartySize?.toString(),
-          },
-        });
-        break;
-
-      case "waiting_list_expired":
-      case "waiting_list_converted":
+    try {
+      // Navigate based on notification type and data
+      if (data.type === "waiting_list_available") {
         // Navigate to waiting list screen
-        router.push("/waiting-list");
-        break;
+        router.push("/(protected)/waiting-list");
+      } else if (data.restaurantId) {
+        // Navigate to restaurant page
+        router.push(`/restaurant/${data.restaurantId}`);
+      }
+    } catch (error) {
+      console.error("Failed to handle notification tap:", error);
+    }
+  }
 
-      default:
-        // Default to waiting list screen
-        router.push("/waiting-list");
-        break;
+  /**
+   * Clean up notifications for a cancelled waitlist entry
+   */
+  static async cleanupCancelledEntryNotifications(waitlistId: string) {
+    try {
+      // Call the database function to cleanup notifications
+      await supabase.rpc("cleanup_waitlist_notifications", {
+        p_waitlist_id: waitlistId,
+      });
+
+      console.log(`Cleaned up notifications for waitlist entry: ${waitlistId}`);
+    } catch (error) {
+      console.warn(
+        "Failed to cleanup notifications for waitlist entry:",
+        error,
+      );
+      // Don't throw - this is a cleanup operation that shouldn't fail the main action
     }
   }
 

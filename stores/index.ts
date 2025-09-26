@@ -387,21 +387,21 @@ export const useRestaurantStore = create<RestaurantState>()(
           },
 
           setFavoritesList: (restaurants) =>
-            set((state) => {
+            set((state:any) => {
               state.favoritesList = restaurants;
             }),
 
           addToRecentlyViewed: (restaurant) =>
-            set((state) => {
+            set((state:any) => {
               // Remove if exists and add to front
               state.recentlyViewed = [
                 restaurant,
-                ...state.recentlyViewed.filter((r) => r.id !== restaurant.id),
+                ...state.recentlyViewed.filter((r: { id: string; }) => r.id !== restaurant.id),
               ].slice(0, 20); // Keep only 20 recent items
             }),
 
           cacheRestaurant: (restaurant) =>
-            set((state) => {
+            set((state:any) => {
               state.restaurantsCache.set(restaurant.id, restaurant);
             }),
 
@@ -410,7 +410,7 @@ export const useRestaurantStore = create<RestaurantState>()(
           },
 
           cacheSearchResults: (query, results) =>
-            set((state) => {
+            set((state:any) => {
               state.searchResultsCache.set(query, results);
             }),
 
@@ -677,15 +677,18 @@ export const useBookingStore = create<BookingState>()(
  * Waiting List Store - Handles waiting list state
  */
 interface WaitingListState {
-  entries: any[];
-  loading: boolean;
+  waitingList: any[];
+  isLoading: boolean;
+  error: string | null;
 
   // Actions
-  setEntries: (entries: any[]) => void;
+  setWaitingList: (entries: any[]) => void;
   addEntry: (entry: any) => void;
   updateWaitingListEntry: (id: string, updates: any) => void;
-  removeEntry: (id: string) => void;
+  removeWaitingListEntry: (id: string) => void;
   setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  fetchWaitingList: (userId: string) => Promise<void>;
 }
 
 export const useWaitingListStore = create<WaitingListState>()(
@@ -693,37 +696,91 @@ export const useWaitingListStore = create<WaitingListState>()(
     subscribeWithSelector(
       immer((set, get) => ({
         // Initial state
-        entries: [],
-        loading: false,
+        waitingList: [],
+        isLoading: false,
+        error: null,
 
         // Actions
-        setEntries: (entries) =>
+        setWaitingList: (entries) =>
           set((state) => {
-            state.entries = entries;
+            state.waitingList = entries;
           }),
 
         addEntry: (entry) =>
           set((state) => {
-            state.entries.unshift(entry);
+            state.waitingList.unshift(entry);
           }),
 
         updateWaitingListEntry: (id, updates) =>
           set((state) => {
-            const index = state.entries.findIndex((entry) => entry.id === id);
+            const index = state.waitingList.findIndex(
+              (entry) => entry.id === id,
+            );
             if (index !== -1) {
-              state.entries[index] = { ...state.entries[index], ...updates };
+              state.waitingList[index] = {
+                ...state.waitingList[index],
+                ...updates,
+              };
             }
           }),
 
-        removeEntry: (id) =>
+        removeWaitingListEntry: (id) =>
           set((state) => {
-            state.entries = state.entries.filter((entry) => entry.id !== id);
+            state.waitingList = state.waitingList.filter(
+              (entry) => entry.id !== id,
+            );
           }),
 
         setLoading: (loading) =>
           set((state) => {
-            state.loading = loading;
+            state.isLoading = loading;
           }),
+
+        setError: (error) =>
+          set((state) => {
+            state.error = error;
+          }),
+
+        fetchWaitingList: async (userId) => {
+          const { supabase } = await import("@/config/supabase");
+
+          set((state) => {
+            state.isLoading = true;
+            state.error = null;
+          });
+
+          try {
+            // First run automation to update expired entries
+            await supabase.rpc("process_waitlist_automation");
+
+            // Get all entries (not just active/notified for waitlist page history)
+            const { data, error } = await supabase
+              .from("waitlist")
+              .select(
+                `
+                *,
+                restaurant:restaurants(id, name, address, main_image_url)
+              `,
+              )
+              .eq("user_id", userId)
+              .order("created_at", { ascending: false });
+
+            if (error) {
+              throw error;
+            }
+
+            set((state) => {
+              state.waitingList = data || [];
+              state.isLoading = false;
+            });
+          } catch (error: any) {
+            console.error("Error fetching waitlist:", error);
+            set((state) => {
+              state.error = error.message || "Failed to fetch waiting list";
+              state.isLoading = false;
+            });
+          }
+        },
       })),
     ),
     { name: "WaitingListStore" },

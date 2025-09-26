@@ -17,15 +17,8 @@ const PlaylistCardSkeleton = () => {
           borderRadius={8}
           marginBottom={12}
         />
-        <SkeletonPlaceholder.Item
-          width="80%"
-          height={18}
-          marginBottom={6}
-        />
-        <SkeletonPlaceholder.Item
-          width="60%"
-          height={14}
-        />
+        <SkeletonPlaceholder.Item width="80%" height={18} marginBottom={6} />
+        <SkeletonPlaceholder.Item width="60%" height={14} />
       </SkeletonPlaceholder.Item>
     </SkeletonPlaceholder>
   );

@@ -25,5 +25,7 @@ export function useWaitingListNotifications() {
 
   return {
     handleNotificationTap: WaitingListNotifications.handleNotificationTap,
+    cleanupCancelledEntryNotifications:
+      WaitingListNotifications.cleanupCancelledEntryNotifications,
   };
 }

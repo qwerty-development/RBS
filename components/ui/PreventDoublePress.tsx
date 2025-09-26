@@ -2,7 +2,8 @@
 import React, { useRef, useCallback } from "react";
 import { Pressable, PressableProps, GestureResponderEvent } from "react-native";
 
-interface PreventDoublePressProps extends Omit<PressableProps, 'children' | 'onPress'> {
+interface PreventDoublePressProps
+  extends Omit<PressableProps, "children" | "onPress"> {
   /**
    * Debounce delay in milliseconds to prevent double-clicks
    * @default 300
@@ -37,38 +38,41 @@ export function PreventDoublePress({
   const lastPressTime = useRef<number>(0);
   const isProcessing = useRef<boolean>(false);
 
-  const handlePress = useCallback((event: GestureResponderEvent) => {
-    if (!onPress) return;
+  const handlePress = useCallback(
+    (event: GestureResponderEvent) => {
+      if (!onPress) return;
 
-    const now = Date.now();
+      const now = Date.now();
 
-    // Double-click prevention
-    if (enableDebounce) {
-      if (isProcessing.current) {
-        return;
-      }
-
-      if (now - lastPressTime.current < debounceMs) {
-        return;
-      }
-
-      lastPressTime.current = now;
-      isProcessing.current = true;
-    }
-
-    try {
-      onPress(event);
-    } catch (error) {
-      console.error("Error in PreventDoublePress handler:", error);
-    } finally {
+      // Double-click prevention
       if (enableDebounce) {
-        // Reset processing flag after a short delay
-        setTimeout(() => {
-          isProcessing.current = false;
-        }, debounceMs);
+        if (isProcessing.current) {
+          return;
+        }
+
+        if (now - lastPressTime.current < debounceMs) {
+          return;
+        }
+
+        lastPressTime.current = now;
+        isProcessing.current = true;
       }
-    }
-  }, [onPress, debounceMs, enableDebounce]);
+
+      try {
+        onPress(event);
+      } catch (error) {
+        console.error("Error in PreventDoublePress handler:", error);
+      } finally {
+        if (enableDebounce) {
+          // Reset processing flag after a short delay
+          setTimeout(() => {
+            isProcessing.current = false;
+          }, debounceMs);
+        }
+      }
+    },
+    [onPress, debounceMs, enableDebounce],
+  );
 
   // Create a wrapper function that matches the expected signature
   const wrappedHandler = useCallback(() => {

@@ -10,10 +10,10 @@ export interface Restaurant extends BaseRestaurant {
   distance?: number | null;
   coordinates?: { latitude: number; longitude: number } | null;
   staticCoordinates?: { lat: number; lng: number };
-  
+
   // Availability and features
   isAvailable?: boolean;
-  
+
   // Restaurant hours (from joined table)
   restaurant_hours?: {
     day_of_week: string;
@@ -21,11 +21,11 @@ export interface Restaurant extends BaseRestaurant {
     open_time: string | null;
     close_time: string | null;
   }[];
-  
+
   // Computed fields for search and display
   searchScore?: number;
   matchedCategories?: string[];
-  
+
   // Social features
   isInUserPlaylists?: boolean;
   playlistCount?: number;
@@ -70,11 +70,11 @@ export interface RestaurantReviewSummary {
 // Restaurant availability info
 export interface RestaurantAvailability {
   restaurant_id: string;
-  available_slots: Array<{
+  available_slots: {
     time: string;
     available_tables: number;
     table_types: string[];
-  }>;
+  }[];
   is_open: boolean;
   next_available_slot?: string;
 }
@@ -82,14 +82,19 @@ export interface RestaurantAvailability {
 // Table types enum
 export enum TableType {
   STANDARD = "standard",
-  BOOTH = "booth", 
+  BOOTH = "booth",
   BAR = "bar",
   PATIO = "patio",
   WINDOW = "window",
-  PRIVATE = "private"
+  PRIVATE = "private",
 }
 
 // Restaurant card display variants
-export type RestaurantCardVariant = "default" | "compact" | "featured" | "list" | "search";
+export type RestaurantCardVariant =
+  | "default"
+  | "compact"
+  | "featured"
+  | "list"
+  | "search";
 
 export default Restaurant;

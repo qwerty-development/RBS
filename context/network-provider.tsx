@@ -103,7 +103,7 @@ export function NetworkProvider({ children }: PropsWithChildren) {
   const processNetworkState = useCallback(
     (state: NetInfoState): NetworkState => {
       const quality = getConnectionQuality(state);
-      
+
       // Get cellular generation safely
       const getCellularGeneration = () => {
         if (state.type === NetInfoStateType.cellular && state.details) {
