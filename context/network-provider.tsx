@@ -103,6 +103,14 @@ export function NetworkProvider({ children }: PropsWithChildren) {
   const processNetworkState = useCallback(
     (state: NetInfoState): NetworkState => {
       const quality = getConnectionQuality(state);
+      
+      // Get cellular generation safely
+      const getCellularGeneration = () => {
+        if (state.type === NetInfoStateType.cellular && state.details) {
+          return (state.details as any)?.cellularGeneration || undefined;
+        }
+        return undefined;
+      };
 
       return {
         isConnected: state.isConnected ?? false,
@@ -110,7 +118,7 @@ export function NetworkProvider({ children }: PropsWithChildren) {
         type: state.type,
         quality,
         details: {
-          cellularGeneration: state.details?.cellularGeneration,
+          cellularGeneration: getCellularGeneration(),
           isConnectionExpensive: state.details?.isConnectionExpensive,
         },
       };

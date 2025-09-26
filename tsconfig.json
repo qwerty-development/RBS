@@ -18,6 +18,7 @@
 		"scripts/generate-colors.js"
 	],
 	"exclude": [
-		"supabase/functions/**"
+		"supabase/functions/**",
+		"jest.setup.js"
 	]
 }

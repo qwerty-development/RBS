@@ -1,8 +1,8 @@
 import React from "react";
-import { View, TextInput } from "react-native";
+import { View, TextInput, TextInputProps } from "react-native";
 import { Text } from "./text";
 
-interface TextareaProps {
+interface TextareaProps extends Omit<TextInputProps, 'multiline'> {
   label: string;
   value: string;
   onChangeText: (text: string) => void;
@@ -14,7 +14,7 @@ interface TextareaProps {
   className?: string;
 }
 
-export const Textarea: React.FC<TextareaProps> = ({
+export const Textarea = React.forwardRef<TextInput, TextareaProps>(({
   label,
   value,
   onChangeText,
@@ -24,11 +24,13 @@ export const Textarea: React.FC<TextareaProps> = ({
   numberOfLines = 4,
   maxLength,
   className = "",
-}) => {
+  ...props
+}, ref) => {
   return (
     <View className={`mb-4 ${className}`}>
       <Text className="font-medium text-base mb-2">{label}</Text>
       <TextInput
+        ref={ref}
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -40,6 +42,7 @@ export const Textarea: React.FC<TextareaProps> = ({
         } bg-background text-foreground`}
         placeholderTextColor="#9ca3af"
         style={{ height: numberOfLines * 24 + 24, textAlignVertical: "top" }}
+        {...props}
       />
       {description && (
         <Text className="text-sm text-muted-foreground mt-1">
@@ -54,4 +57,6 @@ export const Textarea: React.FC<TextareaProps> = ({
       {error && <Text className="text-sm text-red-500 mt-1">{error}</Text>}
     </View>
   );
-};
+});
+
+Textarea.displayName = "Textarea";
