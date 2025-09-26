@@ -50,6 +50,8 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 // Profile type definition
 type Profile = {
   id: string;
+  first_name?: string;
+  last_name?: string;
   full_name: string;
   phone_number?: string;
   date_of_birth?: string;
