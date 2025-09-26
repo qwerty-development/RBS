@@ -14,13 +14,7 @@ const Checkbox = ({ checked, onCheckedChange, className }: any) => {
         className,
       )}
     >
-      {checked && (
-        <Ionicons 
-          name="checkmark" 
-          size={14} 
-          color="white" 
-        />
-      )}
+      {checked && <Ionicons name="checkmark" size={14} color="white" />}
     </Pressable>
   );
 };

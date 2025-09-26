@@ -1,6 +1,6 @@
 // app/(protected)/(tabs)/search.tsx
 import React, { useState, useCallback } from "react";
-import { View, Modal } from "react-native";
+import { View, Modal, Keyboard } from "react-native";
 import { Region } from "react-native-maps";
 import * as Haptics from "expo-haptics";
 
@@ -121,6 +121,10 @@ export default function SearchScreen() {
   const handleScroll = useCallback(
     (event: any) => {
       if (searchState.viewMode === "map") return;
+
+      // Dismiss keyboard when user scrolls
+      Keyboard.dismiss();
+
       const scrollY = event.nativeEvent.contentOffset.y;
       const shouldCollapse = scrollY > 20;
       if (shouldCollapse !== isHeaderCollapsed) {
