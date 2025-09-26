@@ -83,6 +83,8 @@ type AuthState = {
     fullName: string,
     phoneNumber?: string,
     dateOfBirth?: string,
+    firstName?: string,
+    lastName?: string,
   ) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -284,6 +286,8 @@ function AuthContent({ children }: PropsWithChildren) {
         fullName: string,
         phoneNumber?: string,
         dateOfBirth?: string,
+        firstName?: string,
+        lastName?: string,
       ) => {
         try {
           // Enhanced input validation
@@ -394,6 +398,8 @@ function AuthContent({ children }: PropsWithChildren) {
               .insert({
                 id: authData.user.id,
                 full_name: fullName,
+                first_name: firstName || "",
+                last_name: lastName || "",
                 phone_number: phoneNumber,
                 date_of_birth: dateOfBirth,
                 loyalty_points: 0,

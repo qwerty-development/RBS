@@ -141,7 +141,7 @@ const profileEditSchema = z.object({
 type ProfileEditFormData = z.infer<typeof profileEditSchema>;
 
 export default function ProfileEditScreen() {
-  const { profile, user, updateProfile }:any = useAuth();
+  const { profile, user, updateProfile }: any = useAuth();
   const { colorScheme } = useColorScheme();
   const router = useRouter();
 
