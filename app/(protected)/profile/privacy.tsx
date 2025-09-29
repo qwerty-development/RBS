@@ -41,6 +41,7 @@ import {
   useAccountDeletion,
   UserDataSummary,
 } from "@/lib/accountDeletionService";
+import { BackHeader } from "@/components/ui/back-header";
 
 // 1. Type Definitions for Privacy Settings
 interface PrivacySettings {
@@ -498,17 +499,7 @@ export default function PrivacyScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      {/* 16.1 Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
-        <Pressable onPress={() => router.back()} className="p-2 -ml-2">
-          <ArrowLeft
-            size={24}
-            color={colorScheme === "dark" ? "#fff" : "#000"}
-          />
-        </Pressable>
-        <H2>Privacy & Security</H2>
-        <View className="w-10" />
-      </View>
+      <BackHeader title="Privacy & Security" />
 
       <ScrollView
         showsVerticalScrollIndicator={false}

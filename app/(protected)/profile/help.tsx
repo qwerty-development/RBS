@@ -46,6 +46,7 @@ import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { getRefreshControlColor } from "@/lib/utils";
+import { BackHeader } from "@/components/ui/back-header";
 
 // 1. Type Definitions for Help System
 interface FAQItem {
@@ -522,17 +523,7 @@ export default function HelpScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      {/* 11.1 Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
-        <Pressable onPress={() => router.back()} className="p-2 -ml-2">
-          <ArrowLeft
-            size={24}
-            color={colorScheme === "dark" ? "#fff" : "#000"}
-          />
-        </Pressable>
-        <H2>Help & Support</H2>
-        <View className="w-10" />
-      </View>
+      <BackHeader title="Help & Support" />
 
       {/* 11.2 Tab Navigation */}
       <View className="flex-row bg-muted mx-4 mt-4 rounded-lg p-1">

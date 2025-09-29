@@ -27,7 +27,9 @@ import {
   XCircle,
   Info,
   History,
+  ArrowLeft,
 } from "lucide-react-native";
+import { BackHeader } from "@/components/ui/back-header";
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
 import type { WaitingStatus } from "@/types/waitlist";
 
@@ -185,9 +187,9 @@ export default function WaitlistScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      {/* Header */}
-      <View className="px-4 py-3 border-b border-border">
-        <H2>My Waitlist</H2>
+      <BackHeader title="My Waitlist" />
+      
+      <View className="px-4 py-2">
         <Muted>Your restaurant waiting list entries</Muted>
       </View>
 

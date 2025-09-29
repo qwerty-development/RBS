@@ -77,13 +77,6 @@ export const ViewToggleTabs = ({
           >
             List
           </Text>
-          {viewMode === "list" && restaurantCount !== undefined && (
-            <View className="bg-primary/10 px-2 py-0.5 rounded-full">
-              <Text className="text-xs text-primary font-medium">
-                {restaurantCount}
-              </Text>
-            </View>
-          )}
         </Pressable>
 
         {/* Map View Tab */}
@@ -110,13 +103,6 @@ export const ViewToggleTabs = ({
           >
             Map
           </Text>
-          {viewMode === "map" && restaurantCount !== undefined && (
-            <View className="bg-primary/10 px-2 py-0.5 rounded-full">
-              <Text className="text-xs text-primary font-medium">
-                {restaurantCount}
-              </Text>
-            </View>
-          )}
         </Pressable>
       </View>
     </View>

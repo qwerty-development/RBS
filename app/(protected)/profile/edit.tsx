@@ -22,7 +22,9 @@ import {
   AlertCircle,
   Calendar,
   Shield,
+  ArrowLeft,
 } from "lucide-react-native";
+import { BackHeader } from "@/components/ui/back-header";
 import * as ImagePicker from "expo-image-picker";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -276,14 +278,7 @@ export default function ProfileEditScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
-        {/* Header */}
-        <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
-          <Pressable onPress={() => router.back()} className="p-2 -ml-2">
-            <ChevronLeft size={24} />
-          </Pressable>
-          <H2>Edit Profile</H2>
-          <View className="w-10" />
-        </View>
+        <BackHeader title="Edit Profile" />
 
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View className="flex-1">

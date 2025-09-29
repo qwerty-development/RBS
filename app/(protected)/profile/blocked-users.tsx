@@ -17,6 +17,7 @@ import { BlockedUserCard } from "@/components/ui/block-button";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useBlockUser } from "@/hooks/useBlockUser";
 import { useAuth } from "@/context/supabase-provider";
+import { BackHeader } from "@/components/ui/back-header";
 
 export default function BlockedUsersScreen() {
   const router = useRouter();
@@ -50,16 +51,7 @@ export default function BlockedUsersScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      {/* Header */}
-      <View className="p-4 border-b border-border flex-row items-center">
-        <Pressable onPress={() => router.back()} className="p-2 -ml-2">
-          <ArrowLeft
-            size={24}
-            color={colorScheme === "dark" ? "#fff" : "#000"}
-          />
-        </Pressable>
-        <H2 className="ml-2">Blocked Users</H2>
-      </View>
+      <BackHeader title="Blocked Users" />
 
       <ScrollView
         className="flex-1"

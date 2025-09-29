@@ -33,6 +33,7 @@ import { useAuth } from "@/context/supabase-provider";
 import { supabase } from "@/config/supabase";
 import { Database } from "@/types/supabase";
 import { useOffers } from "@/hooks/useOffers";
+import { BackHeader } from "@/components/ui/back-header";
 
 // Enhanced types for the loyalty system
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
@@ -573,23 +574,10 @@ export default function LoyaltyScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       >
-        {/* Header */}
+        <BackHeader title="Loyalty Rewards" />
+          
+        {/* Tier status wrapper */}
         <View className="p-4 bg-primary/5 border-b border-primary/20">
-          <View className="flex-row items-center mb-4">
-            <Pressable
-              onPress={() => router.back()}
-              className="mr-3 p-2 rounded-full bg-background"
-            >
-              <ArrowLeft
-                size={20}
-                color={colorScheme === "dark" ? "#fff" : "#000"}
-              />
-            </Pressable>
-            <View className="flex-row items-center gap-3">
-              <Trophy size={24} color="#3b82f6" />
-              <H2>Loyalty Rewards</H2>
-            </View>
-          </View>
 
           {/* Tier status and points */}
           <TierBadge tier={userTier} points={userPoints} size="large" />

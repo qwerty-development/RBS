@@ -14,6 +14,7 @@ import { ArrowLeft, BarChart3 } from "lucide-react-native";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Text } from "@/components/ui/text";
 import { H1, H2 } from "@/components/ui/typography";
+import { BackHeader } from "@/components/ui/back-header";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 
@@ -40,25 +41,7 @@ export default function InsightsScreen() {
   const { insights, loading, refreshing, handleRefresh, TIER_THRESHOLDS } =
     useInsightsData(profile?.id, selectedPeriod);
 
-  // Header
-  const renderHeader = () => (
-    <View className="flex-row items-center justify-between px-4 py-3 bg-background border-b border-border">
-      <Pressable
-        onPress={() => router.back()}
-        className="p-2 -ml-2 rounded-lg"
-        style={{
-          minWidth: 44,
-          minHeight: 44,
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <ArrowLeft size={24} color={colorScheme === "dark" ? "#fff" : "#000"} />
-      </Pressable>
-      <H1 className="flex-1 text-center">Dining Insights</H1>
-      <View style={{ width: 44 }} />
-    </View>
-  );
+  // Note: Period selector is defined below
 
   // Period Selector
   const renderPeriodSelector = () => (
@@ -98,7 +81,7 @@ export default function InsightsScreen() {
   if (loading) {
     return (
       <SafeAreaView className="flex-1 bg-background">
-        {renderHeader()}
+        <BackHeader title="Dining Insights" />
         <View className="flex-1 items-center justify-center px-4">
           <ActivityIndicator
             size="large"
@@ -116,7 +99,7 @@ export default function InsightsScreen() {
   if (!insights || insights.performanceMetrics.totalBookings === 0) {
     return (
       <SafeAreaView className="flex-1 bg-background">
-        {renderHeader()}
+        <BackHeader title="Dining Insights" />
         <View className="flex-1 items-center justify-center p-4">
           <BarChart3 size={64} color="#6b7280" />
           <H2 className="mt-4 text-center text-foreground">
@@ -133,7 +116,7 @@ export default function InsightsScreen() {
   // Main Render
   return (
     <SafeAreaView className="flex-1 bg-background">
-      {renderHeader()}
+      <BackHeader title="Dining Insights" />
       <ScrollView
         className="flex-1"
         showsVerticalScrollIndicator={false}

@@ -17,7 +17,9 @@ import {
   Users,
   Info,
   Check,
+  ArrowLeft,
 } from "lucide-react-native";
+import { BackHeader } from "@/components/ui/back-header";
 import * as Haptics from "expo-haptics";
 
 import PreferencesScreenSkeleton from "@/components/skeletons/PreferencesScreenSkeleton";
@@ -320,14 +322,7 @@ export default function DiningPreferencesScreen() {
   }
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
-      {/* Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
-        <Pressable onPress={() => router.back()} className="p-2 -ml-2">
-          <ChevronLeft size={24} />
-        </Pressable>
-        <H2>Dining Preferences</H2>
-        <View className="w-10" />
-      </View>
+      <BackHeader title="Dining Preferences" />
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Why We Ask Section */}

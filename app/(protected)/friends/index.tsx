@@ -38,6 +38,7 @@ import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { FriendListSkeleton } from "@/components/skeletons/FriendListSkeleton";
+import { BackHeader } from "@/components/ui/back-header";
 import { OptimizedList } from "@/components/ui/optimized-list";
 
 // Type definitions
@@ -743,21 +744,7 @@ export default function FriendsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background">
-      {/* Header */}
-      <View className="px-4 py-3 bg-background border-b border-border">
-        <View className="flex-row items-center justify-between">
-          <Pressable onPress={() => router.back()} className="p-2">
-            <ArrowLeft
-              size={24}
-              color={colorScheme === "dark" ? "white" : "black"}
-            />
-          </Pressable>
-
-          <H2>Friends</H2>
-
-          <View className="p-2">{/* Settings placeholder */}</View>
-        </View>
-      </View>
+      <BackHeader title="Friends" />
 
       {/* Tabs */}
       <View className="flex-row bg-background px-4 py-2 border-b border-border">

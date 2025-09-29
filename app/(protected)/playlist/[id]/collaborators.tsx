@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
+  Image as RNImage,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
@@ -190,24 +191,27 @@ export default function PlaylistCollaboratorsScreen() {
     async (collaboratorId: string, currentPermission: "view" | "edit") => {
       const newPermission = currentPermission === "view" ? "edit" : "view";
       await updateCollaboratorPermission(collaboratorId, newPermission);
-      await fetchCollaborators();
+      // No need to fetchCollaborators() as the state is updated locally in updateCollaboratorPermission
     },
-    [updateCollaboratorPermission, fetchCollaborators],
+    [updateCollaboratorPermission],
   );
 
   // Render collaborator item
   const renderCollaboratorItem = useCallback(
-    ({ item }: { item: PlaylistCollaborator }) => {
+    ({ item, index }: { item: PlaylistCollaborator; index: number }) => {
       const isPending = !item.accepted_at;
 
       return (
-        <View className="flex-row items-center p-4 bg-white dark:bg-gray-800 mb-2 rounded-xl">
+        <View 
+          className="w-[31%] items-center bg-white dark:bg-gray-800 mb-2 rounded-xl p-3 mx-[1%]"
+          style={{ aspectRatio: 0.8 }}
+        >
           {/* Avatar */}
-          <View className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 mr-3 overflow-hidden">
+          <View className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 mb-2 overflow-hidden">
             {item.user?.avatar_url ? (
-              <Image
+              <RNImage
                 source={{ uri: item.user.avatar_url }}
-                className="w-full h-full"
+                style={{ width: '100%', height: '100%' }}
               />
             ) : (
               <View className="w-full h-full items-center justify-center">
@@ -219,22 +223,24 @@ export default function PlaylistCollaboratorsScreen() {
           </View>
 
           {/* User Info */}
-          <View className="flex-1">
-            <Text className="font-semibold">{item.user?.full_name}</Text>
+          <View className="items-center">
+            <Text className="font-semibold text-center" numberOfLines={1}>
+              {item.user?.full_name}
+            </Text>
             <View className="flex-row items-center mt-1">
               {isPending ? (
-                <Muted className="text-sm">Invitation pending</Muted>
+                <Muted className="text-xs">Pending</Muted>
               ) : (
                 <>
                   {item.permission === "edit" ? (
                     <View className="flex-row items-center">
-                      <Edit3 size={14} color="#6b7280" />
-                      <Muted className="text-sm ml-1">Can edit</Muted>
+                      <Edit3 size={12} color="#6b7280" />
+                      <Muted className="text-xs ml-1">Can edit</Muted>
                     </View>
                   ) : (
                     <View className="flex-row items-center">
-                      <Eye size={14} color="#6b7280" />
-                      <Muted className="text-sm ml-1">Can view</Muted>
+                      <Eye size={12} color="#6b7280" />
+                      <Muted className="text-xs ml-1">Can view</Muted>
                     </View>
                   )}
                 </>
@@ -244,16 +250,16 @@ export default function PlaylistCollaboratorsScreen() {
 
           {/* Actions */}
           {isOwner && (
-            <View className="flex-row items-center gap-2">
+            <View className="flex-row items-center justify-center mt-2 gap-4">
               {!isPending && (
                 <Pressable
                   onPress={() =>
                     handlePermissionChange(item.id, item.permission)
                   }
-                  className="p-2"
+                  className="p-1"
                 >
                   <Shield
-                    size={20}
+                    size={18}
                     color={colorScheme === "dark" ? "#fff" : "#000"}
                   />
                 </Pressable>
@@ -265,9 +271,9 @@ export default function PlaylistCollaboratorsScreen() {
                     item.user?.full_name || "User",
                   )
                 }
-                className="p-2"
+                className="p-1"
               >
-                <Trash2 size={20} color="#dc2626" />
+                <Trash2 size={18} color="#dc2626" />
               </Pressable>
             </View>
           )}
@@ -304,9 +310,9 @@ export default function PlaylistCollaboratorsScreen() {
           {/* Avatar */}
           <View className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 mr-3 overflow-hidden">
             {item.avatar_url ? (
-              <Image
+              <RNImage
                 source={{ uri: item.avatar_url }}
-                className="w-full h-full"
+                style={{ width: '100%', height: '100%' }}
               />
             ) : (
               <View className="w-full h-full items-center justify-center">
@@ -349,19 +355,17 @@ export default function PlaylistCollaboratorsScreen() {
 
           {isOwner && (
             <Button
-              size="sm"
+              size="icon"
               onPress={() => setShowSearch(!showSearch)}
               variant={showSearch ? "default" : "outline"}
+              className="w-8 h-8"
             >
               <UserPlus
-                size={16}
+                size={18}
                 color={
                   showSearch ? "#fff" : colorScheme === "dark" ? "#fff" : "#000"
                 }
               />
-              <Text className={showSearch ? "text-white ml-1" : "ml-1"}>
-                Invite
-              </Text>
             </Button>
           )}
         </View>
@@ -395,7 +399,8 @@ export default function PlaylistCollaboratorsScreen() {
         </View>
       ) : showSearch && searchQuery.length >= 2 ? (
         // Search Results
-        <OptimizedList
+        <FlatList
+          key="search-results-list"
           data={searchResults}
           renderItem={renderSearchResultItem}
           keyExtractor={(item) => item.id}
@@ -409,12 +414,15 @@ export default function PlaylistCollaboratorsScreen() {
         />
       ) : (
         // Collaborators List
-        <OptimizedList
+        <FlatList
+          key="collaborators-grid"
           data={allCollaborators}
           renderItem={renderCollaboratorItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16 }}
           showsVerticalScrollIndicator={false}
+          numColumns={3}
+          columnWrapperStyle={{ justifyContent: "flex-start" }}
           ListEmptyComponent={
             !showSearch && (
               <View className="items-center justify-center py-8">

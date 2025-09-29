@@ -11,6 +11,7 @@ import {
   ChevronRight,
   ArrowLeft,
 } from "lucide-react-native";
+import { BackHeader } from "@/components/ui/back-header";
 
 import { NotificationsScreenSkeleton } from "@/components/skeletons/NotificationScreenSkeleton";
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -142,7 +143,14 @@ export default function NotificationsScreen() {
           router.push("/profile/loyalty");
           break;
         case "waitlist":
-          router.push("/waiting-list");
+          if (notification.data?.waitlistId) {
+            router.push({
+              pathname: "/waitlist/[id]",
+              params: { id: notification.data.waitlistId },
+            });
+          } else {
+            router.push("/waiting-list");
+          }
           break;
         default:
           break;
@@ -243,41 +251,31 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      {/* Header */}
-      <View className="px-4 pt-4 pb-2">
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center">
-            <Pressable
-              onPress={() => router.back()}
-              className="mr-3 p-2 rounded-full bg-muted"
-            >
-              <ArrowLeft
-                size={20}
-                color={colorScheme === "dark" ? "#fff" : "#000"}
-              />
-            </Pressable>
-            <H2 className="text-2xl">Notifications</H2>
-          </View>
-          {/* Mark all as read */}
-          {notifications.some((n) => !n.read) && (
-            <Pressable
-              onPress={async () => {
-                await supabase
-                  .from("notifications")
-                  .update({ read: true, read_at: new Date().toISOString() })
-                  .eq("user_id", profile?.id)
-                  .eq("read", false);
-                setNotifications((prev) =>
-                  prev.map((n) => ({ ...n, read: true })),
-                );
-              }}
-              className="px-3 py-2 rounded-md bg-primary/10"
-            >
-              <Text className="text-primary font-medium">Mark all as read</Text>
-            </Pressable>
-          )}
-        </View>
-      </View>
+      <BackHeader 
+        title="Notifications" 
+        rightElement={
+          <Pressable
+            onPress={async () => {
+              if (!notifications.some(n => !n.read)) {
+                return; // No unread notifications
+              }
+              await supabase
+                .from("notifications")
+                .update({ read: true, read_at: new Date().toISOString() })
+                .eq("user_id", profile?.id)
+                .eq("read", false);
+              setNotifications((prev) =>
+                prev.map((n) => ({ ...n, read: true })),
+              );
+            }}
+            className={`px-3 py-2 rounded-md ${notifications.some(n => !n.read) ? 'bg-primary/10' : 'bg-muted'}`}
+          >
+            <Text className={`${notifications.some(n => !n.read) ? 'text-primary' : 'text-muted-foreground'} font-medium`}>
+              Mark all as read
+            </Text>
+          </Pressable>
+        }
+      />
 
       {/* Notifications List */}
       <OptimizedList
@@ -285,25 +283,27 @@ export default function NotificationsScreen() {
         renderItem={renderNotification}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 120 }}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={colorScheme === "dark" ? "#fff" : "#000"}
-          />
-        }
-        ListEmptyComponent={
-          <View className="flex-1 items-center justify-center p-8">
-            <Bell size={48} color="#666" />
-            <Text className="text-lg font-medium mt-4">
-              No notifications yet
-            </Text>
-            <Muted className="text-center mt-2">
-              We'll notify you when there's something new
-            </Muted>
-          </View>
-        }
+        listProps={{ 
+          showsVerticalScrollIndicator: false,
+          refreshControl: (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={colorScheme === "dark" ? "#fff" : "#000"}
+            />
+          ),
+          ListEmptyComponent: (
+            <View className="flex-1 items-center justify-center p-8">
+              <Bell size={48} color="#666" />
+              <Text className="text-lg font-medium mt-4">
+                No notifications yet
+              </Text>
+              <Muted className="text-center mt-2">
+                We'll notify you when there's something new
+              </Muted>
+            </View>
+          )
+        }}
       />
     </SafeAreaView>
   );

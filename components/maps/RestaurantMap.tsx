@@ -450,13 +450,12 @@ export function RestaurantMap({
             <Text
               className={`text-sm font-medium ${colorScheme === "dark" ? "text-white" : "text-black"}`}
             >
-              {validMarkerCount} restaurant{validMarkerCount !== 1 ? "s" : ""}{" "}
-              on map
+              Tap markers for details
             </Text>
             <Text
               className={`text-xs ${colorScheme === "dark" ? "text-gray-300" : "text-gray-600"}`}
             >
-              Tap markers for details
+              View restaurant information
             </Text>
           </View>
         </View>

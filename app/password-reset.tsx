@@ -4,6 +4,7 @@ import { ActivityIndicator, View, Alert } from "react-native";
 import * as z from "zod";
 import { useState } from "react";
 import { useRouter, useLocalSearchParams } from "expo-router";
+import { ArrowLeft } from "lucide-react-native";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { Form, FormField, FormInput } from "@/components/ui/form";
 import { Text } from "@/components/ui/text";
 import { H1, P } from "@/components/ui/typography";
 import { supabase } from "@/config/supabase";
+import { BackHeader } from "@/components/ui/back-header";
 
 const formSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
@@ -67,13 +69,12 @@ export default function PasswordReset() {
       className="flex-1 bg-background p-4"
       edges={["top", "bottom"]}
     >
-      <View className="flex-1 gap-4 web:m-4">
-        <View>
-          <H1 className="self-start">Reset Password</H1>
-          <P className="text-muted-foreground mt-2">
-            Enter your email to receive a password reset link.
-          </P>
-        </View>
+      <BackHeader title="Reset Password" />
+      
+      <View className="flex-1 gap-4 web:m-4 px-4 mt-2">
+        <P className="text-muted-foreground">
+          Enter your email to receive a password reset link.
+        </P>
 
         <Form {...form}>
           <View className="gap-4">

@@ -33,6 +33,7 @@ import { useAuth } from "@/context/supabase-provider";
 import { supabase } from "@/config/supabase";
 import { Database } from "@/types/supabase";
 import { useOffers } from "@/hooks/useOffers";
+import { BackHeader } from "@/components/ui/back-header";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 type UserOffer = Database["public"]["Tables"]["user_offers"]["Row"] & {

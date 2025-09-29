@@ -2,7 +2,7 @@
 import React from "react";
 import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { Clock, MapPin, Users, Calendar, X, Eye } from "lucide-react-native";
+import { Clock, MapPin, Users, Calendar, X, Eye, ChevronRight } from "lucide-react-native";
 import { format, parseISO } from "date-fns";
 
 import { Text } from "@/components/ui/text";
@@ -39,7 +39,8 @@ type WaitlistRow = {
 };
 
 interface Props {
-  entry: WaitlistEntry;
+  entry: WaitlistRow;
+  onNavigateToRestaurant?: (restaurantId: string) => void;
 }
 
 // Simple badge component
@@ -48,7 +49,7 @@ const Badge: React.FC<{ children: React.ReactNode; className?: string }> = ({
   className,
 }) => <View className={`px-2 py-1 rounded-full ${className}`}>{children}</View>;
 
-export default function WaitingListCard({ entry }: Props) {
+export function WaitingListCard({ entry, onNavigateToRestaurant }: Props) {
   const router = useRouter();
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -108,16 +109,25 @@ export default function WaitingListCard({ entry }: Props) {
   return (
     <Card className="mb-4 overflow-hidden">
       <Pressable
-        onPress={() =>
-          entry.restaurant?.id &&
-          router.push(`/restaurant/${entry.restaurant.id}`)
-        }
+        onPress={() => router.push(`/(protected)/waitlist/${entry.id}` as any)}
         className="active:opacity-70"
       >
         <View className="p-4">
           {/* Header with restaurant info and status */}
           <View className="flex-row items-start justify-between mb-3">
-            <View className="flex-1 flex-row items-start">
+            <Pressable 
+              onPress={() => {
+                if (entry.restaurant?.id) {
+                  if (onNavigateToRestaurant) {
+                    onNavigateToRestaurant(entry.restaurant.id);
+                  } else {
+                    router.push(`/restaurant/${entry.restaurant.id}`);
+                  }
+                }
+              }}
+              className="flex-1 flex-row items-start"
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               {entry.restaurant?.main_image_url && (
                 <Image
                   source={{ uri: entry.restaurant.main_image_url }}
@@ -139,7 +149,7 @@ export default function WaitingListCard({ entry }: Props) {
                   </View>
                 )}
               </View>
-            </View>
+            </Pressable>
 
             <Badge className={getStatusColor(entry.status)}>
               <Text className="font-medium text-xs">
@@ -157,6 +167,8 @@ export default function WaitingListCard({ entry }: Props) {
               </Text>
             </View>
 
+            
+
             <View className="flex-row items-center">
               <Clock size={16} color="#6b7280" />
               <Text className="text-muted-foreground ml-2">
@@ -173,69 +185,12 @@ export default function WaitingListCard({ entry }: Props) {
             </View>
           </View>
 
-          {/* Special requests if any */}
-          {entry.special_requests && (
-            <View className="mb-4">
-              <Text className="text-muted-foreground text-sm">
-                <Text className="font-medium">Special requests: </Text>
-                {entry.special_requests}
-              </Text>
-            </View>
-          )}
+          
 
-          {/* Notification info for active entries */}
-          {entry.status === "notified" && entry.notification_expires_at && (
-            <View className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
-              <Text className="text-green-800 dark:text-green-200 font-medium text-sm mb-1">
-                🎉 Your table is ready!
-              </Text>
-              <Text className="text-green-600 dark:text-green-300 text-xs">
-                Please confirm within 15 minutes to secure your table
-              </Text>
-            </View>
-          )}
 
-          {/* Action button - View Details */}
-          <View className="flex-row justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onPress={() =>
-                router.push(`/(protected)/waitlist/${entry.id}` as any)
-              }
-              className="flex-row items-center"
-            >
-              <Eye size={14} className="text-primary" />
-              <Text className="text-foreground ml-1 font-medium">
-                View Details
-              </Text>
-            </Button>
-          </View>
 
-          {/* Status message for non-active entries */}
-          {entry.status === "cancelled" && (
-            <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
-              <Text className="text-red-600 dark:text-red-400 text-sm">
-                This waitlist entry was cancelled
-              </Text>
-            </View>
-          )}
 
-          {entry.status === "expired" && (
-            <View className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3">
-              <Text className="text-gray-600 dark:text-gray-400 text-sm">
-                This waitlist entry has expired
-              </Text>
-            </View>
-          )}
 
-          {entry.status === "booked" && (
-            <View className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-lg p-3">
-              <Text className="text-emerald-600 dark:text-emerald-400 text-sm">
-                Successfully converted to booking
-              </Text>
-            </View>
-          )}
         </View>
       </Pressable>
     </Card>

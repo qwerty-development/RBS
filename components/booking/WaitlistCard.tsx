@@ -55,7 +55,7 @@ export function WaitlistCard({
   const isNotified = waitlistEntry.status === "notified";
   const isProcessing = processingWaitlistId === waitlistEntry.id;
 
-  const tableTypeInfo = TABLE_TYPE_INFO[waitlistEntry.table_type];
+  const tableTypeInfo = TABLE_TYPE_INFO[waitlistEntry.table_type as keyof typeof TABLE_TYPE_INFO] || { icon: "🍽️", label: "Table" };
 
   // Determine if cancellation is allowed
   const canCancel =

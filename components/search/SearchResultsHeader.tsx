@@ -93,8 +93,7 @@ export const SearchResultsHeader = React.memo(
             "Searching restaurants..."
           ) : (
             <>
-              {restaurantCount} restaurant{restaurantCount !== 1 ? "s" : ""}{" "}
-              found{getLocationText()}
+              Restaurants{getLocationText()}
               {getFilterText()}
             </>
           )}

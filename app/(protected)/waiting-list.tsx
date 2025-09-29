@@ -15,6 +15,7 @@ import { Text } from "@/components/ui/text";
 import { H1 } from "@/components/ui/typography";
 import { Button } from "@/components/ui/button";
 import { WaitingListCard } from "@/components/waiting-list/WaitingListCard";
+import { BackHeader } from "@/components/ui/back-header";
 import { useAuth } from "@/context/supabase-provider";
 import { useWaitlist } from "@/hooks/useWaitlist";
 
@@ -95,10 +96,11 @@ export default function WaitingListScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
+      <BackHeader title="Waiting List" />
+      
       <View className="px-4 py-2 border-b border-border">
         <View className="flex-row items-center justify-between">
           <View className="flex-1">
-            <H1 className="text-2xl font-bold">Waiting List</H1>
             <Text className="text-muted-foreground">
               {myWaitlist.length === 0
                 ? "No waiting list entries"
