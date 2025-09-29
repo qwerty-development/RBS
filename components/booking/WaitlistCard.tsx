@@ -7,6 +7,7 @@ import {
   Users,
   ChevronRight,
   AlertCircle,
+  CheckCircle,
 } from "lucide-react-native";
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
 
@@ -152,21 +153,74 @@ export function WaitlistCard({
           </View>
         )}
 
-        {/* Status Bar for Waitlist */}
+        {/* Status Bar - Dynamic based on waitlist status */}
         <View
           className="w-full py-3 px-4 mb-3 rounded-lg"
           style={{
-            backgroundColor: "#fef3c7", // Light yellow background for waitlisted
+            backgroundColor:
+              waitlistEntry.status === "expired"
+                ? "#f3f4f6" // Gray for expired
+                : waitlistEntry.status === "cancelled"
+                  ? "#fef2f2" // Light red for cancelled
+                  : waitlistEntry.status === "notified"
+                    ? "#ecfdf5" // Light green for notified
+                    : waitlistEntry.status === "booked"
+                      ? "#ecfdf5" // Light green for booked
+                      : "#fef3c7", // Light yellow for active/waitlisted
           }}
         >
           <View className="flex-row items-center justify-center gap-2">
-            <Clock size={16} color="#f59e0b" />
-            <Text
-              className="text-sm font-semibold"
-              style={{ color: "#f59e0b" }}
-            >
-              Waitlisted
-            </Text>
+            {waitlistEntry.status === "expired" ? (
+              <>
+                <AlertCircle size={16} color="#6b7280" />
+                <Text
+                  className="text-sm font-semibold"
+                  style={{ color: "#6b7280" }}
+                >
+                  Expired
+                </Text>
+              </>
+            ) : waitlistEntry.status === "cancelled" ? (
+              <>
+                <AlertCircle size={16} color="#dc2626" />
+                <Text
+                  className="text-sm font-semibold"
+                  style={{ color: "#dc2626" }}
+                >
+                  Cancelled
+                </Text>
+              </>
+            ) : waitlistEntry.status === "notified" ? (
+              <>
+                <AlertCircle size={16} color="#10b981" />
+                <Text
+                  className="text-sm font-semibold"
+                  style={{ color: "#10b981" }}
+                >
+                  Table Available
+                </Text>
+              </>
+            ) : waitlistEntry.status === "booked" ? (
+              <>
+                <CheckCircle size={16} color="#10b981" />
+                <Text
+                  className="text-sm font-semibold"
+                  style={{ color: "#10b981" }}
+                >
+                  Converted to Booking
+                </Text>
+              </>
+            ) : (
+              <>
+                <Clock size={16} color="#f59e0b" />
+                <Text
+                  className="text-sm font-semibold"
+                  style={{ color: "#f59e0b" }}
+                >
+                  Waitlisted
+                </Text>
+              </>
+            )}
           </View>
         </View>
 
@@ -192,38 +246,14 @@ export function WaitlistCard({
           </Text>
         )}
 
-        {/* Status Information */}
-        <View className="flex-row gap-2">
-          {waitlistEntry.status === "booked" ? (
-            <View className="flex-1 bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
-              <Text className="text-center text-sm font-medium text-green-800 dark:text-green-200">
-                ✅ Converted to Booking
-              </Text>
-              <Text className="text-center text-xs text-green-700 dark:text-green-300 mt-1">
-                Check your bookings page to manage
-              </Text>
-            </View>
-          ) : variant === "past" ? (
-            <View className="flex-1 bg-muted/20 rounded-lg p-3">
-              <Text className="text-center text-sm font-medium text-muted-foreground">
-                {waitlistEntry.status === "expired"
-                  ? "⏰ Expired"
-                  : waitlistEntry.status === "cancelled"
-                    ? "❌ Cancelled"
-                    : "📋 Past Entry"}
-              </Text>
-              <Text className="text-center text-xs text-muted-foreground mt-1">
-                This waitlist entry is from a past date
-              </Text>
-            </View>
-          ) : (
-            <View className="flex-1 bg-muted/20 rounded-lg p-3">
-              <Text className="text-center text-sm font-medium text-muted-foreground">
-                Tap for details and options
-              </Text>
-            </View>
-          )}
-        </View>
+        {/* Action hint for current entries */}
+        {variant !== "past" && waitlistEntry.status === "active" && (
+          <View className="flex-1 bg-muted/20 rounded-lg p-3">
+            <Text className="text-center text-sm font-medium text-muted-foreground">
+              Tap for details and options
+            </Text>
+          </View>
+        )}
       </View>
     </Pressable>
   );

@@ -28,7 +28,8 @@
       "Bash(npm run android:*)",
       "mcp__supabase__execute_sql",
       "Bash(node:*)",
-      "Bash(npm start:*)"
+      "Bash(npm start:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   },

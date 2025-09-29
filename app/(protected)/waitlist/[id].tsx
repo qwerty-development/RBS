@@ -12,7 +12,6 @@ import {
   Calendar,
   Clock,
   Users,
-  Edit3,
   Trash2,
   AlertCircle,
   CheckCircle,
@@ -24,7 +23,7 @@ import { format, parseISO, isToday, isTomorrow } from "date-fns";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { H1, H3, P } from "@/components/ui/typography";
+import { H3, P } from "@/components/ui/typography";
 import { NavigationHeader } from "@/components/ui/navigation-header";
 import { Card } from "@/components/ui/card";
 import { Image } from "@/components/image";
@@ -230,7 +229,7 @@ export default function WaitlistDetailsScreen() {
             Waitlist Entry Not Found
           </Text>
           <Text className="mt-2 text-muted-foreground text-center">
-            This waitlist entry might have been removed or doesn't exist.
+            This waitlist entry might have been removed or doesn&apos;t exist.
           </Text>
           <Button className="mt-6" onPress={() => router.back()}>
             <Text>Go Back</Text>
@@ -243,10 +242,14 @@ export default function WaitlistDetailsScreen() {
   const tableTypeInfo =
     TABLE_TYPE_INFO[waitlistEntry.table_type as keyof typeof TABLE_TYPE_INFO] ||
     TABLE_TYPE_INFO.any;
+  // Allow cancellation for all entries except those already booked or cancelled
   const canCancel =
     waitlistEntry.status !== "booked" &&
     waitlistEntry.status !== "cancelled" &&
     !waitlistEntry.converted_booking_id;
+
+  // Only show Book Now for notified entries
+  const showBookNow = waitlistEntry.status === "notified";
 
   return (
     <SafeAreaView className="flex-1 bg-background">
@@ -417,7 +420,8 @@ export default function WaitlistDetailsScreen() {
 
       {/* Action Buttons */}
       <View className="absolute bottom-0 left-0 right-0 bg-background border-t border-border p-4">
-        {waitlistEntry.status === "notified" ? (
+        {showBookNow && canCancel ? (
+          // Notified status: Show both Book Now and Cancel buttons
           <View className="flex-row gap-3">
             <Button className="flex-1" onPress={handleBookNow}>
               <CheckCircle size={16} color="white" />
@@ -425,31 +429,39 @@ export default function WaitlistDetailsScreen() {
                 Book Now
               </Text>
             </Button>
-            {canCancel && (
-              <Button
-                variant="destructive"
-                className="flex-1"
-                onPress={handleCancel}
-                disabled={cancelling}
-              >
-                {cancelling ? (
-                  <ActivityIndicator size="small" color="white" />
-                ) : (
-                  <>
-                    <Trash2 size={16} color="white" />
-                    <Text className="ml-2 text-destructive-foreground font-semibold">
-                      Cancel
-                    </Text>
-                  </>
-                )}
-              </Button>
-            )}
+            <Button
+              variant="destructive"
+              className="flex-1"
+              onPress={handleCancel}
+              disabled={cancelling}
+            >
+              {cancelling ? (
+                <ActivityIndicator size="small" color="white" />
+              ) : (
+                <>
+                  <Trash2 size={16} color="white" />
+                  <Text className="ml-2 text-destructive-foreground font-semibold">
+                    Cancel
+                  </Text>
+                </>
+              )}
+            </Button>
           </View>
+        ) : showBookNow ? (
+          // Notified but already booked/cancelled: Show only Book Now
+          <Button className="w-full" onPress={handleBookNow}>
+            <CheckCircle size={16} color="white" />
+            <Text className="ml-2 text-primary-foreground font-semibold">
+              Book Now
+            </Text>
+          </Button>
         ) : canCancel ? (
+          // All other statuses (active, expired) that can be cancelled
           <Button
             variant="destructive"
             onPress={handleCancel}
             disabled={cancelling}
+            className="w-full"
           >
             {cancelling ? (
               <ActivityIndicator size="small" color="white" />
@@ -457,15 +469,28 @@ export default function WaitlistDetailsScreen() {
               <>
                 <Trash2 size={16} color="white" />
                 <Text className="ml-2 text-destructive-foreground font-semibold">
-                  Cancel Waitlist Entry
+                  {waitlistEntry.status === "expired"
+                    ? "Remove Entry"
+                    : "Cancel Waitlist Entry"}
                 </Text>
               </>
             )}
           </Button>
         ) : waitlistEntry.status === "booked" ? (
-          <Button onPress={() => router.push("/(protected)/(tabs)/bookings")}>
+          // Already converted to booking
+          <Button
+            onPress={() => router.push("/(protected)/(tabs)/bookings")}
+            className="w-full"
+          >
             <Text className="font-semibold">View Bookings</Text>
           </Button>
+        ) : waitlistEntry.status === "cancelled" ? (
+          // Already cancelled - no actions available
+          <View className="w-full bg-muted/20 rounded-lg p-4">
+            <Text className="text-center text-sm text-muted-foreground">
+              This waitlist entry has been cancelled
+            </Text>
+          </View>
         ) : null}
       </View>
     </SafeAreaView>
