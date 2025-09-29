@@ -27,6 +27,7 @@ interface WaitlistItem extends WaitlistRow {
     name: string;
     address?: string;
     main_image_url?: string;
+    tier?: "basic" | "pro";
   };
 }
 
@@ -76,7 +77,7 @@ export const useWaitlist = () => {
         .select(
           `
           *,
-          restaurant:restaurants(id, name, address, main_image_url)
+          restaurant:restaurants(id, name, address, main_image_url, tier)
         `,
         )
         .eq("user_id", user.id)
@@ -152,7 +153,7 @@ export const useWaitlist = () => {
           .select(
             `
             *,
-            restaurant:restaurants(id, name, address, main_image_url)
+            restaurant:restaurants(id, name, address, main_image_url, tier)
           `,
           )
           .single();

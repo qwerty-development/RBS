@@ -217,7 +217,9 @@ export function WaitlistCard({
                   className="text-sm font-semibold"
                   style={{ color: "#f59e0b" }}
                 >
-                  Waitlisted
+                  {waitlistEntry.restaurant?.tier === "basic" 
+                    ? "Manual Review Pending" 
+                    : "Waitlisted"}
                 </Text>
               </>
             )}

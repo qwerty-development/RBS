@@ -10,7 +10,9 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Image } from "@/components/image";
 
-type WaitlistRow = {
+import { useWaitlist } from "@/hooks/useWaitlist";
+
+type WaitlistEntry = {
   id: string;
   user_id?: string;
   restaurant_id: string;
@@ -35,6 +37,7 @@ type WaitlistRow = {
     name: string;
     address?: string;
     main_image_url?: string;
+    tier?: "basic" | "pro";
   };
 };
 
@@ -183,8 +186,20 @@ export default function WaitingListCard({ entry }: Props) {
             </View>
           )}
 
-          {/* Notification info for active entries */}
-          {entry.status === "notified" && entry.notification_expires_at && (
+          {/* Restaurant tier specific messaging */}
+          {entry.restaurant?.tier === "basic" && entry.status === "active" && (
+            <View className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+              <Text className="text-blue-800 dark:text-blue-200 font-medium text-sm mb-1">
+                📋 Manual Waitlist Management
+              </Text>
+              <Text className="text-blue-600 dark:text-blue-300 text-xs">
+                The restaurant will manually review your waitlist entry and contact you when a table becomes available
+              </Text>
+            </View>
+          )}
+
+          {/* Notification info for pro tier restaurants only */}
+          {entry.restaurant?.tier === "pro" && entry.status === "notified" && entry.notification_expires_at && (
             <View className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
               <Text className="text-green-800 dark:text-green-200 font-medium text-sm mb-1">
                 🎉 Your table is ready!

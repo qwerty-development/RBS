@@ -56,6 +56,7 @@ interface WaitlistEntry {
     address: string;
     main_image_url?: string;
     phone_number?: string;
+    tier?: "basic" | "pro";
   };
 }
 
@@ -91,7 +92,8 @@ export default function WaitlistDetailsScreen() {
             name,
             address,
             main_image_url,
-            phone_number
+            phone_number,
+            tier
           )
         `,
         )
@@ -293,7 +295,7 @@ export default function WaitlistDetailsScreen() {
                   className="text-xs font-semibold"
                   style={{ color: getStatusColor(waitlistEntry.status) }}
                 >
-                  {getStatusText(waitlistEntry.status)}
+                  {getStatusText(waitlistEntry.status, waitlistEntry.restaurant?.tier)}
                 </Text>
               </View>
             </View>
@@ -495,4 +497,39 @@ export default function WaitlistDetailsScreen() {
       </View>
     </SafeAreaView>
   );
+}
+
+// Helper functions for status display
+function getStatusText(status: string, tier?: "basic" | "pro"): string {
+  switch (status) {
+    case "active":
+      return tier === "basic" ? "Manual Review" : "Waitlisted";
+    case "notified":
+      return "Table Available";
+    case "booked":
+      return "Booked";
+    case "expired":
+      return "Expired";
+    case "cancelled":
+      return "Cancelled";
+    default:
+      return "Unknown";
+  }
+}
+
+function getStatusColor(status: string): string {
+  switch (status) {
+    case "active":
+      return "#f59e0b"; // amber
+    case "notified":
+      return "#10b981"; // green
+    case "booked":
+      return "#10b981"; // green
+    case "expired":
+      return "#6b7280"; // gray
+    case "cancelled":
+      return "#dc2626"; // red
+    default:
+      return "#6b7280"; // gray
+  }
 }
