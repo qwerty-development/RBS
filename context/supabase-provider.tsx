@@ -1053,8 +1053,19 @@ function AuthContent({ children }: PropsWithChildren) {
             // No session found during initialization
           }
         }
+      } catch (error) {
+        // Error initializing auth
+      } finally {
+        if (isMounted) {
+          setInitialized(true);
+          // Auth initialization complete
+        }
+      }
+    };
 
-        // NEW: Check database readiness after auth initialization
+    // Check database readiness in background (non-blocking)
+    const checkDatabaseReadinessBackground = async () => {
+      try {
         // Add retries for cold start scenarios with exponential backoff
         let databaseReadySuccess = false;
         for (let attempt = 1; attempt <= 3; attempt++) {
@@ -1079,16 +1090,15 @@ function AuthContent({ children }: PropsWithChildren) {
           // Database readiness check result
         }
       } catch (error) {
-        // Error initializing auth
-      } finally {
+        // Error checking database readiness (non-critical)
         if (isMounted) {
-          setInitialized(true);
-          // Auth initialization complete
+          setDatabaseReady(false);
         }
       }
     };
 
     initializeAuth();
+    checkDatabaseReadinessBackground();
 
     // Listen for auth changes with proper cleanup
     const {
@@ -1324,22 +1334,6 @@ function AuthContent({ children }: PropsWithChildren) {
     };
   }, [initialized, session, isGuest, router]);
 
-  // Show loading screen while initializing
-  if (!initialized) {
-    return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          backgroundColor: "#000",
-        }}
-      >
-        <ActivityIndicator size="large" color="#fff" />
-        <Text style={{ color: "#fff", marginTop: 16 }}>Initializing...</Text>
-      </View>
-    );
-  }
 
   return (
     <AuthContext.Provider
