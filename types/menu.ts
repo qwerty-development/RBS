@@ -45,7 +45,7 @@ export const DIETARY_TAGS = {
   DAIRY_FREE: "dairy-free",
   NUT_FREE: "nut-free",
   HALAL: "halal",
-  KOSHER: "kosher",
+
   ORGANIC: "organic",
   SPICY: "spicy",
   LOW_CARB: "low-carb",

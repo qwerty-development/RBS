@@ -244,7 +244,7 @@ export class WaitingListNotifications {
   }
 
   /**
-   * Clean up notifications for a cancelled waitlist entry
+   * Clean up notifications for a c ancelled waitlist entry
    */
   static async cleanupCancelledEntryNotifications(waitlistId: string) {
     try {
@@ -252,8 +252,6 @@ export class WaitingListNotifications {
       await supabase.rpc("cleanup_waitlist_notifications", {
         p_waitlist_id: waitlistId,
       });
-
-      console.log(`Cleaned up notifications for waitlist entry: ${waitlistId}`);
     } catch (error) {
       console.warn(
         "Failed to cleanup notifications for waitlist entry:",

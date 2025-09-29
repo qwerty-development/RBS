@@ -78,7 +78,6 @@ export const DIETARY_RESTRICTIONS = [
   "Nut Allergy",
   "Dairy-Free",
   "Shellfish Allergy",
-  "Kosher",
 ];
 
 export const TABLE_PREFERENCES = [

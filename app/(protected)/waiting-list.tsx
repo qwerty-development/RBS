@@ -71,17 +71,6 @@ export default function WaitingListScreen() {
     router.push(`/restaurant/${restaurantId}`);
   };
 
-  // Handle entry cancellation
-  const handleCancelEntry = async (
-    entryId: string,
-    restaurantName?: string,
-  ) => {
-    const success = await cancelWaitlist(entryId, restaurantName);
-    if (success) {
-      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    }
-  };
-
   // Toggle filters
   const handleToggleFilters = () => {
     setShowFilters(!showFilters);
@@ -227,7 +216,6 @@ export default function WaitingListScreen() {
             key={entry.id}
             entry={entry}
             onNavigateToRestaurant={handleNavigateToRestaurant}
-            onCancelEntry={handleCancelEntry}
           />
         ))}
 

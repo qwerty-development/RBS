@@ -58,8 +58,8 @@ export function WaitlistCard({
   const tableTypeInfo = TABLE_TYPE_INFO[waitlistEntry.table_type];
 
   // Determine if cancellation is allowed
-  const canCancel = 
-    waitlistEntry.status !== "booked" && 
+  const canCancel =
+    waitlistEntry.status !== "booked" &&
     waitlistEntry.status !== "cancelled" &&
     !waitlistEntry.converted_booking_id &&
     variant !== "past"; // Don't allow cancellation for past entries
@@ -270,9 +270,11 @@ export function WaitlistCard({
           ) : variant === "past" ? (
             <View className="flex-1 bg-muted/20 rounded-lg p-3">
               <Text className="text-center text-sm font-medium text-muted-foreground">
-                {waitlistEntry.status === "expired" ? "⏰ Expired" : 
-                 waitlistEntry.status === "cancelled" ? "❌ Cancelled" : 
-                 "📋 Past Entry"}
+                {waitlistEntry.status === "expired"
+                  ? "⏰ Expired"
+                  : waitlistEntry.status === "cancelled"
+                    ? "❌ Cancelled"
+                    : "📋 Past Entry"}
               </Text>
               <Text className="text-center text-xs text-muted-foreground mt-1">
                 This waitlist entry is from a past date

@@ -1,15 +1,14 @@
 // app/(protected)/(tabs)/index.tsx
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import {
   Animated,
   View,
   RefreshControl,
   FlatList,
   ScrollView,
-  Pressable,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { UserPlus } from "lucide-react-native";
 
 import { useColorScheme } from "@/lib/useColorScheme";
 import { Text } from "@/components/ui/text";
@@ -21,6 +20,7 @@ import { HomeHeader } from "@/components/home/HomeHeader";
 import { SpecialOfferBannerCarousel } from "@/components/home/SpecialOfferBannerCarousel";
 import { Button } from "@/components/ui/button";
 import { getRefreshControlColor } from "@/lib/utils";
+import { supabase } from "@/config/supabase";
 
 import { useHomeScreenLogic } from "@/hooks/useHomeScreenLogic";
 import { useOffers } from "@/hooks/useOffers";
@@ -39,7 +39,7 @@ export default function HomeScreen() {
   const router = useRouter();
 
   // --- Guest & Auth Hooks ---
-  const { isGuest, convertGuestToUser } = useAuth();
+  const { isGuest, convertGuestToUser, profile } = useAuth();
   const {
     showGuestPrompt,
     promptedFeature,
@@ -47,6 +47,64 @@ export default function HomeScreen() {
     handleClosePrompt,
     handleSignUpFromPrompt,
   } = useGuestGuard();
+
+  // --- Favorites State ---
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  // --- Favorites Management ---
+  const fetchFavorites = useCallback(async () => {
+    if (!profile?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from("favorites")
+        .select("restaurant_id")
+        .eq("user_id", profile.id);
+
+      if (error) throw error;
+      setFavorites(new Set(data?.map((f) => f.restaurant_id) || []));
+    } catch (error) {
+      console.error("Error fetching favorites:", error);
+    }
+  }, [profile?.id]);
+
+  const toggleFavorite = useCallback(
+    async (restaurantId: string) => {
+      if (!profile?.id) return;
+
+      const isFavorite = favorites.has(restaurantId);
+
+      try {
+        if (isFavorite) {
+          const { error } = await supabase
+            .from("favorites")
+            .delete()
+            .eq("user_id", profile.id)
+            .eq("restaurant_id", restaurantId);
+
+          if (error) throw error;
+
+          setFavorites((prev) => {
+            const next = new Set(prev);
+            next.delete(restaurantId);
+            return next;
+          });
+        } else {
+          const { error } = await supabase.from("favorites").insert({
+            user_id: profile.id,
+            restaurant_id: restaurantId,
+          });
+
+          if (error) throw error;
+          setFavorites((prev) => new Set([...prev, restaurantId]));
+        }
+      } catch (error) {
+        console.error("Error toggling favorite:", error);
+        Alert.alert("Error", "Failed to update favorite status");
+      }
+    },
+    [profile?.id, favorites],
+  );
 
   // --- Data & Logic Hooks ---
   const {
@@ -57,7 +115,6 @@ export default function HomeScreen() {
     location,
     refreshing,
     loading,
-    profile,
     handleRefresh,
     handleLocationPress,
     handleRestaurantPress,
@@ -87,11 +144,19 @@ export default function HomeScreen() {
   });
 
   // --- Protected Action Handlers ---
-  const handleToggleFavorite = (restaurantId: string) => {
-    runProtectedAction(() => {
-      // e.g., call a function from a `useFavorites` hook
-    }, "save your favorite restaurants");
-  };
+  const handleToggleFavorite = useCallback(
+    (restaurantId: string) => {
+      runProtectedAction(() => {
+        toggleFavorite(restaurantId);
+      }, "save your favorite restaurants");
+    },
+    [runProtectedAction, toggleFavorite],
+  );
+
+  // --- Effects ---
+  useEffect(() => {
+    fetchFavorites();
+  }, [fetchFavorites]);
 
   // --- Loading State ---
   if (loading || offersLoading) {
@@ -198,6 +263,7 @@ export default function HomeScreen() {
                   variant="featured"
                   onPress={handleRestaurantPress}
                   onFavoritePress={() => handleToggleFavorite(item.id)}
+                  isFavorite={favorites.has(item.id)}
                 />
               )}
               keyExtractor={(item) => item.id}
@@ -224,6 +290,7 @@ export default function HomeScreen() {
                   variant="featured"
                   onPress={handleRestaurantPress}
                   onFavoritePress={() => handleToggleFavorite(item.id)}
+                  isFavorite={favorites.has(item.id)}
                 />
               )}
               keyExtractor={(item) => item.id}
@@ -250,6 +317,7 @@ export default function HomeScreen() {
                   variant="featured"
                   onPress={handleRestaurantPress}
                   onFavoritePress={() => handleToggleFavorite(item.id)}
+                  isFavorite={favorites.has(item.id)}
                 />
               )}
               keyExtractor={(item) => item.id}
@@ -278,6 +346,7 @@ export default function HomeScreen() {
                   variant="featured"
                   onPress={handleRestaurantPress}
                   onFavoritePress={() => handleToggleFavorite(item.id)}
+                  isFavorite={favorites.has(item.id)}
                 />
               )}
               keyExtractor={(item) => item.id}

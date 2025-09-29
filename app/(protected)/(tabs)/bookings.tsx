@@ -345,9 +345,10 @@ function BookingsScreenContent() {
                       waitlistEntry={waitlistEntry}
                       variant={activeTab}
                       onPress={() => {
-                        if (waitlistEntry.status === "notified") {
-                          navigateToWaitlistBooking(waitlistEntry);
-                        }
+                        // Navigate to waitlist details page
+                        router.push(
+                          `/(protected)/waitlist/${waitlistEntry.id}`,
+                        );
                       }}
                       onLeaveWaitlist={leaveWaitlist}
                       onBookNow={navigateToWaitlistBooking}

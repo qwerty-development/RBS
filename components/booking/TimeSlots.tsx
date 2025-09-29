@@ -44,7 +44,6 @@ const DIETARY_RESTRICTIONS = [
   "Gluten-Free",
   "Dairy-Free",
   "Nut Allergies",
-  "Kosher",
   "Halal",
 ];
 

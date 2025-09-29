@@ -387,21 +387,23 @@ export const useRestaurantStore = create<RestaurantState>()(
           },
 
           setFavoritesList: (restaurants) =>
-            set((state:any) => {
+            set((state: any) => {
               state.favoritesList = restaurants;
             }),
 
           addToRecentlyViewed: (restaurant) =>
-            set((state:any) => {
+            set((state: any) => {
               // Remove if exists and add to front
               state.recentlyViewed = [
                 restaurant,
-                ...state.recentlyViewed.filter((r: { id: string; }) => r.id !== restaurant.id),
+                ...state.recentlyViewed.filter(
+                  (r: { id: string }) => r.id !== restaurant.id,
+                ),
               ].slice(0, 20); // Keep only 20 recent items
             }),
 
           cacheRestaurant: (restaurant) =>
-            set((state:any) => {
+            set((state: any) => {
               state.restaurantsCache.set(restaurant.id, restaurant);
             }),
 
@@ -410,7 +412,7 @@ export const useRestaurantStore = create<RestaurantState>()(
           },
 
           cacheSearchResults: (query, results) =>
-            set((state:any) => {
+            set((state: any) => {
               state.searchResultsCache.set(query, results);
             }),
 

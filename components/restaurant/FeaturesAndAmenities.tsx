@@ -30,7 +30,7 @@ const DIETARY_ICONS = {
   Vegan: "🌱",
   Halal: "🥩",
   "Gluten-Free": "🌾",
-  Kosher: "✡️",
+
   "Dairy-Free": "🥛",
   "Nut-Free": "🥜",
 };

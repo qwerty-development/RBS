@@ -209,10 +209,13 @@ export const useWaitlist = () => {
         }
 
         // Prevent cancellation if already converted to booking
-        if (waitlistEntry.status === "booked" || waitlistEntry.converted_booking_id) {
+        if (
+          waitlistEntry.status === "booked" ||
+          waitlistEntry.converted_booking_id
+        ) {
           Alert.alert(
             "Cannot Cancel",
-            "This waitlist entry has already been converted to a booking. Please manage your booking instead."
+            "This waitlist entry has already been converted to a booking. Please manage your booking instead.",
           );
           return false;
         }

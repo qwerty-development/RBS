@@ -1,7 +1,8 @@
 // components/waiting-list/WaitingListCard.tsx
 import React from "react";
 import { View, Pressable } from "react-native";
-import { Clock, MapPin, Users, Calendar, X } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { Clock, MapPin, Users, Calendar, X, Eye } from "lucide-react-native";
 import { format, parseISO } from "date-fns";
 
 import { Text } from "@/components/ui/text";
@@ -37,10 +38,8 @@ type WaitlistRow = {
   };
 };
 
-interface WaitingListCardProps {
-  entry: WaitlistRow;
-  onNavigateToRestaurant: (restaurantId: string) => void;
-  onCancelEntry: (entryId: string, restaurantName?: string) => void;
+interface Props {
+  entry: WaitlistEntry;
 }
 
 // Simple badge component
@@ -49,11 +48,8 @@ const Badge: React.FC<{ children: React.ReactNode; className?: string }> = ({
   className,
 }) => <View className={`px-2 py-1 rounded-full ${className}`}>{children}</View>;
 
-export function WaitingListCard({
-  entry,
-  onNavigateToRestaurant,
-  onCancelEntry,
-}: WaitingListCardProps) {
+export default function WaitingListCard({ entry }: Props) {
+  const router = useRouter();
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
@@ -109,13 +105,12 @@ export function WaitingListCard({
     return timeRange;
   };
 
-  const canCancel = entry.status === "active" || entry.status === "notified";
-
   return (
     <Card className="mb-4 overflow-hidden">
       <Pressable
         onPress={() =>
-          entry.restaurant?.id && onNavigateToRestaurant(entry.restaurant.id)
+          entry.restaurant?.id &&
+          router.push(`/restaurant/${entry.restaurant.id}`)
         }
         className="active:opacity-70"
       >
@@ -200,22 +195,22 @@ export function WaitingListCard({
             </View>
           )}
 
-          {/* Action buttons */}
-          {canCancel && (
-            <View className="flex-row justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                onPress={() => onCancelEntry(entry.id, entry.restaurant?.name)}
-                className="flex-row items-center border-red-200 dark:border-red-800"
-              >
-                <X size={14} color="#dc2626" />
-                <Text className="text-red-600 dark:text-red-400 ml-1 font-medium">
-                  Cancel
-                </Text>
-              </Button>
-            </View>
-          )}
+          {/* Action button - View Details */}
+          <View className="flex-row justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onPress={() =>
+                router.push(`/(protected)/waitlist/${entry.id}` as any)
+              }
+              className="flex-row items-center"
+            >
+              <Eye size={14} className="text-primary" />
+              <Text className="text-foreground ml-1 font-medium">
+                View Details
+              </Text>
+            </Button>
+          </View>
 
           {/* Status message for non-active entries */}
           {entry.status === "cancelled" && (

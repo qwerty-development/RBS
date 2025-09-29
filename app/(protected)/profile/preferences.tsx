@@ -38,7 +38,6 @@ const DIETARY_RESTRICTIONS = [
   { id: "dairy_free", label: "Dairy-Free", icon: "🥛" },
   { id: "nut_allergy", label: "Nut Allergy", icon: "🥜" },
   { id: "shellfish_allergy", label: "Shellfish Allergy", icon: "🦐" },
-  { id: "kosher", label: "Kosher", icon: "✡️" },
   { id: "low_carb", label: "Low Carb", icon: "🍞" },
   { id: "diabetic", label: "Diabetic Friendly", icon: "💉" },
 ];
