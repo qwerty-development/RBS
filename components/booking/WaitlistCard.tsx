@@ -168,7 +168,7 @@ export function WaitlistCard({
                   className="text-sm font-semibold"
                   style={{ color: "#6b7280" }}
                 >
-                  Expired
+                  Expired (Waitlist)
                 </Text>
               </>
             ) : waitlistEntry.status === "cancelled" ? (
@@ -209,7 +209,7 @@ export function WaitlistCard({
                   style={{ color: "#f59e0b" }}
                 >
                   {waitlistEntry.restaurant?.tier === "basic"
-                    ? "Manual Review Pending"
+                    ? "Waitlisted"
                     : "Waitlisted"}
                 </Text>
               </>

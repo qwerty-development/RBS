@@ -233,7 +233,7 @@ export default function WaitlistDetailsScreen() {
           <Text className="mt-2 text-muted-foreground text-center">
             This waitlist entry might have been removed or doesn&apos;t exist.
           </Text>
-          <Button className="mt-6" onPress={() => router.back()}>
+          <Button className="mt-6 rounded-md" onPress={() => router.back()}>
             <Text>Go Back</Text>
           </Button>
         </View>
@@ -424,11 +424,11 @@ export default function WaitlistDetailsScreen() {
       </ScrollView>
 
       {/* Action Buttons */}
-      <View className="absolute bottom-0 left-0 right-0 bg-background border-t border-border p-4">
+      <View className="absolute bottom-0 left-0 right-0 bg-background border-t border-border p-4 pb-8">
         {showBookNow && canCancel ? (
           // Notified status: Show both Book Now and Cancel buttons
           <View className="flex-row gap-3">
-            <Button className="flex-1" onPress={handleBookNow}>
+            <Button className="flex-1 rounded-md" onPress={handleBookNow}>
               <CheckCircle size={16} color="white" />
               <Text className="ml-2 text-primary-foreground font-semibold">
                 Book Now
@@ -436,7 +436,7 @@ export default function WaitlistDetailsScreen() {
             </Button>
             <Button
               variant="destructive"
-              className="flex-1"
+              className="flex-1 rounded-md"
               onPress={handleCancel}
               disabled={cancelling}
             >
@@ -454,7 +454,7 @@ export default function WaitlistDetailsScreen() {
           </View>
         ) : showBookNow ? (
           // Notified but already booked/cancelled: Show only Book Now
-          <Button className="w-full" onPress={handleBookNow}>
+          <Button className="w-full rounded-md" onPress={handleBookNow}>
             <CheckCircle size={16} color="white" />
             <Text className="ml-2 text-primary-foreground font-semibold">
               Book Now
@@ -466,7 +466,7 @@ export default function WaitlistDetailsScreen() {
             variant="destructive"
             onPress={handleCancel}
             disabled={cancelling}
-            className="w-full"
+            className="w-full rounded-md"
           >
             {cancelling ? (
               <ActivityIndicator size="small" color="white" />
@@ -485,7 +485,7 @@ export default function WaitlistDetailsScreen() {
           // Already converted to booking
           <Button
             onPress={() => router.push("/(protected)/(tabs)/bookings")}
-            className="w-full"
+            className="w-full rounded-md"
           >
             <Text className="font-semibold">View Bookings</Text>
           </Button>
