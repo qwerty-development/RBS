@@ -402,8 +402,8 @@ export function BookingCard({
 
         if (!error && data) {
           const inviteesWithUser = data
-            .filter((invite:any) => invite.to_user) // Filter out null users
-            .map((invite:any) => ({
+            .filter((invite: any) => invite.to_user) // Filter out null users
+            .map((invite: any) => ({
               id: invite.to_user.id,
               first_name: invite.to_user.first_name,
               last_name: invite.to_user.last_name,
