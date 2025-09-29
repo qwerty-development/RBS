@@ -7,29 +7,22 @@ import {
   Users,
   ChevronRight,
   AlertCircle,
-  CheckCircle,
-  XCircle,
-  Info,
 } from "lucide-react-native";
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
 
 import { Text } from "@/components/ui/text";
-import { H3, Muted } from "@/components/ui/typography";
-import { Button } from "@/components/ui/button";
+import { H3 } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 import { cn } from "@/lib/utils";
 import { colors } from "@/constants/colors";
 import { useColorScheme } from "@/lib/useColorScheme";
 import type { EnhancedWaitlistEntry } from "@/hooks/useBookings";
-import { getWaitlistEntryMessage } from "@/hooks/useWaitlist";
 import { TABLE_TYPE_INFO } from "@/types/waitlist";
 
 interface WaitlistCardProps {
   waitlistEntry: EnhancedWaitlistEntry;
   variant?: "upcoming" | "past";
   onPress?: () => void;
-  onLeaveWaitlist?: (waitlistId: string, restaurantName?: string) => void;
-  onBookNow?: (waitlistEntry: EnhancedWaitlistEntry) => void;
   onNavigateToRestaurant?: (restaurantId: string) => void;
   processingWaitlistId?: string | null;
 }
@@ -38,8 +31,6 @@ export function WaitlistCard({
   waitlistEntry,
   variant = "upcoming",
   onPress,
-  onLeaveWaitlist,
-  onBookNow,
   onNavigateToRestaurant,
   processingWaitlistId,
 }: WaitlistCardProps) {
@@ -57,24 +48,8 @@ export function WaitlistCard({
 
   const tableTypeInfo = TABLE_TYPE_INFO[waitlistEntry.table_type];
 
-  // Determine if cancellation is allowed
-  const canCancel =
-    waitlistEntry.status !== "booked" &&
-    waitlistEntry.status !== "cancelled" &&
-    !waitlistEntry.converted_booking_id &&
-    variant !== "past"; // Don't allow cancellation for past entries
-
-  // Get cancel button text based on status
-  const getCancelButtonText = () => {
-    if (waitlistEntry.status === "expired") return "Remove";
-    if (waitlistEntry.status === "notified") return "Cancel Entry";
-    return "Cancel Waitlist";
-  };
-
   const handlePress = () => {
-    if (isNotified && onBookNow) {
-      onBookNow(waitlistEntry);
-    } else if (onPress) {
+    if (onPress) {
       onPress();
     }
   };
@@ -83,12 +58,6 @@ export function WaitlistCard({
     e.stopPropagation();
     if (onNavigateToRestaurant) {
       onNavigateToRestaurant(waitlistEntry.restaurant_id);
-    }
-  };
-
-  const handleLeaveWaitlist = () => {
-    if (onLeaveWaitlist) {
-      onLeaveWaitlist(waitlistEntry.id, waitlistEntry.restaurant?.name);
     }
   };
 
@@ -223,42 +192,9 @@ export function WaitlistCard({
           </Text>
         )}
 
-        {/* Actions */}
+        {/* Status Information */}
         <View className="flex-row gap-2">
-          {isNotified && variant === "past" ? (
-            <>
-              <Button
-                className="flex-1"
-                onPress={() => onBookNow?.(waitlistEntry)}
-                disabled={isProcessing}
-              >
-                <CheckCircle size={16} color="white" />
-                <Text className="text-primary-foreground font-medium ml-2">
-                  Book Now
-                </Text>
-              </Button>
-              {/* Allow cancellation even when notified, but only for upcoming */}
-              {canCancel && (
-                <Button
-                  variant="destructive"
-                  className="flex-1"
-                  onPress={handleLeaveWaitlist}
-                  disabled={isProcessing}
-                >
-                  <Text className="font-medium">{getCancelButtonText()}</Text>
-                </Button>
-              )}
-            </>
-          ) : canCancel ? (
-            <Button
-              variant="destructive"
-              className="flex-1"
-              onPress={handleLeaveWaitlist}
-              disabled={isProcessing}
-            >
-              <Text className="font-medium">{getCancelButtonText()}</Text>
-            </Button>
-          ) : waitlistEntry.status === "booked" ? (
+          {waitlistEntry.status === "booked" ? (
             <View className="flex-1 bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
               <Text className="text-center text-sm font-medium text-green-800 dark:text-green-200">
                 ✅ Converted to Booking
@@ -280,7 +216,13 @@ export function WaitlistCard({
                 This waitlist entry is from a past date
               </Text>
             </View>
-          ) : null}
+          ) : (
+            <View className="flex-1 bg-muted/20 rounded-lg p-3">
+              <Text className="text-center text-sm font-medium text-muted-foreground">
+                Tap for details and options
+              </Text>
+            </View>
+          )}
         </View>
       </View>
     </Pressable>
