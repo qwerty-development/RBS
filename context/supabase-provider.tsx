@@ -736,13 +736,8 @@ function AuthContent({ children }: PropsWithChildren) {
 
       // Starting Google sign in
 
-      // Create the redirect URI - use expo-auth-session format
-      const redirectUrl = makeRedirectUri({
-        scheme: "qwerty-plate",
-        preferLocalhost: false,
-        isTripleSlashed: true,
-        native: "qwerty-plate://google",
-      });
+      // Create the redirect URI using plate scheme for consistency
+      const redirectUrl = "plate://auth-callback";
 
       // Using redirect URL
 
@@ -774,7 +769,7 @@ function AuthContent({ children }: PropsWithChildren) {
         urlSubscription = Linking.addEventListener("url", (event) => {
           // Received URL
           if (
-            event.url.includes("google") ||
+            event.url.includes("auth-callback") ||
             event.url.includes("#access_token") ||
             event.url.includes("code=")
           ) {
@@ -983,34 +978,48 @@ function AuthContent({ children }: PropsWithChildren) {
   // Listen for URL callbacks
   useEffect(() => {
     // Listen for incoming URLs when app resumes
-    const handleUrl = (url: string) => {
+    const handleUrl = async (url: string) => {
       // App opened with URL
 
       // Check if it's an OAuth callback
       if (url.includes("#access_token") || url.includes("code=")) {
         // Processing OAuth callback
-
-        // Supabase should handle this automatically
-        // Just check for session after a short delay
-        setTimeout(async () => {
-          const {
-            data: { session },
-          } = await supabase.auth.getSession();
-          if (session) {
-            // Session established from URL
+        try {
+          // Explicitly exchange code for session
+          const { data, error } = await supabase.auth.exchangeCodeForSession(url);
+          
+          if (error) {
+            console.error("Error exchanging code for session:", error);
+            return;
           }
-        }, 500);
+          
+          if (data?.session) {
+            // Session established from URL
+            console.log("Successfully authenticated from deep link");
+          }
+        } catch (err) {
+          console.error("Failed to process auth callback URL:", err);
+        }
       }
     };
 
     // Get initial URL
     Linking.getInitialURL().then((url) => {
-      if (url) handleUrl(url);
+      if (url) {
+        handleUrl(url).catch(err => 
+          console.error("Error handling initial URL:", err)
+        );
+      }
     });
 
     // Listen for URL changes
     const subscription = Linking.addEventListener("url", (event) => {
-      handleUrl(event.url);
+      if (event.url) {
+        // Need to handle async function properly
+        handleUrl(event.url).catch(err => 
+          console.error("Error handling incoming URL:", err)
+        );
+      }
     });
 
     return () => subscription.remove();
