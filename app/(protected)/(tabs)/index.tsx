@@ -159,9 +159,7 @@ export default function HomeScreen() {
   }, [fetchFavorites]);
 
   // --- Loading State ---
-  if (loading || offersLoading) {
-    return <HomeScreenSkeleton />;
-  }
+  const isLoading = loading || offersLoading;
 
   return (
     <View className="flex-1 bg-background">
@@ -177,74 +175,77 @@ export default function HomeScreen() {
         onProfilePress={isGuest ? convertGuestToUser : handleProfilePress}
       />
 
-      <Animated.ScrollView
-        ref={(ref) => {
-          homeScrollRef.current = ref;
-        }}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true },
-        )}
-        scrollEventThrottle={16}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-            tintColor={getRefreshControlColor(colorScheme)}
-            progressViewOffset={totalHeaderHeight}
-          />
-        }
-      >
-        <View style={{ height: totalHeaderHeight }} />
+      {isLoading ? (
+        <HomeScreenSkeleton />
+      ) : (
+        <Animated.ScrollView
+          ref={(ref) => {
+            homeScrollRef.current = ref;
+          }}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true },
+          )}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor={getRefreshControlColor(colorScheme)}
+              progressViewOffset={totalHeaderHeight}
+            />
+          }
+        >
+          <View style={{ height: totalHeaderHeight }} />
 
-        {/* Guest Banner */}
-        {isGuest && (
-          <View className="mx-4 my-4 bg-primary/10 rounded-lg p-4">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1">
-                <Text className="font-semibold text-primary">
-                  Welcome to Plate!
-                </Text>
-                <Text className="text-sm text-muted-foreground mt-1">
-                  Sign up to unlock exclusive features
-                </Text>
+          {/* Guest Banner */}
+          {isGuest && (
+            <View className="mx-4 my-4 bg-primary/10 rounded-lg p-4">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-1">
+                  <Text className="font-semibold text-primary">
+                    Welcome to Plate!
+                  </Text>
+                  <Text className="text-sm text-muted-foreground mt-1">
+                    Sign up to unlock exclusive features
+                  </Text>
+                </View>
+                <Button size="sm" onPress={convertGuestToUser} className="ml-3">
+                  <Text className="text-white text-xs font-bold">Sign Up</Text>
+                </Button>
               </View>
-              <Button size="sm" onPress={convertGuestToUser} className="ml-3">
-                <Text className="text-white text-xs font-bold">Sign Up</Text>
-              </Button>
             </View>
+          )}
+
+          <View className="mb-6 mt-4">
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              className="pl-4"
+            >
+              <View className="flex-row gap-3 pr-4">
+                {CUISINE_CATEGORIES.map((cuisine) => (
+                  <CuisineCategory
+                    key={cuisine.id}
+                    cuisine={cuisine}
+                    onPress={handleCuisinePress}
+                  />
+                ))}
+              </View>
+            </ScrollView>
           </View>
-        )}
 
-        <View className="mb-6 mt-4">
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="pl-4"
-          >
-            <View className="flex-row gap-3 pr-4">
-              {CUISINE_CATEGORIES.map((cuisine) => (
-                <CuisineCategory
-                  key={cuisine.id}
-                  cuisine={cuisine}
-                  onPress={handleCuisinePress}
-                />
-              ))}
-            </View>
-          </ScrollView>
-        </View>
+          {/* Loyalty Widget moved above banners - only show for signed-in users */}
+          {!isGuest && (
+            <LoyaltyWidget
+              loyaltyPoints={profile?.loyalty_points || 0}
+              onPress={() => router.push("/profile/loyalty")}
+              colorScheme={colorScheme}
+            />
+          )}
 
-        {/* Loyalty Widget moved above banners - only show for signed-in users */}
-        {!isGuest && (
-          <LoyaltyWidget
-            loyaltyPoints={profile?.loyalty_points || 0}
-            onPress={() => router.push("/profile/loyalty")}
-            colorScheme={colorScheme}
-          />
-        )}
-
-        <SpecialOfferBannerCarousel offers={specialOffers} />
+          <SpecialOfferBannerCarousel offers={specialOffers} />
 
         {featuredRestaurants.length > 0 && (
           <View className="mb-6">
@@ -358,7 +359,8 @@ export default function HomeScreen() {
 
         {/* Add bottom padding to account for tab bar */}
         <View className="h-24" />
-      </Animated.ScrollView>
+        </Animated.ScrollView>
+      )}
 
       {/* Guest Prompt Modal */}
       <GuestPromptModal

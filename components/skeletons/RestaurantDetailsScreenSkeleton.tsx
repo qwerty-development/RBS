@@ -1,11 +1,43 @@
 import React from "react";
-import { View, ScrollView } from "react-native";
+import { View, ScrollView, Pressable } from "react-native";
+import { ChevronLeft } from "lucide-react-native";
 import SkeletonPlaceholder from "./SkeletonPlaceholder";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
+import { StatusBar } from "react-native";
 
 const RestaurantDetailsScreenSkeleton = () => {
+  const router = useRouter();
+  
   return (
-    <SafeAreaView className="flex-1 bg-background">
+    <View className="flex-1 bg-background">
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor="transparent"
+        translucent
+      />
+
+      {/* Header - Keep visible during loading */}
+      <View className="absolute top-0 left-0 right-0 z-50">
+        <SafeAreaView edges={["top"]}>
+          <View className="p-4">
+            <Pressable
+              onPress={() => router.back()}
+              className="w-10 h-10 bg-black/50 rounded-full items-center justify-center"
+            >
+              <ChevronLeft size={24} color="white" />
+            </Pressable>
+          </View>
+        </SafeAreaView>
+      </View>
+      
+      {/* Favorite, Playlist, and Share Button placeholders */}
+      <View className="absolute top-20 right-4 flex-row gap-3 z-50">
+        <View className="w-12 h-12 bg-black/60 rounded-full items-center justify-center shadow-lg backdrop-blur-sm"></View>
+        <View className="w-12 h-12 bg-black/60 rounded-full items-center justify-center shadow-lg backdrop-blur-sm"></View>
+        <View className="w-12 h-12 bg-black/60 rounded-full items-center justify-center shadow-lg backdrop-blur-sm"></View>
+      </View>
+      
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Image Gallery */}
         <View style={{ height: 250 }}>
@@ -96,7 +128,7 @@ const RestaurantDetailsScreenSkeleton = () => {
           <SkeletonPlaceholder width="100%" height={60} />
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

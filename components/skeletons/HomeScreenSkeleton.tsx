@@ -10,11 +10,15 @@ const HomeScreenSkeleton = () => {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Add padding for header space */}
+        <View style={{ height: 120 }} />
+        
         <View className="mb-6 mt-4">
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             className="pl-4"
+            contentContainerStyle={{ paddingRight: 16 }}
           >
             <View className="flex-row gap-3 pr-4">
               {[...Array(5)].map((_, index) => (

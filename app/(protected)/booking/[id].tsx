@@ -763,7 +763,8 @@ export default function BookingDetailsScreen() {
       </ScrollView>
 
       {/* Actions Bar */}
-      <BookingActionsBar
+      <View className="absolute bottom-4 left-0 right-0">
+        <BookingActionsBar
         booking={booking}
         appliedOfferDetails={appliedOfferDetails}
         loyaltyActivity={loyaltyActivity}
@@ -776,6 +777,7 @@ export default function BookingDetailsScreen() {
         onNavigateToLoyalty={navigateToLoyalty}
         onNavigateToOffers={navigateToOffers}
       />
+      </View>
     </SafeAreaView>
   );
 }

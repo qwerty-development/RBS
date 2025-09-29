@@ -89,7 +89,8 @@ export const WaitlistCard = React.memo<WaitlistCardProps>(
     const isNotified = waitlistEntry.status === "notified";
     const isProcessing = processingWaitlistId === waitlistEntry.id;
 
-  const tableTypeInfo = TABLE_TYPE_INFO[waitlistEntry.table_type as keyof typeof TABLE_TYPE_INFO] || { icon: "🍽️", label: "Table" };
+    const tableTypeInfo = TABLE_TYPE_INFO[waitlistEntry.table_type as keyof typeof TABLE_TYPE_INFO] || { icon: "🍽️", label: "Table" };
+    const statusInfo = getStatusInfo(waitlistEntry.status);
 
     const handlePress = () => {
       if (onPress) {
@@ -203,6 +204,11 @@ export const WaitlistCard = React.memo<WaitlistCardProps>(
               >
                 {statusInfo.text}
               </Text>
+              {waitlistEntry.expires_at && waitlistEntry.status === "active" && (
+            <Text className="text-xs text-muted-foreground">
+              (Expires: {format(parseISO(waitlistEntry.expires_at), "h:mm a")})
+            </Text>
+          )}
             </View>
           </View>
 
@@ -222,20 +228,7 @@ export const WaitlistCard = React.memo<WaitlistCardProps>(
           )}
 
           {/* Expiration Warning */}
-          {waitlistEntry.expires_at && waitlistEntry.status === "active" && (
-            <Text className="text-xs text-muted-foreground mb-3">
-              Expires: {format(parseISO(waitlistEntry.expires_at), "h:mm a")}
-            </Text>
-          )}
 
-          {/* Action hint for current entries */}
-          {variant !== "past" && waitlistEntry.status === "active" && (
-            <View className="flex-1 bg-muted/20 rounded-lg p-3">
-              <Text className="text-center text-sm font-medium text-muted-foreground">
-                Tap for details and options
-              </Text>
-            </View>
-          )}
         </View>
       </Pressable>
     );

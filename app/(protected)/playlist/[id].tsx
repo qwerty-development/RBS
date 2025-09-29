@@ -470,7 +470,7 @@ export default function PlaylistDetailScreen() {
               reorderItems(from, to);
             }
           }}
-          contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+          contentContainerStyle={{ padding: 16, paddingBottom: 220 }}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
@@ -492,56 +492,58 @@ export default function PlaylistDetailScreen() {
 
       {/* Bottom Action Bar */}
       {canEdit && (
-        <View className="p-4 border-t border-border bg-background">
-          {/* Share and Invite Row */}
-          <View className="flex-row gap-3 mb-3">
-            <Button
-              variant="outline"
-              onPress={handleShare}
-              className="flex-1 border-primary rounded-lg"
-            >
-              <View className="flex-row items-center justify-center gap-2">
-                <Share2
-                  size={16}
-                  color={colorScheme === "dark" ? "#fff" : "#000"}
-                />
-                <Text className="text-foreground font-medium">Share</Text>
-              </View>
-            </Button>
-
-            {isOwner && (
+        <View className="absolute bottom-0 left-0 right-0">
+          <View className="p-6 border-t border-border bg-background">
+            {/* Share and Invite Row */}
+            <View className="flex-row gap-3 mb-3">
               <Button
                 variant="outline"
-                onPress={() => router.push(`/playlist/${id}/collaborators`)}
+                onPress={handleShare}
                 className="flex-1 border-primary rounded-lg"
               >
                 <View className="flex-row items-center justify-center gap-2">
-                  <UserPlus
+                  <Share2
                     size={16}
                     color={colorScheme === "dark" ? "#fff" : "#000"}
                   />
-                  <Text className="text-foreground font-medium">Invite</Text>
+                  <Text className="text-foreground font-medium">Share</Text>
                 </View>
               </Button>
-            )}
-          </View>
 
-          {/* Add Restaurant - Full Width */}
-          <Button
-            variant="default"
-            onPress={handleAddRestaurants}
-            className="w-full bg-primary rounded-lg"
-          >
-            <View className="flex-row items-center justify-center gap-2">
-              <Plus
-                size={16}
-                color={colorScheme === "dark" ? "#fff" : "#fff"}
-              />
-              <Text className="text-primary-foreground font-medium">
-                Add Restaurant
-              </Text>
+              {isOwner && (
+                <Button
+                  variant="outline"
+                  onPress={() => router.push(`/playlist/${id}/collaborators`)}
+                  className="flex-1 border-primary rounded-lg"
+                >
+                  <View className="flex-row items-center justify-center gap-2">
+                    <UserPlus
+                      size={16}
+                      color={colorScheme === "dark" ? "#fff" : "#000"}
+                    />
+                    <Text className="text-foreground font-medium">Invite</Text>
+                  </View>
+                </Button>
+              )}
             </View>
-          </Button>
+
+            {/* Add Restaurant - Full Width */}
+            <Button
+              variant="default"
+              onPress={handleAddRestaurants}
+              className="w-full bg-primary rounded-lg"
+            >
+              <View className="flex-row items-center justify-center gap-2">
+                <Plus
+                  size={16}
+                  color={colorScheme === "dark" ? "#fff" : "#fff"}
+                />
+                <Text className="text-primary-foreground font-medium">
+                  Add Restaurant
+                </Text>
+              </View>
+            </Button>
+          </View>
         </View>
       )}
 

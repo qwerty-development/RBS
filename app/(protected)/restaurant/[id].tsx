@@ -1180,7 +1180,8 @@ export default function RestaurantDetailsScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         nestedScrollEnabled={true}
-        className="mb-40"
+        className="mb-20"
+        contentContainerStyle={{ paddingBottom: 100 }}
       >
         <ImageGallery
           images={allImages}

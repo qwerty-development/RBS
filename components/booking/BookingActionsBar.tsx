@@ -153,7 +153,7 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
   };
 
   return (
-    <View className="p-4 pb-6 border-t border-border bg-background">
+    <View className="p-6 border-t border-border bg-background">
       {/* Primary Actions for Upcoming Bookings */}
       {isUpcoming &&
         (booking.status === "pending" || booking.status === "confirmed") && (
@@ -183,10 +183,10 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
                 onPress={() => {
                   // Handle directions navigation
                   if (
-                    booking.restaurant.latitude &&
-                    booking.restaurant.longitude
+                    booking.restaurant.coordinates?.latitude &&
+                    booking.restaurant.coordinates?.longitude
                   ) {
-                    const url = `https://www.google.com/maps/dir/?api=1&destination=${booking.restaurant.latitude},${booking.restaurant.longitude}`;
+                    const url = `https://www.google.com/maps/dir/?api=1&destination=${booking.restaurant.coordinates.latitude},${booking.restaurant.coordinates.longitude}`;
                     Linking.openURL(url);
                   }
                 }}

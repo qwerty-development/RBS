@@ -1,7 +1,12 @@
 import React from "react";
-import { View } from "react-native";
+import { View, Pressable } from "react-native";
+import { ArrowLeft, Share2, Settings } from "lucide-react-native";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SafeAreaView } from "@/components/safe-area-view";
+import { useRouter } from "expo-router";
+import { useColorScheme } from "@/lib/useColorScheme";
+import { Text } from "@/components/ui/text";
+import { Muted } from "@/components/ui/typography";
 
 const PlaylistDetailsSkeletonItem = () => (
   <View className="mb-3">
@@ -17,17 +22,48 @@ const PlaylistDetailsSkeletonItem = () => (
 );
 
 export const PlaylistDetailsSkeleton = ({ count = 5 }: { count?: number }) => {
+  const router = useRouter();
+  const { colorScheme } = useColorScheme();
+
+  const handleBack = () => {
+    router.back();
+  };
+  
   return (
     <SafeAreaView className="flex-1 bg-background">
-      {/* Header */}
-      <View className="px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <View className="flex-row items-center justify-between">
-          <Skeleton className="h-6 w-6 rounded-md" />
-          <View className="flex-1 mx-2 items-center">
-            <Skeleton className="h-6 w-32 rounded-md" />
-            <Skeleton className="h-4 w-48 rounded-md mt-2" />
+      {/* Real Header */}
+      <View className="flex-row items-center justify-between px-4 py-3 border-b border-border">
+        <View className="flex-row items-center gap-3">
+          <Pressable
+            onPress={handleBack}
+            className="w-10 h-10 items-center justify-center rounded-full bg-muted"
+          >
+            <ArrowLeft
+              size={20}
+              color={colorScheme === "dark" ? "#fff" : "#000"}
+            />
+          </Pressable>
+          <View className="flex-1">
+            <View className="flex-row items-center gap-2">
+              <Text className="text-3xl">📋</Text>
+              <Skeleton className="h-6 w-32 rounded-md" />
+            </View>
+            <Muted>Loading restaurants...</Muted>
           </View>
-          <Skeleton className="h-6 w-6 rounded-md" />
+          <View className="flex-row gap-2">
+            <View className="w-10 h-10 items-center justify-center rounded-full bg-muted">
+              <Share2
+                size={20}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+              />
+            </View>
+            <View className="w-10 h-10 items-center justify-center rounded-full bg-muted">
+              <Settings
+                size={20}
+                color={colorScheme === "dark" ? "#fff" : "#000"}
+              />
+            </View>
+          </View>
         </View>
       </View>
 
