@@ -1334,7 +1334,6 @@ function AuthContent({ children }: PropsWithChildren) {
     };
   }, [initialized, session, isGuest, router]);
 
-
   return (
     <AuthContext.Provider
       value={{

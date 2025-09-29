@@ -488,11 +488,11 @@ const ChatTestPyScreen = memo(function ChatTestPyScreen({
     const trimmedInput = input.trim();
     if (!trimmedInput) return;
 
-    // Validate content for profanity and inappropriate language
+    // Validate content for basic length and spam (removed overly strict profanity check)
     const validation = InputValidator.validateContent(trimmedInput, {
       maxLength: 500,
       minLength: 1,
-      checkProfanity: true,
+      checkProfanity: false, // Disabled overly strict profanity filter for restaurant queries
       fieldName: "message",
     });
 
