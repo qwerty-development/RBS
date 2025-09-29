@@ -295,7 +295,10 @@ export default function WaitlistDetailsScreen() {
                   className="text-xs font-semibold"
                   style={{ color: getStatusColor(waitlistEntry.status) }}
                 >
-                  {getStatusText(waitlistEntry.status, waitlistEntry.restaurant?.tier)}
+                  {getStatusText(
+                    waitlistEntry.status,
+                    waitlistEntry.restaurant?.tier,
+                  )}
                 </Text>
               </View>
             </View>

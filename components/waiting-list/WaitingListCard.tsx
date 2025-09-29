@@ -193,22 +193,25 @@ export default function WaitingListCard({ entry }: Props) {
                 📋 Manual Waitlist Management
               </Text>
               <Text className="text-blue-600 dark:text-blue-300 text-xs">
-                The restaurant will manually review your waitlist entry and contact you when a table becomes available
+                The restaurant will manually review your waitlist entry and
+                contact you when a table becomes available
               </Text>
             </View>
           )}
 
           {/* Notification info for pro tier restaurants only */}
-          {entry.restaurant?.tier === "pro" && entry.status === "notified" && entry.notification_expires_at && (
-            <View className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
-              <Text className="text-green-800 dark:text-green-200 font-medium text-sm mb-1">
-                🎉 Your table is ready!
-              </Text>
-              <Text className="text-green-600 dark:text-green-300 text-xs">
-                Please confirm within 15 minutes to secure your table
-              </Text>
-            </View>
-          )}
+          {entry.restaurant?.tier === "pro" &&
+            entry.status === "notified" &&
+            entry.notification_expires_at && (
+              <View className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3 mb-4">
+                <Text className="text-green-800 dark:text-green-200 font-medium text-sm mb-1">
+                  🎉 Your table is ready!
+                </Text>
+                <Text className="text-green-600 dark:text-green-300 text-xs">
+                  Please confirm within 15 minutes to secure your table
+                </Text>
+              </View>
+            )}
 
           {/* Action button - View Details */}
           <View className="flex-row justify-end">

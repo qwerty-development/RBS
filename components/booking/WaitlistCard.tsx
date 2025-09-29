@@ -55,13 +55,6 @@ export function WaitlistCard({
     }
   };
 
-  const handleRestaurantPress = (e: any) => {
-    e.stopPropagation();
-    if (onNavigateToRestaurant) {
-      onNavigateToRestaurant(waitlistEntry.restaurant_id);
-    }
-  };
-
   return (
     <Pressable
       onPress={handlePress}
@@ -73,22 +66,20 @@ export function WaitlistCard({
     >
       {/* Restaurant Header */}
       <View className="flex-row p-3">
-        <Pressable onPress={handleRestaurantPress}>
-          <Image
-            source={{
-              uri:
-                waitlistEntry.restaurant?.main_image_url ||
-                "https://via.placeholder.com/60x60?text=No+Image",
-            }}
-            className="w-16 h-16 rounded-lg bg-muted"
-            contentFit="cover"
-            onError={(error) => {
-              console.warn("Error loading restaurant image:", error);
-            }}
-            placeholder="https://via.placeholder.com/60x60?text=Loading"
-            transition={200}
-          />
-        </Pressable>
+        <Image
+          source={{
+            uri:
+              waitlistEntry.restaurant?.main_image_url ||
+              "https://via.placeholder.com/60x60?text=No+Image",
+          }}
+          className="w-16 h-16 rounded-lg bg-muted"
+          contentFit="cover"
+          onError={(error) => {
+            console.warn("Error loading restaurant image:", error);
+          }}
+          placeholder="https://via.placeholder.com/60x60?text=Loading"
+          transition={200}
+        />
         <View className="flex-1 ml-3">
           <View className="flex-row items-start justify-between">
             <View className="flex-1">
@@ -217,8 +208,8 @@ export function WaitlistCard({
                   className="text-sm font-semibold"
                   style={{ color: "#f59e0b" }}
                 >
-                  {waitlistEntry.restaurant?.tier === "basic" 
-                    ? "Manual Review Pending" 
+                  {waitlistEntry.restaurant?.tier === "basic"
+                    ? "Manual Review Pending"
                     : "Waitlisted"}
                 </Text>
               </>

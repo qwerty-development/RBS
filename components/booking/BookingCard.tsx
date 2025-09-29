@@ -402,8 +402,8 @@ export function BookingCard({
 
         if (!error && data) {
           const inviteesWithUser = data
-            .filter((invite) => invite.to_user) // Filter out null users
-            .map((invite) => ({
+            .filter((invite:any) => invite.to_user) // Filter out null users
+            .map((invite:any) => ({
               id: invite.to_user.id,
               first_name: invite.to_user.first_name,
               last_name: invite.to_user.last_name,
@@ -426,10 +426,6 @@ export function BookingCard({
 
   // --- Handlers (Unchanged from original) ---
   const handlePress = () => onPress?.();
-  const handleRestaurantPress = (e: any) => {
-    e.stopPropagation();
-    onNavigateToRestaurant?.(booking.restaurant_id);
-  };
   const handleCancelBooking = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onCancel?.(booking.id);
@@ -702,23 +698,21 @@ export function BookingCard({
       >
         {/* Restaurant Header */}
         <View className="flex-row p-3">
-          <Pressable onPress={handleRestaurantPress}>
-            <Image
-              source={{
-                uri:
-                  booking.restaurant?.main_image_url ||
-                  booking.restaurant?.image_url ||
-                  "https://via.placeholder.com/60x60?text=No+Image",
-              }}
-              className="w-16 h-16 rounded-lg bg-muted"
-              contentFit="cover"
-              onError={(error) => {
-                console.warn("Error loading restaurant image:", error);
-              }}
-              placeholder="https://via.placeholder.com/60x60?text=Loading"
-              transition={200}
-            />
-          </Pressable>
+          <Image
+            source={{
+              uri:
+                booking.restaurant?.main_image_url ||
+                booking.restaurant?.image_url ||
+                "https://via.placeholder.com/60x60?text=No+Image",
+            }}
+            className="w-16 h-16 rounded-lg bg-muted"
+            contentFit="cover"
+            onError={(error) => {
+              console.warn("Error loading restaurant image:", error);
+            }}
+            placeholder="https://via.placeholder.com/60x60?text=Loading"
+            transition={200}
+          />
           <View className="flex-1 ml-3">
             <View className="flex-row items-start justify-between">
               <View className="flex-1">
