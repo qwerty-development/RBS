@@ -60,9 +60,6 @@ function BookingsScreenContent() {
     leaveBooking,
     rebookRestaurant,
     reviewBooking,
-    // Waitlist management
-    leaveWaitlist,
-    navigateToWaitlistBooking,
     // Pagination for past bookings
     loadingMorePastBookings,
     hasMorePastBookings,
@@ -350,18 +347,17 @@ function BookingsScreenContent() {
                           `/(protected)/waitlist/${waitlistEntry.id}`,
                         );
                       }}
-                      onLeaveWaitlist={leaveWaitlist}
-                      onBookNow={navigateToWaitlistBooking}
                       onNavigateToRestaurant={navigateToRestaurant}
                       processingWaitlistId={processingBookingId}
                     />
                   );
                 } else {
                   // Render booking card
+                  const booking = item as any; // Since we've already checked it's not a waitlist entry
                   return (
                     <BookingCard
                       key={`booking-${item.id}`}
-                      booking={item}
+                      booking={booking}
                       variant={activeTab}
                       onPress={() => navigateToBookingDetails(item.id)}
                       onCancel={cancelBooking}

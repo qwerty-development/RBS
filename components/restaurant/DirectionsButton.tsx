@@ -5,6 +5,7 @@ import { Navigation } from "lucide-react-native";
 import { Text } from "@/components/ui/text";
 import { cn } from "@/lib/utils";
 import { Database } from "@/types/supabase";
+import { LocationService } from "@/lib/locationService";
 
 type Restaurant =
   | {
@@ -73,7 +74,7 @@ export function DirectionsButton({
 
     // If no processed coordinates, try to extract from location
     if (!coords && r.location) {
-      const extractedCoords = extractLocationCoordinates(r.location);
+      const extractedCoords = LocationService.extractCoordinates(r.location);
       if (extractedCoords) {
         coords = {
           lat: extractedCoords.latitude,
@@ -135,34 +136,6 @@ export function DirectionsButton({
       { cancelable: true },
     );
   }, [restaurant, onDirections]);
-
-  // Helper function to extract coordinates from PostGIS location
-  const extractLocationCoordinates = (location: any) => {
-    if (!location) return null;
-
-    if (typeof location === "string" && location.startsWith("POINT(")) {
-      const coords = location.match(/POINT\(([^)]+)\)/);
-      if (coords && coords[1]) {
-        const [lng, lat] = coords[1].split(" ").map(Number);
-        return { latitude: lat, longitude: lng };
-      }
-    }
-
-    if (location.type === "Point" && Array.isArray(location.coordinates)) {
-      const [lng, lat] = location.coordinates;
-      return { latitude: lat, longitude: lng };
-    }
-
-    if (location.lat && location.lng) {
-      return { latitude: location.lat, longitude: location.lng };
-    }
-
-    if (location.latitude && location.longitude) {
-      return { latitude: location.latitude, longitude: location.longitude };
-    }
-
-    return null;
-  };
 
   const getIconSize = () => {
     switch (size) {

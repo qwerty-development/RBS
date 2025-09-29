@@ -93,6 +93,7 @@ interface EnhancedWaitlistEntry {
     name: string;
     main_image_url?: string;
     address?: string;
+    tier?: "basic" | "pro";
     [key: string]: any;
   };
   // Mark as waitlist entry for UI differentiation
@@ -417,7 +418,7 @@ export function useBookings() {
             .select(
               `
               *,
-              restaurant:restaurants(id, name, address, main_image_url)
+              restaurant:restaurants(id, name, address, main_image_url, tier)
             `,
             )
             .eq("user_id", userId);

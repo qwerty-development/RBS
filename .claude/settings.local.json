@@ -27,7 +27,9 @@
       "mcp__supabase__get_logs",
       "Bash(npm run android:*)",
       "mcp__supabase__execute_sql",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(npm start:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
   },

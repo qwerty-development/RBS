@@ -8,102 +8,109 @@ import {
   ChevronRight,
   AlertCircle,
   CheckCircle,
-  XCircle,
-  Info,
 } from "lucide-react-native";
 import { format, parseISO, isToday, isTomorrow } from "date-fns";
 
 import { Text } from "@/components/ui/text";
-import { H3, Muted } from "@/components/ui/typography";
-import { Button } from "@/components/ui/button";
+import { H3 } from "@/components/ui/typography";
 import { Image } from "@/components/image";
 import { cn } from "@/lib/utils";
 import { colors } from "@/constants/colors";
 import { useColorScheme } from "@/lib/useColorScheme";
 import type { EnhancedWaitlistEntry } from "@/hooks/useBookings";
-import { getWaitlistEntryMessage } from "@/hooks/useWaitlist";
 import { TABLE_TYPE_INFO } from "@/types/waitlist";
+
+// Helper functions for status handling
+const getStatusInfo = (status: string, tier?: string) => {
+  switch (status) {
+    case "expired":
+      return {
+        icon: AlertCircle,
+        text: "Expired (Waitlist)",
+        color: "#6b7280",
+        bgColor: "#f3f4f6",
+      };
+    case "cancelled":
+      return {
+        icon: AlertCircle,
+        text: "Cancelled",
+        color: "#dc2626",
+        bgColor: "#fef2f2",
+      };
+    case "notified":
+      return {
+        icon: AlertCircle,
+        text: "Table Available",
+        color: "#10b981",
+        bgColor: "#ecfdf5",
+      };
+    case "booked":
+      return {
+        icon: CheckCircle,
+        text: "Converted to Booking",
+        color: "#10b981",
+        bgColor: "#ecfdf5",
+      };
+    default:
+      return {
+        icon: Clock,
+        text: tier === "basic" ? "Waitlisted" : "Waitlisted",
+        color: "#f59e0b",
+        bgColor: "#fef3c7",
+      };
+  }
+};
 
 interface WaitlistCardProps {
   waitlistEntry: EnhancedWaitlistEntry;
   variant?: "upcoming" | "past";
   onPress?: () => void;
-  onLeaveWaitlist?: (waitlistId: string, restaurantName?: string) => void;
-  onBookNow?: (waitlistEntry: EnhancedWaitlistEntry) => void;
   onNavigateToRestaurant?: (restaurantId: string) => void;
   processingWaitlistId?: string | null;
 }
 
-export function WaitlistCard({
-  waitlistEntry,
-  variant = "upcoming",
-  onPress,
-  onLeaveWaitlist,
-  onBookNow,
-  onNavigateToRestaurant,
-  processingWaitlistId,
-}: WaitlistCardProps) {
-  const { colorScheme } = useColorScheme();
+export const WaitlistCard = React.memo<WaitlistCardProps>(
+  ({
+    waitlistEntry,
+    variant = "upcoming",
+    onPress,
+    onNavigateToRestaurant,
+    processingWaitlistId,
+  }) => {
+    const { colorScheme } = useColorScheme();
 
-  const formatDate = (date: string) => {
-    const d = parseISO(date);
-    if (isToday(d)) return "Today";
-    if (isTomorrow(d)) return "Tomorrow";
-    return format(d, "MMM d");
-  };
+    const formatDate = (date: string) => {
+      const d = parseISO(date);
+      if (isToday(d)) return "Today";
+      if (isTomorrow(d)) return "Tomorrow";
+      return format(d, "MMM d");
+    };
 
-  const isNotified = waitlistEntry.status === "notified";
-  const isProcessing = processingWaitlistId === waitlistEntry.id;
+    const isNotified = waitlistEntry.status === "notified";
+    const isProcessing = processingWaitlistId === waitlistEntry.id;
 
   const tableTypeInfo = TABLE_TYPE_INFO[waitlistEntry.table_type as keyof typeof TABLE_TYPE_INFO] || { icon: "🍽️", label: "Table" };
 
-  // Determine if cancellation is allowed
-  const canCancel =
-    waitlistEntry.status !== "booked" &&
-    waitlistEntry.status !== "cancelled" &&
-    !waitlistEntry.converted_booking_id &&
-    variant !== "past"; // Don't allow cancellation for past entries
+    const handlePress = () => {
+      if (onPress) {
+        onPress();
+      }
+    };
 
-  // Get cancel button text based on status
-  const getCancelButtonText = () => {
-    if (waitlistEntry.status === "expired") return "Remove";
-    if (waitlistEntry.status === "notified") return "Cancel Entry";
-    return "Cancel Waitlist";
-  };
-
-  const handlePress = () => {
-    if (isNotified && onBookNow) {
-      onBookNow(waitlistEntry);
-    } else if (onPress) {
-      onPress();
-    }
-  };
-
-  const handleRestaurantPress = (e: any) => {
-    e.stopPropagation();
-    if (onNavigateToRestaurant) {
-      onNavigateToRestaurant(waitlistEntry.restaurant_id);
-    }
-  };
-
-  const handleLeaveWaitlist = () => {
-    if (onLeaveWaitlist) {
-      onLeaveWaitlist(waitlistEntry.id, waitlistEntry.restaurant?.name);
-    }
-  };
-
-  return (
-    <Pressable
-      onPress={handlePress}
-      className={cn(
-        "bg-card rounded-lg overflow-hidden mb-3 border border-border shadow-sm",
-      )}
-      disabled={isProcessing}
-      style={{ opacity: isProcessing ? 0.6 : 1 }}
-    >
-      {/* Restaurant Header */}
-      <View className="flex-row p-3">
-        <Pressable onPress={handleRestaurantPress}>
+    return (
+      <Pressable
+        onPress={handlePress}
+        className={cn(
+          "bg-card rounded-lg overflow-hidden mb-3 border border-border shadow-sm",
+        )}
+        disabled={isProcessing}
+        style={{ opacity: isProcessing ? 0.6 : 1 }}
+        accessibilityRole="button"
+        accessibilityLabel={`Waitlist entry for ${waitlistEntry.restaurant?.name || "restaurant"} on ${formatDate(waitlistEntry.desired_date)}`}
+        accessibilityHint="Tap to view waitlist details and options"
+      >
+        {/* Restaurant Header */}
+        <View className="flex-row p-3">
           <Image
             source={{
               uri:
@@ -117,172 +124,122 @@ export function WaitlistCard({
             }}
             placeholder="https://via.placeholder.com/60x60?text=Loading"
             transition={200}
+            accessibilityLabel={`Image of ${waitlistEntry.restaurant?.name || "restaurant"}`}
           />
-        </Pressable>
-        <View className="flex-1 ml-3">
-          <View className="flex-row items-start justify-between">
-            <View className="flex-1">
-              <H3 className="mb-1 text-base">
-                {waitlistEntry.restaurant?.name || "Restaurant"}
-              </H3>
-              <Text className="text-muted-foreground text-xs mb-1">
-                {waitlistEntry.restaurant?.cuisine_type || "Cuisine"}
-              </Text>
-              <Text className="text-muted-foreground text-xs">
-                {waitlistEntry.restaurant?.address || "Address"}
-              </Text>
-            </View>
-            <ChevronRight size={16} color="#666" />
-          </View>
-        </View>
-      </View>
-
-      {/* Waitlist Details - Compact Layout */}
-      <View className="px-3 pb-3">
-        {/* --- Core Details Section - More Prominent --- */}
-        <View className="bg-primary/5 rounded-lg p-3 mb-3 border border-primary/10">
-          <View className="flex-row justify-between items-center mb-2">
-            <View className="flex-row items-center gap-2">
-              <Calendar size={14} color={colors[colorScheme].primary} />
-              <Text className="font-semibold text-sm text-primary dark:text-white">
-                {formatDate(waitlistEntry.desired_date)}
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-2">
-              <Clock size={14} color={colors[colorScheme].primary} />
-              <Text className="font-semibold text-sm text-primary dark:text-white">
-                {waitlistEntry.desired_time_range}
-              </Text>
-            </View>
-          </View>
-          <View className="flex-row justify-between items-center">
-            <View className="flex-row items-center gap-2">
-              <Users size={14} color={colors[colorScheme].primary} />
-              <Text className="text-sm font-medium text-primary dark:text-white">
-                {waitlistEntry.party_size}{" "}
-                {waitlistEntry.party_size === 1 ? "Guest" : "Guests"}
-              </Text>
-            </View>
-            {waitlistEntry.table_type !== "any" && (
-              <View className="flex-row items-center gap-1">
-                <Text className="text-sm">{tableTypeInfo.icon}</Text>
-                <Text className="text-xs text-primary dark:text-white">
-                  {tableTypeInfo.label}
+          <View className="flex-1 ml-3">
+            <View className="flex-row items-start justify-between">
+              <View className="flex-1">
+                <H3 className="mb-1 text-base">
+                  {waitlistEntry.restaurant?.name || "Restaurant"}
+                </H3>
+                <Text className="text-muted-foreground text-xs mb-1">
+                  {waitlistEntry.restaurant?.cuisine_type || "Cuisine"}
+                </Text>
+                <Text className="text-muted-foreground text-xs">
+                  {waitlistEntry.restaurant?.address || "Address"}
                 </Text>
               </View>
-            )}
-          </View>
-        </View>
-
-        {/* Special Requests / Notes Preview */}
-        {waitlistEntry.special_requests && (
-          <View className="bg-muted/30 rounded-lg p-2 mb-2">
-            <Text className="text-xs text-muted-foreground">
-              Note: {waitlistEntry.special_requests}
-            </Text>
-          </View>
-        )}
-
-        {/* Status Bar for Waitlist */}
-        <View
-          className="w-full py-3 px-4 mb-3 rounded-lg"
-          style={{
-            backgroundColor: "#fef3c7", // Light yellow background for waitlisted
-          }}
-        >
-          <View className="flex-row items-center justify-center gap-2">
-            <Clock size={16} color="#f59e0b" />
-            <Text
-              className="text-sm font-semibold"
-              style={{ color: "#f59e0b" }}
-            >
-              Waitlisted
-            </Text>
-          </View>
-        </View>
-
-        {/* Notification Alert - Only show for past waitlist entries */}
-        {isNotified && variant === "past" && (
-          <View className="mb-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-            <View className="flex-row items-center">
-              <AlertCircle size={16} color="#f59e0b" />
-              <Text className="ml-2 text-sm font-medium text-yellow-800 dark:text-yellow-200">
-                Table Available!
-              </Text>
+              <ChevronRight size={16} color={colors[colorScheme].muted} />
             </View>
-            <Text className="text-xs text-yellow-700 dark:text-yellow-300 mt-1">
-              A table is ready! Tap to book now (expires in 15 min)
-            </Text>
           </View>
-        )}
+        </View>
 
-        {/* Expiration Warning */}
-        {waitlistEntry.expires_at && waitlistEntry.status === "active" && (
-          <Text className="text-xs text-muted-foreground mb-3">
-            Expires: {format(parseISO(waitlistEntry.expires_at), "h:mm a")}
-          </Text>
-        )}
-
-        {/* Actions */}
-        <View className="flex-row gap-2">
-          {isNotified && variant === "past" ? (
-            <>
-              <Button
-                className="flex-1"
-                onPress={() => onBookNow?.(waitlistEntry)}
-                disabled={isProcessing}
-              >
-                <CheckCircle size={16} color="white" />
-                <Text className="text-primary-foreground font-medium ml-2">
-                  Book Now
+        {/* Waitlist Details - Compact Layout */}
+        <View className="px-3 pb-3">
+          {/* --- Core Details Section - More Prominent --- */}
+          <View className="bg-primary/5 rounded-lg p-3 mb-3 border border-primary/10">
+            <View className="flex-row justify-between items-center mb-2">
+              <View className="flex-row items-center gap-2">
+                <Calendar size={14} color={colors[colorScheme].primary} />
+                <Text className="font-semibold text-sm text-primary dark:text-white">
+                  {formatDate(waitlistEntry.desired_date)}
                 </Text>
-              </Button>
-              {/* Allow cancellation even when notified, but only for upcoming */}
-              {canCancel && (
-                <Button
-                  variant="destructive"
-                  className="flex-1"
-                  onPress={handleLeaveWaitlist}
-                  disabled={isProcessing}
-                >
-                  <Text className="font-medium">{getCancelButtonText()}</Text>
-                </Button>
+              </View>
+              <View className="flex-row items-center gap-2">
+                <Clock size={14} color={colors[colorScheme].primary} />
+                <Text className="font-semibold text-sm text-primary dark:text-white">
+                  {waitlistEntry.desired_time_range}
+                </Text>
+              </View>
+            </View>
+            <View className="flex-row justify-between items-center">
+              <View className="flex-row items-center gap-2">
+                <Users size={14} color={colors[colorScheme].primary} />
+                <Text className="text-sm font-medium text-primary dark:text-white">
+                  {waitlistEntry.party_size}{" "}
+                  {waitlistEntry.party_size === 1 ? "Guest" : "Guests"}
+                </Text>
+              </View>
+              {waitlistEntry.table_type !== "any" && (
+                <View className="flex-row items-center gap-1">
+                  <Text className="text-sm">{tableTypeInfo.icon}</Text>
+                  <Text className="text-xs text-primary dark:text-white">
+                    {tableTypeInfo.label}
+                  </Text>
+                </View>
               )}
-            </>
-          ) : canCancel ? (
-            <Button
-              variant="destructive"
-              className="flex-1"
-              onPress={handleLeaveWaitlist}
-              disabled={isProcessing}
-            >
-              <Text className="font-medium">{getCancelButtonText()}</Text>
-            </Button>
-          ) : waitlistEntry.status === "booked" ? (
-            <View className="flex-1 bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
-              <Text className="text-center text-sm font-medium text-green-800 dark:text-green-200">
-                ✅ Converted to Booking
-              </Text>
-              <Text className="text-center text-xs text-green-700 dark:text-green-300 mt-1">
-                Check your bookings page to manage
+            </View>
+          </View>
+
+          {/* Special Requests / Notes Preview */}
+          {waitlistEntry.special_requests && (
+            <View className="bg-muted/30 rounded-lg p-2 mb-2">
+              <Text className="text-xs text-muted-foreground">
+                Note: {waitlistEntry.special_requests}
               </Text>
             </View>
-          ) : variant === "past" ? (
+          )}
+
+          {/* Status Bar - Using helper function for cleaner code */}
+          <View
+            className="w-full py-3 px-4 mb-3 rounded-lg"
+            style={{ backgroundColor: statusInfo.bgColor }}
+          >
+            <View className="flex-row items-center justify-center gap-2">
+              {React.createElement(statusInfo.icon, { size: 16, color: statusInfo.color })}
+              <Text
+                className="text-sm font-semibold"
+                style={{ color: statusInfo.color }}
+              >
+                {statusInfo.text}
+              </Text>
+            </View>
+          </View>
+
+          {/* Notification Alert - Only show for notified entries */}
+          {isNotified && variant === "upcoming" && (
+            <View className="mb-3 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+              <View className="flex-row items-center">
+                <CheckCircle size={16} color="#10b981" />
+                <Text className="ml-2 text-sm font-medium text-green-800 dark:text-green-200">
+                  Table Available!
+                </Text>
+              </View>
+              <Text className="text-xs text-green-700 dark:text-green-300 mt-1">
+                A table is ready! Tap to book now
+              </Text>
+            </View>
+          )}
+
+          {/* Expiration Warning */}
+          {waitlistEntry.expires_at && waitlistEntry.status === "active" && (
+            <Text className="text-xs text-muted-foreground mb-3">
+              Expires: {format(parseISO(waitlistEntry.expires_at), "h:mm a")}
+            </Text>
+          )}
+
+          {/* Action hint for current entries */}
+          {variant !== "past" && waitlistEntry.status === "active" && (
             <View className="flex-1 bg-muted/20 rounded-lg p-3">
               <Text className="text-center text-sm font-medium text-muted-foreground">
-                {waitlistEntry.status === "expired"
-                  ? "⏰ Expired"
-                  : waitlistEntry.status === "cancelled"
-                    ? "❌ Cancelled"
-                    : "📋 Past Entry"}
-              </Text>
-              <Text className="text-center text-xs text-muted-foreground mt-1">
-                This waitlist entry is from a past date
+                Tap for details and options
               </Text>
             </View>
-          ) : null}
+          )}
         </View>
-      </View>
-    </Pressable>
-  );
-}
+      </Pressable>
+    );
+  },
+);
+
+WaitlistCard.displayName = "WaitlistCard";
