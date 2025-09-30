@@ -28,7 +28,7 @@ export const PlaylistDetailsSkeleton = ({ count = 5 }: { count?: number }) => {
   const handleBack = () => {
     router.back();
   };
-  
+
   return (
     <SafeAreaView className="flex-1 bg-background">
       {/* Real Header */}

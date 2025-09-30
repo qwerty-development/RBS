@@ -6,7 +6,9 @@ interface LoyaltyWidgetSkeletonProps {
   colorScheme: "light" | "dark";
 }
 
-export const LoyaltyWidgetSkeleton = ({ colorScheme }: LoyaltyWidgetSkeletonProps) => {
+export const LoyaltyWidgetSkeleton = ({
+  colorScheme,
+}: LoyaltyWidgetSkeletonProps) => {
   return (
     <View className="mx-4 mb-6">
       <View

@@ -251,12 +251,12 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      <BackHeader 
-        title="Notifications" 
+      <BackHeader
+        title="Notifications"
         rightElement={
           <Pressable
             onPress={async () => {
-              if (!notifications.some(n => !n.read)) {
+              if (!notifications.some((n) => !n.read)) {
                 return; // No unread notifications
               }
               await supabase
@@ -268,9 +268,11 @@ export default function NotificationsScreen() {
                 prev.map((n) => ({ ...n, read: true })),
               );
             }}
-            className={`px-3 py-2 rounded-md ${notifications.some(n => !n.read) ? 'bg-primary/10' : 'bg-muted'}`}
+            className={`px-3 py-2 rounded-md ${notifications.some((n) => !n.read) ? "bg-primary/10" : "bg-muted"}`}
           >
-            <Text className={`${notifications.some(n => !n.read) ? 'text-primary' : 'text-muted-foreground'} font-medium`}>
+            <Text
+              className={`${notifications.some((n) => !n.read) ? "text-primary" : "text-muted-foreground"} font-medium`}
+            >
               Mark all as read
             </Text>
           </Pressable>
@@ -283,7 +285,7 @@ export default function NotificationsScreen() {
         renderItem={renderNotification}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 120 }}
-        listProps={{ 
+        listProps={{
           showsVerticalScrollIndicator: false,
           refreshControl: (
             <RefreshControl
@@ -302,7 +304,7 @@ export default function NotificationsScreen() {
                 We'll notify you when there's something new
               </Muted>
             </View>
-          )
+          ),
         }}
       />
     </SafeAreaView>

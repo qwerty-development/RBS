@@ -1,7 +1,16 @@
 // Database enum types - exact match with PostgreSQL enums
 
 // table_type enum from database: {any,indoor,outdoor,bar,private}
-export type TableType = "any" | "indoor" | "outdoor" | "bar" | "private" | "booth" | "window" | "patio" | "standard";
+export type TableType =
+  | "any"
+  | "indoor"
+  | "outdoor"
+  | "bar"
+  | "private"
+  | "booth"
+  | "window"
+  | "patio"
+  | "standard";
 
 // waiting_status enum from database: {active,notified,booked,expired,cancelled}
 export type WaitingStatus =

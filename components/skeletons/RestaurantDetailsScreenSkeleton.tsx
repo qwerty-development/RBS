@@ -1,14 +1,13 @@
 import React from "react";
-import { View, ScrollView, Pressable } from "react-native";
+import { View, ScrollView, Pressable, StatusBar } from "react-native";
 import { ChevronLeft } from "lucide-react-native";
 import SkeletonPlaceholder from "./SkeletonPlaceholder";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { StatusBar } from "react-native";
 
 const RestaurantDetailsScreenSkeleton = () => {
   const router = useRouter();
-  
+
   return (
     <View className="flex-1 bg-background">
       <StatusBar
@@ -30,14 +29,14 @@ const RestaurantDetailsScreenSkeleton = () => {
           </View>
         </SafeAreaView>
       </View>
-      
+
       {/* Favorite, Playlist, and Share Button placeholders */}
       <View className="absolute top-20 right-4 flex-row gap-3 z-50">
         <View className="w-12 h-12 bg-black/60 rounded-full items-center justify-center shadow-lg backdrop-blur-sm"></View>
         <View className="w-12 h-12 bg-black/60 rounded-full items-center justify-center shadow-lg backdrop-blur-sm"></View>
         <View className="w-12 h-12 bg-black/60 rounded-full items-center justify-center shadow-lg backdrop-blur-sm"></View>
       </View>
-      
+
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Image Gallery */}
         <View style={{ height: 250 }}>

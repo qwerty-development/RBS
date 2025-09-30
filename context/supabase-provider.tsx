@@ -986,13 +986,14 @@ function AuthContent({ children }: PropsWithChildren) {
         // Processing OAuth callback
         try {
           // Explicitly exchange code for session
-          const { data, error } = await supabase.auth.exchangeCodeForSession(url);
-          
+          const { data, error } =
+            await supabase.auth.exchangeCodeForSession(url);
+
           if (error) {
             console.error("Error exchanging code for session:", error);
             return;
           }
-          
+
           if (data?.session) {
             // Session established from URL
             console.log("Successfully authenticated from deep link");
@@ -1006,8 +1007,8 @@ function AuthContent({ children }: PropsWithChildren) {
     // Get initial URL
     Linking.getInitialURL().then((url) => {
       if (url) {
-        handleUrl(url).catch(err => 
-          console.error("Error handling initial URL:", err)
+        handleUrl(url).catch((err) =>
+          console.error("Error handling initial URL:", err),
         );
       }
     });
@@ -1016,8 +1017,8 @@ function AuthContent({ children }: PropsWithChildren) {
     const subscription = Linking.addEventListener("url", (event) => {
       if (event.url) {
         // Need to handle async function properly
-        handleUrl(event.url).catch(err => 
-          console.error("Error handling incoming URL:", err)
+        handleUrl(event.url).catch((err) =>
+          console.error("Error handling incoming URL:", err),
         );
       }
     });

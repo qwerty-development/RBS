@@ -12,7 +12,7 @@ const HomeScreenSkeleton = () => {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Add padding for header space */}
         <View style={{ height: 120 }} />
-        
+
         <View className="mb-6 mt-4">
           <ScrollView
             horizontal

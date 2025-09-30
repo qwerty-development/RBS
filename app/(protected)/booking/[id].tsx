@@ -310,7 +310,7 @@ export default function BookingDetailsScreen() {
       params: {
         bookingId: booking.id,
         restaurantId: booking.restaurant_id,
-        restaurantName: booking.restaurant.name,
+        restaurantName: booking.restaurant?.name || "",
         earnedPoints: loyaltyActivity?.points_earned?.toString() || "0",
       },
     });
@@ -347,6 +347,8 @@ export default function BookingDetailsScreen() {
       suggestedDate.setDate(suggestedDate.getDate() + 7); // Same time next week
     }
 
+    if (!booking.restaurant) return;
+
     router.push({
       pathname: "/booking/availability",
       params: {
@@ -361,7 +363,7 @@ export default function BookingDetailsScreen() {
 
   // Enhanced share booking with deep links
   const shareBooking = async () => {
-    if (!booking) return;
+    if (!booking || !booking.restaurant) return;
 
     try {
       await shareBookingWithDeepLink(booking.id, booking.restaurant.name);
@@ -408,7 +410,7 @@ export default function BookingDetailsScreen() {
 
   // Share applied offer
   const shareAppliedOffer = async () => {
-    if (!appliedOfferDetails || !booking) return;
+    if (!appliedOfferDetails || !booking || !booking.restaurant) return;
 
     try {
       await Share.share({
@@ -468,12 +470,20 @@ export default function BookingDetailsScreen() {
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Restaurant Header */}
-        <BookingDetailsHeader
-          restaurant={booking.restaurant}
-          appliedOfferDetails={appliedOfferDetails}
-          loyaltyActivity={loyaltyActivity}
-          onPress={navigateToRestaurant}
-        />
+        {booking.restaurant && (
+          <BookingDetailsHeader
+            restaurant={{
+              id: booking.restaurant.id,
+              name: booking.restaurant.name,
+              cuisine_type: booking.restaurant.cuisine_type,
+              address: booking.restaurant.address,
+              main_image_url: booking.restaurant.main_image_url || "",
+            }}
+            appliedOfferDetails={appliedOfferDetails}
+            loyaltyActivity={loyaltyActivity}
+            onPress={navigateToRestaurant}
+          />
+        )}
 
         {/* Status Section */}
         <View className="px-4 py-4 border-b border-border">
@@ -740,24 +750,29 @@ export default function BookingDetailsScreen() {
           bookingUserId={booking.user_id}
         />
 
-        {/* Table Assignment - Only show for confirmed bookings and non-basic tier restaurants */}
-        {booking.status === "confirmed" &&
-          booking.restaurant?.tier !== "basic" && (
-            <BookingTableInfo
-              tables={assignedTables}
-              partySize={booking.party_size}
-              loading={loading}
-            />
-          )}
+        {/* Table Assignment - Only show for confirmed bookings */}
+        {booking.status === "confirmed" && (
+          <BookingTableInfo
+            tables={assignedTables}
+            partySize={booking.party_size}
+            loading={loading}
+          />
+        )}
 
         {/* Special Requests section removed as it's redundant */}
 
         {/* Contact Section */}
-        <BookingContactSection
-          restaurant={booking.restaurant}
-          appliedOfferDetails={appliedOfferDetails}
-          loyaltyActivity={loyaltyActivity}
-        />
+        {booking.restaurant && (
+          <BookingContactSection
+            restaurant={{
+              name: booking.restaurant.name,
+              phone_number: booking.restaurant.phone_number,
+              whatsapp_number: booking.restaurant.whatsapp_number,
+            }}
+            appliedOfferDetails={appliedOfferDetails}
+            loyaltyActivity={loyaltyActivity}
+          />
+        )}
 
         {/* Bottom padding */}
         <View className="h-24" />
@@ -766,18 +781,35 @@ export default function BookingDetailsScreen() {
       {/* Actions Bar */}
       <View className="absolute bottom-4 left-0 right-0">
         <BookingActionsBar
-        booking={booking}
-        appliedOfferDetails={appliedOfferDetails}
-        loyaltyActivity={loyaltyActivity}
-        hasReview={hasReview}
-        isUpcoming={isUpcoming}
-        processing={processing}
-        onCancel={cancelBooking}
-        onReview={navigateToReview}
-        onBookAgain={bookAgain}
-        onNavigateToLoyalty={navigateToLoyalty}
-        onNavigateToOffers={navigateToOffers}
-      />
+          booking={{
+            id: booking.id,
+            status: booking.status,
+            confirmation_code: booking.confirmation_code || "",
+            booking_time: booking.booking_time,
+            party_size: booking.party_size,
+            restaurant: booking.restaurant
+              ? {
+                  id: booking.restaurant.id,
+                  name: booking.restaurant.name,
+                  phone_number: booking.restaurant.phone_number,
+                  whatsapp_number: booking.restaurant.whatsapp_number,
+                  location: booking.restaurant.location,
+                  staticCoordinates: booking.restaurant.staticCoordinates,
+                  coordinates: booking.restaurant.coordinates,
+                }
+              : undefined,
+          }}
+          appliedOfferDetails={appliedOfferDetails}
+          loyaltyActivity={loyaltyActivity}
+          hasReview={hasReview}
+          isUpcoming={isUpcoming}
+          processing={processing}
+          onCancel={cancelBooking}
+          onReview={navigateToReview}
+          onBookAgain={bookAgain}
+          onNavigateToLoyalty={navigateToLoyalty}
+          onNavigateToOffers={navigateToOffers}
+        />
       </View>
     </SafeAreaView>
   );

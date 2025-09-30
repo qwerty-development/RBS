@@ -202,7 +202,7 @@ export default function PlaylistCollaboratorsScreen() {
       const isPending = !item.accepted_at;
 
       return (
-        <View 
+        <View
           className="w-[31%] items-center bg-white dark:bg-gray-800 mb-2 rounded-xl p-3 mx-[1%]"
           style={{ aspectRatio: 0.8 }}
         >
@@ -211,7 +211,7 @@ export default function PlaylistCollaboratorsScreen() {
             {item.user?.avatar_url ? (
               <RNImage
                 source={{ uri: item.user.avatar_url }}
-                style={{ width: '100%', height: '100%' }}
+                style={{ width: "100%", height: "100%" }}
               />
             ) : (
               <View className="w-full h-full items-center justify-center">
@@ -312,7 +312,7 @@ export default function PlaylistCollaboratorsScreen() {
             {item.avatar_url ? (
               <RNImage
                 source={{ uri: item.avatar_url }}
-                style={{ width: '100%', height: '100%' }}
+                style={{ width: "100%", height: "100%" }}
               />
             ) : (
               <View className="w-full h-full items-center justify-center">

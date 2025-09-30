@@ -2,7 +2,15 @@
 import React from "react";
 import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
-import { Clock, MapPin, Users, Calendar, X, Eye, ChevronRight } from "lucide-react-native";
+import {
+  Clock,
+  MapPin,
+  Users,
+  Calendar,
+  X,
+  Eye,
+  ChevronRight,
+} from "lucide-react-native";
 import { format, parseISO } from "date-fns";
 
 import { Text } from "@/components/ui/text";
@@ -115,7 +123,7 @@ export function WaitingListCard({ entry, onNavigateToRestaurant }: Props) {
         <View className="p-4">
           {/* Header with restaurant info and status */}
           <View className="flex-row items-start justify-between mb-3">
-            <Pressable 
+            <Pressable
               onPress={() => {
                 if (entry.restaurant?.id) {
                   if (onNavigateToRestaurant) {
@@ -166,8 +174,6 @@ export function WaitingListCard({ entry, onNavigateToRestaurant }: Props) {
                 {formatDate(entry.desired_date)}
               </Text>
             </View>
-
-            
 
             <View className="flex-row items-center">
               <Clock size={16} color="#6b7280" />

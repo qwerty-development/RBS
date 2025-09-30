@@ -70,7 +70,7 @@ export default function PasswordReset() {
       edges={["top", "bottom"]}
     >
       <BackHeader title="Reset Password" />
-      
+
       <View className="flex-1 gap-4 web:m-4 px-4 mt-2">
         <P className="text-muted-foreground">
           Enter your email to receive a password reset link.

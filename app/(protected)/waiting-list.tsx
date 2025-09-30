@@ -97,7 +97,7 @@ export default function WaitingListScreen() {
     <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
       <BackHeader title="Waiting List" />
-      
+
       <View className="px-4 py-2 border-b border-border">
         <View className="flex-row items-center justify-between">
           <View className="flex-1">

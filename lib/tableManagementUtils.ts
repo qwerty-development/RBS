@@ -128,7 +128,7 @@ export function requiresTableCombination(partySize: number): boolean {
  */
 export function getTableTypeDisplayName(tableType: string): string {
   if (!tableType) return "Table";
-  
+
   const displayNames: Record<string, string> = {
     booth: "Booth",
     window: "Window Table",

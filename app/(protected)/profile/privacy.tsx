@@ -75,7 +75,6 @@ export default function PrivacyScreen() {
   const { deleteAccount, softDeleteAccount, validateDeletion } =
     useAccountDeletion();
 
-
   // State Management
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [expandedSections, setExpandedSections] = useState<Set<string>>(
@@ -230,17 +229,15 @@ export default function PrivacyScreen() {
               </View>
               <View className="flex-1">
                 <Text className="font-semibold text-lg mb-2">
-                  
                   Your Privacy Matters
-                
                 </Text>
                 <P className="text-muted-foreground text-sm leading-5">
                   We are committed to protecting your personal information and
                   giving you control over your data. Review our privacy
-                  practices and manage your account settings below.
-                  We are committed to protecting your personal information and
-                  giving you control over your data. Review our privacy
-                  practices and manage your account settings below.
+                  practices and manage your account settings below. We are
+                  committed to protecting your personal information and giving
+                  you control over your data. Review our privacy practices and
+                  manage your account settings below.
                 </P>
               </View>
             </View>
@@ -382,9 +379,9 @@ export default function PrivacyScreen() {
                 <Text className="font-medium mb-1">Privacy Questions</Text>
                 <P className="text-sm text-muted-foreground leading-5 mb-3">
                   Have questions about your privacy or need help with your
-                  account? Our support team is here to help.
-                  Have questions about your privacy or need help with your
-                  account? Our support team is here to help.
+                  account? Our support team is here to help. Have questions
+                  about your privacy or need help with your account? Our support
+                  team is here to help.
                 </P>
                 <Button variant="outline" size="sm">
                   <Text className="text-sm">Contact Support</Text>

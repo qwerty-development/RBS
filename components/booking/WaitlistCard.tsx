@@ -89,7 +89,9 @@ export const WaitlistCard = React.memo<WaitlistCardProps>(
     const isNotified = waitlistEntry.status === "notified";
     const isProcessing = processingWaitlistId === waitlistEntry.id;
 
-    const tableTypeInfo = TABLE_TYPE_INFO[waitlistEntry.table_type as keyof typeof TABLE_TYPE_INFO] || { icon: "🍽️", label: "Table" };
+    const tableTypeInfo = TABLE_TYPE_INFO[
+      waitlistEntry.table_type as keyof typeof TABLE_TYPE_INFO
+    ] || { icon: "🍽️", label: "Table" };
     const statusInfo = getStatusInfo(waitlistEntry.status);
 
     const handlePress = () => {
@@ -207,11 +209,13 @@ export const WaitlistCard = React.memo<WaitlistCardProps>(
               >
                 {statusInfo.text}
               </Text>
-              {waitlistEntry.expires_at && waitlistEntry.status === "active" && (
-            <Text className="text-xs text-muted-foreground">
-              (Expires: {format(parseISO(waitlistEntry.expires_at), "h:mm a")})
-            </Text>
-          )}
+              {waitlistEntry.expires_at &&
+                waitlistEntry.status === "active" && (
+                  <Text className="text-xs text-muted-foreground">
+                    (Expires:{" "}
+                    {format(parseISO(waitlistEntry.expires_at), "h:mm a")})
+                  </Text>
+                )}
             </View>
           </View>
 
@@ -231,7 +235,6 @@ export const WaitlistCard = React.memo<WaitlistCardProps>(
           )}
 
           {/* Expiration Warning */}
-
         </View>
       </Pressable>
     );

@@ -188,7 +188,7 @@ export default function WaitlistScreen() {
   return (
     <SafeAreaView className="flex-1 bg-background">
       <BackHeader title="My Waitlist" />
-      
+
       <View className="px-4 py-2">
         <Muted>Your restaurant waiting list entries</Muted>
       </View>

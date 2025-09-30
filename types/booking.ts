@@ -5,8 +5,13 @@ import type { Database } from "@/types/supabase";
 export type BaseBooking = Database["public"]["Tables"]["bookings"]["Row"];
 
 // Extended booking type with additional fields that exist in database but not in generated types
-export interface Booking extends BaseBooking {
+export interface Booking
+  extends Omit<BaseBooking, "dietary_notes" | "table_preferences"> {
   decline_note?: string | null;
+  occasion?: string | null;
+  special_requests?: string | null;
+  dietary_notes: string[] | null;
+  table_preferences: string[] | null;
 
   // Restaurant relation
   restaurant?: {
@@ -46,7 +51,7 @@ export enum BookingStatus {
   COMPLETED = "completed",
   NO_SHOW = "no_show",
   CHECKED_IN = "checked_in",
-  SEATED = "seated"
+  SEATED = "seated",
 }
 
 // Booking source enum
@@ -54,7 +59,7 @@ export enum BookingSource {
   APP = "app",
   WEBSITE = "website",
   PHONE = "phone",
-  WALK_IN = "walk_in"
+  WALK_IN = "walk_in",
 }
 
 // Booking creation payload

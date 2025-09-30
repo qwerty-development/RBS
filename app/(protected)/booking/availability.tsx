@@ -828,6 +828,9 @@ export default function AvailabilitySelectionScreen() {
     title: string;
     discount: number;
     redemptionCode: string;
+    discount_percentage?: number;
+    valid_until?: string;
+    restaurant_id?: string;
   } | null>(null);
 
   // Loyalty points state
@@ -1097,14 +1100,16 @@ export default function AvailabilitySelectionScreen() {
           ? selectedLoyaltyPoints.pointsToAward
           : 0,
         appliedOfferId: preselectedOffer?.id,
-        offerData: preselectedOffer?.fullOfferData
+        offerData: preselectedOffer
           ? {
               id: preselectedOffer.id,
               title: preselectedOffer.title,
               discount_percentage:
-                preselectedOffer.fullOfferData.discount_percentage,
-              valid_until: preselectedOffer.fullOfferData.valid_until,
-              restaurant_id: preselectedOffer.fullOfferData.restaurant_id,
+                preselectedOffer.discount_percentage ||
+                preselectedOffer.discount,
+              valid_until: preselectedOffer.valid_until,
+              restaurant_id:
+                preselectedOffer.restaurant_id || params.restaurantId,
             }
           : undefined,
         loyaltyRuleId: selectedLoyaltyPoints?.available
@@ -1230,14 +1235,16 @@ export default function AvailabilitySelectionScreen() {
             ? selectedLoyaltyPoints.pointsToAward
             : 0,
           appliedOfferId: preselectedOffer?.id,
-          offerData: preselectedOffer?.fullOfferData
+          offerData: preselectedOffer
             ? {
                 id: preselectedOffer.id,
                 title: preselectedOffer.title,
                 discount_percentage:
-                  preselectedOffer.fullOfferData.discount_percentage,
-                valid_until: preselectedOffer.fullOfferData.valid_until,
-                restaurant_id: preselectedOffer.fullOfferData.restaurant_id,
+                  preselectedOffer.discount_percentage ||
+                  preselectedOffer.discount,
+                valid_until: preselectedOffer.valid_until,
+                restaurant_id:
+                  preselectedOffer.restaurant_id || params.restaurantId,
               }
             : undefined,
           loyaltyRuleId: selectedLoyaltyPoints?.available
@@ -1448,7 +1455,7 @@ export default function AvailabilitySelectionScreen() {
   );
 
   const handleToggleSpecialRequirements = useCallback(() => {
-    setShowSpecialRequirements((prev) => !prev);
+    // This function is defined but unused - kept for future use
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   }, []);
 

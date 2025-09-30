@@ -16,7 +16,9 @@ const BookingsScreenSkeleton = () => {
         <View className="flex-row items-center justify-between mb-4">
           <View className="flex-1">
             <H2 className="text-2xl font-bold tracking-tight">My Bookings</H2>
-            <Muted className="text-sm mt-0.5">Tap any booking for full details and options</Muted>
+            <Muted className="text-sm mt-0.5">
+              Tap any booking for full details and options
+            </Muted>
           </View>
           <View className="ml-4">
             <Button
@@ -38,11 +40,7 @@ const BookingsScreenSkeleton = () => {
           onPress={() => {}}
           count={0}
         />
-        <TabButton
-          title="Past"
-          isActive={false}
-          onPress={() => {}}
-        />
+        <TabButton title="Past" isActive={false} onPress={() => {}} />
       </View>
 
       {/* Booking Cards */}

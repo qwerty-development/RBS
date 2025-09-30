@@ -62,7 +62,7 @@ export default function BookingCreateScreen() {
     bookingTime,
     partySize,
     totalPartySize,
-    earnablePoints,
+    expectedLoyaltyPoints,
     submitBooking,
     setSelectedOfferUserId,
     handleInvitesSent,
@@ -112,11 +112,13 @@ export default function BookingCreateScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
-        <BookingHeader
-          title="Complete Booking"
-          subtitle={restaurant.name}
-          onBack={() => router.back()}
-        />
+        {restaurant && (
+          <BookingHeader
+            title="Complete Booking"
+            subtitle={restaurant.name}
+            onBack={() => router.back()}
+          />
+        )}
 
         <ScrollView
           className="flex-1 px-4"
@@ -124,23 +126,28 @@ export default function BookingCreateScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Booking Summary */}
-          <BookingSummaryCard
-            restaurant={restaurant}
-            date={bookingDate}
-            time={bookingTime}
-            partySize={partySize}
-            invitedFriendsCount={invitedFriends.length}
-            userProfile={profile || {}}
-            appliedOffer={selectedOffer}
-            onRemoveOffer={() => setSelectedOfferUserId(null)}
-            className="mt-4"
-          />
+          {restaurant && (
+            <BookingSummaryCard
+              restaurant={{
+                ...restaurant,
+                main_image_url: restaurant.main_image_url || "",
+              }}
+              date={bookingDate}
+              time={bookingTime}
+              partySize={partySize}
+              invitedFriendsCount={invitedFriends.length}
+              userProfile={profile || {}}
+              appliedOffer={selectedOffer}
+              onRemoveOffer={() => setSelectedOfferUserId(null)}
+              className="mt-4"
+            />
+          )}
 
           {/* Loyalty Tier Display */}
           <LoyaltyTierDisplay
             userTier={userTier}
             userPoints={userPoints}
-            earnablePoints={earnablePoints}
+            earnablePoints={expectedLoyaltyPoints}
           />
 
           {/* Offers Selection */}
@@ -152,13 +159,15 @@ export default function BookingCreateScreen() {
           />
 
           {/* Friends Invitation */}
-          <FriendsInvitationSection
-            invitedFriends={invitedFriends}
-            restaurantName={restaurant.name}
-            bookingTime={bookingTime}
-            partySize={partySize}
-            onInvitesSent={handleInvitesSent}
-          />
+          {restaurant && (
+            <FriendsInvitationSection
+              invitedFriends={invitedFriends}
+              restaurantName={restaurant.name}
+              bookingTime={bookingTime}
+              partySize={partySize}
+              onInvitesSent={handleInvitesSent}
+            />
+          )}
 
           {/* Special Requirements Form */}
           <SpecialRequirementsForm
@@ -189,13 +198,16 @@ export default function BookingCreateScreen() {
           bookingPolicy={
             restaurant.booking_policy === "request"
               ? "approval"
-              : restaurant.booking_policy
+              : (restaurant.booking_policy as
+                  | "instant"
+                  | "request"
+                  | "approval") || "instant"
           }
           invitedFriendsCount={invitedFriends.length}
           selectedOfferDiscount={
             selectedOffer?.special_offer.discount_percentage
           }
-          earnablePoints={earnablePoints}
+          earnablePoints={expectedLoyaltyPoints}
           userTier={TIER_CONFIG[userTier].name}
         />
       </KeyboardAvoidingView>

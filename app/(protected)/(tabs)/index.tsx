@@ -247,118 +247,118 @@ export default function HomeScreen() {
 
           <SpecialOfferBannerCarousel offers={specialOffers} />
 
-        {featuredRestaurants.length > 0 && (
-          <View className="mb-6">
-            <SectionHeader
-              title="Featured This Week"
-              subtitle="Hand-picked restaurants just for you"
-              actionLabel="See All"
-              onAction={handleSearchPress}
-            />
-            <FlatList
-              horizontal
-              data={featuredRestaurants}
-              renderItem={({ item }) => (
-                <RestaurantCard
-                  item={item}
-                  variant="featured"
-                  onPress={handleRestaurantPress}
-                  onFavoritePress={() => handleToggleFavorite(item.id)}
-                  isFavorite={favorites.has(item.id)}
-                />
-              )}
-              keyExtractor={(item) => item.id}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 16 }}
-            />
-          </View>
-        )}
+          {featuredRestaurants.length > 0 && (
+            <View className="mb-6">
+              <SectionHeader
+                title="Featured This Week"
+                subtitle="Hand-picked restaurants just for you"
+                actionLabel="See All"
+                onAction={handleSearchPress}
+              />
+              <FlatList
+                horizontal
+                data={featuredRestaurants}
+                renderItem={({ item }) => (
+                  <RestaurantCard
+                    item={item}
+                    variant="featured"
+                    onPress={handleRestaurantPress}
+                    onFavoritePress={() => handleToggleFavorite(item.id)}
+                    isFavorite={favorites.has(item.id)}
+                  />
+                )}
+                keyExtractor={(item) => item.id}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 16 }}
+              />
+            </View>
+          )}
 
-        {newRestaurants.length > 0 && (
-          <View className="mb-6">
-            <SectionHeader
-              title="New to the Platform"
-              subtitle="Recently added restaurants"
-              actionLabel="Explore"
-              onAction={() => handleSearchWithParams({ sortBy: "newest" })}
-            />
-            <FlatList
-              horizontal
-              data={newRestaurants}
-              renderItem={({ item }) => (
-                <RestaurantCard
-                  item={item}
-                  variant="featured"
-                  onPress={handleRestaurantPress}
-                  onFavoritePress={() => handleToggleFavorite(item.id)}
-                  isFavorite={favorites.has(item.id)}
-                />
-              )}
-              keyExtractor={(item) => item.id}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 16 }}
-            />
-          </View>
-        )}
+          {newRestaurants.length > 0 && (
+            <View className="mb-6">
+              <SectionHeader
+                title="New to the Platform"
+                subtitle="Recently added restaurants"
+                actionLabel="Explore"
+                onAction={() => handleSearchWithParams({ sortBy: "newest" })}
+              />
+              <FlatList
+                horizontal
+                data={newRestaurants}
+                renderItem={({ item }) => (
+                  <RestaurantCard
+                    item={item}
+                    variant="featured"
+                    onPress={handleRestaurantPress}
+                    onFavoritePress={() => handleToggleFavorite(item.id)}
+                    isFavorite={favorites.has(item.id)}
+                  />
+                )}
+                keyExtractor={(item) => item.id}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 16 }}
+              />
+            </View>
+          )}
 
-        {topRatedRestaurants.length > 0 && (
-          <View className="mb-6">
-            <SectionHeader
-              title="Top Rated"
-              subtitle="Highest rated by diners"
-              actionLabel="View All"
-              onAction={() => handleSearchWithParams({ sortBy: "rating" })}
-            />
-            <FlatList
-              horizontal
-              data={topRatedRestaurants}
-              renderItem={({ item }) => (
-                <RestaurantCard
-                  item={item}
-                  variant="featured"
-                  onPress={handleRestaurantPress}
-                  onFavoritePress={() => handleToggleFavorite(item.id)}
-                  isFavorite={favorites.has(item.id)}
-                />
-              )}
-              keyExtractor={(item) => item.id}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 16 }}
-            />
-          </View>
-        )}
+          {topRatedRestaurants.length > 0 && (
+            <View className="mb-6">
+              <SectionHeader
+                title="Top Rated"
+                subtitle="Highest rated by diners"
+                actionLabel="View All"
+                onAction={() => handleSearchWithParams({ sortBy: "rating" })}
+              />
+              <FlatList
+                horizontal
+                data={topRatedRestaurants}
+                renderItem={({ item }) => (
+                  <RestaurantCard
+                    item={item}
+                    variant="featured"
+                    onPress={handleRestaurantPress}
+                    onFavoritePress={() => handleToggleFavorite(item.id)}
+                    isFavorite={favorites.has(item.id)}
+                  />
+                )}
+                keyExtractor={(item) => item.id}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 16 }}
+              />
+            </View>
+          )}
 
-        {recentlyVisitedRestaurants.length > 0 && (
-          <View className="mb-6">
-            <SectionHeader
-              title="Recently Visited"
-              subtitle="Places you've completed bookings at"
-              actionLabel="See All"
-              onAction={() =>
-                router.push("/(protected)/(tabs)/bookings?tab=past")
-              }
-            />
-            <FlatList
-              horizontal
-              data={recentlyVisitedRestaurants}
-              renderItem={({ item }) => (
-                <RestaurantCard
-                  item={item}
-                  variant="featured"
-                  onPress={handleRestaurantPress}
-                  onFavoritePress={() => handleToggleFavorite(item.id)}
-                  isFavorite={favorites.has(item.id)}
-                />
-              )}
-              keyExtractor={(item) => item.id}
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ paddingHorizontal: 16 }}
-            />
-          </View>
-        )}
+          {recentlyVisitedRestaurants.length > 0 && (
+            <View className="mb-6">
+              <SectionHeader
+                title="Recently Visited"
+                subtitle="Places you've completed bookings at"
+                actionLabel="See All"
+                onAction={() =>
+                  router.push("/(protected)/(tabs)/bookings?tab=past")
+                }
+              />
+              <FlatList
+                horizontal
+                data={recentlyVisitedRestaurants}
+                renderItem={({ item }) => (
+                  <RestaurantCard
+                    item={item}
+                    variant="featured"
+                    onPress={handleRestaurantPress}
+                    onFavoritePress={() => handleToggleFavorite(item.id)}
+                    isFavorite={favorites.has(item.id)}
+                  />
+                )}
+                keyExtractor={(item) => item.id}
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 16 }}
+              />
+            </View>
+          )}
 
-        {/* Add bottom padding to account for tab bar */}
-        <View className="h-24" />
+          {/* Add bottom padding to account for tab bar */}
+          <View className="h-24" />
         </Animated.ScrollView>
       )}
 

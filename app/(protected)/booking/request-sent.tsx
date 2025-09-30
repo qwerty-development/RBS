@@ -90,6 +90,10 @@ type Booking = {
   expected_loyalty_points?: number;
   applied_loyalty_rule_id?: string;
   confirmation_code?: string;
+  occasion?: string | null;
+  special_requests?: string | null;
+  dietary_notes?: string[] | null;
+  table_preferences?: string[] | null;
   restaurant: {
     id: string;
     name: string;

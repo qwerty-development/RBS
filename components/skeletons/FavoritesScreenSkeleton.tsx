@@ -9,7 +9,7 @@ import { useColorScheme } from "@/lib/useColorScheme";
 
 const FavoritesScreenSkeleton = () => {
   const { colorScheme } = useColorScheme();
-  
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* Real Header */}
@@ -20,9 +20,7 @@ const FavoritesScreenSkeleton = () => {
             <Muted className="text-sm mt-0.5">Loading restaurants...</Muted>
           </View>
           <View className="ml-4">
-            <Pressable
-              className="p-2 relative"
-            >
+            <Pressable className="p-2 relative">
               <Filter
                 size={24}
                 color={colorScheme === "dark" ? "#fff" : "#000"}
@@ -35,32 +33,19 @@ const FavoritesScreenSkeleton = () => {
       {/* Real Tabs */}
       <View className="px-4">
         <View className="flex-row bg-muted dark:bg-card rounded-xl p-1">
-          <View
-            className="flex-1 flex-row items-center justify-center py-2.5 rounded-lg bg-background dark:bg-secondary"
-          >
-            <Heart
-              size={18}
-              color="#dc2626"
-              fill="#dc2626"
-            />
-            <View
-              className="ml-2 font-medium text-primary"
-            >
+          <View className="flex-1 flex-row items-center justify-center py-2.5 rounded-lg bg-background dark:bg-secondary">
+            <Heart size={18} color="#dc2626" fill="#dc2626" />
+            <View className="ml-2 font-medium text-primary">
               <Muted className="text-primary font-medium">Favorites</Muted>
             </View>
           </View>
 
-          <View
-            className="flex-1 flex-row items-center justify-center py-2.5 rounded-lg"
-          >
-            <FolderPlus
-              size={18}
-              color="#6b7280"
-            />
-            <View
-              className="ml-2 font-medium"
-            >
-              <Muted className="text-muted-foreground font-medium">Playlists</Muted>
+          <View className="flex-1 flex-row items-center justify-center py-2.5 rounded-lg">
+            <FolderPlus size={18} color="#6b7280" />
+            <View className="ml-2 font-medium">
+              <Muted className="text-muted-foreground font-medium">
+                Playlists
+              </Muted>
             </View>
           </View>
         </View>

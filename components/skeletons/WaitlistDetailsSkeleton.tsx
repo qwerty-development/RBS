@@ -15,10 +15,10 @@ export const WaitlistDetailsSkeleton = () => {
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* Real Header */}
-      <NavigationHeader 
-        title="Waitlist Details" 
-        onBack={() => router.back()} 
-        showShare={true} 
+      <NavigationHeader
+        title="Waitlist Details"
+        onBack={() => router.back()}
+        showShare={true}
         onShare={() => {}}
       />
 

@@ -575,10 +575,9 @@ export default function LoyaltyScreen() {
         }
       >
         <BackHeader title="Loyalty Rewards" />
-          
+
         {/* Tier status wrapper */}
         <View className="p-4 bg-primary/5 border-b border-primary/20">
-
           {/* Tier status and points */}
           <TierBadge tier={userTier} points={userPoints} size="large" />
         </View>
