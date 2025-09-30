@@ -1,5 +1,5 @@
 // hooks/usePlaylistSharing.ts
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Alert, Share } from "react-native";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
@@ -16,13 +16,16 @@ export const usePlaylistSharing = (playlistId: string | null) => {
     [],
   );
   const [loading, setLoading] = useState(false);
+  const isMountedRef = useRef(true);
 
   // Fetch collaborators
   const fetchCollaborators = useCallback(async () => {
     if (!playlistId) return;
 
     try {
-      setLoading(true);
+      if (isMountedRef.current) {
+        setLoading(true);
+      }
 
       const { data, error } = await supabase
         .from("playlist_collaborators")
@@ -48,12 +51,16 @@ export const usePlaylistSharing = (playlistId: string | null) => {
       const accepted = data?.filter((c) => c.accepted_at) || [];
       const pending = data?.filter((c) => !c.accepted_at) || [];
 
-      setCollaborators(accepted);
-      setPendingInvites(pending);
+      if (isMountedRef.current) {
+        setCollaborators(accepted);
+        setPendingInvites(pending);
+      }
     } catch (error) {
       console.error("Error fetching collaborators:", error);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [playlistId]);
 
@@ -205,10 +212,14 @@ export const usePlaylistSharing = (playlistId: string | null) => {
 
         if (error) throw error;
 
-        setCollaborators((prev) => prev.filter((c) => c.id !== collaboratorId));
-        setPendingInvites((prev) =>
-          prev.filter((c) => c.id !== collaboratorId),
-        );
+        if (isMountedRef.current) {
+          setCollaborators((prev) =>
+            prev.filter((c) => c.id !== collaboratorId),
+          );
+          setPendingInvites((prev) =>
+            prev.filter((c) => c.id !== collaboratorId),
+          );
+        }
 
         return true;
       } catch (error) {
@@ -234,9 +245,13 @@ export const usePlaylistSharing = (playlistId: string | null) => {
 
         if (error) throw error;
 
-        setCollaborators((prev) =>
-          prev.map((c) => (c.id === collaboratorId ? { ...c, permission } : c)),
-        );
+        if (isMountedRef.current) {
+          setCollaborators((prev) =>
+            prev.map((c) =>
+              c.id === collaboratorId ? { ...c, permission } : c,
+            ),
+          );
+        }
 
         return true;
       } catch (error) {
@@ -363,6 +378,14 @@ export const usePlaylistSharing = (playlistId: string | null) => {
     },
     [profile?.id, playlistId],
   );
+
+  // Cleanup on unmount
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   return {
     collaborators,

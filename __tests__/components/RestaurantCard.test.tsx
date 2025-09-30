@@ -12,6 +12,10 @@ const mockRestaurant: Restaurant = {
     type: "Point",
     coordinates: [35.5018, 33.8938],
   },
+  coordinates: {
+    latitude: 33.8938,
+    longitude: 35.5018,
+  },
   main_image_url: "https://example.com/image.jpg",
   image_urls: [
     "https://example.com/image1.jpg",

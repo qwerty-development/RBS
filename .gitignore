@@ -28,3 +28,9 @@ expo-env.d.ts
 .env.local
 
 .env.local
+
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md
+
+.codacy

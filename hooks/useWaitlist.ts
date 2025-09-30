@@ -1,7 +1,7 @@
 // hooks/useWaitlist.ts
 // Updated hook for your mobile app
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Alert } from "react-native";
@@ -60,13 +60,16 @@ export const useWaitlist = () => {
   const { user } = useAuth();
   const [myWaitlist, setMyWaitlist] = useState<WaitlistItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const isMountedRef = useRef(true);
 
   // Get user's waitlist entries
   const getMyWaitlist = useCallback(async () => {
     if (!user) return;
 
     try {
-      setLoading(true);
+      if (isMountedRef.current) {
+        setLoading(true);
+      }
 
       // First run automation to update expired entries
       await supabase.rpc("process_waitlist_automation");
@@ -88,11 +91,15 @@ export const useWaitlist = () => {
         return;
       }
 
-      setMyWaitlist(data || []);
+      if (isMountedRef.current) {
+        setMyWaitlist(data || []);
+      }
     } catch (error) {
       console.error("Error fetching waitlist:", error);
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, [user]);
 
@@ -105,7 +112,9 @@ export const useWaitlist = () => {
       }
 
       try {
-        setLoading(true);
+        if (isMountedRef.current) {
+          setLoading(true);
+        }
 
         // Check if already on waitlist for this restaurant/date
         const { data: existing } = await supabase
@@ -178,7 +187,9 @@ export const useWaitlist = () => {
         Alert.alert("Error", "Something went wrong. Please try again.");
         return null;
       } finally {
-        setLoading(false);
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
       }
     },
     [user, getMyWaitlist],
@@ -193,7 +204,9 @@ export const useWaitlist = () => {
       }
 
       try {
-        setLoading(true);
+        if (isMountedRef.current) {
+          setLoading(true);
+        }
 
         // First check the current status of the waitlist entry
         const { data: waitlistEntry, error: fetchError } = await supabase
@@ -258,7 +271,9 @@ export const useWaitlist = () => {
         Alert.alert("Error", "Something went wrong");
         return false;
       } finally {
-        setLoading(false);
+        if (isMountedRef.current) {
+          setLoading(false);
+        }
       }
     },
     [user, getMyWaitlist],
@@ -358,14 +373,23 @@ export const useWaitlist = () => {
 
   // Auto-refresh waitlist
   useEffect(() => {
+    isMountedRef.current = true;
+
     if (user) {
       getMyWaitlist();
 
       // Refresh every 30 seconds
       const interval = setInterval(getMyWaitlist, 30000);
 
-      return () => clearInterval(interval);
+      return () => {
+        isMountedRef.current = false;
+        clearInterval(interval);
+      };
     }
+
+    return () => {
+      isMountedRef.current = false;
+    };
   }, [user, getMyWaitlist]);
 
   // Listen for real-time updates using centralized service
