@@ -22,6 +22,7 @@ import {
   Edit3,
   Trash2,
   UserPlus,
+  LogOut,
 } from "lucide-react-native";
 import DraggableFlatList, {
   ScaleDecorator,
@@ -96,8 +97,13 @@ export default function PlaylistDetailScreen() {
     handleRefresh,
   } = usePlaylistItems(id);
 
-  const { collaborators, togglePublicAccess, sharePlaylist, copyShareLink } =
-    usePlaylistSharing(id);
+  const {
+    collaborators,
+    togglePublicAccess,
+    sharePlaylist,
+    copyShareLink,
+    leavePlaylist,
+  } = usePlaylistSharing(id);
 
   // Fetch playlist details and user permission
   const fetchPlaylistDetails = useCallback(async () => {
@@ -225,6 +231,39 @@ export default function PlaylistDetailScreen() {
       ],
     );
   }, [handleDeletePlaylist]);
+
+  const handleLeavePlaylist = useCallback(async () => {
+    if (!playlist) return;
+
+    Alert.alert(
+      "Leave Playlist",
+      `Are you sure you want to leave "${playlist.name}"? You'll lose access to this playlist unless you're invited again.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Leave",
+          style: "destructive",
+          onPress: async () => {
+            const success = await leavePlaylist(playlist.name);
+            if (success) {
+              router.back();
+            }
+          },
+        },
+      ],
+    );
+  }, [playlist, leavePlaylist, router]);
+
+  const handleCollaboratorOptionsPress = useCallback(() => {
+    Alert.alert("Playlist Options", "What would you like to do?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Leave Playlist",
+        style: "destructive",
+        onPress: handleLeavePlaylist,
+      },
+    ]);
+  }, [handleLeavePlaylist]);
 
   const handleTogglePublic = useCallback(async () => {
     if (!playlist) return;
@@ -383,7 +422,7 @@ export default function PlaylistDetailScreen() {
                 color={colorScheme === "dark" ? "#fff" : "#000"}
               />
             </Pressable>
-            {isOwner && (
+            {isOwner ? (
               <Pressable
                 onPress={handleSettingsPress}
                 className="w-10 h-10 items-center justify-center rounded-full bg-muted active:bg-muted/80"
@@ -393,7 +432,17 @@ export default function PlaylistDetailScreen() {
                   color={colorScheme === "dark" ? "#fff" : "#000"}
                 />
               </Pressable>
-            )}
+            ) : userPermission ? (
+              <Pressable
+                onPress={handleCollaboratorOptionsPress}
+                className="w-10 h-10 items-center justify-center rounded-full bg-muted active:bg-muted/80"
+              >
+                <Settings
+                  size={20}
+                  color={colorScheme === "dark" ? "#fff" : "#000"}
+                />
+              </Pressable>
+            ) : null}
           </View>
         </View>
       </View>

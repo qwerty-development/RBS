@@ -313,6 +313,57 @@ export const usePlaylistSharing = (playlistId: string | null) => {
     [profile?.id],
   );
 
+  // Leave playlist (for collaborators)
+  const leavePlaylist = useCallback(
+    async (playlistName: string): Promise<boolean> => {
+      if (!profile?.id || !playlistId) {
+        Alert.alert("Error", "Missing user or playlist information");
+        return false;
+      }
+
+      try {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+        const { error } = await supabase
+          .from("playlist_collaborators")
+          .delete()
+          .eq("playlist_id", playlistId)
+          .eq("user_id", profile.id)
+          .select();
+
+        if (error) {
+          console.error("Error leaving playlist:", error);
+
+          // Check for RLS error
+          if (
+            error.message?.includes("policy") ||
+            error.code === "42501" ||
+            error.code === "PGRST301"
+          ) {
+            Alert.alert(
+              "Permission Error",
+              "You don't have permission to leave this playlist. Please contact support.",
+            );
+          } else {
+            Alert.alert("Error", `Failed to leave playlist: ${error.message}`);
+          }
+
+          throw error;
+        }
+
+        Alert.alert(
+          "Left Playlist",
+          `You've left the playlist "${playlistName}"`,
+        );
+        return true;
+      } catch (error: any) {
+        console.error("Error leaving playlist:", error);
+        return false;
+      }
+    },
+    [profile?.id, playlistId],
+  );
+
   return {
     collaborators,
     pendingInvites,
@@ -326,5 +377,6 @@ export const usePlaylistSharing = (playlistId: string | null) => {
     removeCollaborator,
     updateCollaboratorPermission,
     joinPlaylistByCode,
+    leavePlaylist,
   };
 };
