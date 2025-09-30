@@ -270,6 +270,10 @@ export default function HomeScreen() {
                 keyExtractor={(item) => item.id}
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: 16 }}
+                maxToRenderPerBatch={3}
+                initialNumToRender={3}
+                windowSize={5}
+                removeClippedSubviews={true}
               />
             </View>
           )}
@@ -297,6 +301,10 @@ export default function HomeScreen() {
                 keyExtractor={(item) => item.id}
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: 16 }}
+                maxToRenderPerBatch={3}
+                initialNumToRender={3}
+                windowSize={5}
+                removeClippedSubviews={true}
               />
             </View>
           )}
@@ -324,6 +332,10 @@ export default function HomeScreen() {
                 keyExtractor={(item) => item.id}
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: 16 }}
+                maxToRenderPerBatch={3}
+                initialNumToRender={3}
+                windowSize={5}
+                removeClippedSubviews={true}
               />
             </View>
           )}
@@ -353,6 +365,10 @@ export default function HomeScreen() {
                 keyExtractor={(item) => item.id}
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingHorizontal: 16 }}
+                maxToRenderPerBatch={3}
+                initialNumToRender={3}
+                windowSize={5}
+                removeClippedSubviews={true}
               />
             </View>
           )}

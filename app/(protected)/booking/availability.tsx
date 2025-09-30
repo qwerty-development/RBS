@@ -1107,7 +1107,9 @@ export default function AvailabilitySelectionScreen() {
               discount_percentage:
                 preselectedOffer.discount_percentage ||
                 preselectedOffer.discount,
-              valid_until: preselectedOffer.valid_until,
+              valid_until:
+                preselectedOffer.valid_until ||
+                new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
               restaurant_id:
                 preselectedOffer.restaurant_id || params.restaurantId,
             }
@@ -1242,7 +1244,9 @@ export default function AvailabilitySelectionScreen() {
                 discount_percentage:
                   preselectedOffer.discount_percentage ||
                   preselectedOffer.discount,
-                valid_until: preselectedOffer.valid_until,
+                valid_until:
+                  preselectedOffer.valid_until ||
+                  new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                 restaurant_id:
                   preselectedOffer.restaurant_id || params.restaurantId,
               }

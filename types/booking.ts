@@ -6,10 +6,13 @@ export type BaseBooking = Database["public"]["Tables"]["bookings"]["Row"];
 
 // Extended booking type with additional fields that exist in database but not in generated types
 export interface Booking
-  extends Omit<BaseBooking, "dietary_notes" | "table_preferences"> {
+  extends Omit<
+    BaseBooking,
+    "dietary_notes" | "table_preferences" | "occasion" | "special_requests"
+  > {
   decline_note?: string | null;
-  occasion?: string | null;
-  special_requests?: string | null;
+  occasion: string | null;
+  special_requests: string | null;
   dietary_notes: string[] | null;
   table_preferences: string[] | null;
 

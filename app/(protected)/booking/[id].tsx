@@ -779,38 +779,38 @@ export default function BookingDetailsScreen() {
       </ScrollView>
 
       {/* Actions Bar */}
-      <View className="absolute bottom-4 left-0 right-0">
-        <BookingActionsBar
-          booking={{
-            id: booking.id,
-            status: booking.status,
-            confirmation_code: booking.confirmation_code || "",
-            booking_time: booking.booking_time,
-            party_size: booking.party_size,
-            restaurant: booking.restaurant
-              ? {
-                  id: booking.restaurant.id,
-                  name: booking.restaurant.name,
-                  phone_number: booking.restaurant.phone_number,
-                  whatsapp_number: booking.restaurant.whatsapp_number,
-                  location: booking.restaurant.location,
-                  staticCoordinates: booking.restaurant.staticCoordinates,
-                  coordinates: booking.restaurant.coordinates,
-                }
-              : undefined,
-          }}
-          appliedOfferDetails={appliedOfferDetails}
-          loyaltyActivity={loyaltyActivity}
-          hasReview={hasReview}
-          isUpcoming={isUpcoming}
-          processing={processing}
-          onCancel={cancelBooking}
-          onReview={navigateToReview}
-          onBookAgain={bookAgain}
-          onNavigateToLoyalty={navigateToLoyalty}
-          onNavigateToOffers={navigateToOffers}
-        />
-      </View>
+      {booking.restaurant && (
+        <View className="absolute bottom-4 left-0 right-0">
+          <BookingActionsBar
+            booking={{
+              id: booking.id,
+              status: booking.status,
+              confirmation_code: booking.confirmation_code || "",
+              booking_time: booking.booking_time,
+              party_size: booking.party_size,
+              restaurant: {
+                id: booking.restaurant.id,
+                name: booking.restaurant.name,
+                phone_number: booking.restaurant.phone_number,
+                whatsapp_number: booking.restaurant.whatsapp_number,
+                location: booking.restaurant.location,
+                staticCoordinates: booking.restaurant.staticCoordinates,
+                coordinates: booking.restaurant.coordinates,
+              },
+            }}
+            appliedOfferDetails={appliedOfferDetails}
+            loyaltyActivity={loyaltyActivity}
+            hasReview={hasReview}
+            isUpcoming={isUpcoming}
+            processing={processing}
+            onCancel={cancelBooking}
+            onReview={navigateToReview}
+            onBookAgain={bookAgain}
+            onNavigateToLoyalty={navigateToLoyalty}
+            onNavigateToOffers={navigateToOffers}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }

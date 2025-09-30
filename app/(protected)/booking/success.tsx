@@ -42,6 +42,8 @@ interface BookingSuccessParams {
   offerTitle?: string;
   offerDiscount?: string;
   tableInfo?: string; // "single" or "combined"
+  bookingDate?: string;
+  bookingTime?: string;
   // Restaurant loyalty parameters
   restaurantLoyaltyPoints?: string;
   loyaltyRuleId?: string;

@@ -1,5 +1,5 @@
 // components/restaurant/RestaurantCard.tsx
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { View, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { Star, Heart, FolderPlus, Award, MapPin } from "lucide-react-native";
@@ -24,7 +24,7 @@ type BaseRestaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 
 // Support flexible restaurant types
 type Restaurant = BaseRestaurant & {
-  tags?: string[];
+  tags?: string[] | null;
   staticCoordinates?: { lat: number; lng: number };
   coordinates?: { latitude: number; longitude: number };
   // Add any additional fields that might be missing
@@ -47,7 +47,7 @@ interface RestaurantCardProps {
   showLoyalty?: boolean; // New prop to show/hide loyalty indicator
 }
 
-export function RestaurantCard({
+function RestaurantCardComponent({
   restaurant,
   item,
   variant = "default",
@@ -83,6 +83,26 @@ export function RestaurantCard({
   const { hasLoyaltyProgram, balance } = useRestaurantLoyalty(
     restaurantData?.id,
   );
+
+  // Memoize current date and time to prevent recreation on every render
+  const currentDateTime = useMemo(
+    () => ({
+      date: new Date(),
+      time: format(new Date(), "HH:mm"),
+    }),
+    [],
+  );
+
+  // Memoize availability status
+  const isOpen = useMemo(() => {
+    if (!showAvailability || availabilityLoading) return true;
+    return checkAvailability(currentDateTime.date, currentDateTime.time).isOpen;
+  }, [
+    showAvailability,
+    availabilityLoading,
+    checkAvailability,
+    currentDateTime,
+  ]);
 
   if (!restaurantData || !restaurantData.id) {
     console.warn("Invalid restaurant data:", restaurantData);
@@ -161,14 +181,9 @@ export function RestaurantCard({
     );
   };
 
-  // Render status dot (green for open, red for closed)
-  const renderStatusDot = () => {
+  // Render status dot (green for open, red for closed) - Memoized
+  const renderStatusDot = useCallback(() => {
     if (!showAvailability || availabilityLoading) return null;
-
-    const isOpen = checkAvailability(
-      new Date(),
-      format(new Date(), "HH:mm"),
-    ).isOpen;
 
     return (
       <View
@@ -178,13 +193,7 @@ export function RestaurantCard({
         )}
       />
     );
-  };
-
-  // Check if restaurant is currently open
-  const isRestaurantOpen = () => {
-    if (!showAvailability || availabilityLoading) return true; // Default to open if not checking
-    return checkAvailability(new Date(), format(new Date(), "HH:mm")).isOpen;
-  };
+  }, [showAvailability, availabilityLoading, isOpen]);
 
   // Remove graying out effect - always show full opacity
   const getCardOpacity = () => {
@@ -236,7 +245,9 @@ export function RestaurantCard({
               {/* Favorite button overlay */}
               {showFavorite && onFavoritePress && (
                 <Pressable
-                  onPress={() => handleQuickActionPress(onFavoritePress)}
+                  onPress={() =>
+                    handleQuickActionPress(() => onFavoritePress())
+                  }
                   className="absolute top-2 right-2 bg-black/60 rounded-full p-1.5"
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
@@ -334,7 +345,9 @@ export function RestaurantCard({
                 )}
                 {showFavorite && onFavoritePress && (
                   <Pressable
-                    onPress={() => handleQuickActionPress(onFavoritePress)}
+                    onPress={() =>
+                      handleQuickActionPress(() => onFavoritePress())
+                    }
                     className="bg-black/50 rounded-full p-2"
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
@@ -416,7 +429,9 @@ export function RestaurantCard({
                 {/* Favorite button overlay */}
                 {showFavorite && onFavoritePress && (
                   <Pressable
-                    onPress={() => handleQuickActionPress(onFavoritePress)}
+                    onPress={() =>
+                      handleQuickActionPress(() => onFavoritePress())
+                    }
                     className="absolute top-2 right-2 bg-black/60 rounded-full p-1"
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
                   >
@@ -476,3 +491,6 @@ export function RestaurantCard({
     </>
   );
 }
+
+// Export memoized component for better performance
+export const RestaurantCard = React.memo(RestaurantCardComponent);

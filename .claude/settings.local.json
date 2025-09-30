@@ -29,7 +29,8 @@
       "mcp__supabase__execute_sql",
       "Bash(node:*)",
       "Bash(npm start:*)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(cut:*)"
     ],
     "deny": []
   },
