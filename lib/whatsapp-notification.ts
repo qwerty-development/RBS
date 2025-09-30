@@ -42,6 +42,23 @@ export async function notifyRestaurantWhatsApp(
   bookingId: string,
 ): Promise<WhatsAppNotificationResult> {
   try {
+    // Get the current session token for authentication
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError || !session?.access_token) {
+      console.error(
+        "❌ No valid session for WhatsApp notification:",
+        sessionError,
+      );
+      return {
+        ok: false,
+        error: "Authentication required",
+      };
+    }
+
     const requestBody = {
       booking_id: bookingId,
     };
@@ -50,7 +67,7 @@ export async function notifyRestaurantWhatsApp(
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${supabase.supabaseKey}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
       body: JSON.stringify(requestBody),
     });

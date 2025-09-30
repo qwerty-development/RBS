@@ -537,7 +537,8 @@ export default function BookingDetailsScreen() {
               {isWaitlistOrigin ? (
                 <Text className="text-sm text-red-700 dark:text-red-300">
                   You were waitlisted but the booking has expired. The
-                  restaurant couldn't accommodate your request at this time.
+                  restaurant couldn&apos;t accommodate your request at this
+                  time.
                 </Text>
               ) : booking.decline_note && booking.decline_note.trim() ? (
                 <View>
@@ -550,8 +551,8 @@ export default function BookingDetailsScreen() {
                 </View>
               ) : (
                 <Text className="text-sm text-red-700 dark:text-red-300">
-                  The restaurant couldn't accommodate your request at this time.
-                  This could be due to full capacity or special events.
+                  The restaurant couldn&apos;t accommodate your request at this
+                  time. This could be due to full capacity or special events.
                 </Text>
               )}
             </View>

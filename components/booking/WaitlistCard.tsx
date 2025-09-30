@@ -197,7 +197,10 @@ export const WaitlistCard = React.memo<WaitlistCardProps>(
             style={{ backgroundColor: statusInfo.bgColor }}
           >
             <View className="flex-row items-center justify-center gap-2">
-              {React.createElement(statusInfo.icon, { size: 16, color: statusInfo.color })}
+              {React.createElement(statusInfo.icon, {
+                size: 16,
+                color: statusInfo.color,
+              })}
               <Text
                 className="text-sm font-semibold"
                 style={{ color: statusInfo.color }}

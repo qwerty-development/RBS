@@ -1,11 +1,7 @@
 // app/(protected)/profile/privacy.tsx
 import React, { useState, useCallback } from "react";
-import {
-  View,
-  ScrollView,
-  Pressable,
-  Alert,
-} from "react-native";
+import { View, ScrollView, Pressable, Alert } from "react-native";
+
 import { useRouter } from "expo-router";
 import {
   ArrowLeft,
@@ -23,9 +19,7 @@ import { Text } from "@/components/ui/text";
 import { H2, P, Muted } from "@/components/ui/typography";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
-import {
-  useAccountDeletion,
-} from "@/lib/accountDeletionService";
+import { useAccountDeletion } from "@/lib/accountDeletionService";
 import { BackHeader } from "@/components/ui/back-header";
 
 // Privacy Policy Sections
@@ -78,11 +72,9 @@ export default function PrivacyScreen() {
   const { profile, signOut } = useAuth();
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-  const {
-    deleteAccount,
-    softDeleteAccount,
-    validateDeletion,
-  } = useAccountDeletion();
+  const { deleteAccount, softDeleteAccount, validateDeletion } =
+    useAccountDeletion();
+
 
   // State Management
   const [deletingAccount, setDeletingAccount] = useState(false);
@@ -237,10 +229,18 @@ export default function PrivacyScreen() {
                 <Shield size={20} color="#3b82f6" />
               </View>
               <View className="flex-1">
-                <Text className="font-semibold text-lg mb-2">Your Privacy Matters</Text>
+                <Text className="font-semibold text-lg mb-2">
+                  
+                  Your Privacy Matters
+                
+                </Text>
                 <P className="text-muted-foreground text-sm leading-5">
-                  We are committed to protecting your personal information and giving you control over your data. 
-                  Review our privacy practices and manage your account settings below.
+                  We are committed to protecting your personal information and
+                  giving you control over your data. Review our privacy
+                  practices and manage your account settings below.
+                  We are committed to protecting your personal information and
+                  giving you control over your data. Review our privacy
+                  practices and manage your account settings below.
                 </P>
               </View>
             </View>
@@ -264,7 +264,8 @@ export default function PrivacyScreen() {
                   Delete Account
                 </Text>
                 <Muted className="text-sm mb-3">
-                  Permanently delete your account and all associated data. This action cannot be undone.
+                  Permanently delete your account and all associated data. This
+                  action cannot be undone.
                 </Muted>
                 <Button
                   variant="destructive"
@@ -371,7 +372,7 @@ export default function PrivacyScreen() {
           <Text className="text-sm font-semibold text-muted-foreground uppercase px-4 mb-3">
             Need Help?
           </Text>
-          
+
           <View className="bg-card mx-4 mb-3 rounded-xl p-4">
             <View className="flex-row items-start gap-3">
               <View className="w-10 h-10 bg-yellow-100 rounded-full items-center justify-center dark:bg-yellow-900">
@@ -380,8 +381,10 @@ export default function PrivacyScreen() {
               <View className="flex-1">
                 <Text className="font-medium mb-1">Privacy Questions</Text>
                 <P className="text-sm text-muted-foreground leading-5 mb-3">
-                  Have questions about your privacy or need help with your account? 
-                  Our support team is here to help.
+                  Have questions about your privacy or need help with your
+                  account? Our support team is here to help.
+                  Have questions about your privacy or need help with your
+                  account? Our support team is here to help.
                 </P>
                 <Button variant="outline" size="sm">
                   <Text className="text-sm">Contact Support</Text>

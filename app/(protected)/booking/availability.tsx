@@ -12,7 +12,6 @@ import {
   Pressable,
   ActivityIndicator,
   Alert,
-  Dimensions,
   Modal,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -25,7 +24,6 @@ import {
   Info,
   Star,
   MapPin,
-  Gift,
   Sparkles,
   QrCode,
   ArrowLeft,
@@ -34,7 +32,6 @@ import {
   Search,
   X,
   UserPlus,
-  Utensils,
   User,
 } from "lucide-react-native";
 import { Calendar as RNCalendar } from "react-native-calendars";
@@ -45,7 +42,6 @@ import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { Textarea } from "@/components/ui/textarea";
 import { Image } from "@/components/image";
-import { useColorScheme } from "@/lib/useColorScheme";
 import { getMaxBookingWindow } from "@/lib/tableManagementUtils";
 import { useAuth } from "@/context/supabase-provider";
 import { useRestaurant } from "@/hooks/useRestaurant";
@@ -85,8 +81,6 @@ import { getDefaultFormValues } from "@/lib/bookingFormHelpers";
 
 // Inline offer selector imports
 import { InlineOfferSelector } from "@/components/booking/InlineOfferSelector";
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 // Constants for form options
 const DIETARY_RESTRICTIONS = [
@@ -319,6 +313,8 @@ const SpecialRequirementsSection = React.memo<{
   );
 });
 
+SpecialRequirementsSection.displayName = "SpecialRequirementsSection";
+
 // Form Data Interface
 interface BookingFormData {
   specialRequests?: string;
@@ -366,6 +362,8 @@ const RestaurantInfoCard = React.memo<{
     </View>
   </View>
 ));
+
+RestaurantInfoCard.displayName = "RestaurantInfoCard";
 
 // Enhanced Progress Indicator
 const ProgressIndicator = React.memo<{
@@ -434,6 +432,8 @@ const ProgressIndicator = React.memo<{
     </View>
   </View>
 ));
+
+ProgressIndicator.displayName = "ProgressIndicator";
 
 // Optimized Party Size Selector
 const PartySizeSelector = React.memo<{
@@ -528,6 +528,8 @@ const PartySizeSelector = React.memo<{
     </Pressable>
   );
 });
+
+PartySizeSelector.displayName = "PartySizeSelector";
 
 // Enhanced Date Selector with calendar picker
 const DateSelector = React.memo<{
@@ -731,6 +733,8 @@ const DateSelector = React.memo<{
   );
 });
 
+DateSelector.displayName = "DateSelector";
+
 // Enhanced Offer Preview Components
 const PreselectedOfferPreview = React.memo<{
   offerTitle: string;
@@ -785,18 +789,12 @@ const PreselectedOfferPreview = React.memo<{
   </View>
 ));
 
+PreselectedOfferPreview.displayName = "PreselectedOfferPreview";
+
 // Main Component
 export default function AvailabilitySelectionScreen() {
-  const [isMounted, setIsMounted] = useState(false);
-
   // Add state to track if confirmation is in progress
   const [isConfirmingBooking, setIsConfirmingBooking] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  const { colorScheme } = useColorScheme();
   const { profile } = useAuth();
   const router = useRouter();
 
@@ -848,8 +846,7 @@ export default function AvailabilitySelectionScreen() {
     null,
   );
 
-  // Special requirements form state
-  const [showSpecialRequirements, setShowSpecialRequirements] = useState(false);
+  // Special requirements form state - removing unused state
   const [formData, setFormData] = useState<BookingFormData>(() => ({
     specialRequests: "",
     occasion: "none",
@@ -894,15 +891,10 @@ export default function AvailabilitySelectionScreen() {
     hasTimeSlots,
     hasSelectedSlot,
     experienceCount,
-    hasMultipleExperiences,
-    primaryExperience,
     isLoading,
     refresh,
     // Restaurant tier information
-    restaurantTier,
     isBasicTier,
-    requiresTableSelection,
-    showExperienceStep,
   } = useAvailability({
     restaurantId: params.restaurantId || "",
     date: selectedDate,
@@ -981,7 +973,7 @@ export default function AvailabilitySelectionScreen() {
       }
     }
     fetchMaxDays();
-  }, [profile?.id, restaurant?.id, (restaurant as any)?.booking_window_days]);
+  }, [profile?.id, restaurant?.id, restaurant]);
 
   const formatSelectedDate = useCallback((date: Date) => {
     const today = new Date();
@@ -1155,6 +1147,7 @@ export default function AvailabilitySelectionScreen() {
     selectedSectionId,
     restaurantSections,
     formData,
+    isBasicTier,
   ]);
 
   const handleTimeSelect = useCallback(
@@ -1818,7 +1811,7 @@ export default function AvailabilitySelectionScreen() {
                         • The restaurant will review availability
                       </Text>
                       <Text className="text-sm text-muted-foreground">
-                        • You'll be notified once confirmed
+                        • You&apos;ll be notified once confirmed
                       </Text>
                       {(restaurant as any).cancellation_window_hours && (
                         <Text className="text-sm text-muted-foreground">

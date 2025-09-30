@@ -8,10 +8,7 @@ import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { useBookingsStore } from "@/stores";
 import { Database } from "@/types/supabase";
-
-type Booking = Database["public"]["Tables"]["bookings"]["Row"] & {
-  restaurant: Database["public"]["Tables"]["restaurants"]["Row"];
-};
+import { Booking } from "@/types/booking";
 
 type TableInfo = {
   id: string;

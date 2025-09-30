@@ -46,7 +46,7 @@ export function checkGuestAccess(
 export function withAuthOnly<P extends object>(
   Component: React.ComponentType<P>,
 ): typeof Component {
-  return (props: P) => {
+  const WithAuthOnlyComponent = (props: P) => {
     const { isGuest } = useAuth();
 
     if (isGuest) {
@@ -55,6 +55,10 @@ export function withAuthOnly<P extends object>(
 
     return <Component {...props} />;
   };
+
+  WithAuthOnlyComponent.displayName = `withAuthOnly(${Component.displayName || Component.name || "Component"})`;
+
+  return WithAuthOnlyComponent;
 }
 
 /**

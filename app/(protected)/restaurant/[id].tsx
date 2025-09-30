@@ -64,6 +64,7 @@ import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
 import { useShare } from "@/hooks/useShare";
 import { ShareModal } from "@/components/ui/share-modal";
 import RestaurantDetailsScreenSkeleton from "@/components/skeletons/RestaurantDetailsScreenSkeleton";
+import { Restaurant } from "@/types/restaurant";
 import { Database } from "@/types/supabase";
 import {
   getAgeRestrictionMessage,
@@ -71,42 +72,11 @@ import {
 } from "@/utils/ageVerification";
 import { useBookingEligibility } from "@/hooks/useBookingEligibility";
 
-// Type definitions - Extended to match actual database schema
-type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
-  dietary_options?: string[] | null;
-  ambiance_tags?: string[] | null;
-  parking_available?: boolean | null;
-  outdoor_seating?: boolean | null;
-  average_rating?: number | null;
-  total_reviews?: number | null;
-  staticCoordinates?: { lat: number; lng: number };
-  coordinates?: { latitude: number; longitude: number };
-  review_summary?: {
-    average_rating: number;
-    total_reviews: number;
-    recommendation_percentage: number;
-  } | null;
-  // Additional fields that exist in the database but not in the types
-  main_image_url?: string | null;
-  image_urls?: string[] | null;
-  website_url?: string | null;
-  booking_policy?: "instant" | "request" | null;
-  cuisine_type?: string | null;
-  address?: string | null;
-  location?: any;
-  phone_number?: string | null;
-  description?: string | null;
-  price_range?: number | null;
-  // Add any additional fields that might be missing
-  [key: string]: any;
-};
-
 type Review = Database["public"]["Tables"]["reviews"]["Row"] & {
   user: {
     full_name: string;
     avatar_url?: string | null;
   };
-  overall_rating?: number; // Add this field to match the usage
 };
 
 type Coordinates = {
@@ -486,8 +456,8 @@ const SocialMediaSection: React.FC<{
   const socialLinks = [];
 
   // Check for Instagram
-  if ((restaurant as any).instagram_handle) {
-    const handle = (restaurant as any).instagram_handle;
+  if (restaurant.instagram_handle) {
+    const handle = restaurant.instagram_handle;
     const url = handle.startsWith("@")
       ? `https://instagram.com/${handle.slice(1)}`
       : `https://instagram.com/${handle}`;
@@ -499,90 +469,16 @@ const SocialMediaSection: React.FC<{
       color: "#E4405F",
       handle: handle.startsWith("@") ? handle : `@${handle}`,
     });
-  } else if ((restaurant as any).instagram_url) {
-    socialLinks.push({
-      id: "instagram",
-      icon: Instagram,
-      label: "Instagram",
-      url: (restaurant as any).instagram_url,
-      color: "#E4405F",
-      handle: "Instagram",
-    });
   }
 
-  // Check for Facebook
-  if ((restaurant as any).facebook_url) {
-    socialLinks.push({
-      id: "facebook",
-      icon: Facebook,
-      label: "Facebook",
-      url: (restaurant as any).facebook_url,
-      color: "#1877F2",
-      handle: "Facebook",
-    });
-  }
-
-  // Check for Twitter
-  if ((restaurant as any).twitter_handle) {
-    const handle = (restaurant as any).twitter_handle;
-    const url = handle.startsWith("@")
-      ? `https://twitter.com/${handle.slice(1)}`
-      : `https://twitter.com/${handle}`;
-    socialLinks.push({
-      id: "twitter",
-      icon: Twitter,
-      label: "Twitter",
-      url: url,
-      color: "#1DA1F2",
-      handle: handle.startsWith("@") ? handle : `@${handle}`,
-    });
-  } else if ((restaurant as any).twitter_url) {
-    socialLinks.push({
-      id: "twitter",
-      icon: Twitter,
-      label: "Twitter",
-      url: (restaurant as any).twitter_url,
-      color: "#1DA1F2",
-      handle: "Twitter",
-    });
-  }
-
-  // Check for TikTok
-  if ((restaurant as any).tiktok_handle) {
-    const handle = (restaurant as any).tiktok_handle;
-    const url = handle.startsWith("@")
-      ? `https://tiktok.com/${handle}`
-      : `https://tiktok.com/@${handle}`;
-    socialLinks.push({
-      id: "tiktok",
-      icon: ExternalLink,
-      label: "TikTok",
-      url: url,
-      color: "#FF0050",
-      handle: handle.startsWith("@") ? handle : `@${handle}`,
-    });
-  } else if ((restaurant as any).tiktok_url) {
-    socialLinks.push({
-      id: "tiktok",
-      icon: ExternalLink,
-      label: "TikTok",
-      url: (restaurant as any).tiktok_url,
-      color: "#FF0050",
-      handle: "TikTok",
-    });
-  }
-
-  // Check for LinkedIn
-  if ((restaurant as any).linkedin_url) {
-    socialLinks.push({
-      id: "linkedin",
-      icon: ExternalLink,
-      label: "LinkedIn",
-      url: (restaurant as any).linkedin_url,
-      color: "#0A66C2",
-      handle: "LinkedIn",
-    });
-  }
+  // Note: Facebook, Twitter, TikTok, LinkedIn fields don't exist in current schema
+  // They should be added to the database schema if needed:
+  // - facebook_url: string | null
+  // - twitter_handle: string | null
+  // - twitter_url: string | null
+  // - tiktok_handle: string | null
+  // - tiktok_url: string | null
+  // - linkedin_url: string | null
 
   if (socialLinks.length === 0) return null;
 
@@ -1040,14 +936,14 @@ export default function RestaurantDetailsScreen() {
     if (!restaurant) return [];
     const images: string[] = [];
 
-    // Add main image if it exists - using type assertion for now
-    if ((restaurant as any).main_image_url) {
-      images.push((restaurant as any).main_image_url);
+    // Add main image if it exists
+    if (restaurant.main_image_url) {
+      images.push(restaurant.main_image_url);
     }
 
-    // Add additional images if they exist - using type assertion for now
-    if (Array.isArray((restaurant as any).image_urls)) {
-      images.push(...(restaurant as any).image_urls);
+    // Add additional images if they exist
+    if (Array.isArray(restaurant.image_urls)) {
+      images.push(...restaurant.image_urls);
     }
 
     return images.filter(Boolean);
@@ -1055,11 +951,11 @@ export default function RestaurantDetailsScreen() {
 
   const handleWebsite = useCallback(() => {
     handleQuickActionPress(() => {
-      if ((restaurant as any)?.website_url) {
-        Linking.openURL((restaurant as any).website_url);
+      if (restaurant?.website_url) {
+        Linking.openURL(restaurant.website_url);
       }
     });
-  }, [(restaurant as any)?.website_url, handleQuickActionPress]);
+  }, [restaurant?.website_url, handleQuickActionPress]);
 
   const handleViewAllReviews = useCallback(() => {
     handleQuickActionPress(() => {
@@ -1241,7 +1137,7 @@ export default function RestaurantDetailsScreen() {
         <SafeAreaView edges={["bottom"]}>
           <View className="p-4 bg-background border-t border-border">
             {/* Booking Policy Info */}
-            {(restaurant as any).booking_policy === "request" && (
+            {restaurant.booking_policy === "request" && (
               <View className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-3 mb-3">
                 <View className="flex-row items-center gap-2">
                   <Timer size={16} color="#f97316" />
@@ -1272,7 +1168,7 @@ export default function RestaurantDetailsScreen() {
                       {bookingEligibility.actionText || "Not Available"}
                     </Text>
                   </>
-                ) : (restaurant as any).booking_policy === "request" ? (
+                ) : restaurant.booking_policy === "request" ? (
                   <>
                     <Send size={20} color="white" />
                     <Text className="text-white font-bold text-lg">
@@ -1291,7 +1187,7 @@ export default function RestaurantDetailsScreen() {
             </Button>
 
             {/* Instant Booking Badge */}
-            {(restaurant as any).booking_policy === "instant" && (
+            {restaurant.booking_policy === "instant" && (
               <View className="flex-row items-center justify-center gap-2 mt-2">
                 <CheckCircle size={14} color="#10b981" />
                 <Text className="text-xs text-muted-foreground">
