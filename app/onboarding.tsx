@@ -56,7 +56,7 @@ const SLIDES: Slide[] = [
   {
     key: "ai",
     title: "Not finding a place to eat? Ask Dinemate AI",
-    subtitle: "Dinemate AI will help you find the perfect restaurant .",
+    subtitle: "Dinemate AI will help you find the perfect restaurant.",
     image: require("@/assets/onboarding/ai.png"),
     cta: "Get started",
   },
