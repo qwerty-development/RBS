@@ -71,7 +71,7 @@ const RestaurantLoyaltyNotification: React.FC<{
                 {points} Bonus Points Earned!
               </Text>
               <Text className="text-sm text-muted-foreground">
-                From "{ruleName}"
+                From &quot;{ruleName}&quot;
               </Text>
             </View>
             <View className="bg-green-100 dark:bg-green-900/50 px-3 py-1 rounded-full">
@@ -100,7 +100,7 @@ export default function BookingSuccessScreen() {
     setIsMounted(true);
   }, []);
 
-  const params = useLocalSearchParams<BookingSuccessParams>();
+  const params = useLocalSearchParams<any>();
   const router = useRouter();
   const { colorScheme } = useColorScheme();
   const confettiRef = React.useRef<any>(null);
@@ -493,9 +493,11 @@ export default function BookingSuccessScreen() {
               <View className="flex-row items-start gap-3">
                 <Calendar size={20} color="#6b7280" className="mt-1" />
                 <View className="flex-1">
-                  <Text className="font-medium">We'll send you a reminder</Text>
+                  <Text className="font-medium">
+                    We&apos;ll send you a reminder
+                  </Text>
                   <Muted className="text-sm">
-                    You'll receive a notification 2 hours before your
+                    You&apos;ll receive a notification 2 hours before your
                     reservation
                   </Muted>
                 </View>

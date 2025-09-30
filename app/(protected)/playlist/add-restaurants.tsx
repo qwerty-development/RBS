@@ -21,7 +21,7 @@ import * as Haptics from "expo-haptics";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { Muted } from "@/components/ui/typography";
+import { H3, Muted } from "@/components/ui/typography";
 import { RestaurantSearchCard } from "@/components/search/RestaurantSearchCard";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
@@ -190,7 +190,7 @@ export default function AddRestaurantsScreen() {
             restaurant={item}
             variant="compact"
             showActions={false}
-            disabled={true}
+            disabled
             className={cn("border-0 shadow-none", isSelected && "bg-primary/5")}
           />
 
@@ -355,7 +355,7 @@ export default function AddRestaurantsScreen() {
           renderItem={renderRestaurantItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
-          showsVerticalScrollIndicator={false}
+         
         />
       )}
 

@@ -378,7 +378,7 @@ export default function FriendsScreen() {
       // Refresh requests + search
       await loadFriendRequests();
       if (searchQuery) {
-        await handleSearch(searchQuery);
+        await executeSearch();
       }
     } catch (error: any) {
       Alert.alert("Error", error.message || "Failed to remove friend request");
@@ -512,7 +512,7 @@ export default function FriendsScreen() {
               </Muted>
               {item.message && (
                 <Text className="text-sm mt-1 text-gray-600 dark:text-gray-400">
-                  "{item.message}"
+                  &quot;{item.message}&quot;
                 </Text>
               )}
             </View>
@@ -882,7 +882,7 @@ export default function FriendsScreen() {
                   <>
                     <Search size={48} color="#9ca3af" />
                     <Text className="text-muted-foreground mt-4 text-center">
-                      No results found for "{searchQuery}"
+                      No results found for &quot;{searchQuery}&quot;
                     </Text>
                   </>
                 )}

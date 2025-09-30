@@ -122,9 +122,9 @@ const PotentialLoyaltyPointsCard: React.FC<{
 
       <View className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
         <Text className="text-sm text-purple-900 dark:text-purple-100">
-          If your booking is confirmed, you'll earn{" "}
+          If your booking is confirmed, you&apos;ll earn{" "}
           <Text className="font-bold">{expectedPoints} bonus points</Text>
-          {ruleName ? ` from "${ruleName}"!` : "!"}
+          {ruleName ? ` from &quot;${ruleName}&quot;!` : "!"}
         </Text>
       </View>
 
@@ -352,7 +352,7 @@ export default function RequestSentScreen() {
             </View>
             <Text className="text-sm text-blue-700 dark:text-blue-300">
               The restaurant will review your request and confirm availability.
-              You'll receive a notification with their response.
+              You&apos;ll receive a notification with their response.
             </Text>
           </View>
 
@@ -462,9 +462,10 @@ export default function RequestSentScreen() {
                   <Text className="text-primary font-bold">2</Text>
                 </View>
                 <View className="flex-1">
-                  <Text className="font-medium">You'll Be Notified</Text>
+                  <Text className="font-medium">You&apos;ll Be Notified</Text>
                   <Text className="text-sm text-muted-foreground">
-                    We'll send you a push notification and update your bookings
+                    We&apos;ll send you a push notification and update your
+                    bookings
                   </Text>
                 </View>
               </View>
@@ -478,8 +479,8 @@ export default function RequestSentScreen() {
                     Confirmation or Alternative
                   </Text>
                   <Text className="text-sm">
-                    If confirmed, you're all set! If not, try booking another
-                    time
+                    If confirmed, you&apos;re all set! If not, try booking
+                    another time
                   </Text>
                 </View>
               </View>
