@@ -119,13 +119,14 @@ export default function WaitlistDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colorScheme } = useColorScheme();
-  const { cancelWaitlist } = useWaitlist();
+  const { cancelWaitlist, convertWaitlistToBooking } = useWaitlist();
 
   const [waitlistEntry, setWaitlistEntry] = useState<WaitlistEntry | null>(
     null,
   );
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [converting, setConverting] = useState(false);
 
   // Share waitlist entry
   const shareWaitlistEntry = async () => {
@@ -317,20 +318,47 @@ export default function WaitlistDetailsScreen() {
     }
   };
 
-  const handleBookNow = () => {
-    if (waitlistEntry?.status === "notified") {
-      // Navigate to booking flow for this restaurant
-      router.push({
-        pathname: "/(protected)/booking/availability",
-        params: {
-          restaurantId: waitlistEntry.restaurant_id,
-          date: waitlistEntry.desired_date,
-          time: waitlistEntry.desired_time_range.split("-")[0],
-          partySize: waitlistEntry.party_size.toString(),
-          tableType: waitlistEntry.table_type,
-          fromWaitlist: "true",
-        },
-      });
+  const handleBookNow = async () => {
+    if (!waitlistEntry || waitlistEntry.status !== "notified") return;
+
+    setConverting(true);
+    try {
+      const result = await convertWaitlistToBooking(waitlistEntry.id);
+
+      if (result.success && result.bookingId) {
+        // Success! Provide haptic feedback
+        await Haptics.notificationAsync(
+          Haptics.NotificationFeedbackType.Success,
+        );
+
+        // Show success alert
+        Alert.alert(
+          "Booking Confirmed! 🎉",
+          `Your table at ${waitlistEntry.restaurant?.name} has been booked successfully!`,
+          [
+            {
+              text: "View Booking",
+              onPress: () => {
+                router.replace(`/(protected)/booking/${result.bookingId}`);
+              },
+            },
+          ],
+        );
+      } else {
+        // Show error alert
+        await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert(
+          "Booking Failed",
+          result.error ||
+            "Failed to convert waitlist to booking. Please try again.",
+        );
+      }
+    } catch (error) {
+      console.error("Error in handleBookNow:", error);
+      await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      Alert.alert("Error", "An unexpected error occurred. Please try again.");
+    } finally {
+      setConverting(false);
     }
   };
 
@@ -679,10 +707,10 @@ export default function WaitlistDetailsScreen() {
                     ? handleBookNow
                     : handleCancel
                 }
-                disabled={!canCancel || cancelling}
+                disabled={!canCancel || cancelling || converting}
                 className="flex-1 rounded-md h-12"
               >
-                {cancelling ? (
+                {cancelling || converting ? (
                   <ActivityIndicator size="small" color="white" />
                 ) : (
                   <Text className="text-primary-foreground font-semibold">

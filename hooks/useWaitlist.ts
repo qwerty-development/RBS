@@ -309,6 +309,125 @@ export const useWaitlist = () => {
     [leaveWaitlist],
   );
 
+  // Convert waitlist entry to booking
+  const convertWaitlistToBooking = useCallback(
+    async (
+      waitlistId: string,
+    ): Promise<{ success: boolean; bookingId?: string; error?: string }> => {
+      if (!user) {
+        return { success: false, error: "Authentication required" };
+      }
+
+      try {
+        // First, fetch the complete waitlist entry
+        const { data: waitlistEntry, error: fetchError } = await supabase
+          .from("waitlist")
+          .select(
+            `
+            *,
+            restaurant:restaurants(id, name, tier)
+          `,
+          )
+          .eq("id", waitlistId)
+          .eq("user_id", user.id)
+          .single();
+
+        if (fetchError || !waitlistEntry) {
+          console.error("Failed to fetch waitlist entry:", fetchError);
+          return { success: false, error: "Waitlist entry not found" };
+        }
+
+        // Validate that the waitlist entry can be converted
+        if (waitlistEntry.status !== "notified") {
+          return {
+            success: false,
+            error:
+              "Only notified waitlist entries can be converted to bookings",
+          };
+        }
+
+        if (waitlistEntry.converted_booking_id) {
+          return {
+            success: false,
+            error:
+              "This waitlist entry has already been converted to a booking",
+          };
+        }
+
+        // Parse the desired_time_range to get start time
+        // Format is typically "18:00-19:00" or just "18:00"
+        let startTime = "19:00"; // default
+        if (waitlistEntry.desired_time_range.includes("-")) {
+          startTime = waitlistEntry.desired_time_range.split("-")[0].trim();
+        } else {
+          startTime = waitlistEntry.desired_time_range.trim();
+        }
+
+        // Create booking_time from desired_date and start time
+        const bookingDateTime = new Date(
+          `${waitlistEntry.desired_date}T${startTime}:00`,
+        );
+
+        // Create the booking
+        const { data: newBooking, error: bookingError } = await supabase
+          .from("bookings")
+          .insert({
+            user_id: user.id,
+            restaurant_id: waitlistEntry.restaurant_id,
+            booking_time: bookingDateTime.toISOString(),
+            party_size: waitlistEntry.party_size,
+            status: "confirmed", // Direct confirmation since table is available
+            special_requests: waitlistEntry.special_requests,
+            table_preferences:
+              waitlistEntry.table_type !== "any"
+                ? [waitlistEntry.table_type]
+                : null,
+            turn_time_minutes: 120, // Default turn time
+            source: "waitlist", // Mark as converted from waitlist
+          })
+          .select("id, confirmation_code")
+          .single();
+
+        if (bookingError || !newBooking) {
+          console.error("Failed to create booking:", bookingError);
+          return {
+            success: false,
+            error: "Failed to create booking. Please try again.",
+          };
+        }
+
+        // Update waitlist entry to mark as booked
+        const { error: updateError } = await supabase
+          .from("waitlist")
+          .update({
+            status: "booked",
+            converted_booking_id: newBooking.id,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", waitlistId)
+          .eq("user_id", user.id);
+
+        if (updateError) {
+          console.error("Failed to update waitlist entry:", updateError);
+          // Booking was created but waitlist update failed
+          // This is not ideal but the booking exists, so we'll consider it a success
+          console.warn(
+            "Booking created but waitlist update failed. Manual cleanup may be needed.",
+          );
+        }
+
+        // Refresh the waitlist
+        await getMyWaitlist();
+
+        return { success: true, bookingId: newBooking.id };
+      } catch (error) {
+        console.error("Error converting waitlist to booking:", error);
+        return { success: false, error: "An unexpected error occurred" };
+      }
+    },
+    [user, getMyWaitlist],
+  );
+
   // Check if user can join waitlist for a specific restaurant/date
   const canJoinWaitlist = useCallback(
     async (restaurantId: string, date: string): Promise<boolean> => {
@@ -437,6 +556,7 @@ export const useWaitlist = () => {
     leaveWaitlist,
     cancelWaitlist,
     canJoinWaitlist,
+    convertWaitlistToBooking,
     myWaitlist,
     loading,
     isAuthenticated: !!user,
