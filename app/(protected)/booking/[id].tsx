@@ -529,7 +529,7 @@ export default function BookingDetailsScreen() {
                 </Text>
               </View>
               <Text className="text-sm text-orange-700 dark:text-orange-300">
-                The restaurant typically responds within {timeRemaining}{" "}
+                The restaurant typically responds within a couple of minutes{" "}
                 minutes. We&apos;ll notify you immediately when they confirm.
               </Text>
               <View className="flex-row items-center gap-2 mt-3">
