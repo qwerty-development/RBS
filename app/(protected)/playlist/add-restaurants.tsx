@@ -355,7 +355,6 @@ export default function AddRestaurantsScreen() {
           renderItem={renderRestaurantItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
-         
         />
       )}
 

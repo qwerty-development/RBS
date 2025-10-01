@@ -107,13 +107,39 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
       } people. Confirmation code: ${booking.confirmation_code}${offerText}${loyaltyText}`,
     );
 
-    const url = `whatsapp://send?phone=${booking.restaurant.whatsapp_number}&text=${message}`;
-    const canOpen = await Linking.canOpenURL(url);
+    // Clean phone number: remove all non-numeric characters
+    const cleanedNumber = booking.restaurant.whatsapp_number.replace(
+      /[^\d]/g,
+      "",
+    );
 
-    if (canOpen) {
-      await Linking.openURL(url);
-    } else {
+    // Use https://wa.me/ format which works without URL scheme whitelisting
+    const waUrl = `https://wa.me/${cleanedNumber}?text=${message}`;
+    // Fallback to whatsapp:// scheme
+    const whatsappUrl = `whatsapp://send?phone=${cleanedNumber}&text=${message}`;
+
+    try {
+      // Try wa.me URL first (works on both platforms without configuration)
+      const canOpenWa = await Linking.canOpenURL(waUrl);
+      if (canOpenWa) {
+        await Linking.openURL(waUrl);
+        return;
+      }
+
+      // Fallback to whatsapp:// scheme
+      const canOpenWhatsApp = await Linking.canOpenURL(whatsappUrl);
+      if (canOpenWhatsApp) {
+        await Linking.openURL(whatsappUrl);
+        return;
+      }
+
       Alert.alert("Error", "WhatsApp is not installed");
+    } catch (error) {
+      console.error("Error opening WhatsApp:", error);
+      Alert.alert(
+        "Error",
+        "Unable to open WhatsApp. Please check if it's installed.",
+      );
     }
   };
 

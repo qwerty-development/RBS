@@ -60,7 +60,7 @@
             ]
           }
         ],
-        "LSApplicationQueriesSchemes": ["mailto", "tel", "sms", "https", "http"]
+        "LSApplicationQueriesSchemes": ["mailto", "tel", "sms", "https", "http", "whatsapp"]
       },
       "associatedDomains": [
         "applinks:plate-app.com",

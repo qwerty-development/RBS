@@ -178,14 +178,36 @@ export function useRestaurant(
     Linking.openURL(`tel:${restaurant.phone_number}`);
   }, []);
 
-  const handleWhatsApp = useCallback((restaurant: Restaurant) => {
+  const handleWhatsApp = useCallback(async (restaurant: Restaurant) => {
     if (!restaurant?.whatsapp_number) return;
     const message = encodeURIComponent(
       `Hi! I'd like to inquire about making a reservation at ${restaurant.name}.`,
     );
-    Linking.openURL(
-      `whatsapp://send?phone=${restaurant.whatsapp_number}&text=${message}`,
-    );
+    // Clean phone number: remove all non-numeric characters
+    const cleanedNumber = restaurant.whatsapp_number.replace(/[^\d]/g, "");
+
+    // Use https://wa.me/ format which works without URL scheme whitelisting
+    const waUrl = `https://wa.me/${cleanedNumber}?text=${message}`;
+    // Fallback to whatsapp:// scheme
+    const whatsappUrl = `whatsapp://send?phone=${cleanedNumber}&text=${message}`;
+
+    try {
+      // Try wa.me URL first (works on both platforms without configuration)
+      const canOpenWa = await Linking.canOpenURL(waUrl);
+      if (canOpenWa) {
+        await Linking.openURL(waUrl);
+        return;
+      }
+
+      // Fallback to whatsapp:// scheme
+      await Linking.openURL(whatsappUrl);
+    } catch (error) {
+      console.error("Error opening WhatsApp:", error);
+      Alert.alert(
+        "Error",
+        "Unable to open WhatsApp. Please check if it's installed.",
+      );
+    }
   }, []);
 
   const openDirections = useCallback(
