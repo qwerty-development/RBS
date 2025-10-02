@@ -128,10 +128,10 @@ export const useBookingDetails = (bookingId: string) => {
         .eq("booking_id", bookingId);
 
       if (!tablesError && tablesData && tablesData.length > 0) {
-        const tables = tablesData
+        const tables:any = tablesData
           .map((bt) => bt.table)
           .filter(
-            (t): t is TableInfo =>
+            (t:any) =>
               t !== null && typeof t === "object" && "id" in t,
           );
         setAssignedTables(tables);
