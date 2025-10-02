@@ -657,14 +657,14 @@ export default function BookingDetailsScreen() {
               {booking.expected_loyalty_points &&
                 booking.expected_loyalty_points > 0 && (
                   <View className="flex-row items-center gap-3 pt-3">
-                    <View className="bg-amber-100 dark:bg-amber-900/30 rounded-full p-2">
-                      <Sparkles size={18} color="#f59e0b" />
+                    <View className="bg-primary/10 rounded-full p-2">
+                      <Sparkles size={18} color={colors[colorScheme].primary} />
                     </View>
                     <View>
                       <Text className="text-xs text-muted-foreground mb-1">
                         LOYALTY POINTS
                       </Text>
-                      <Text className="font-medium text-amber-600 dark:text-amber-400">
+                      <Text className="font-medium text-primary dark:text-white">
                         +{booking.expected_loyalty_points} points
                       </Text>
                     </View>
@@ -710,8 +710,8 @@ export default function BookingDetailsScreen() {
             {/* Occasion */}
             {booking.occasion && (
               <View className="flex-row items-start gap-3 mb-3 pb-3 border-b border-border">
-                <View className="bg-purple-100 dark:bg-purple-900/30 rounded-full p-2 mt-0.5">
-                  <PartyPopper size={18} color="#8b5cf6" />
+                <View className="bg-primary/10 rounded-full p-2 mt-0.5">
+                  <PartyPopper size={18} color={colors[colorScheme].primary} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-xs text-muted-foreground mb-1">
@@ -727,8 +727,8 @@ export default function BookingDetailsScreen() {
             {/* Special Requests */}
             {booking.special_requests && (
               <View className="flex-row items-start gap-3 mb-3 pb-3 border-b border-border">
-                <View className="bg-blue-100 dark:bg-blue-900/30 rounded-full p-2 mt-0.5">
-                  <MessageSquare size={18} color="#3b82f6" />
+                <View className="bg-primary/10 rounded-full p-2 mt-0.5">
+                  <MessageSquare size={18} color={colors[colorScheme].primary} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-xs text-muted-foreground mb-1">
@@ -744,8 +744,8 @@ export default function BookingDetailsScreen() {
             {/* Special Offer */}
             {appliedOfferDetails && (
               <View className="flex-row items-start gap-3 mb-3 pb-3 border-b border-border">
-                <View className="bg-green-100 dark:bg-green-900/30 rounded-full p-2 mt-0.5">
-                  <Gift size={18} color="#10b981" />
+                <View className="bg-primary/10 rounded-full p-2 mt-0.5">
+                  <Gift size={18} color={colors[colorScheme].primary} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-xs text-muted-foreground mb-1">
@@ -755,7 +755,7 @@ export default function BookingDetailsScreen() {
                     {appliedOfferDetails.special_offer_title}
                   </Text>
                   {appliedOfferDetails.discount_percentage && (
-                    <Text className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+                    <Text className="text-xs text-primary dark:text-white mt-0.5">
                       {appliedOfferDetails.discount_percentage}% discount
                       applied
                     </Text>
