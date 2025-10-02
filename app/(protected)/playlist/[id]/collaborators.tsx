@@ -200,83 +200,94 @@ export default function PlaylistCollaboratorsScreen() {
   const renderCollaboratorItem = useCallback(
     ({ item, index }: { item: PlaylistCollaborator; index: number }) => {
       const isPending = !item.accepted_at;
+      const positionInRow = index % 3;
 
       return (
         <View
-          className="w-[31%] items-center bg-white dark:bg-gray-800 mb-2 rounded-xl p-3 mx-[1%]"
-          style={{ aspectRatio: 0.8 }}
+          style={{
+            width: "31%",
+            marginBottom: 8,
+            marginRight: positionInRow === 2 ? 0 : "3.5%",
+          }}
         >
-          {/* Avatar */}
-          <View className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 mb-2 overflow-hidden">
-            {item.user?.avatar_url ? (
-              <RNImage
-                source={{ uri: item.user.avatar_url }}
-                style={{ width: "100%", height: "100%" }}
-              />
-            ) : (
-              <View className="w-full h-full items-center justify-center">
-                <Text className="text-lg font-semibold">
-                  {item.user?.full_name?.charAt(0).toUpperCase()}
-                </Text>
+          <View className="bg-card rounded-xl p-3 shadow-sm border border-border">
+            {/* Avatar */}
+            <View className="w-full items-center mb-2">
+              <View className="w-16 h-16 rounded-full bg-muted overflow-hidden">
+                {item.user?.avatar_url ? (
+                  <RNImage
+                    source={{ uri: item.user.avatar_url }}
+                    style={{ width: "100%", height: "100%" }}
+                  />
+                ) : (
+                  <View className="w-full h-full items-center justify-center">
+                    <Text className="text-lg font-semibold">
+                      {item.user?.full_name?.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* User Info */}
+            <View className="items-center mb-2">
+              <Text
+                className="font-semibold text-center text-sm"
+                numberOfLines={1}
+              >
+                {item.user?.full_name}
+              </Text>
+              <View className="flex-row items-center justify-center mt-1">
+                {isPending ? (
+                  <Muted className="text-xs">Pending</Muted>
+                ) : (
+                  <>
+                    {item.permission === "edit" ? (
+                      <View className="flex-row items-center">
+                        <Edit3 size={10} color="#6b7280" />
+                        <Muted className="text-xs ml-1">Can edit</Muted>
+                      </View>
+                    ) : (
+                      <View className="flex-row items-center">
+                        <Eye size={10} color="#6b7280" />
+                        <Muted className="text-xs ml-1">View only</Muted>
+                      </View>
+                    )}
+                  </>
+                )}
+              </View>
+            </View>
+
+            {/* Actions */}
+            {isOwner && (
+              <View className="flex-row items-center justify-center gap-2 pt-2 border-t border-border">
+                {!isPending && (
+                  <Pressable
+                    onPress={() =>
+                      handlePermissionChange(item.id, item.permission)
+                    }
+                    className="flex-1 items-center justify-center py-1.5 rounded-lg bg-muted active:bg-muted/80"
+                  >
+                    <Shield
+                      size={16}
+                      color={colorScheme === "dark" ? "#fff" : "#000"}
+                    />
+                  </Pressable>
+                )}
+                <Pressable
+                  onPress={() =>
+                    handleRemoveCollaborator(
+                      item.id,
+                      item.user?.full_name || "User",
+                    )
+                  }
+                  className="flex-1 items-center justify-center py-1.5 rounded-lg bg-destructive/10 active:bg-destructive/20"
+                >
+                  <Trash2 size={16} color="#dc2626" />
+                </Pressable>
               </View>
             )}
           </View>
-
-          {/* User Info */}
-          <View className="items-center">
-            <Text className="font-semibold text-center" numberOfLines={1}>
-              {item.user?.full_name}
-            </Text>
-            <View className="flex-row items-center mt-1">
-              {isPending ? (
-                <Muted className="text-xs">Pending</Muted>
-              ) : (
-                <>
-                  {item.permission === "edit" ? (
-                    <View className="flex-row items-center">
-                      <Edit3 size={12} color="#6b7280" />
-                      <Muted className="text-xs ml-1">Can edit</Muted>
-                    </View>
-                  ) : (
-                    <View className="flex-row items-center">
-                      <Eye size={12} color="#6b7280" />
-                      <Muted className="text-xs ml-1">Can view</Muted>
-                    </View>
-                  )}
-                </>
-              )}
-            </View>
-          </View>
-
-          {/* Actions */}
-          {isOwner && (
-            <View className="flex-row items-center justify-center mt-2 gap-4">
-              {!isPending && (
-                <Pressable
-                  onPress={() =>
-                    handlePermissionChange(item.id, item.permission)
-                  }
-                  className="p-1"
-                >
-                  <Shield
-                    size={18}
-                    color={colorScheme === "dark" ? "#fff" : "#000"}
-                  />
-                </Pressable>
-              )}
-              <Pressable
-                onPress={() =>
-                  handleRemoveCollaborator(
-                    item.id,
-                    item.user?.full_name || "User",
-                  )
-                }
-                className="p-1"
-              >
-                <Trash2 size={18} color="#dc2626" />
-              </Pressable>
-            </View>
-          )}
         </View>
       );
     },
@@ -305,10 +316,10 @@ export default function PlaylistCollaboratorsScreen() {
               ],
             );
           }}
-          className="flex-row items-center p-4 bg-white dark:bg-gray-800 mb-2 rounded-xl active:bg-gray-50 dark:active:bg-gray-700"
+          className="flex-row items-center p-4 bg-card mb-2 rounded-xl active:bg-muted"
         >
           {/* Avatar */}
-          <View className="w-12 h-12 rounded-full bg-gray-200 dark:bg-gray-700 mr-3 overflow-hidden">
+          <View className="w-12 h-12 rounded-full bg-muted mr-3 overflow-hidden">
             {item.avatar_url ? (
               <RNImage
                 source={{ uri: item.avatar_url }}
@@ -338,9 +349,9 @@ export default function PlaylistCollaboratorsScreen() {
   const allCollaborators = [...collaborators, ...pendingInvites];
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50 dark:bg-gray-900">
+    <SafeAreaView className="flex-1 bg-background">
       {/* Header */}
-      <View className="bg-white dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+      <View className="bg-background px-4 py-3 border-b border-border">
         <View className="flex-row items-center justify-between">
           <View className="flex-row items-center flex-1">
             <Pressable onPress={() => router.back()} className="p-2 -ml-2">
@@ -373,8 +384,8 @@ export default function PlaylistCollaboratorsScreen() {
 
       {/* Search Section */}
       {showSearch && isOwner && (
-        <View className="bg-white dark:bg-gray-800 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-          <View className="flex-row items-center bg-gray-100 dark:bg-gray-700 rounded-xl px-4 py-2">
+        <View className="bg-background px-4 py-3 border-b border-border">
+          <View className="flex-row items-center bg-muted rounded-xl px-4 py-2">
             <Search size={20} color="#6b7280" />
             <TextInput
               placeholder="Search users by name..."
@@ -419,13 +430,12 @@ export default function PlaylistCollaboratorsScreen() {
           data={allCollaborators}
           renderItem={renderCollaboratorItem}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16 }}
+          contentContainerStyle={{ paddingHorizontal: "2%", paddingTop: 10 }}
           showsVerticalScrollIndicator={false}
           numColumns={3}
-          columnWrapperStyle={{ justifyContent: "flex-start" }}
           ListEmptyComponent={
-            !showSearch && (
-              <View className="items-center justify-center py-8">
+            !showSearch ? (
+              <View className="items-center  justify-center py-8">
                 <UserPlus size={48} color="#6b7280" className="mb-4" />
                 <H3 className="text-center mb-2">No collaborators yet</H3>
                 <Muted className="text-center mb-6">
@@ -437,7 +447,7 @@ export default function PlaylistCollaboratorsScreen() {
                   </Button>
                 )}
               </View>
-            )
+            ) : null
           }
         />
       )}
