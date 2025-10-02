@@ -136,7 +136,29 @@ export async function registerDeviceForPush(userId: string): Promise<void> {
     }
 
     console.log(
-      "✅ [registerDeviceForPush] Device registered successfully with enabled=true",
+      "📱 [registerDeviceForPush] Forcing enabled=true to avoid stale state...",
+    );
+
+    const { data: ensureEnabledData, error: ensureEnabledError } =
+      await supabase
+        .from("user_devices")
+        .update({ enabled: true, last_seen: new Date().toISOString() })
+        .eq("user_id", userId)
+        .eq("device_id", deviceId)
+        .select("id, enabled, last_seen")
+        .maybeSingle();
+
+    if (ensureEnabledError) {
+      console.error(
+        "📱 [registerDeviceForPush] Failed to ensure enabled=true:",
+        ensureEnabledError,
+      );
+      throw ensureEnabledError;
+    }
+
+    console.log(
+      "✅ [registerDeviceForPush] Device registered with ensured enabled=true",
+      ensureEnabledData,
     );
   } catch (e) {
     console.error("❌ [registerDeviceForPush] Failed to register device:", e);
