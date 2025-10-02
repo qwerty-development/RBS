@@ -23,6 +23,7 @@ import {
   withSecurityMiddleware,
   InputValidator,
 } from "../lib/security";
+import { unregisterDeviceForPush } from "@/lib/notifications/setup";
 
 const GUEST_MODE_KEY = "guest-mode-active";
 
@@ -587,6 +588,10 @@ function AuthContent({ children }: PropsWithChildren) {
       await AsyncStorage.removeItem(GUEST_MODE_KEY);
       setIsGuest(false);
 
+      if (user?.id) {
+        await unregisterDeviceForPush(user.id);
+      }
+
       const { error } = await supabase.auth.signOut();
       if (error) {
         // Sign-out error
@@ -596,7 +601,7 @@ function AuthContent({ children }: PropsWithChildren) {
       // Sign-out error
       throw error;
     }
-  }, []);
+  }, [user]);
 
   const updateProfile = useCallback(
     async (updates: Partial<Profile>) => {

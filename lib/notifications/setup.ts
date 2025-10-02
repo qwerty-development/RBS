@@ -7,6 +7,22 @@ let responseListenerSub: Notifications.Subscription | null = null;
 let receivedListenerSub: Notifications.Subscription | null = null;
 let cachedPushToken: string | null = null;
 
+async function resolveExistingPushToken(): Promise<string | null> {
+  if (cachedPushToken) {
+    return cachedPushToken;
+  }
+
+  try {
+    const tokenResponse = await Notifications.getExpoPushTokenAsync();
+    const token = tokenResponse?.data ?? null;
+    cachedPushToken = token;
+    return token;
+  } catch (error) {
+    console.warn("Failed to resolve existing push token:", error);
+    return null;
+  }
+}
+
 export type NotificationData = {
   category?: string;
   type?: string;
@@ -49,6 +65,17 @@ export async function registerDeviceForPush(userId: string): Promise<void> {
     const platform = Platform.OS;
     const appVersion = Constants.expoConfig?.version ?? null;
 
+    // Disable this token for any other users to prevent cross-account notifications
+    // Using RPC function with SECURITY DEFINER to bypass RLS
+    try {
+      await supabase.rpc("disable_other_users_push_token", {
+        p_expo_push_token: token,
+        p_current_user_id: userId,
+      });
+    } catch (error) {
+      console.warn("Failed to disable push token for other users:", error);
+    }
+
     await supabase.from("user_devices").upsert(
       {
         user_id: userId,
@@ -63,6 +90,21 @@ export async function registerDeviceForPush(userId: string): Promise<void> {
     );
   } catch (e) {
     console.warn("Failed to register device:", e);
+  }
+}
+
+export async function unregisterDeviceForPush(userId: string): Promise<void> {
+  try {
+    const token = await resolveExistingPushToken();
+    const baseQuery = supabase
+      .from("user_devices")
+      .update({ enabled: false, last_seen: new Date().toISOString() })
+      .eq("user_id", userId);
+
+    const query = token ? baseQuery.eq("device_id", token) : baseQuery;
+    await query;
+  } catch (error) {
+    console.warn("Failed to unregister device:", error);
   }
 }
 

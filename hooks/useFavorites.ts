@@ -102,7 +102,6 @@ export const useFavorites = () => {
 
       // Only update if there's a difference to avoid infinite loops
       if (syncedFavorites.length !== favorites.length) {
-       
         setFavorites(syncedFavorites);
       }
     }
@@ -155,7 +154,6 @@ export const useFavorites = () => {
 
                 // Update Zustand store to sync with other screens
                 if (restaurantId) {
-                 
                   removeFromFavorites(restaurantId);
                 }
 
