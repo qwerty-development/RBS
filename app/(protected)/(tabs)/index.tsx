@@ -26,6 +26,7 @@ import { useHomeScreenLogic } from "@/hooks/useHomeScreenLogic";
 import { useOffers } from "@/hooks/useOffers";
 import { useAuth } from "@/context/supabase-provider";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
+import { useRestaurantStore } from "@/stores/index";
 
 import { GuestPromptModal } from "@/components/guest/GuestPromptModal";
 import { CUISINE_CATEGORIES } from "@/constants/homeScreenData";
@@ -48,10 +49,14 @@ export default function HomeScreen() {
     handleSignUpFromPrompt,
   } = useGuestGuard();
 
-  // --- Favorites State ---
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  // --- Favorites Management from Zustand ---
+  const {
+    isFavorite: checkIsFavorite,
+    addToFavorites,
+    removeFromFavorites,
+  } = useRestaurantStore();
 
-  // --- Favorites Management ---
+  // --- Sync Favorites from Database ---
   const fetchFavorites = useCallback(async () => {
     if (!profile?.id) return;
 
@@ -62,48 +67,79 @@ export default function HomeScreen() {
         .eq("user_id", profile.id);
 
       if (error) throw error;
-      setFavorites(new Set(data?.map((f) => f.restaurant_id) || []));
+
+      // Sync to Zustand store
+      const favoriteIds = data?.map((f) => f.restaurant_id) || [];
+      favoriteIds.forEach((id) => {
+        if (!checkIsFavorite(id)) {
+          addToFavorites(id);
+        }
+      });
     } catch (error) {
       console.error("Error fetching favorites:", error);
     }
-  }, [profile?.id]);
+  }, [profile?.id, checkIsFavorite, addToFavorites]);
 
   const toggleFavorite = useCallback(
     async (restaurantId: string) => {
-      if (!profile?.id) return;
-
-      const isFavorite = favorites.has(restaurantId);
+      if (!profile?.id) {
+        console.error("Missing profile ID");
+        return;
+      }
 
       try {
-        if (isFavorite) {
-          const { error } = await supabase
+        // Check current favorite status
+        const currentIsFavorite = checkIsFavorite(restaurantId);
+
+        if (currentIsFavorite) {
+          // Remove from favorites
+          const { error, data } = await supabase
             .from("favorites")
             .delete()
             .eq("user_id", profile.id)
-            .eq("restaurant_id", restaurantId);
+            .eq("restaurant_id", restaurantId)
+            .select();
 
-          if (error) throw error;
+          if (error) {
+            console.error("Home: Supabase delete error:", error);
+            throw error;
+          }
 
-          setFavorites((prev) => {
-            const next = new Set(prev);
-            next.delete(restaurantId);
-            return next;
-          });
+          // Update Zustand store
+          removeFromFavorites(restaurantId);
         } else {
-          const { error } = await supabase.from("favorites").insert({
-            user_id: profile.id,
-            restaurant_id: restaurantId,
-          });
+          // Add to favorites
+          const { error, data } = await supabase
+            .from("favorites")
+            .insert({
+              user_id: profile.id,
+              restaurant_id: restaurantId,
+            })
+            .select();
 
-          if (error) throw error;
-          setFavorites((prev) => new Set([...prev, restaurantId]));
+          if (error) {
+            console.error("Home: Supabase insert error:", error);
+            throw error;
+          }
+
+          // Update Zustand store
+          addToFavorites(restaurantId);
         }
-      } catch (error) {
-        console.error("Error toggling favorite:", error);
-        Alert.alert("Error", "Failed to update favorite status");
+      } catch (error: any) {
+        console.error("Home: Error toggling favorite:", {
+          error,
+          message: error?.message,
+          details: error?.details,
+          hint: error?.hint,
+          code: error?.code,
+        });
+        Alert.alert(
+          "Error",
+          `Failed to update favorite status: ${error?.message || "Unknown error"}`,
+        );
       }
     },
-    [profile?.id, favorites],
+    [profile?.id, checkIsFavorite, addToFavorites, removeFromFavorites],
   );
 
   // --- Data & Logic Hooks ---
@@ -264,7 +300,7 @@ export default function HomeScreen() {
                     variant="featured"
                     onPress={handleRestaurantPress}
                     onFavoritePress={() => handleToggleFavorite(item.id)}
-                    isFavorite={favorites.has(item.id)}
+                    isFavorite={checkIsFavorite(item.id)}
                   />
                 )}
                 keyExtractor={(item) => item.id}
@@ -295,7 +331,7 @@ export default function HomeScreen() {
                     variant="featured"
                     onPress={handleRestaurantPress}
                     onFavoritePress={() => handleToggleFavorite(item.id)}
-                    isFavorite={favorites.has(item.id)}
+                    isFavorite={checkIsFavorite(item.id)}
                   />
                 )}
                 keyExtractor={(item) => item.id}
@@ -326,7 +362,7 @@ export default function HomeScreen() {
                     variant="featured"
                     onPress={handleRestaurantPress}
                     onFavoritePress={() => handleToggleFavorite(item.id)}
-                    isFavorite={favorites.has(item.id)}
+                    isFavorite={checkIsFavorite(item.id)}
                   />
                 )}
                 keyExtractor={(item) => item.id}
@@ -359,7 +395,7 @@ export default function HomeScreen() {
                     variant="featured"
                     onPress={handleRestaurantPress}
                     onFavoritePress={() => handleToggleFavorite(item.id)}
-                    isFavorite={favorites.has(item.id)}
+                    isFavorite={checkIsFavorite(item.id)}
                   />
                 )}
                 keyExtractor={(item) => item.id}

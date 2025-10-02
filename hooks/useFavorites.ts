@@ -1,9 +1,10 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Alert, Animated } from "react-native";
 import * as Haptics from "expo-haptics";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
+import { useRestaurantStore } from "@/stores/index";
 
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"];
 export type Favorite = {
@@ -21,6 +22,9 @@ export const useFavorites = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+
+  // Zustand store for favorites synchronization
+  const { favorites: favoritesSet, removeFromFavorites } = useRestaurantStore();
 
   // Animation references
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -74,7 +78,12 @@ export const useFavorites = () => {
         }),
       );
 
-      setFavorites(enrichedFavorites);
+      // Filter favorites based on Zustand store (sync with other screens)
+      const syncedFavorites = enrichedFavorites.filter((fav) =>
+        favoritesSet.has(fav.restaurant_id),
+      );
+
+      setFavorites(syncedFavorites);
     } catch (error) {
       console.error("Error fetching favorites:", error);
       Alert.alert("Error", "Failed to load favorites");
@@ -82,7 +91,22 @@ export const useFavorites = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [profile?.id]);
+  }, [profile?.id, favoritesSet]);
+
+  // Sync with Zustand store - remove favorites that were unfavorited elsewhere
+  useEffect(() => {
+    if (favorites.length > 0) {
+      const syncedFavorites = favorites.filter((fav) =>
+        favoritesSet.has(fav.restaurant_id),
+      );
+
+      // Only update if there's a difference to avoid infinite loops
+      if (syncedFavorites.length !== favorites.length) {
+       
+        setFavorites(syncedFavorites);
+      }
+    }
+  }, [favoritesSet, favorites]);
 
   const removeFavorite = useCallback(
     async (favoriteId: string, restaurantName: string) => {
@@ -95,6 +119,10 @@ export const useFavorites = () => {
             text: "Remove",
             style: "destructive",
             onPress: async () => {
+              // Find the restaurant ID from the favorite
+              const favorite = favorites.find((f) => f.id === favoriteId);
+              const restaurantId = favorite?.restaurant_id;
+
               setRemovingId(favoriteId);
 
               // Animate removal
@@ -125,6 +153,12 @@ export const useFavorites = () => {
                 // Update local state
                 setFavorites((prev) => prev.filter((f) => f.id !== favoriteId));
 
+                // Update Zustand store to sync with other screens
+                if (restaurantId) {
+                 
+                  removeFromFavorites(restaurantId);
+                }
+
                 // Reset animations
                 fadeAnim.setValue(1);
                 scaleAnim.setValue(1);
@@ -152,7 +186,7 @@ export const useFavorites = () => {
         ],
       );
     },
-    [fadeAnim, scaleAnim],
+    [fadeAnim, scaleAnim, favorites, removeFromFavorites],
   );
 
   const handleRefresh = useCallback(() => {

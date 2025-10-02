@@ -996,7 +996,6 @@ function AuthContent({ children }: PropsWithChildren) {
 
           if (data?.session) {
             // Session established from URL
-            console.log("Successfully authenticated from deep link");
           }
         } catch (err) {
           console.error("Failed to process auth callback URL:", err);

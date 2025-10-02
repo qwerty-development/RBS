@@ -8,6 +8,7 @@ import { useAuth } from "@/context/supabase-provider";
 import { Database } from "@/types/supabase";
 import { AvailabilityService, TimeSlot } from "@/lib/AvailabilityService";
 import { useRestaurantAvailability } from "@/hooks/useRestaurantAvailability";
+import { useRestaurantStore } from "@/stores/index";
 
 // Core Types
 type Restaurant = Database["public"]["Tables"]["restaurants"]["Row"] & {
@@ -90,13 +91,22 @@ export function useRestaurant(
   const router = useRouter();
   const { profile, databaseReady } = useAuth();
 
+  // Zustand store for favorites
+  const {
+    isFavorite: isRestaurantFavorite,
+    addToFavorites,
+    removeFromFavorites,
+  } = useRestaurantStore();
+
   // Core state
   const [restaurant, setRestaurant] = useState<Restaurant | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+
+  // Compute isFavorite from Zustand store
+  const isFavorite = restaurantId ? isRestaurantFavorite(restaurantId) : false;
 
   // Use the enhanced availability hook for restaurant hours
   const { checkAvailability, loading: availabilityLoading } =
@@ -422,7 +432,7 @@ export function useRestaurant(
 
         setRestaurant(restaurantData);
 
-        // Check if restaurant is favorited
+        // Sync favorites with Zustand store
         if (profile?.id) {
           const { data: favoriteData } = await supabase
             .from("favorites")
@@ -431,7 +441,12 @@ export function useRestaurant(
             .eq("restaurant_id", restaurantId)
             .single();
 
-          setIsFavorite(!!favoriteData);
+          // Update Zustand store with current favorite status
+          if (favoriteData && !isRestaurantFavorite(restaurantId)) {
+            addToFavorites(restaurantId);
+          } else if (!favoriteData && isRestaurantFavorite(restaurantId)) {
+            removeFromFavorites(restaurantId);
+          }
         }
 
         // Fetch reviews without user details first
@@ -562,34 +577,71 @@ export function useRestaurant(
 
   // Action handlers
   const toggleFavorite = useCallback(async () => {
-    if (!profile?.id || !restaurant || !restaurantId) return;
+    if (!profile?.id || !restaurantId) {
+      console.error("Missing profile or restaurant ID");
+      return;
+    }
 
     try {
-      if (isFavorite) {
-        const { error } = await supabase
+      // Check current favorite status from Zustand store
+      const currentIsFavorite = isRestaurantFavorite(restaurantId);
+
+      if (currentIsFavorite) {
+        // Remove from favorites
+        const { error, data } = await supabase
           .from("favorites")
           .delete()
           .eq("user_id", profile.id)
-          .eq("restaurant_id", restaurantId);
+          .eq("restaurant_id", restaurantId)
+          .select();
 
-        if (error) throw error;
-        setIsFavorite(false);
+        if (error) {
+          console.error("Supabase delete error:", error);
+          throw error;
+        }
+
+        // Update Zustand store
+        removeFromFavorites(restaurantId);
       } else {
-        const { error } = await supabase.from("favorites").insert({
-          user_id: profile.id,
-          restaurant_id: restaurantId,
-        });
+        // Add to favorites
+        const { error, data } = await supabase
+          .from("favorites")
+          .insert({
+            user_id: profile.id,
+            restaurant_id: restaurantId,
+          })
+          .select();
 
-        if (error) throw error;
-        setIsFavorite(true);
+        if (error) {
+          console.error("Supabase insert error:", error);
+          throw error;
+        }
+
+        // Update Zustand store
+        addToFavorites(restaurantId);
       }
 
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    } catch (error) {
-      console.error("Error toggling favorite:", error);
-      Alert.alert("Error", "Failed to update favorite status");
+    } catch (error: any) {
+      console.error("Error toggling favorite:", {
+        error,
+        message: error?.message,
+        details: error?.details,
+        hint: error?.hint,
+        code: error?.code,
+      });
+      Alert.alert(
+        "Error",
+        `Failed to update favorite status: ${error?.message || "Unknown error"}`,
+      );
     }
-  }, [profile?.id, restaurant, isFavorite, restaurantId]);
+  }, [
+    profile?.id,
+    restaurantId,
+    isRestaurantFavorite,
+    addToFavorites,
+    removeFromFavorites,
+  ]);
 
   const handleShare = useCallback(async () => {
     if (!restaurant) return;

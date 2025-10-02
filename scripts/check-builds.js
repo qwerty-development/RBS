@@ -17,7 +17,6 @@ try {
   const builds = JSON.parse(buildsOutput);
 
   if (builds.length === 0) {
-    console.log("No builds found.");
     process.exit(0);
   }
 

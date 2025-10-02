@@ -6,11 +6,15 @@ import {
   subscribeWithSelector,
 } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
+import { enableMapSet } from "immer";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import type { Session, User } from "@supabase/supabase-js";
 
 import type { Restaurant } from "@/types/restaurant";
+
+// Enable Immer MapSet plugin to support Set and Map
+enableMapSet();
 
 // Profile type definition (matching what we use in the app)
 type Profile = {

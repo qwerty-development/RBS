@@ -8,6 +8,7 @@ import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
 import { useLocationWithDistance } from "@/hooks/useLocationWithDistance";
 import { LocationService } from "@/lib/locationService";
+import { useRestaurantStore } from "@/stores/index";
 import {
   DEFAULT_BOOKING_FILTERS,
   DEFAULT_GENERAL_FILTERS,
@@ -37,6 +38,14 @@ export const useSearchLogic = (): UseSearchReturn => {
   const router = useRouter();
   const { profile } = useAuth();
 
+  // Zustand store for favorites
+  const {
+    isFavorite: checkIsFavorite,
+    addToFavorites,
+    removeFromFavorites,
+    favorites: favoritesSet,
+  } = useRestaurantStore();
+
   // Use your new location hook instead of the old one
   const {
     location: userLocation,
@@ -53,7 +62,6 @@ export const useSearchLogic = (): UseSearchReturn => {
   const [searchSuggestions, setSearchSuggestions] = useState<
     SearchSuggestion[]
   >([]);
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [mapRegion, setMapRegion] = useState<Region>(DEFAULT_MAP_REGION);
@@ -83,7 +91,7 @@ export const useSearchLogic = (): UseSearchReturn => {
     }
   }, [userLocation]);
 
-  // Fetch favorites from database
+  // Sync favorites from database to Zustand store
   const fetchFavorites = useCallback(async () => {
     if (!profile?.id) return;
 
@@ -94,49 +102,80 @@ export const useSearchLogic = (): UseSearchReturn => {
         .eq("user_id", profile.id);
 
       if (error) throw error;
-      setFavorites(new Set(data?.map((f) => f.restaurant_id) || []));
+
+      // Sync to Zustand store
+      const favoriteIds = data?.map((f) => f.restaurant_id) || [];
+      favoriteIds.forEach((id) => {
+        if (!checkIsFavorite(id)) {
+          addToFavorites(id);
+        }
+      });
     } catch (error) {
       console.error("Error fetching favorites:", error);
     }
-  }, [profile?.id]);
+  }, [profile?.id, checkIsFavorite, addToFavorites]);
 
   // Toggle favorite status
   const toggleFavorite = useCallback(
     async (restaurantId: string) => {
-      if (!profile?.id) return;
-
-      const isFavorite = favorites.has(restaurantId);
+      if (!profile?.id) {
+        console.error("Search: Missing profile ID");
+        return;
+      }
 
       try {
-        if (isFavorite) {
-          const { error } = await supabase
+        // Check current favorite status
+        const currentIsFavorite = checkIsFavorite(restaurantId);
+
+        if (currentIsFavorite) {
+          // Remove from favorites
+          const { error, data } = await supabase
             .from("favorites")
             .delete()
             .eq("user_id", profile.id)
-            .eq("restaurant_id", restaurantId);
+            .eq("restaurant_id", restaurantId)
+            .select();
 
-          if (error) throw error;
+          if (error) {
+            console.error("Search: Supabase delete error:", error);
+            throw error;
+          }
 
-          setFavorites((prev) => {
-            const next = new Set(prev);
-            next.delete(restaurantId);
-            return next;
-          });
+          // Update Zustand store
+          removeFromFavorites(restaurantId);
         } else {
-          const { error } = await supabase.from("favorites").insert({
-            user_id: profile.id,
-            restaurant_id: restaurantId,
-          });
+          // Add to favorites
+          const { error, data } = await supabase
+            .from("favorites")
+            .insert({
+              user_id: profile.id,
+              restaurant_id: restaurantId,
+            })
+            .select();
 
-          if (error) throw error;
-          setFavorites((prev) => new Set([...prev, restaurantId]));
+          if (error) {
+            console.error("Search: Supabase insert error:", error);
+            throw error;
+          }
+
+          // Update Zustand store
+          addToFavorites(restaurantId);
         }
-      } catch (error) {
-        console.error("Error toggling favorite:", error);
-        Alert.alert("Error", "Failed to update favorite status");
+      } catch (error: any) {
+        console.error("Search: Error toggling favorite:", {
+          error,
+          message: error?.message,
+          details: error?.details,
+          hint: error?.hint,
+          code: error?.code,
+        });
+        Alert.alert(
+          "Error",
+          `Failed to update favorite status: ${error?.message || "Unknown error"}`,
+        );
       }
     },
-    [profile?.id, favorites],
+    [profile?.id, checkIsFavorite, addToFavorites, removeFromFavorites],
   );
 
   // Main restaurant fetching logic - Updated to use LocationService
@@ -556,7 +595,7 @@ export const useSearchLogic = (): UseSearchReturn => {
         generalFilters,
         bookingFilters,
         profile?.favorite_cuisines,
-        favorites,
+        favoritesSet,
       );
     }
 
@@ -572,7 +611,7 @@ export const useSearchLogic = (): UseSearchReturn => {
     userLocation,
     locationLoading,
     profile?.favorite_cuisines,
-    favorites,
+    favoritesSet,
     debouncedFetchRestaurants,
     refreshing,
   ]);
@@ -588,7 +627,7 @@ export const useSearchLogic = (): UseSearchReturn => {
   return {
     searchState: {
       restaurants,
-      favorites,
+      favorites: favoritesSet,
       loading: loading || locationLoading,
       refreshing,
       userLocation,
