@@ -212,23 +212,24 @@ export function useReviewCreate({
   );
 
   // Award loyalty points
-  const awardLoyaltyPoints = useCallback(
-    async (userId: string, points: number): Promise<void> => {
-      try {
-        const { error } = await supabase.rpc("award_loyalty_points", {
-          p_user_id: userId,
-          p_points: points,
-        });
+  // TODO: Re-enable loyalty points for reviews when feature is ready
+  // const awardLoyaltyPoints = useCallback(
+  //   async (userId: string, points: number): Promise<void> => {
+  //     try {
+  //       const { error } = await supabase.rpc("award_loyalty_points", {
+  //         p_user_id: userId,
+  //         p_points: points,
+  //       });
 
-        if (error) {
-          console.error("Failed to award loyalty points:", error);
-        }
-      } catch (error) {
-        console.error("Loyalty points award error:", error);
-      }
-    },
-    [],
-  );
+  //       if (error) {
+  //         console.error("Failed to award loyalty points:", error);
+  //       }
+  //     } catch (error) {
+  //       console.error("Loyalty points award error:", error);
+  //     }
+  //   },
+  //   [],
+  // );
 
   // Submit review
   const submitReview = useCallback(async () => {
@@ -266,16 +267,17 @@ export function useReviewCreate({
         throw new Error(`Failed to create review: ${reviewError.message}`);
       }
 
-      // Award loyalty points
-      const pointsToAward = calculateReviewPoints(
-        photos.length,
-        form.getValues("comment")?.length || 0,
-      );
-      await awardLoyaltyPoints(profile.id, pointsToAward);
+      // Award loyalty points - TEMPORARILY DISABLED
+      // TODO: Re-enable when loyalty points feature is ready
+      // const pointsToAward = calculateReviewPoints(
+      //   photos.length,
+      //   form.getValues("comment")?.length || 0,
+      // );
+      // await awardLoyaltyPoints(profile.id, pointsToAward);
 
       Alert.alert(
         "Review Submitted!",
-        `Thank you for your review! You earned ${pointsToAward} loyalty points.`,
+        "Thank you for your review!", // Removed loyalty points message
         [
           {
             text: "OK",
@@ -305,7 +307,7 @@ export function useReviewCreate({
     photos,
     form,
     calculateReviewPoints,
-    awardLoyaltyPoints,
+    // awardLoyaltyPoints, // Commented out - loyalty points disabled
     router,
   ]);
 

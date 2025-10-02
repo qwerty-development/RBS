@@ -41,7 +41,11 @@ export const ReviewWriteStep: React.FC<ReviewWriteStepProps> = ({
                 placeholder="Share details about your experience - what you ordered, what you loved, service quality, atmosphere..."
                 numberOfLines={6}
                 maxLength={1000}
-                {...field}
+                name={field.name}
+                value={field.value}
+                onChange={field.onChange}
+                onChangeText={field.onChange}
+                onBlur={field.onBlur}
               />
             )}
           />
@@ -87,8 +91,9 @@ export const ReviewWriteStep: React.FC<ReviewWriteStepProps> = ({
           </View>
         </View>
 
-        {/* Points Preview */}
-        {calculatePoints && (
+        {/* Points Preview - TEMPORARILY DISABLED */}
+        {/* TODO: Re-enable when loyalty points feature is ready */}
+        {/* {calculatePoints && (
           <View className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg mt-4">
             <Text className="font-medium text-green-800 dark:text-green-200 mb-2">
               🎉 Loyalty Points Preview
@@ -98,7 +103,7 @@ export const ReviewWriteStep: React.FC<ReviewWriteStepProps> = ({
               points for this review!
             </Text>
           </View>
-        )}
+        )} */}
       </ScrollView>
     </KeyboardAvoidingView>
   );
