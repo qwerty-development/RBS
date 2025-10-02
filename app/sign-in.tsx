@@ -160,22 +160,39 @@ export default function SignIn() {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-background p-4"
+      className="flex-1 bg-primary"
       edges={["top", "bottom"]}
     >
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <View className="flex-1 gap-4 web:m-4">
-          <View>
-            <H1 className="self-start">Welcome Back</H1>
-            <P className="text-muted-foreground mt-2">
+      {/* Fixed Header */}
+      <View className="p-4 pb-2">
+        <View className="flex-row items-center">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="mr-4 p-2"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons
+              name="arrow-back"
+              size={24}
+              color={isDark ? "#fff" : "#000"}
+            />
+          </TouchableOpacity>
+          <View className="flex-1">
+            <H1 className="self-start text-white">Welcome Back</H1>
+            <P className="text-white/90 mt-2">
               Sign in to discover and book amazing restaurants
             </P>
           </View>
+        </View>
+      </View>
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 16 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View className="flex-1 gap-4">
 
           <Form {...form}>
             <View className="gap-4">
@@ -190,6 +207,7 @@ export default function SignIn() {
                     autoComplete="email"
                     autoCorrect={false}
                     keyboardType="email-address"
+                    className="bg-gray-100 dark:bg-gray-800"
                     {...field}
                   />
                 )}
@@ -205,11 +223,12 @@ export default function SignIn() {
                       autoCapitalize="none"
                       autoCorrect={false}
                       secureTextEntry={!showPassword}
+                      className="bg-gray-100 dark:bg-gray-800"
                       {...field}
                     />
                     <TouchableOpacity
                       onPress={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-8 h-6 w-6 items-center justify-center"
+                      className="absolute right-3 top-11 h-6 w-6 items-center justify-center"
                       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                     >
                       <Ionicons
@@ -230,36 +249,38 @@ export default function SignIn() {
                 }
                 className="mt-2 self-end"
               >
-                <Text className="text-primary font-medium">
+                <Text className="text-white/80 font-medium">
                   Forgot Password?
                 </Text>
               </TouchableOpacity>
             </View>
           </Form>
-        </View>
 
-        <View className="gap-4 web:m-4 p-4 rounded-lg">
-          <Button
-            size="default"
-            variant="default"
+          {/* Sign In Button */}
+          <TouchableOpacity
             onPress={form.handleSubmit(onSubmit)}
             disabled={isEmailLoading || isAppleLoading || isGoogleLoading}
+            className={`h-14 rounded-lg mt-6 items-center justify-center ${
+              isEmailLoading || isAppleLoading || isGoogleLoading ? "opacity-50" : ""
+            }`}
+            activeOpacity={0.7}
+            style={{ backgroundColor: "#000", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}
           >
             {isEmailLoading ? (
-              <ActivityIndicator size="small" color="white" />
+              <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text>Sign In</Text>
+              <Text className="font-medium text-white">Sign In</Text>
             )}
-          </Button>
+          </TouchableOpacity>
 
           {/* Social Sign In Section */}
-          <View className="items-center">
+          <View className="items-center mt-4">
             <View className="flex-row items-center w-full mb-4">
-              <View className="flex-1 h-px bg-border/30" />
-              <Text className="mx-4 text-sm text-muted-foreground">
+              <View className="flex-1 h-px bg-white/20" />
+              <Text className="mx-4 text-sm text-white/80">
                 or continue with
               </Text>
-              <View className="flex-1 h-px bg-border/30" />
+              <View className="flex-1 h-px bg-white/20" />
             </View>
 
             <View className="flex-row gap-3 w-full">
@@ -269,27 +290,22 @@ export default function SignIn() {
                   onPress={handleAppleSignIn}
                   disabled={isAppleLoading || isEmailLoading || isGoogleLoading}
                   className="flex-1"
+                  style={{ backgroundColor: "#000", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}
                 >
-                  <View className="bg-foreground rounded-md h-12 items-center justify-center flex-row gap-2">
+                  <View className="rounded-md h-12 items-center justify-center flex-row gap-2">
                     {isAppleLoading ? (
                       <ActivityIndicator
                         size="small"
-                        color={isDark ? "#000" : "#fff"}
+                        color="#fff"
                       />
                     ) : (
                       <>
                         <Ionicons
                           name="logo-apple"
                           size={20}
-                          color={isDark ? "#000" : "#fff"}
+                          color="#fff"
                         />
-                        <Text
-                          className={
-                            isDark
-                              ? "text-black font-medium"
-                              : "text-white font-medium"
-                          }
-                        >
+                        <Text className="text-white font-medium">
                           Apple
                         </Text>
                       </>
@@ -303,17 +319,18 @@ export default function SignIn() {
                 onPress={handleGoogleSignIn}
                 disabled={isGoogleLoading || isEmailLoading || isAppleLoading}
                 className="flex-1"
+                style={{ backgroundColor: "#000", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}
               >
-                <View className="bg-background border border-border rounded-md h-12 items-center justify-center flex-row gap-2">
+                <View className="rounded-md h-12 items-center justify-center flex-row gap-2">
                   {isGoogleLoading ? (
                     <ActivityIndicator
                       size="small"
-                      color={isDark ? "#fff" : "#000"}
+                      color="#fff"
                     />
                   ) : (
                     <>
-                      <Ionicons name="logo-google" size={20} color="#EA4335" />
-                      <Text className="text-foreground font-medium">
+                      <Ionicons name="logo-google" size={20} color="#fff" />
+                      <Text className="text-white font-medium">
                         Google
                       </Text>
                     </>
@@ -323,12 +340,12 @@ export default function SignIn() {
             </View>
           </View>
 
-          <View className="flex-row items-center gap-2 justify-center mt-2">
-            <Text className="text-muted-foreground">
+          <View className="flex-row items-center gap-2 justify-center mt-6">
+            <Text className="text-white/80">
               Don't have an account?
             </Text>
             <Text
-              className="text-primary font-medium"
+              className="text-white font-medium"
               onPress={() => router.replace("/sign-up")}
             >
               Sign Up

@@ -133,6 +133,16 @@ export default function SignUp() {
   });
 
   async function onSubmit(data: FormData) {
+    // Check if user agreed to terms
+    if (!data.agreeToTerms) {
+      Alert.alert(
+        "Terms Required",
+        "You must agree to the Terms and Conditions and Privacy Policy to create an account.",
+        [{ text: "OK", style: "default" }]
+      );
+      return;
+    }
+
     try {
       setLoading(true);
       // Convert DD-MM-YYYY to YYYY-MM-DD for database storage
@@ -180,22 +190,39 @@ export default function SignUp() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top", "bottom"]}>
+    <SafeAreaView className="flex-1 bg-primary" edges={["top", "bottom"]}>
+      {/* Fixed Header */}
+      <View className="p-4 pb-2">
+        <View className="flex-row items-center">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            className="mr-4 p-2"
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons
+              name="arrow-back"
+              size={24}
+              color={isDark ? "#fff" : "#000"}
+            />
+          </TouchableOpacity>
+          <View className="flex-1">
+            <H1 className="self-start text-white">Create Account</H1>
+            <P className="text-white/90 mt-2">
+              Join thousands discovering great restaurants in Lebanon
+            </P>
+          </View>
+        </View>
+      </View>
+
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         className="flex-1"
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1 }}
+          contentContainerStyle={{ flexGrow: 1, paddingHorizontal: 16 }}
           keyboardShouldPersistTaps="handled"
         >
-          <View className="flex-1 gap-4 p-4 web:m-4">
-            <View>
-              <H1 className="self-start">Create Account</H1>
-              <P className="text-muted-foreground mt-2">
-                Join thousands discovering great restaurants in Lebanon
-              </P>
-            </View>
+          <View className="flex-1 gap-4">
 
             <Form {...form}>
               <View className="gap-4">
@@ -209,6 +236,7 @@ export default function SignUp() {
                       autoCapitalize="words"
                       autoComplete="given-name"
                       autoCorrect={false}
+                      className="bg-gray-100 dark:bg-gray-800"
                       {...field}
                     />
                   )}
@@ -224,6 +252,7 @@ export default function SignUp() {
                       autoCapitalize="words"
                       autoComplete="family-name"
                       autoCorrect={false}
+                      className="bg-gray-100 dark:bg-gray-800"
                       {...field}
                     />
                   )}
@@ -240,6 +269,7 @@ export default function SignUp() {
                       autoComplete="email"
                       autoCorrect={false}
                       keyboardType="email-address"
+                      className="bg-gray-100 dark:bg-gray-800"
                       {...field}
                     />
                   )}
@@ -256,6 +286,7 @@ export default function SignUp() {
                       autoCapitalize="none"
                       autoCorrect={false}
                       keyboardType="phone-pad"
+                      className="bg-gray-100 dark:bg-gray-800"
                       {...field}
                     />
                   )}
@@ -272,6 +303,7 @@ export default function SignUp() {
                       autoCapitalize="none"
                       autoCorrect={false}
                       keyboardType="numeric"
+                      className="bg-gray-100 dark:bg-gray-800"
                       {...field}
                       onChangeText={(value) => {
                         const formattedValue = formatDDMMYYYYInput(value);
@@ -293,11 +325,12 @@ export default function SignUp() {
                         autoCapitalize="none"
                         autoCorrect={false}
                         secureTextEntry={!showPassword}
+                        className="bg-gray-100 dark:bg-gray-800"
                         {...field}
                       />
                       <TouchableOpacity
                         onPress={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-8 h-6 w-6 items-center justify-center"
+                        className="absolute right-3 top-11 h-6 w-6 items-center justify-center"
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
                         <Ionicons
@@ -321,13 +354,14 @@ export default function SignUp() {
                         autoCapitalize="none"
                         autoCorrect={false}
                         secureTextEntry={!showConfirmPassword}
+                        className="bg-gray-100 dark:bg-gray-800"
                         {...field}
                       />
                       <TouchableOpacity
                         onPress={() =>
                           setShowConfirmPassword(!showConfirmPassword)
                         }
-                        className="absolute right-3 top-8 h-6 w-6 items-center justify-center"
+                        className="absolute right-3 top-11 h-6 w-6 items-center justify-center"
                         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       >
                         <Ionicons
@@ -345,15 +379,26 @@ export default function SignUp() {
                   name="agreeToTerms"
                   render={({ field }) => (
                     <View className="flex-row items-start gap-2 px-1">
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        className="mt-1"
-                      />
-                      <Text className="flex-1 text-sm text-muted-foreground">
+                      <TouchableOpacity
+                        onPress={() => field.onChange(!field.value)}
+                        className="h-4 w-4 rounded border items-center justify-center mt-1"
+                        style={{
+                          borderColor: isDark ? "#fff" : "#000",
+                          backgroundColor: field.value ? (isDark ? "#fff" : "#000") : "transparent"
+                        }}
+                      >
+                        {field.value && (
+                          <Ionicons 
+                            name="checkmark" 
+                            size={12} 
+                            color={isDark ? "#000" : "#fff"} 
+                          />
+                        )}
+                      </TouchableOpacity>
+                      <Text className="flex-1 text-xs text-white/70 leading-4">
                         I agree to the{" "}
                         <Text
-                          className="text-primary underline"
+                          className="text-white/90 underline"
                           onPress={() => {
                             router.push("/legal/TERMS_OF_SERVICE");
                           }}
@@ -362,7 +407,7 @@ export default function SignUp() {
                         </Text>{" "}
                         and{" "}
                         <Text
-                          className="text-primary underline"
+                          className="text-white/90 underline"
                           onPress={() => {
                             router.push("/legal/PRIVACY_POLICY");
                           }}
@@ -377,26 +422,29 @@ export default function SignUp() {
             </Form>
           </View>
 
-          <View className="p-4 web:m-4 gap-4">
-            <Button
-              size="default"
-              variant="default"
+          <View className="gap-4 p-4">
+            <TouchableOpacity
               onPress={form.handleSubmit(onSubmit)}
               disabled={form.formState.isSubmitting}
+              className={`h-14 rounded-lg items-center justify-center ${
+                form.formState.isSubmitting ? "opacity-50" : ""
+              }`}
+              activeOpacity={0.7}
+              style={{ backgroundColor: "#000", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}
             >
               {form.formState.isSubmitting ? (
                 <ActivityIndicator size="small" color="white" />
               ) : (
-                <Text>Create Account</Text>
+                <Text className="font-medium text-white">Create Account</Text>
               )}
-            </Button>
+            </TouchableOpacity>
 
             <View className="flex-row items-center gap-2 justify-center">
-              <Text className="text-muted-foreground">
+              <Text className="text-white/80">
                 Already have an account?
               </Text>
               <Text
-                className="text-primary font-medium"
+                className="text-white font-medium"
                 onPress={() => {
                   router.replace("/sign-in");
                 }}
