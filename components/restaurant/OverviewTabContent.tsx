@@ -20,7 +20,7 @@ interface Restaurant {
   description: string;
   address: string;
   location?: any;
-  main_image_url: string;
+  main_image_url: string | null;
   image_urls?: string[] | null;
   cuisine_type: string;
   tags?: string[] | null;

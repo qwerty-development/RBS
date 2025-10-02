@@ -34,7 +34,7 @@ interface ActiveSubscription {
 export class RealtimeSubscriptionService {
   private subscriptions = new Map<string, ActiveSubscription>();
   private isInitialized = false;
-  private cleanupTimeouts = new Map<string, NodeJS.Timeout>();
+  private cleanupTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor() {
     this.initialize();
@@ -270,7 +270,7 @@ export class RealtimeSubscriptionService {
           table,
           ...(filter && { filter }),
         },
-        (payload) => {
+        (payload: any) => {
           if (enableLogging) {
           }
           this.handleRealtimeChange(subscriptionKey, payload);

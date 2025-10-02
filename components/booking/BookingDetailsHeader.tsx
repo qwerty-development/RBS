@@ -12,7 +12,7 @@ interface BookingDetailsHeaderProps {
     name: string;
     cuisine_type: string;
     address: string;
-    main_image_url: string;
+    main_image_url: string | null;
   };
   appliedOfferDetails?: {
     discount_percentage: number;

@@ -130,7 +130,10 @@ export const useBookingDetails = (bookingId: string) => {
       if (!tablesError && tablesData && tablesData.length > 0) {
         const tables = tablesData
           .map((bt) => bt.table)
-          .filter((t): t is TableInfo => t !== null);
+          .filter(
+            (t): t is TableInfo =>
+              t !== null && typeof t === "object" && "id" in t,
+          );
         setAssignedTables(tables);
       } else {
         setAssignedTables([]);
