@@ -200,9 +200,10 @@ export default function PlaylistCollaboratorsScreen() {
   const renderCollaboratorItem = useCallback(
     ({ item, index }: { item: PlaylistCollaborator; index: number }) => {
       const isPending = !item.accepted_at;
+      const positionInRow = index % 3;
 
       return (
-        <View className="w-[31%] mb-3 mx-[1%]">
+        <View style={{ width: '31%', marginBottom: 8, marginRight: positionInRow === 2 ? 0 : '3.5%' }}>
           <View className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-700">
             {/* Avatar */}
             <View className="w-full items-center mb-2">
@@ -420,13 +421,12 @@ export default function PlaylistCollaboratorsScreen() {
           data={allCollaborators}
           renderItem={renderCollaboratorItem}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={{ padding: 16 }}
+          contentContainerStyle={{paddingHorizontal:'2%', paddingTop:10 }}
           showsVerticalScrollIndicator={false}
           numColumns={3}
-          columnWrapperStyle={{ justifyContent: "flex-start" }}
           ListEmptyComponent={
             !showSearch && (
-              <View className="items-center justify-center py-8">
+              <View className="items-center  justify-center py-8">
                 <UserPlus size={48} color="#6b7280" className="mb-4" />
                 <H3 className="text-center mb-2">No collaborators yet</H3>
                 <Muted className="text-center mb-6">
