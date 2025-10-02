@@ -202,81 +202,82 @@ export default function PlaylistCollaboratorsScreen() {
       const isPending = !item.accepted_at;
 
       return (
-        <View
-          className="w-[31%] items-center bg-white dark:bg-gray-800 mb-2 rounded-xl p-3 mx-[1%]"
-          style={{ aspectRatio: 0.8 }}
-        >
-          {/* Avatar */}
-          <View className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 mb-2 overflow-hidden">
-            {item.user?.avatar_url ? (
-              <RNImage
-                source={{ uri: item.user.avatar_url }}
-                style={{ width: "100%", height: "100%" }}
-              />
-            ) : (
-              <View className="w-full h-full items-center justify-center">
-                <Text className="text-lg font-semibold">
-                  {item.user?.full_name?.charAt(0).toUpperCase()}
-                </Text>
+        <View className="w-[31%] mb-3 mx-[1%]">
+          <View className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-700">
+            {/* Avatar */}
+            <View className="w-full items-center mb-2">
+              <View className="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                {item.user?.avatar_url ? (
+                  <RNImage
+                    source={{ uri: item.user.avatar_url }}
+                    style={{ width: "100%", height: "100%" }}
+                  />
+                ) : (
+                  <View className="w-full h-full items-center justify-center">
+                    <Text className="text-lg font-semibold">
+                      {item.user?.full_name?.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            {/* User Info */}
+            <View className="items-center mb-2">
+              <Text className="font-semibold text-center text-sm" numberOfLines={1}>
+                {item.user?.full_name}
+              </Text>
+              <View className="flex-row items-center justify-center mt-1">
+                {isPending ? (
+                  <Muted className="text-xs">Pending</Muted>
+                ) : (
+                  <>
+                    {item.permission === "edit" ? (
+                      <View className="flex-row items-center">
+                        <Edit3 size={10} color="#6b7280" />
+                        <Muted className="text-xs ml-1">Can edit</Muted>
+                      </View>
+                    ) : (
+                      <View className="flex-row items-center">
+                        <Eye size={10} color="#6b7280" />
+                        <Muted className="text-xs ml-1">View only</Muted>
+                      </View>
+                    )}
+                  </>
+                )}
+              </View>
+            </View>
+
+            {/* Actions */}
+            {isOwner && (
+              <View className="flex-row items-center justify-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                {!isPending && (
+                  <Pressable
+                    onPress={() =>
+                      handlePermissionChange(item.id, item.permission)
+                    }
+                    className="flex-1 items-center justify-center py-1.5 rounded-lg bg-gray-100 dark:bg-gray-700 active:bg-gray-200 dark:active:bg-gray-600"
+                  >
+                    <Shield
+                      size={16}
+                      color={colorScheme === "dark" ? "#fff" : "#000"}
+                    />
+                  </Pressable>
+                )}
+                <Pressable
+                  onPress={() =>
+                    handleRemoveCollaborator(
+                      item.id,
+                      item.user?.full_name || "User",
+                    )
+                  }
+                  className="flex-1 items-center justify-center py-1.5 rounded-lg bg-red-50 dark:bg-red-900/20 active:bg-red-100 dark:active:bg-red-900/30"
+                >
+                  <Trash2 size={16} color="#dc2626" />
+                </Pressable>
               </View>
             )}
           </View>
-
-          {/* User Info */}
-          <View className="items-center">
-            <Text className="font-semibold text-center" numberOfLines={1}>
-              {item.user?.full_name}
-            </Text>
-            <View className="flex-row items-center mt-1">
-              {isPending ? (
-                <Muted className="text-xs">Pending</Muted>
-              ) : (
-                <>
-                  {item.permission === "edit" ? (
-                    <View className="flex-row items-center">
-                      <Edit3 size={12} color="#6b7280" />
-                      <Muted className="text-xs ml-1">Can edit</Muted>
-                    </View>
-                  ) : (
-                    <View className="flex-row items-center">
-                      <Eye size={12} color="#6b7280" />
-                      <Muted className="text-xs ml-1">Can view</Muted>
-                    </View>
-                  )}
-                </>
-              )}
-            </View>
-          </View>
-
-          {/* Actions */}
-          {isOwner && (
-            <View className="flex-row items-center justify-center mt-2 gap-4">
-              {!isPending && (
-                <Pressable
-                  onPress={() =>
-                    handlePermissionChange(item.id, item.permission)
-                  }
-                  className="p-1"
-                >
-                  <Shield
-                    size={18}
-                    color={colorScheme === "dark" ? "#fff" : "#000"}
-                  />
-                </Pressable>
-              )}
-              <Pressable
-                onPress={() =>
-                  handleRemoveCollaborator(
-                    item.id,
-                    item.user?.full_name || "User",
-                  )
-                }
-                className="p-1"
-              >
-                <Trash2 size={18} color="#dc2626" />
-              </Pressable>
-            </View>
-          )}
         </View>
       );
     },
