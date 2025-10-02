@@ -73,6 +73,7 @@ const SpecialRequirementsForm = memo<{
   onComplete: () => void;
   isExpanded: boolean;
   onToggleExpanded: () => void;
+  isBasicTier?: boolean;
 }>(
   ({
     formData,
@@ -80,6 +81,7 @@ const SpecialRequirementsForm = memo<{
     onComplete,
     isExpanded,
     onToggleExpanded,
+    isBasicTier = false,
   }) => {
     const toggleDietaryRestriction = useCallback(
       (restriction: string) => {
@@ -258,15 +260,17 @@ const SpecialRequirementsForm = memo<{
               </Text>
             </View>
 
-            {/* Complete Button */}
-            <Button onPress={onComplete} size="lg" className="w-full">
-              <View className="flex-row items-center justify-center gap-2">
-                <CheckCircle size={20} color="white" />
-                <Text className="text-white font-bold">
-                  Continue to Table Selection
-                </Text>
-              </View>
-            </Button>
+            {/* Complete Button - Hidden for basic tier */}
+            {!isBasicTier && (
+              <Button onPress={onComplete} size="lg" className="w-full">
+                <View className="flex-row items-center justify-center gap-2">
+                  <CheckCircle size={20} color="white" />
+                  <Text className="text-white font-bold">
+                    Continue to Table Selection
+                  </Text>
+                </View>
+              </Button>
+            )}
           </View>
         )}
       </View>
@@ -365,6 +369,7 @@ export const TimeSlots = memo<{
   error?: string | null;
   onFormComplete?: (formData: SpecialRequirementsFormData) => void;
   showRequirementsForm?: boolean;
+  isBasicTier?: boolean;
 }>(
   ({
     slots,
@@ -375,6 +380,7 @@ export const TimeSlots = memo<{
     error,
     onFormComplete,
     showRequirementsForm = true,
+    isBasicTier = false,
   }) => {
     // Form state
     const [formData, setFormData] = useState<SpecialRequirementsFormData>({
@@ -403,8 +409,12 @@ export const TimeSlots = memo<{
     const handleFormDataChange = useCallback(
       (newFormData: SpecialRequirementsFormData) => {
         setFormData(newFormData);
+        // Auto-save for basic tier (no button to click)
+        if (isBasicTier && onFormComplete) {
+          onFormComplete(newFormData);
+        }
       },
-      [],
+      [isBasicTier, onFormComplete],
     );
     // Memoize slots processing
     const processedSlots = useMemo(() => {
@@ -577,6 +587,7 @@ export const TimeSlots = memo<{
             onComplete={handleFormComplete}
             isExpanded={isFormExpanded}
             onToggleExpanded={() => setIsFormExpanded(!isFormExpanded)}
+            isBasicTier={isBasicTier}
           />
         )}
 

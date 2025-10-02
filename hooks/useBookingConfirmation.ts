@@ -314,9 +314,9 @@ export const useBookingConfirmation = () => {
             p_table_ids: parsedTableIds.length > 0 ? parsedTableIds : null,
             p_turn_time: turnTime,
             p_special_requests: specialRequests || null,
-            p_occasion: occasion !== "none" ? occasion : null,
-            p_dietary_notes: dietaryNotes || null,
-            p_table_preferences: tablePreferences || null,
+            p_occasion: occasion && occasion !== "none" ? occasion : null,
+            p_dietary_notes: dietaryNotes && dietaryNotes.length > 0 ? dietaryNotes : null,
+            p_table_preferences: tablePreferences && tablePreferences.length > 0 ? tablePreferences : null,
             p_is_group_booking: isGroupBooking,
             p_applied_offer_id: null, // Don't apply offer until booking is confirmed
             p_booking_policy: bookingPolicy,

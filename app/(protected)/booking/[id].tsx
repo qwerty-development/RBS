@@ -15,8 +15,6 @@ import {
   TableIcon,
   MapPin,
   Sparkles,
-  PartyPopper,
-  MessageSquare,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
@@ -702,40 +700,6 @@ export default function BookingDetailsScreen() {
                   </Text>
                   <Text className="font-medium text-foreground capitalize">
                     {booking.preferred_section}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {/* Occasion */}
-            {booking.occasion && (
-              <View className="flex-row items-start gap-3 mb-3 pb-3 border-b border-border">
-                <View className="bg-primary/10 rounded-full p-2 mt-0.5">
-                  <PartyPopper size={18} color={colors[colorScheme].primary} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground mb-1">
-                    OCCASION
-                  </Text>
-                  <Text className="font-medium text-foreground capitalize">
-                    {booking.occasion}
-                  </Text>
-                </View>
-              </View>
-            )}
-
-            {/* Special Requests */}
-            {booking.special_requests && (
-              <View className="flex-row items-start gap-3 mb-3 pb-3 border-b border-border">
-                <View className="bg-primary/10 rounded-full p-2 mt-0.5">
-                  <MessageSquare size={18} color={colors[colorScheme].primary} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground mb-1">
-                    SPECIAL REQUESTS
-                  </Text>
-                  <Text className="font-medium text-foreground">
-                    {booking.special_requests}
                   </Text>
                 </View>
               </View>
