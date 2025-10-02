@@ -23,7 +23,10 @@ import {
   withSecurityMiddleware,
   InputValidator,
 } from "../lib/security";
-import { unregisterDeviceForPush } from "@/lib/notifications/setup";
+import {
+  unregisterDeviceForPush,
+  registerDeviceForPush,
+} from "@/lib/notifications/setup";
 
 const GUEST_MODE_KEY = "guest-mode-active";
 
@@ -699,7 +702,26 @@ function AuthContent({ children }: PropsWithChildren) {
           // Process OAuth user profile
           const userProfile = await processOAuthUser(data.session);
           if (userProfile) {
+            console.log(
+              "🍎 [Apple OAuth] Profile obtained, setting profile...",
+            );
             setProfile(userProfile);
+
+            // Register device for push notifications immediately after profile is set
+            console.log(
+              "🍎 [Apple OAuth] Registering device for push notifications...",
+            );
+            try {
+              await registerDeviceForPush(userProfile.id);
+              console.log("🍎 [Apple OAuth] Device registered successfully");
+            } catch (error) {
+              console.error(
+                "🍎 [Apple OAuth] Failed to register device:",
+                error,
+              );
+              // Failed to register device for push notifications, will retry on app restart
+            }
+
             // Check if profile needs additional info (like phone number)
             const needsUpdate = !userProfile.phone_number;
             return { needsProfileUpdate: needsUpdate };
@@ -869,6 +891,15 @@ function AuthContent({ children }: PropsWithChildren) {
               const userProfile = await processOAuthUser(sessionData.session);
               if (userProfile) {
                 setProfile(userProfile);
+
+                // Register device for push notifications immediately after profile is set
+                try {
+                  await registerDeviceForPush(userProfile.id);
+                  // Device registered for push notifications after Google sign-in (code exchange)
+                } catch (error) {
+                  // Failed to register device for push notifications, will retry on app restart
+                }
+
                 // Check if profile needs additional info
                 const needsUpdate = !userProfile.phone_number;
                 return { needsProfileUpdate: needsUpdate };
@@ -902,6 +933,15 @@ function AuthContent({ children }: PropsWithChildren) {
               const userProfile = await processOAuthUser(sessionData.session);
               if (userProfile) {
                 setProfile(userProfile);
+
+                // Register device for push notifications immediately after profile is set
+                try {
+                  await registerDeviceForPush(userProfile.id);
+                  // Device registered for push notifications after Google sign-in (direct token)
+                } catch (error) {
+                  // Failed to register device for push notifications, will retry on app restart
+                }
+
                 // Check if profile needs additional info
                 const needsUpdate = !userProfile.phone_number;
                 return { needsProfileUpdate: needsUpdate };
@@ -925,6 +965,15 @@ function AuthContent({ children }: PropsWithChildren) {
             const userProfile = await processOAuthUser(currentSession);
             if (userProfile) {
               setProfile(userProfile);
+
+              // Register device for push notifications immediately after profile is set
+              try {
+                await registerDeviceForPush(userProfile.id);
+                // Device registered for push notifications after Google sign-in (fallback)
+              } catch (error) {
+                // Failed to register device for push notifications, will retry on app restart
+              }
+
               // Check if profile needs additional info
               const needsUpdate = !userProfile.phone_number;
               return { needsProfileUpdate: needsUpdate };

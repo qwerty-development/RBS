@@ -392,19 +392,19 @@ export class DeviceSecurity {
 
   /**
    * Register device for user
+   * NOTE: Device registration for push notifications is handled by lib/notifications/setup.ts
+   * This function is kept for backwards compatibility but does nothing to avoid conflicts
    */
   static async registerDeviceForUser(userId: string): Promise<void> {
     try {
-      const fingerprint = await this.getDeviceFingerprint();
-
-      await supabase.from("user_devices").upsert({
-        user_id: userId,
-        device_fingerprint: fingerprint,
-        last_login: new Date().toISOString(),
-        is_trusted: true,
-      });
+      // Device registration is now handled by the notification system
+      // This prevents conflicts with the user_devices table schema
+      // The notification system properly manages device_id, expo_push_token, and enabled fields
+      console.log(
+        `Device registration for user ${userId} handled by notification system`,
+      );
     } catch (error) {
-      console.error("Error registering device:", error);
+      console.error("Error in device registration stub:", error);
     }
   }
 }

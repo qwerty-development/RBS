@@ -58,38 +58,89 @@ export async function ensurePushPermissionsAndToken(): Promise<string | null> {
 
 export async function registerDeviceForPush(userId: string): Promise<void> {
   try {
+    console.log(
+      "📱 [registerDeviceForPush] Starting registration for user:",
+      userId,
+    );
+
     const token = cachedPushToken ?? (await ensurePushPermissionsAndToken());
-    if (!token) return;
+    console.log(
+      "📱 [registerDeviceForPush] Token obtained:",
+      token ? "YES" : "NO",
+    );
+
+    if (!token) {
+      console.warn(
+        "📱 [registerDeviceForPush] No token available - exiting early",
+      );
+      return;
+    }
 
     const deviceId = token; // Use token as unique device id (simple)
     const platform = Platform.OS;
     const appVersion = Constants.expoConfig?.version ?? null;
 
+    console.log("📱 [registerDeviceForPush] Device info:", {
+      deviceId: deviceId.substring(0, 20) + "...",
+      platform,
+      appVersion,
+    });
+
     // Disable this token for any other users to prevent cross-account notifications
     // Using RPC function with SECURITY DEFINER to bypass RLS
     try {
-      await supabase.rpc("disable_other_users_push_token", {
-        p_expo_push_token: token,
-        p_current_user_id: userId,
-      });
+      console.log(
+        "📱 [registerDeviceForPush] Disabling token for other users...",
+      );
+      const { error: rpcError } = await supabase.rpc(
+        "disable_other_users_push_token",
+        {
+          p_expo_push_token: token,
+          p_current_user_id: userId,
+        },
+      );
+      if (rpcError) {
+        console.warn("📱 [registerDeviceForPush] RPC error:", rpcError);
+      } else {
+        console.log(
+          "📱 [registerDeviceForPush] Successfully disabled token for other users",
+        );
+      }
     } catch (error) {
-      console.warn("Failed to disable push token for other users:", error);
+      console.warn(
+        "📱 [registerDeviceForPush] Failed to disable push token for other users:",
+        error,
+      );
     }
 
-    await supabase.from("user_devices").upsert(
-      {
-        user_id: userId,
-        device_id: deviceId,
-        expo_push_token: token,
-        platform,
-        app_version: appVersion,
-        enabled: true,
-        last_seen: new Date().toISOString(),
-      },
-      { onConflict: "user_id,device_id" },
+    const deviceData = {
+      user_id: userId,
+      device_id: deviceId,
+      expo_push_token: token,
+      platform,
+      app_version: appVersion,
+      enabled: true,
+      last_seen: new Date().toISOString(),
+    };
+
+    console.log(
+      "📱 [registerDeviceForPush] Upserting device with enabled=true...",
+    );
+    const { data, error: upsertError } = await supabase
+      .from("user_devices")
+      .upsert(deviceData, { onConflict: "user_id,device_id" });
+
+    if (upsertError) {
+      console.error("📱 [registerDeviceForPush] Upsert error:", upsertError);
+      throw upsertError;
+    }
+
+    console.log(
+      "✅ [registerDeviceForPush] Device registered successfully with enabled=true",
     );
   } catch (e) {
-    console.warn("Failed to register device:", e);
+    console.error("❌ [registerDeviceForPush] Failed to register device:", e);
+    throw e; // Re-throw to ensure caller knows about the error
   }
 }
 
