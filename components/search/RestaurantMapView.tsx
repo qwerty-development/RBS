@@ -17,7 +17,7 @@ type Restaurant = {
   id: string;
   name: string;
   cuisine_type: string;
-  main_image_url: string;
+  main_image_url: string | null;
   price_range: number;
   average_rating?: number;
   coordinates?: { latitude: number; longitude: number } | null;

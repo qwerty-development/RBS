@@ -92,7 +92,12 @@ export function useRestaurants(options: UseRestaurantsOptions = {}) {
       // Extract unique restaurants
       const uniqueRestaurants = new Map();
       data?.forEach((booking) => {
-        if (booking.restaurant) {
+        if (
+          booking.restaurant &&
+          !Array.isArray(booking.restaurant) &&
+          typeof booking.restaurant === "object" &&
+          "id" in booking.restaurant
+        ) {
           uniqueRestaurants.set(booking.restaurant.id, booking.restaurant);
         }
       });

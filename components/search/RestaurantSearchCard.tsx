@@ -31,7 +31,7 @@ type Restaurant = {
   id: string;
   name: string;
   cuisine_type: string;
-  main_image_url: string;
+  main_image_url: string | null;
   address: string;
   booking_policy: "instant" | "request";
   price_range: number;
@@ -40,12 +40,14 @@ type Restaurant = {
   distance?: number | null;
   isAvailable?: boolean;
   tags?: string[] | null;
+  coordinates?: { latitude: number; longitude: number } | null;
   restaurant_hours?: {
     day_of_week: string;
     is_open: boolean;
     open_time: string | null;
     close_time: string | null;
   }[];
+  [key: string]: any;
 };
 
 // Original interface for search screen

@@ -95,11 +95,15 @@ export const useFavoritesFilters = (favorites: Favorite[]) => {
             key = favorite.restaurant.cuisine_type;
             break;
           case "price_range":
-            key = `${"$".repeat(favorite.restaurant.price_range)} (${
-              ["Budget", "Moderate", "Upscale", "Fine Dining"][
-                favorite.restaurant.price_range - 1
-              ]
-            })`;
+            if (favorite.restaurant.price_range) {
+              key = `${"$".repeat(favorite.restaurant.price_range)} (${
+                ["Budget", "Moderate", "Upscale", "Fine Dining"][
+                  favorite.restaurant.price_range - 1
+                ]
+              })`;
+            } else {
+              key = "Unknown Price";
+            }
             break;
           case "location":
             // Extract area from address (simplified)

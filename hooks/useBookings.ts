@@ -1051,7 +1051,8 @@ export function useBookings() {
         );
       });
     },
-    [user?.id, handleRefresh],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user?.id],
   );
 
   const navigateToWaitlistBooking = useCallback(

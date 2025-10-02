@@ -417,7 +417,10 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
       }
 
       // 4.2 Price Range Match (Weight: 20%)
-      if (userProfile.priceRangePreference.includes(restaurant.price_range)) {
+      if (
+        restaurant.price_range &&
+        userProfile.priceRangePreference.includes(restaurant.price_range)
+      ) {
         const weight = 0.2;
         totalScore += weight;
         totalWeight += weight;
@@ -454,12 +457,18 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
       }
 
       // 4.4 Location Proximity (Weight: 15%)
-      if (location) {
+      if (
+        location &&
+        restaurant.location &&
+        typeof restaurant.location === "object" &&
+        "coordinates" in restaurant.location
+      ) {
+        const coords = restaurant.location.coordinates as [number, number];
         const distance = calculateDistance(
           location.latitude,
           location.longitude,
-          restaurant.location.coordinates[1],
-          restaurant.location.coordinates[0],
+          coords[1],
+          coords[0],
         );
 
         if (distance <= userProfile.locationPreferences.maxDistance) {
@@ -554,7 +563,12 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
       }
 
       // 4.7 Social Proof (Weight: 10%)
-      if (restaurant.average_rating >= 4.5 && restaurant.total_reviews >= 50) {
+      if (
+        restaurant.average_rating &&
+        restaurant.total_reviews &&
+        restaurant.average_rating >= 4.5 &&
+        restaurant.total_reviews >= 50
+      ) {
         const weight = 0.1;
         totalScore += weight;
         totalWeight += weight;

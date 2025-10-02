@@ -1,42 +1,27 @@
 // app/(protected)/playlist/[id].tsx
 import React, { useState, useCallback, useEffect } from "react";
-import {
-  ScrollView,
-  View,
-  Pressable,
-  ActivityIndicator,
-  Alert,
-  RefreshControl,
-  Share,
-  Switch,
-} from "react-native";
+import { View, Pressable, Alert, RefreshControl, Switch } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   ArrowLeft,
   Settings,
-  Share2,
   Globe,
   Lock,
   Plus,
   Copy,
   Edit3,
-  Trash2,
   UserPlus,
   Eye,
-  Calendar,
-  Clock,
 } from "lucide-react-native";
 import DraggableFlatList, {
   ScaleDecorator,
   RenderItemParams,
 } from "react-native-draggable-flatlist";
-import * as Haptics from "expo-haptics";
 
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
 import { H1, H2, H3, Muted } from "@/components/ui/typography";
-import { Image } from "@/components/image";
 
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
@@ -47,9 +32,7 @@ import { useDeletePlaylist } from "@/hooks/useDeletePlaylist";
 
 import { usePlaylistSharing } from "@/hooks/usePlaylistSharing";
 import { RestaurantSearchCard } from "@/components/search/RestaurantSearchCard";
-import { Database } from "@/types/supabase";
 import { PlaylistDetailsSkeleton } from "@/components/skeletons/PlaylistDetailsSkeleton";
-import { cn } from "@/lib/utils";
 import { CreatePlaylistModal } from "@/components/playlists/CreatePlaylistModal";
 import { useShare } from "@/hooks/useShare";
 import { ShareModal } from "@/components/ui/share-modal";
@@ -59,17 +42,9 @@ type PlaylistParams = {
 };
 
 export default function PlaylistDetailScreen() {
-  const [isMounted, setIsMounted] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
 
-  const {
-    sharePlaylist: sharePlaylistWithDeepLink,
-    sharePlaylistJoin: sharePlaylistJoinWithDeepLink,
-  } = useShare();
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const { sharePlaylistJoin: sharePlaylistJoinWithDeepLink } = useShare();
 
   const router = useRouter();
   const { colorScheme } = useColorScheme();
@@ -89,14 +64,8 @@ export default function PlaylistDetailScreen() {
       router.back();
     },
   });
-  const {
-    items,
-    loading: itemsLoading,
-    refreshing,
-    removeRestaurant,
-    reorderItems,
-    handleRefresh,
-  } = usePlaylistItems(id);
+  const { items, refreshing, removeRestaurant, reorderItems, handleRefresh } =
+    usePlaylistItems(id);
 
   const {
     collaborators,
@@ -287,35 +256,12 @@ export default function PlaylistDetailScreen() {
     }
   }, [playlist, togglePublicAccess, copyShareLink, fetchPlaylistDetails]);
 
-  const handleShare = useCallback(async () => {
-    if (!playlist) return;
-
-    if (!playlist.is_public) {
-      Alert.alert(
-        "Make playlist public?",
-        "Your playlist needs to be public to share it with others.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Make Public",
-            onPress: handleTogglePublic,
-          },
-        ],
-      );
-      return;
-    }
-
-    if (playlist.share_code) {
-      await sharePlaylist(playlist.name, playlist.share_code);
-    }
-  }, [playlist, handleTogglePublic, sharePlaylist]);
-
   // Render draggable item
   const renderItem = useCallback(
     ({ item, drag, isActive }: RenderItemParams<PlaylistItem>) => {
       const canEdit = userPermission === "edit";
 
-      const handleDeleteRestaurant = async (restaurantId: string) => {
+      const handleDeleteRestaurant = async () => {
         Alert.alert(
           "Remove Restaurant",
           `Are you sure you want to remove "${item.restaurant.name}" from this playlist?`,
@@ -472,12 +418,16 @@ export default function PlaylistDetailScreen() {
         <View className="flex-row items-center justify-between mb-2">
           <View className="flex-row items-center gap-3">
             <View className="flex-row items-center gap-1">
-              <Text className="text-lg font-bold text-foreground">{items.length}</Text>
+              <Text className="text-lg font-bold text-foreground">
+                {items.length}
+              </Text>
               <Muted className="text-xs">places</Muted>
             </View>
             <Text className="text-muted-foreground">•</Text>
             <View className="flex-row items-center gap-1">
-              <Text className="text-lg font-bold text-foreground">{collaborators.length}</Text>
+              <Text className="text-lg font-bold text-foreground">
+                {collaborators.length}
+              </Text>
               <Muted className="text-xs">people</Muted>
             </View>
             {playlist.view_count > 0 && (
@@ -485,7 +435,9 @@ export default function PlaylistDetailScreen() {
                 <Text className="text-muted-foreground">•</Text>
                 <View className="flex-row items-center gap-1">
                   <Eye size={14} color="#6b7280" />
-                  <Text className="text-sm text-muted-foreground">{playlist.view_count}</Text>
+                  <Text className="text-sm text-muted-foreground">
+                    {playlist.view_count}
+                  </Text>
                 </View>
               </>
             )}
@@ -496,7 +448,10 @@ export default function PlaylistDetailScreen() {
             <View className="flex-row items-center gap-2">
               <View className="flex-row items-center gap-1">
                 {playlist.is_public ? (
-                  <Globe size={16} color={colorScheme === "dark" ? "#10b981" : "#059669"} />
+                  <Globe
+                    size={16}
+                    color={colorScheme === "dark" ? "#10b981" : "#059669"}
+                  />
                 ) : (
                   <Lock size={16} color="#6b7280" />
                 )}
