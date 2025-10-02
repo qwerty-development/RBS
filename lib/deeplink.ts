@@ -268,11 +268,20 @@ export function parseDeepLinkUrl(url: string): {
     console.warn("Failed to parse deep link URL:", url, error);
     // During potential cold start scenarios, preserve the original path for retry
     // instead of immediately falling back to "/"
+    // Extract path from URL if possible
+    let extractedPath = "/";
+    try {
+      const parsed = Linking.parse(url);
+      extractedPath = parsed.path || "/";
+    } catch {
+      // If parsing fails completely, use "/"
+    }
+
     const fallbackPath =
       url.includes("restaurant/") ||
       url.includes("booking/") ||
       url.includes("playlist/")
-        ? pathname || "/"
+        ? extractedPath
         : "/";
 
     return {

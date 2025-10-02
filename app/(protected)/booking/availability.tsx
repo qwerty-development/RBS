@@ -1686,6 +1686,7 @@ export default function AvailabilitySelectionScreen() {
                 error={error}
                 onFormComplete={handleSpecialRequirementsComplete}
                 showRequirementsForm={true}
+                isBasicTier={isBasicTier}
               />
 
               {/* Time Range Search Button - Only show for pro plan restaurants */}

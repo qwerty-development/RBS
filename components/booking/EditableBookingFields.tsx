@@ -201,58 +201,58 @@ export const EditableBookingFields: React.FC<EditableBookingFieldsProps> = ({
         </View>
       ) : (
         <View className="space-y-0">
-          {/* Occasion with purple separator line */}
+          {/* Occasion */}
           {currentValues.occasion && (
             <View className="pb-3">
               <View className="flex-row items-center gap-2 mb-1">
-                <View className="bg-purple-100 dark:bg-purple-800/50 rounded-full p-1.5">
-                  <Gift size={14} color="#8b5cf6" />
+                <View className="bg-primary/10 rounded-full p-1.5">
+                  <Gift size={14} color={colors[colorScheme].primary} />
                 </View>
-                <Text className="font-medium text-sm text-purple-800 dark:text-purple-200">
+                <Text className="font-medium text-sm text-primary dark:text-white">
                   Occasion
                 </Text>
               </View>
               <Text className="text-foreground text-sm capitalize ml-8 mb-3">
                 {currentValues.occasion}
               </Text>
-              <View className="h-0.5 bg-purple-200 dark:bg-purple-800" />
+              <View className="h-0.5 bg-primary/20" />
             </View>
           )}
 
-          {/* Dietary Notes with amber separator line */}
+          {/* Dietary Notes */}
           {currentValues.dietary_notes &&
             currentValues.dietary_notes.length > 0 && (
               <View className="pt-3 pb-3">
                 <View className="flex-row items-center gap-2 mb-1">
-                  <View className="bg-amber-100 dark:bg-amber-800/50 rounded-full p-1.5">
-                    <Utensils size={14} color="#f59e0b" />
+                  <View className="bg-primary/10 rounded-full p-1.5">
+                    <Utensils size={14} color={colors[colorScheme].primary} />
                   </View>
-                  <Text className="font-medium text-sm text-amber-800 dark:text-amber-200">
+                  <Text className="font-medium text-sm text-primary dark:text-white">
                     Dietary Notes
                   </Text>
                 </View>
                 <Text className="text-foreground text-sm ml-8 mb-3">
                   {currentValues.dietary_notes.join(", ")}
                 </Text>
-                <View className="h-0.5 bg-amber-200 dark:bg-amber-800" />
+                <View className="h-0.5 bg-primary/20" />
               </View>
             )}
 
-          {/* Special Requests with blue separator line */}
+          {/* Special Requests */}
           {currentValues.special_requests && (
             <View className="pt-3 pb-3">
               <View className="flex-row items-center gap-2 mb-1">
-                <View className="bg-blue-100 dark:bg-blue-800/50 rounded-full p-1.5">
-                  <MessageSquare size={14} color="#3b82f6" />
+                <View className="bg-primary/10 rounded-full p-1.5">
+                  <MessageSquare size={14} color={colors[colorScheme].primary} />
                 </View>
-                <Text className="font-medium text-sm text-blue-800 dark:text-blue-200">
+                <Text className="font-medium text-sm text-primary dark:text-white">
                   Special Requests
                 </Text>
               </View>
               <Text className="text-foreground text-sm ml-8 mb-3">
                 {currentValues.special_requests.trim()}
               </Text>
-              <View className="h-0.5 bg-blue-200 dark:bg-blue-800" />
+              <View className="h-0.5 bg-primary/20" />
             </View>
           )}
 

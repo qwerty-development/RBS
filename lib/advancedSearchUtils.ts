@@ -1,4 +1,4 @@
-import Fuse from "fuse.js";
+import Fuse, { type IFuseOptions } from "fuse.js";
 import type { Restaurant, UserLocation } from "@/types/search";
 
 // Common cuisine types with variations and misspellings - based on your actual cuisine categories
@@ -169,7 +169,7 @@ const NORMALIZED_CUISINES = Object.keys(CUISINE_MAPPING).reduce(
 );
 
 // Advanced search configuration for restaurants
-const RESTAURANT_SEARCH_CONFIG: Fuse.IFuseOptions<Restaurant> = {
+const RESTAURANT_SEARCH_CONFIG: IFuseOptions<Restaurant> = {
   keys: [
     { name: "name", weight: 0.4 },
     { name: "cuisine_type", weight: 0.25 },
@@ -188,7 +188,7 @@ const RESTAURANT_SEARCH_CONFIG: Fuse.IFuseOptions<Restaurant> = {
 };
 
 // Cuisine search configuration for better matching
-const CUISINE_SEARCH_CONFIG: Fuse.IFuseOptions<{
+const CUISINE_SEARCH_CONFIG: IFuseOptions<{
   name: string;
   variations: string[];
 }> = {
@@ -399,7 +399,7 @@ export class AdvancedSearchEngine {
           allResults.push({
             item: result.item,
             score: result.score,
-            matches: result.matches || [],
+            matches: result.matches ? [...result.matches] : [],
           });
         }
       });

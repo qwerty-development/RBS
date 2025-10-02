@@ -9,7 +9,7 @@ import { formatBookingDate, formatBookingTime } from "@/lib/bookingUtils";
 interface Restaurant {
   id: string;
   name: string;
-  main_image_url: string;
+  main_image_url: string | null;
 }
 
 interface UserProfile {

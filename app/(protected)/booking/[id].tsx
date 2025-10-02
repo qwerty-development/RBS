@@ -13,6 +13,8 @@ import {
   Info,
   Gift,
   TableIcon,
+  MapPin,
+  Sparkles,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import * as Clipboard from "expo-clipboard";
@@ -648,6 +650,24 @@ export default function BookingDetailsScreen() {
                   </Text>
                 </View>
               </View>
+
+              {/* Expected Loyalty Points */}
+              {booking.expected_loyalty_points &&
+                booking.expected_loyalty_points > 0 && (
+                  <View className="flex-row items-center gap-3 pt-3">
+                    <View className="bg-primary/10 rounded-full p-2">
+                      <Sparkles size={18} color={colors[colorScheme].primary} />
+                    </View>
+                    <View>
+                      <Text className="text-xs text-muted-foreground mb-1">
+                        LOYALTY POINTS
+                      </Text>
+                      <Text className="font-medium text-primary dark:text-white">
+                        +{booking.expected_loyalty_points} points
+                      </Text>
+                    </View>
+                  </View>
+                )}
             </View>
 
             {/* Table Preferences */}
@@ -668,11 +688,28 @@ export default function BookingDetailsScreen() {
                 </View>
               )}
 
+            {/* Preferred Section */}
+            {booking.preferred_section && (
+              <View className="flex-row items-start gap-3 mb-3 pb-3 border-b border-border">
+                <View className="bg-primary/10 rounded-full p-2 mt-0.5">
+                  <MapPin size={18} color={colors[colorScheme].primary} />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-xs text-muted-foreground mb-1">
+                    PREFERRED SECTION
+                  </Text>
+                  <Text className="font-medium text-foreground capitalize">
+                    {booking.preferred_section}
+                  </Text>
+                </View>
+              </View>
+            )}
+
             {/* Special Offer */}
             {appliedOfferDetails && (
               <View className="flex-row items-start gap-3 mb-3 pb-3 border-b border-border">
-                <View className="bg-green-100 dark:bg-green-900/30 rounded-full p-2 mt-0.5">
-                  <Gift size={18} color="#10b981" />
+                <View className="bg-primary/10 rounded-full p-2 mt-0.5">
+                  <Gift size={18} color={colors[colorScheme].primary} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-xs text-muted-foreground mb-1">
@@ -682,7 +719,7 @@ export default function BookingDetailsScreen() {
                     {appliedOfferDetails.special_offer_title}
                   </Text>
                   {appliedOfferDetails.discount_percentage && (
-                    <Text className="text-xs text-green-600 dark:text-green-400 mt-0.5">
+                    <Text className="text-xs text-primary dark:text-white mt-0.5">
                       {appliedOfferDetails.discount_percentage}% discount
                       applied
                     </Text>
@@ -702,7 +739,9 @@ export default function BookingDetailsScreen() {
             />
 
             {/* Guest Information Section */}
-            {(booking.guest_name || booking.guest_email) && (
+            {(booking.guest_name ||
+              booking.guest_email ||
+              booking.guest_phone) && (
               <View className="border-t border-primary/20 pt-3 mb-3">
                 <Text className="text-sm font-medium text-muted-foreground mb-2">
                   Guest Information
@@ -713,8 +752,13 @@ export default function BookingDetailsScreen() {
                   </Text>
                 )}
                 {booking.guest_email && (
-                  <Text className="text-primary dark:text-white">
+                  <Text className="text-primary dark:text-white mb-1">
                     Email: {booking.guest_email}
+                  </Text>
+                )}
+                {booking.guest_phone && (
+                  <Text className="text-primary dark:text-white">
+                    Phone: {booking.guest_phone}
                   </Text>
                 )}
               </View>
@@ -774,8 +818,8 @@ export default function BookingDetailsScreen() {
           />
         )}
 
-        {/* Bottom padding */}
-        <View className="h-24" />
+        {/* Bottom padding - increased to prevent content from being hidden by actions bar */}
+        <View className="h-48" />
       </ScrollView>
 
       {/* Actions Bar */}

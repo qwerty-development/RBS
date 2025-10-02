@@ -8,13 +8,18 @@ export type BaseBooking = Database["public"]["Tables"]["bookings"]["Row"];
 export interface Booking
   extends Omit<
     BaseBooking,
-    "dietary_notes" | "table_preferences" | "occasion" | "special_requests"
+    | "dietary_notes"
+    | "table_preferences"
+    | "occasion"
+    | "special_requests"
+    | "preferred_section"
   > {
   decline_note?: string | null;
   occasion: string | null;
   special_requests: string | null;
   dietary_notes: string[] | null;
   table_preferences: string[] | null;
+  preferred_section: string | null;
 
   // Restaurant relation
   restaurant?: {

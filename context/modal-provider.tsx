@@ -104,8 +104,12 @@ export function useModal() {
 // Hook specifically for navigation-based modals (like cuisine pages)
 export function useNavigationModal() {
   const { openModal, closeModal, modalState } = useModal();
-  const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const autoCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const navigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const autoCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
 
   const openNavigationModal = useCallback(
     (modalId: string, navigationCallback: () => void) => {
