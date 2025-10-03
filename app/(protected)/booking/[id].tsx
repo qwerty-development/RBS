@@ -1,6 +1,12 @@
-// app/(protected)/booking/[id].tsx - Updated with restaurant loyalty support
 import React, { useState, useEffect } from "react";
-import { ScrollView, View, Pressable, Alert, Share } from "react-native";
+import {
+  ScrollView,
+  View,
+  Pressable,
+  Alert,
+  Share,
+  LogBox,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Copy,
@@ -46,6 +52,8 @@ import { useBookingDetails } from "@/hooks/useBookingDetails";
 import { BOOKING_STATUS_CONFIG } from "@/constants/bookingConstants";
 import BookingDetailsScreenSkeleton from "@/components/skeletons/BookingDetailsScreenSkeleton";
 import { useShare } from "@/hooks/useShare";
+
+LogBox.ignoreAllLogs();
 
 // Types
 interface LoyaltyRuleDetails {
@@ -104,31 +112,31 @@ const RestaurantLoyaltyStatus: React.FC<{
             }`}
           >
             {isPending ? (
-              <>
+              <Text>
                 You&apos;ll earn{" "}
                 <Text className="font-bold">
                   {booking.expected_loyalty_points || rule.points_to_award}{" "}
                   points
                 </Text>{" "}
                 from &ldquo;{rule.rule_name}&rdquo; if confirmed
-              </>
+              </Text>
             ) : isCancelled ? (
               wasRefunded ? (
-                <>
+                <Text>
                   The {booking.loyalty_points_earned || 0} points from &ldquo;
                   {rule.rule_name}&rdquo; have been refunded to the restaurant
-                </>
+                </Text>
               ) : (
-                <>No points were awarded for this cancelled booking</>
+                <Text>No points were awarded for this cancelled booking</Text>
               )
             ) : (
-              <>
+              <Text>
                 You earned{" "}
                 <Text className="font-bold">
                   {booking.loyalty_points_earned} points
                 </Text>{" "}
                 from &ldquo;{rule.rule_name}&rdquo;
-              </>
+              </Text>
             )}
           </Text>
 
@@ -176,13 +184,30 @@ export default function BookingDetailsScreen() {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
 
-  // Validate booking ID from params
-  const bookingId =
-    typeof params.id === "string"
-      ? params.id
-      : Array.isArray(params.id)
-        ? params.id[0]
-        : "";
+  // Enhanced validation and logging for booking ID from params
+  const bookingId = React.useMemo(() => {
+    console.log("[BookingDetails] Raw params:", JSON.stringify(params));
+    console.log("[BookingDetails] params.id type:", typeof params.id);
+    console.log("[BookingDetails] params.id value:", params.id);
+
+    let extractedId = "";
+
+    try {
+      if (typeof params.id === "string" && params.id.trim().length > 0) {
+        extractedId = params.id.trim();
+      } else if (Array.isArray(params.id) && params.id.length > 0) {
+        extractedId = String(params.id[0]).trim();
+      } else if (params.id) {
+        // Fallback: try to convert to string
+        extractedId = String(params.id).trim();
+      }
+    } catch (error) {
+      console.error("[BookingDetails] Error extracting booking ID:", error);
+    }
+
+    console.log("[BookingDetails] Extracted bookingId:", extractedId);
+    return extractedId;
+  }, [params]);
 
   // Restaurant loyalty state
   const [restaurantLoyaltyRule, setRestaurantLoyaltyRule] =
@@ -303,68 +328,82 @@ export default function BookingDetailsScreen() {
 
   const isPending = booking?.status === "pending" && !isPendingAndPassed;
   const isDeclined = booking?.status === "declined_by_restaurant";
-  const timeSinceRequest =
-    isPending && booking && booking.created_at
-      ? Math.floor(
-          (Date.now() - new Date(booking.created_at).getTime()) / (1000 * 60),
-        )
-      : 0;
-  const timeRemaining = isPending ? Math.max(0, 120 - timeSinceRequest) : 0;
 
-  // Navigation handlers
+  // Navigation handlers with error handling
   const navigateToReview = () => {
-    if (!booking) return;
+    try {
+      if (!booking || !booking.restaurant) return;
 
-    // Use query string format for production build compatibility
-    const params = new URLSearchParams({
-      bookingId: booking.id,
-      restaurantId: booking.restaurant_id,
-      restaurantName: booking.restaurant?.name || "",
-      earnedPoints: loyaltyActivity?.points_earned?.toString() || "0",
-    });
-    router.push(`/review/create?${params.toString()}`);
+      // Use query string format for production build compatibility
+      const params = new URLSearchParams({
+        bookingId: booking.id,
+        restaurantId: booking.restaurant_id,
+        restaurantName: booking.restaurant.name || "",
+        earnedPoints: loyaltyActivity?.points_earned?.toString() || "0",
+      });
+      router.push(`/review/create?${params.toString()}`);
+    } catch (error) {
+      console.error("[BookingDetails] Navigation to review failed:", error);
+      Alert.alert("Error", "Failed to navigate to review page");
+    }
   };
 
   const navigateToRestaurant = () => {
-    if (!booking) return;
-    // Use string-based path for production build compatibility
-    router.push(`/restaurant/${booking.restaurant_id}`);
+    try {
+      if (!booking || !booking.restaurant_id) return;
+      // Use string-based path for production build compatibility
+      router.push(`/restaurant/${booking.restaurant_id}`);
+    } catch (error) {
+      console.error("[BookingDetails] Navigation to restaurant failed:", error);
+      Alert.alert("Error", "Failed to navigate to restaurant page");
+    }
   };
 
   const navigateToLoyalty = () => {
-    router.push("/profile/loyalty");
+    try {
+      router.push("/profile/loyalty");
+    } catch (error) {
+      console.error("[BookingDetails] Navigation to loyalty failed:", error);
+    }
   };
 
   const navigateToOffers = () => {
-    router.push("/offers");
+    try {
+      router.push("/offers");
+    } catch (error) {
+      console.error("[BookingDetails] Navigation to offers failed:", error);
+    }
   };
 
   const bookAgain = () => {
-    if (!booking) return;
+    try {
+      if (!booking || !booking.restaurant) return;
 
-    // Calculate a future date/time based on the original booking
-    const originalDate = new Date(booking.booking_time);
-    const now = new Date();
+      // Calculate a future date/time based on the original booking
+      const originalDate = new Date(booking.booking_time);
+      const now = new Date();
 
-    // If the original booking time is in the past, schedule for the same time next week
-    // If it's in the future, use the original time
-    let suggestedDate = originalDate;
-    if (originalDate < now) {
-      suggestedDate = new Date(originalDate);
-      suggestedDate.setDate(suggestedDate.getDate() + 7); // Same time next week
+      // If the original booking time is in the past, schedule for the same time next week
+      // If it's in the future, use the original time
+      let suggestedDate = originalDate;
+      if (originalDate < now) {
+        suggestedDate = new Date(originalDate);
+        suggestedDate.setDate(suggestedDate.getDate() + 7); // Same time next week
+      }
+
+      // Use query string format for production build compatibility
+      const params = new URLSearchParams({
+        restaurantId: booking.restaurant_id,
+        restaurantName: booking.restaurant.name,
+        partySize: booking.party_size.toString(),
+        suggestedDate: suggestedDate.toISOString(),
+        originalDate: originalDate.toISOString(),
+      });
+      router.push(`/booking/availability?${params.toString()}`);
+    } catch (error) {
+      console.error("[BookingDetails] Book again failed:", error);
+      Alert.alert("Error", "Failed to create new booking");
     }
-
-    if (!booking.restaurant) return;
-
-    // Use query string format for production build compatibility
-    const params = new URLSearchParams({
-      restaurantId: booking.restaurant_id,
-      restaurantName: booking.restaurant.name,
-      partySize: booking.party_size.toString(),
-      suggestedDate: suggestedDate.toISOString(),
-      originalDate: originalDate.toISOString(),
-    });
-    router.push(`/booking/availability?${params.toString()}`);
   };
 
   // Enhanced share booking with deep links
@@ -428,10 +467,25 @@ export default function BookingDetailsScreen() {
     }
   };
 
-  // Handle missing booking ID
-  if (!bookingId && isMounted) {
+  // Enhanced validation: Check for missing or invalid booking ID
+  if (
+    isMounted &&
+    (!bookingId ||
+      bookingId === "" ||
+      bookingId === "undefined" ||
+      bookingId === "null")
+  ) {
+    console.error("[BookingDetails] Invalid booking ID detected:", {
+      bookingId,
+      params,
+    });
     return (
       <SafeAreaView className="flex-1 bg-background">
+        <NavigationHeader
+          title="Booking Details"
+          onBack={() => router.back()}
+          showShare={false}
+        />
         <View className="flex-1 items-center justify-center px-4">
           <H3 className="text-center mb-2">Invalid Booking</H3>
           <P className="text-center text-muted-foreground mb-4">
@@ -449,19 +503,52 @@ export default function BookingDetailsScreen() {
     );
   }
 
-  // Loading state
-  if (loading || !isMounted) {
+  // Loading state - wait for both mount and valid ID
+  if (loading || !isMounted || !bookingId) {
     return <BookingDetailsScreenSkeleton />;
   }
 
   if (!booking) {
+    console.error("[BookingDetails] Booking not found for ID:", bookingId);
     return (
       <SafeAreaView className="flex-1 bg-background">
+        <NavigationHeader
+          title="Booking Details"
+          onBack={() => router.back()}
+          showShare={false}
+        />
         <View className="flex-1 items-center justify-center px-4">
           <H3 className="text-center mb-2">Booking not found</H3>
           <P className="text-center text-muted-foreground mb-4">
             The booking you&apos;re looking for doesn&apos;t exist or has been
             removed.
+          </P>
+          <Button variant="outline" onPress={() => router.back()}>
+            <Text>Go Back</Text>
+          </Button>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // Additional validation: Ensure restaurant data exists
+  if (!booking.restaurant) {
+    console.error(
+      "[BookingDetails] Booking has no restaurant data:",
+      bookingId,
+    );
+    return (
+      <SafeAreaView className="flex-1 bg-background">
+        <NavigationHeader
+          title="Booking Details"
+          onBack={() => router.back()}
+          showShare={false}
+        />
+        <View className="flex-1 items-center justify-center px-4">
+          <H3 className="text-center mb-2">Data Error</H3>
+          <P className="text-center text-muted-foreground mb-4">
+            Restaurant information is missing for this booking. Please try again
+            or contact support.
           </P>
           <Button variant="outline" onPress={() => router.back()}>
             <Text>Go Back</Text>

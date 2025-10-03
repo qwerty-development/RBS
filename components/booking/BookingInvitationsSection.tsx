@@ -19,15 +19,22 @@ interface BookingInvitationDetails {
   booking_id: string;
   from_user_id: string;
   to_user_id: string;
-  status: "pending" | "accepted" | "declined" | "cancelled";
+  status:
+    | "pending"
+    | "accepted"
+    | "declined"
+    | "cancelled"
+    | "expired"
+    | "auto_declined"
+    | string;
   message?: string;
   created_at: string;
   responded_at?: string;
-  to_user: {
+  to_user?: {
     id: string;
     full_name: string;
     avatar_url?: string;
-  };
+  } | null;
 }
 
 interface BookingInvitationsSectionProps {
@@ -35,7 +42,25 @@ interface BookingInvitationsSectionProps {
   bookingUserId: string; // The user who made the booking
 }
 
-const getStatusConfig = (status: BookingInvitationDetails["status"]) => {
+type StatusConfig = {
+  icon: typeof CheckCircle;
+  color: string;
+  bgColor: string;
+  darkBgColor: string;
+  label: string;
+  description: string;
+};
+
+const FALLBACK_STATUS_CONFIG: StatusConfig = {
+  icon: Clock4,
+  color: "#6b7280",
+  bgColor: "#f3f4f6",
+  darkBgColor: "#374151",
+  label: "Unknown",
+  description: "Status unavailable",
+};
+
+const getStatusConfig = (status: BookingInvitationDetails["status"]): StatusConfig => {
   switch (status) {
     case "accepted":
       return {
@@ -73,6 +98,13 @@ const getStatusConfig = (status: BookingInvitationDetails["status"]) => {
         label: "Cancelled",
         description: "Invitation cancelled",
       };
+    default: {
+      console.warn(
+        "[BookingInvitationsSection] Unknown invitation status encountered",
+        status,
+      );
+      return FALLBACK_STATUS_CONFIG;
+    }
   }
 };
 
@@ -244,6 +276,10 @@ export const BookingInvitationsSection: React.FC<
           const timeSince = new Date(
             invitation.created_at,
           ).toLocaleDateString();
+          const guestName = invitation.to_user?.full_name || "Guest";
+          const guestAvatar =
+            invitation.to_user?.avatar_url ||
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(guestName)}&background=e5e7eb&color=374151`;
 
           return (
             <View
@@ -252,19 +288,13 @@ export const BookingInvitationsSection: React.FC<
             >
               <View className="flex-row items-start gap-3">
                 <Image
-                  source={{
-                    uri:
-                      invitation.to_user?.avatar_url ||
-                      `https://ui-avatars.com/api/?name=${invitation.to_user?.full_name || "User"}&background=e5e7eb&color=374151`,
-                  }}
+                  source={{ uri: guestAvatar }}
                   className="w-11 h-11 rounded-full bg-gray-100"
                 />
 
                 <View className="flex-1">
                   <View className="flex-row items-center justify-between mb-1">
-                    <Text className="font-semibold text-lg">
-                      {invitation.to_user?.full_name}
-                    </Text>
+                    <Text className="font-semibold text-lg">{guestName}</Text>
                     <View
                       className="px-2 py-1 rounded-full flex-row items-center gap-1"
                       style={{ backgroundColor: statusConfig.bgColor }}
@@ -303,7 +333,7 @@ export const BookingInvitationsSection: React.FC<
                           handleResendInvitation(
                             invitation.id,
                             invitation.to_user_id,
-                            invitation.to_user.full_name,
+                            guestName,
                           )
                         }
                         className="flex-1"
@@ -314,10 +344,7 @@ export const BookingInvitationsSection: React.FC<
                         variant="destructive"
                         size="sm"
                         onPress={() =>
-                          handleCancelInvitation(
-                            invitation.id,
-                            invitation.to_user.full_name,
-                          )
+                          handleCancelInvitation(invitation.id, guestName)
                         }
                         className="flex-1"
                       >
