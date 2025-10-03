@@ -674,7 +674,7 @@ export function useRestaurant(
       );
 
       router.push({
-        pathname: "/(protected)/booking/create",
+        pathname: "/booking/create",
         params: {
           restaurantId: restaurantId,
           restaurantName: restaurant.name,

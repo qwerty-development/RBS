@@ -955,7 +955,7 @@ export function useBookings() {
         }
 
         router.push({
-          pathname: "/(protected)/booking/availability",
+          pathname: "/booking/availability",
           params: {
             restaurantId: booking.restaurant_id,
             restaurantName: booking.restaurant.name,

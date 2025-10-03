@@ -36,8 +36,8 @@ export const DEEP_LINK_ROUTES: DeepLinkRoute[] = [
     description: "Booking details page",
   },
   {
-    pattern: /^\/(?:\(protected\)\/)?booking\/create$/,
-    path: () => "/(protected)/booking/create",
+    pattern: /^\/booking\/create$/,
+    path: () => "/booking/create",
     protected: true,
     description: "Create booking page",
   },

@@ -171,7 +171,7 @@ export function useDeepLink(options: DeepLinkHookOptions = {}) {
               if (url.includes("/booking/")) {
                 const match = url.match(/\/booking\/([^?&#]+)/);
                 if (match) {
-                  router.push(`/(protected)/booking/${match[1]}`);
+                  router.push(`/booking/${match[1]}`);
                   return;
                 }
               }

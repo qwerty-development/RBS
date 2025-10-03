@@ -150,7 +150,7 @@ export default function SpecialOffersScreen() {
       // Navigate to availability selection with offer pre-selected
       // The booking flow will handle claiming unclaimed offers during confirmation
       router.push({
-        pathname: "/(protected)/booking/availability",
+        pathname: "/booking/availability",
         params: {
           restaurantId: offer.restaurant_id,
           restaurantName: offer.restaurant.name,
@@ -295,7 +295,7 @@ export default function SpecialOffersScreen() {
 
       // Navigate back to availability with the offer applied
       router.push({
-        pathname: "/(protected)/booking/availability",
+        pathname: "/booking/availability",
         params: {
           restaurantId: params.restaurantId!,
           preselectedOfferId: offer.id,

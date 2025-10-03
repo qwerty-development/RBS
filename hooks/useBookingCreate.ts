@@ -574,7 +574,7 @@ export function useBookingCreate() {
             Haptics.NotificationFeedbackType.Success,
           );
           router.replace({
-            pathname: "/(protected)/booking/success",
+            pathname: "/booking/success",
             params: {
               bookingId: booking.id,
               confirmationCode: booking.confirmation_code,
@@ -630,7 +630,7 @@ export function useBookingCreate() {
             Haptics.NotificationFeedbackType.Success,
           );
           router.replace({
-            pathname: "/(protected)/booking/request-sent",
+            pathname: "/booking/request-sent",
             params: {
               bookingId: booking.id,
               restaurantName: restaurant.name,
