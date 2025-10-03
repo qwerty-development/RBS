@@ -771,10 +771,8 @@ export function useBookings() {
   const navigateToBookingDetails = useCallback(
     (bookingId: string) => {
       try {
-        router.push({
-          pathname: "/booking/[id]",
-          params: { id: bookingId },
-        });
+        // Use string-based path for production build compatibility
+        router.push(`/booking/${bookingId}`);
       } catch (err) {
         console.error("Navigation error:", err);
       }
@@ -785,10 +783,8 @@ export function useBookings() {
   const navigateToRestaurant = useCallback(
     (restaurantId: string) => {
       try {
-        router.push({
-          pathname: "/restaurant/[id]",
-          params: { id: restaurantId },
-        });
+        // Use string-based path for production build compatibility
+        router.push(`/restaurant/${restaurantId}`);
       } catch (err) {
         console.error("Navigation error:", err);
       }
@@ -954,16 +950,15 @@ export function useBookings() {
           suggestedDate.setDate(suggestedDate.getDate() + 7); // Same time next week
         }
 
-        router.push({
-          pathname: "/booking/availability",
-          params: {
-            restaurantId: booking.restaurant_id,
-            restaurantName: booking.restaurant.name,
-            partySize: booking.party_size.toString(),
-            suggestedDate: suggestedDate.toISOString(),
-            originalDate: originalDate.toISOString(),
-          },
+        // Use query string format for production build compatibility
+        const params = new URLSearchParams({
+          restaurantId: booking.restaurant_id,
+          restaurantName: booking.restaurant.name,
+          partySize: booking.party_size.toString(),
+          suggestedDate: suggestedDate.toISOString(),
+          originalDate: originalDate.toISOString(),
         });
+        router.push(`/booking/availability?${params.toString()}`);
       } catch (err) {
         console.error("Navigation error:", err);
       }
@@ -979,14 +974,13 @@ export function useBookings() {
       }
 
       try {
-        router.push({
-          pathname: "/review/create",
-          params: {
-            bookingId: booking.id,
-            restaurantId: booking.restaurant_id,
-            restaurantName: booking.restaurant.name,
-          },
+        // Use query string format for production build compatibility
+        const params = new URLSearchParams({
+          bookingId: booking.id,
+          restaurantId: booking.restaurant_id,
+          restaurantName: booking.restaurant.name,
         });
+        router.push(`/review/create?${params.toString()}`);
       } catch (err) {
         console.error("Navigation error:", err);
       }
@@ -1062,17 +1056,16 @@ export function useBookings() {
       }
 
       try {
-        router.push({
-          pathname: "/(protected)/booking/availability",
-          params: {
-            restaurantId: waitlistEntry.restaurant_id,
-            date: waitlistEntry.desired_date,
-            time: waitlistEntry.desired_time_range.split("-")[0],
-            partySize: waitlistEntry.party_size.toString(),
-            fromWaitlist: "true",
-            waitlistId: waitlistEntry.id,
-          },
+        // Use query string format for production build compatibility
+        const params = new URLSearchParams({
+          restaurantId: waitlistEntry.restaurant_id,
+          date: waitlistEntry.desired_date,
+          time: waitlistEntry.desired_time_range.split("-")[0],
+          partySize: waitlistEntry.party_size.toString(),
+          fromWaitlist: "true",
+          waitlistId: waitlistEntry.id,
         });
+        router.push(`/booking/availability?${params.toString()}`);
       } catch (err) {
         console.error("Navigation error:", err);
       }

@@ -512,13 +512,17 @@ export function useBookingCreate() {
               p_turn_time: turnTime,
               p_special_requests: formData.specialRequests || null,
               p_occasion:
-                formData.occasion && formData.occasion !== "none" ? formData.occasion : null,
+                formData.occasion && formData.occasion !== "none"
+                  ? formData.occasion
+                  : null,
               p_dietary_notes:
-                formData.dietaryRestrictions && formData.dietaryRestrictions.length > 0
+                formData.dietaryRestrictions &&
+                formData.dietaryRestrictions.length > 0
                   ? formData.dietaryRestrictions
                   : null,
               p_table_preferences:
-                formData.tablePreferences && formData.tablePreferences.length > 0
+                formData.tablePreferences &&
+                formData.tablePreferences.length > 0
                   ? formData.tablePreferences
                   : null,
               p_is_group_booking: invitedFriends.length > 0,
@@ -597,12 +601,18 @@ export function useBookingCreate() {
               party_size: totalPartySize,
               status: "pending", // Key difference: status is 'pending'
               special_requests: formData.specialRequests || null,
-              occasion: formData.occasion && formData.occasion !== "none" ? formData.occasion : null,
-              dietary_notes: formData.dietaryRestrictions && formData.dietaryRestrictions.length > 0
-                ? formData.dietaryRestrictions
-                : null,
+              occasion:
+                formData.occasion && formData.occasion !== "none"
+                  ? formData.occasion
+                  : null,
+              dietary_notes:
+                formData.dietaryRestrictions &&
+                formData.dietaryRestrictions.length > 0
+                  ? formData.dietaryRestrictions
+                  : null,
               table_preferences:
-                formData.tablePreferences && formData.tablePreferences.length > 0
+                formData.tablePreferences &&
+                formData.tablePreferences.length > 0
                   ? formData.tablePreferences
                   : null,
               applied_offer_id: selectedOffer?.special_offer.id || null,

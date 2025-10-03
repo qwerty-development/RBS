@@ -138,7 +138,7 @@ export default function SignUp() {
       Alert.alert(
         "Terms Required",
         "You must agree to the Terms and Conditions and Privacy Policy to create an account.",
-        [{ text: "OK", style: "default" }]
+        [{ text: "OK", style: "default" }],
       );
       return;
     }
@@ -223,7 +223,6 @@ export default function SignUp() {
           keyboardShouldPersistTaps="handled"
         >
           <View className="flex-1 gap-4">
-
             <Form {...form}>
               <View className="gap-4">
                 <FormField
@@ -384,14 +383,18 @@ export default function SignUp() {
                         className="h-4 w-4 rounded border items-center justify-center mt-1"
                         style={{
                           borderColor: isDark ? "#fff" : "#000",
-                          backgroundColor: field.value ? (isDark ? "#fff" : "#000") : "transparent"
+                          backgroundColor: field.value
+                            ? isDark
+                              ? "#fff"
+                              : "#000"
+                            : "transparent",
                         }}
                       >
                         {field.value && (
-                          <Ionicons 
-                            name="checkmark" 
-                            size={12} 
-                            color={isDark ? "#000" : "#fff"} 
+                          <Ionicons
+                            name="checkmark"
+                            size={12}
+                            color={isDark ? "#000" : "#fff"}
                           />
                         )}
                       </TouchableOpacity>
@@ -430,7 +433,16 @@ export default function SignUp() {
                 form.formState.isSubmitting ? "opacity-50" : ""
               }`}
               activeOpacity={0.7}
-              style={{ backgroundColor: "#000", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}
+              style={{
+                backgroundColor: "#000",
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.12)",
+                shadowColor: "#000",
+                shadowOpacity: 0.12,
+                shadowRadius: 8,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: 2,
+              }}
             >
               {form.formState.isSubmitting ? (
                 <ActivityIndicator size="small" color="white" />
@@ -440,9 +452,7 @@ export default function SignUp() {
             </TouchableOpacity>
 
             <View className="flex-row items-center gap-2 justify-center">
-              <Text className="text-white/80">
-                Already have an account?
-              </Text>
+              <Text className="text-white/80">Already have an account?</Text>
               <Text
                 className="text-white font-medium"
                 onPress={() => {

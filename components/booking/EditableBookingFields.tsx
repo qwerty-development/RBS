@@ -243,7 +243,10 @@ export const EditableBookingFields: React.FC<EditableBookingFieldsProps> = ({
             <View className="pt-3 pb-3">
               <View className="flex-row items-center gap-2 mb-1">
                 <View className="bg-primary/10 rounded-full p-1.5">
-                  <MessageSquare size={14} color={colors[colorScheme].primary} />
+                  <MessageSquare
+                    size={14}
+                    color={colors[colorScheme].primary}
+                  />
                 </View>
                 <Text className="font-medium text-sm text-primary dark:text-white">
                   Special Requests

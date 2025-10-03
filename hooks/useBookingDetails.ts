@@ -57,7 +57,10 @@ export const useBookingDetails = (bookingId: string) => {
 
   // Enhanced fetch booking details with table information
   const fetchBookingDetails = useCallback(async () => {
-    if (!bookingId) return;
+    if (!bookingId) {
+      setLoading(false);
+      return;
+    }
 
     try {
       // Fetch booking with enhanced data
@@ -128,12 +131,9 @@ export const useBookingDetails = (bookingId: string) => {
         .eq("booking_id", bookingId);
 
       if (!tablesError && tablesData && tablesData.length > 0) {
-        const tables:any = tablesData
+        const tables: any = tablesData
           .map((bt) => bt.table)
-          .filter(
-            (t:any) =>
-              t !== null && typeof t === "object" && "id" in t,
-          );
+          .filter((t: any) => t !== null && typeof t === "object" && "id" in t);
         setAssignedTables(tables);
       } else {
         setAssignedTables([]);

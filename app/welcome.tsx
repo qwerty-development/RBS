@@ -12,7 +12,6 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import * as AppleAuthentication from "expo-apple-authentication";
 
-
 import { Image } from "@/components/image";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
@@ -37,7 +36,7 @@ export default function WelcomeScreen() {
 
   const appIcon = require("@/assets/transparent-icon.png");
 
-  const slotWords = ["Book", "Discover", "Earn", "Share", "Review"]; 
+  const slotWords = ["Book", "Discover", "Earn", "Share", "Review"];
   const [slotIndex, setSlotIndex] = useState(0);
   const slotOpacity = useState(new Animated.Value(1))[0];
   const slotTranslateY = useState(new Animated.Value(0))[0];
@@ -68,8 +67,16 @@ export default function WelcomeScreen() {
         setSlotIndex((prev) => (prev + 1) % slotWords.length);
         slotTranslateY.setValue(6);
         Animated.parallel([
-          Animated.timing(slotOpacity, { toValue: 1, duration: 220, useNativeDriver: true }),
-          Animated.timing(slotTranslateY, { toValue: 0, duration: 220, useNativeDriver: true }),
+          Animated.timing(slotOpacity, {
+            toValue: 1,
+            duration: 220,
+            useNativeDriver: true,
+          }),
+          Animated.timing(slotTranslateY, {
+            toValue: 0,
+            duration: 220,
+            useNativeDriver: true,
+          }),
         ]).start();
       });
     }, 1400);
@@ -140,7 +147,6 @@ export default function WelcomeScreen() {
 
   return (
     <View className="flex-1 bg-primary">
-
       <SafeAreaView className="flex flex-1 px-3" edges={["top"]}>
         <View className="flex flex-1 items-center justify-center px-6">
           <Image source={appIcon} className="w-32 h-32 rounded-2xl mb-6" />
@@ -148,13 +154,23 @@ export default function WelcomeScreen() {
           <Text className="text-center max-w-md text-lg leading-relaxed text-white/90">
             Discover and book from a wide variety of restaurants
           </Text>
-          <Text className="text-center mt-2 text-white/80 text-lg">Here you can</Text>
-          <Animated.View style={{ opacity: slotOpacity, transform: [{ translateY: slotTranslateY }] }}>
-            <Text className="text-center mt-3 text-white font-semibold text-lg">{slotWords[slotIndex]}</Text>
+          <Text className="text-center mt-2 text-white/80 text-lg">
+            Here you can
+          </Text>
+          <Animated.View
+            style={{
+              opacity: slotOpacity,
+              transform: [{ translateY: slotTranslateY }],
+            }}
+          >
+            <Text className="text-center mt-3 text-white font-semibold text-lg">
+              {slotWords[slotIndex]}
+            </Text>
           </Animated.View>
         </View>
 
-        <View className="rounded-3xl overflow-hidden mt-auto mx-3 mb-12"
+        <View
+          className="rounded-3xl overflow-hidden mt-auto mx-3 mb-12"
           style={{
             shadowColor: "#000",
             shadowOpacity: 0.3,
@@ -163,15 +179,21 @@ export default function WelcomeScreen() {
             elevation: 14,
           }}
         >
-          <View style={{
-            paddingHorizontal: 16,
-            paddingTop: 20,
-            paddingBottom: 24,
-            backgroundColor: isDark ? "rgba(0,0,0,0.55)" : "rgba(255,255,255,0.75)",
-            borderRadius: 24,
-            borderWidth: 1,
-            borderColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.06)",
-          }}>
+          <View
+            style={{
+              paddingHorizontal: 16,
+              paddingTop: 20,
+              paddingBottom: 24,
+              backgroundColor: isDark
+                ? "rgba(0,0,0,0.55)"
+                : "rgba(255,255,255,0.75)",
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: isDark
+                ? "rgba(255,255,255,0.12)"
+                : "rgba(0,0,0,0.06)",
+            }}
+          >
             {/* Primary Actions */}
             <View className="gap-y-3 mb-6">
               <Button
@@ -197,9 +219,17 @@ export default function WelcomeScreen() {
 
             {/* Divider */}
             <View className="flex-row items-center mb-6">
-              <View className={`flex-1 h-[1px] ${isDark ? "bg-white/20" : "bg-black/20"}`} />
-              <Text className={`mx-4 text-sm ${isDark ? "text-white/80" : "text-black/70"}`}>or continue with</Text>
-              <View className={`flex-1 h-[1px] ${isDark ? "bg-white/20" : "bg-black/20"}`} />
+              <View
+                className={`flex-1 h-[1px] ${isDark ? "bg-white/20" : "bg-black/20"}`}
+              />
+              <Text
+                className={`mx-4 text-sm ${isDark ? "text-white/80" : "text-black/70"}`}
+              >
+                or continue with
+              </Text>
+              <View
+                className={`flex-1 h-[1px] ${isDark ? "bg-white/20" : "bg-black/20"}`}
+              />
             </View>
 
             {/* Social Login Buttons */}
@@ -212,17 +242,22 @@ export default function WelcomeScreen() {
                     isAppleLoading ? "opacity-50" : ""
                   }`}
                   activeOpacity={0.7}
-                  style={{ backgroundColor: "#000", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}
+                  style={{
+                    backgroundColor: "#000",
+                    borderWidth: 1,
+                    borderColor: "rgba(255,255,255,0.12)",
+                    shadowColor: "#000",
+                    shadowOpacity: 0.12,
+                    shadowRadius: 8,
+                    shadowOffset: { width: 0, height: 2 },
+                    elevation: 2,
+                  }}
                 >
                   {isAppleLoading ? (
                     <ActivityIndicator size="small" color="#fff" />
                   ) : (
                     <>
-                      <Ionicons
-                        name="logo-apple"
-                        size={20}
-                        color="#fff"
-                      />
+                      <Ionicons name="logo-apple" size={20} color="#fff" />
                       <Text className="ml-2 font-medium text-white">Apple</Text>
                     </>
                   )}
@@ -236,7 +271,16 @@ export default function WelcomeScreen() {
                   isGoogleLoading ? "opacity-50" : ""
                 }`}
                 activeOpacity={0.7}
-                style={{ backgroundColor: "#000", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}
+                style={{
+                  backgroundColor: "#000",
+                  borderWidth: 1,
+                  borderColor: "rgba(255,255,255,0.12)",
+                  shadowColor: "#000",
+                  shadowOpacity: 0.12,
+                  shadowRadius: 8,
+                  shadowOffset: { width: 0, height: 2 },
+                  elevation: 2,
+                }}
               >
                 {isGoogleLoading ? (
                   <ActivityIndicator size="small" color="#fff" />
@@ -255,7 +299,16 @@ export default function WelcomeScreen() {
               disabled={isLoading}
               className="items-center justify-center h-14 rounded-lg"
               activeOpacity={0.7}
-              style={{ backgroundColor: "#000", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}
+              style={{
+                backgroundColor: "#000",
+                borderWidth: 1,
+                borderColor: "rgba(255,255,255,0.12)",
+                shadowColor: "#000",
+                shadowOpacity: 0.12,
+                shadowRadius: 8,
+                shadowOffset: { width: 0, height: 2 },
+                elevation: 2,
+              }}
             >
               {isGuestLoading ? (
                 <ActivityIndicator size="small" color="#fff" />
@@ -265,7 +318,9 @@ export default function WelcomeScreen() {
             </TouchableOpacity>
 
             {/* Terms */}
-            <Text className={`text-center text-xs mt-6 leading-relaxed ${isDark ? "text-white/70" : "text-black/60"}`}>
+            <Text
+              className={`text-center text-xs mt-6 leading-relaxed ${isDark ? "text-white/70" : "text-black/60"}`}
+            >
               By continuing, you agree to our{"\n"}
               Terms of Service and Privacy Policy
             </Text>

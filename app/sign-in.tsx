@@ -159,10 +159,7 @@ export default function SignIn() {
   };
 
   return (
-    <SafeAreaView
-      className="flex-1 bg-primary"
-      edges={["top", "bottom"]}
-    >
+    <SafeAreaView className="flex-1 bg-primary" edges={["top", "bottom"]}>
       {/* Fixed Header */}
       <View className="p-4 pb-2">
         <View className="flex-row items-center">
@@ -193,7 +190,6 @@ export default function SignIn() {
         showsVerticalScrollIndicator={false}
       >
         <View className="flex-1 gap-4">
-
           <Form {...form}>
             <View className="gap-4">
               <FormField
@@ -261,10 +257,21 @@ export default function SignIn() {
             onPress={form.handleSubmit(onSubmit)}
             disabled={isEmailLoading || isAppleLoading || isGoogleLoading}
             className={`h-14 rounded-lg mt-6 items-center justify-center ${
-              isEmailLoading || isAppleLoading || isGoogleLoading ? "opacity-50" : ""
+              isEmailLoading || isAppleLoading || isGoogleLoading
+                ? "opacity-50"
+                : ""
             }`}
             activeOpacity={0.7}
-            style={{ backgroundColor: "#000", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}
+            style={{
+              backgroundColor: "#000",
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.12)",
+              shadowColor: "#000",
+              shadowOpacity: 0.12,
+              shadowRadius: 8,
+              shadowOffset: { width: 0, height: 2 },
+              elevation: 2,
+            }}
           >
             {isEmailLoading ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -290,24 +297,24 @@ export default function SignIn() {
                   onPress={handleAppleSignIn}
                   disabled={isAppleLoading || isEmailLoading || isGoogleLoading}
                   className="flex-1"
-                  style={{ backgroundColor: "#000", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}
+                  style={{
+                    backgroundColor: "#000",
+                    borderWidth: 1,
+                    borderColor: "rgba(255,255,255,0.12)",
+                    shadowColor: "#000",
+                    shadowOpacity: 0.12,
+                    shadowRadius: 8,
+                    shadowOffset: { width: 0, height: 2 },
+                    elevation: 2,
+                  }}
                 >
                   <View className="rounded-md h-12 items-center justify-center flex-row gap-2">
                     {isAppleLoading ? (
-                      <ActivityIndicator
-                        size="small"
-                        color="#fff"
-                      />
+                      <ActivityIndicator size="small" color="#fff" />
                     ) : (
                       <>
-                        <Ionicons
-                          name="logo-apple"
-                          size={20}
-                          color="#fff"
-                        />
-                        <Text className="text-white font-medium">
-                          Apple
-                        </Text>
+                        <Ionicons name="logo-apple" size={20} color="#fff" />
+                        <Text className="text-white font-medium">Apple</Text>
                       </>
                     )}
                   </View>
@@ -319,20 +326,24 @@ export default function SignIn() {
                 onPress={handleGoogleSignIn}
                 disabled={isGoogleLoading || isEmailLoading || isAppleLoading}
                 className="flex-1"
-                style={{ backgroundColor: "#000", borderWidth: 1, borderColor: "rgba(255,255,255,0.12)", shadowColor: "#000", shadowOpacity: 0.12, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 }}
+                style={{
+                  backgroundColor: "#000",
+                  borderWidth: 1,
+                  borderColor: "rgba(255,255,255,0.12)",
+                  shadowColor: "#000",
+                  shadowOpacity: 0.12,
+                  shadowRadius: 8,
+                  shadowOffset: { width: 0, height: 2 },
+                  elevation: 2,
+                }}
               >
                 <View className="rounded-md h-12 items-center justify-center flex-row gap-2">
                   {isGoogleLoading ? (
-                    <ActivityIndicator
-                      size="small"
-                      color="#fff"
-                    />
+                    <ActivityIndicator size="small" color="#fff" />
                   ) : (
                     <>
                       <Ionicons name="logo-google" size={20} color="#fff" />
-                      <Text className="text-white font-medium">
-                        Google
-                      </Text>
+                      <Text className="text-white font-medium">Google</Text>
                     </>
                   )}
                 </View>
@@ -341,9 +352,7 @@ export default function SignIn() {
           </View>
 
           <View className="flex-row items-center gap-2 justify-center mt-6">
-            <Text className="text-white/80">
-              Don't have an account?
-            </Text>
+            <Text className="text-white/80">Don't have an account?</Text>
             <Text
               className="text-white font-medium"
               onPress={() => router.replace("/sign-up")}

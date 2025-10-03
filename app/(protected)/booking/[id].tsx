@@ -176,6 +176,14 @@ export default function BookingDetailsScreen() {
   const router = useRouter();
   const { colorScheme } = useColorScheme();
 
+  // Validate booking ID from params
+  const bookingId =
+    typeof params.id === "string"
+      ? params.id
+      : Array.isArray(params.id)
+        ? params.id[0]
+        : "";
+
   // Restaurant loyalty state
   const [restaurantLoyaltyRule, setRestaurantLoyaltyRule] =
     useState<LoyaltyRuleDetails | null>(null);
@@ -201,7 +209,7 @@ export default function BookingDetailsScreen() {
     isTomorrow,
     cancelBooking,
     copyOfferCode,
-  } = useBookingDetails(params.id || "");
+  } = useBookingDetails(bookingId);
 
   // Initialize booking fields when booking data loads
   useEffect(() => {
@@ -307,23 +315,20 @@ export default function BookingDetailsScreen() {
   const navigateToReview = () => {
     if (!booking) return;
 
-    router.push({
-      pathname: "/review/create",
-      params: {
-        bookingId: booking.id,
-        restaurantId: booking.restaurant_id,
-        restaurantName: booking.restaurant?.name || "",
-        earnedPoints: loyaltyActivity?.points_earned?.toString() || "0",
-      },
+    // Use query string format for production build compatibility
+    const params = new URLSearchParams({
+      bookingId: booking.id,
+      restaurantId: booking.restaurant_id,
+      restaurantName: booking.restaurant?.name || "",
+      earnedPoints: loyaltyActivity?.points_earned?.toString() || "0",
     });
+    router.push(`/review/create?${params.toString()}`);
   };
 
   const navigateToRestaurant = () => {
     if (!booking) return;
-    router.push({
-      pathname: "/restaurant/[id]",
-      params: { id: booking.restaurant_id },
-    });
+    // Use string-based path for production build compatibility
+    router.push(`/restaurant/${booking.restaurant_id}`);
   };
 
   const navigateToLoyalty = () => {
@@ -351,16 +356,15 @@ export default function BookingDetailsScreen() {
 
     if (!booking.restaurant) return;
 
-    router.push({
-      pathname: "/booking/availability",
-      params: {
-        restaurantId: booking.restaurant_id,
-        restaurantName: booking.restaurant.name,
-        partySize: booking.party_size.toString(),
-        suggestedDate: suggestedDate.toISOString(),
-        originalDate: originalDate.toISOString(),
-      },
+    // Use query string format for production build compatibility
+    const params = new URLSearchParams({
+      restaurantId: booking.restaurant_id,
+      restaurantName: booking.restaurant.name,
+      partySize: booking.party_size.toString(),
+      suggestedDate: suggestedDate.toISOString(),
+      originalDate: originalDate.toISOString(),
     });
+    router.push(`/booking/availability?${params.toString()}`);
   };
 
   // Enhanced share booking with deep links
@@ -423,6 +427,27 @@ export default function BookingDetailsScreen() {
       console.error("Error sharing offer:", error);
     }
   };
+
+  // Handle missing booking ID
+  if (!bookingId && isMounted) {
+    return (
+      <SafeAreaView className="flex-1 bg-background">
+        <View className="flex-1 items-center justify-center px-4">
+          <H3 className="text-center mb-2">Invalid Booking</H3>
+          <P className="text-center text-muted-foreground mb-4">
+            No booking ID was provided. Please try accessing the booking from
+            your bookings list.
+          </P>
+          <Button
+            variant="outline"
+            onPress={() => router.push("/(protected)/(tabs)/bookings")}
+          >
+            <Text>Go to Bookings</Text>
+          </Button>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // Loading state
   if (loading || !isMounted) {
