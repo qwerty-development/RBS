@@ -4,7 +4,6 @@ import { View } from "react-native";
 import { TableIcon, Users, Combine } from "lucide-react-native";
 
 import { Text } from "@/components/ui/text";
-import { H3 } from "@/components/ui/typography";
 import { getTableTypeDisplayName } from "@/lib/tableManagementUtils";
 
 interface TableInfo {
@@ -28,7 +27,7 @@ export const BookingTableInfo: React.FC<BookingTableInfoProps> = ({
   if (loading) {
     return (
       <View className="p-4 border-b border-border">
-        <H3 className="mb-3">Table Assignment</H3>
+        <Text className="text-lg font-bold mb-3">Table Assignment</Text>
         <View className="bg-muted/30 rounded-lg p-4">
           <Text className="text-muted-foreground">
             Loading table information...
@@ -37,10 +36,11 @@ export const BookingTableInfo: React.FC<BookingTableInfoProps> = ({
       </View>
     );
   }
+  
   if (tables.length === 0) {
     return (
       <View className="p-4 border-b border-border">
-        <H3 className="mb-3">Table Assignment</H3>
+        <Text className="text-lg font-bold mb-3">Table Assignment</Text>
         <View className="bg-muted/30 rounded-lg p-4">
           <View className="flex-row items-center gap-2">
             <TableIcon size={20} color="#666" />
@@ -62,7 +62,6 @@ export const BookingTableInfo: React.FC<BookingTableInfoProps> = ({
     0,
   );
 
-  // FIX: Safe table number handling
   const formatTableNumbers = (tables: TableInfo[]) => {
     return tables
       .map((t) => t.table_number || `Table ${t.id.slice(0, 6)}`)
@@ -71,7 +70,7 @@ export const BookingTableInfo: React.FC<BookingTableInfoProps> = ({
 
   return (
     <View className="p-4 border-b border-border">
-      <H3 className="mb-3">Table Assignment</H3>
+      <Text className="text-lg font-bold mb-3">Table Assignment</Text>
 
       {isCombined ? (
         <View className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
@@ -95,8 +94,7 @@ export const BookingTableInfo: React.FC<BookingTableInfoProps> = ({
                   </Text>
                 </View>
                 <Text className="text-sm text-muted-foreground">
-                  {getTableTypeDisplayName(table.table_type || "standard")} •
-                  Seats {table.capacity || 0}
+                  {`${getTableTypeDisplayName(table.table_type || "standard")} • Seats ${table.capacity || 0}`}
                 </Text>
               </View>
             ))}
@@ -111,7 +109,7 @@ export const BookingTableInfo: React.FC<BookingTableInfoProps> = ({
                 </Text>
               </View>
               <Text className="font-semibold text-blue-800 dark:text-blue-200">
-                {totalCapacity} seats for {partySize} guests
+                {`${totalCapacity} seats for ${partySize} guests`}
               </Text>
             </View>
           </View>
@@ -138,10 +136,10 @@ export const BookingTableInfo: React.FC<BookingTableInfoProps> = ({
 
           <View className="flex-row items-center justify-between">
             <Text className="text-sm text-green-700 dark:text-green-300">
-              Capacity: {tables[0].capacity || 0} seats
+              {`Capacity: ${tables[0].capacity || 0} seats`}
             </Text>
             <Text className="text-sm text-green-700 dark:text-green-300">
-              Party size: {partySize}
+              {`Party size: ${partySize}`}
             </Text>
           </View>
         </View>

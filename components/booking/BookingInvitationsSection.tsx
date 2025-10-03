@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, Alert, Image } from "react-native";
+import { View, Alert, Image } from "react-native"; // REMOVED Text from here!
 import {
   Users,
   Clock,
@@ -10,7 +10,7 @@ import {
 } from "lucide-react-native";
 import { supabase } from "@/config/supabase";
 import { useAuth } from "@/context/supabase-provider";
-import { H4 } from "@/components/ui/typography";
+import { Text } from "@/components/ui/text"; // USE THIS Text component
 import { Button } from "@/components/ui/button";
 import * as Haptics from "expo-haptics";
 
@@ -39,7 +39,7 @@ interface BookingInvitationDetails {
 
 interface BookingInvitationsSectionProps {
   bookingId: string;
-  bookingUserId: string; // The user who made the booking
+  bookingUserId: string;
 }
 
 type StatusConfig = {
@@ -146,7 +146,6 @@ export const BookingInvitationsSection: React.FC<
 
       if (error) throw error;
 
-      // Transform the data to fix the type issue
       const transformedData = (data || []).map((item) => ({
         ...item,
         to_user: Array.isArray(item.to_user) ? item.to_user[0] : item.to_user,
@@ -172,8 +171,6 @@ export const BookingInvitationsSection: React.FC<
     toUserName: string,
   ) => {
     try {
-      // In a real implementation, you might want to update the invitation timestamp
-      // or create a new notification. For now, we'll just show a success message.
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       Alert.alert(
         "Invitation Resent",
@@ -210,7 +207,7 @@ export const BookingInvitationsSection: React.FC<
               if (error) throw error;
 
               await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              fetchBookingInvitations(); // Refresh the list
+              fetchBookingInvitations();
             } catch (error) {
               console.error("Error cancelling invitation:", error);
               Alert.alert(
@@ -227,7 +224,7 @@ export const BookingInvitationsSection: React.FC<
   if (loading) {
     return (
       <View className="p-4 border-b border-border">
-        <H4 className="mb-4">Invited Guests</H4>
+        <Text className="text-lg font-bold mb-4">Invited Guests</Text>
         <View className="bg-muted/50 rounded-lg p-4">
           <Text className="text-center text-muted-foreground">
             Loading invitations...
@@ -238,7 +235,7 @@ export const BookingInvitationsSection: React.FC<
   }
 
   if (invitations.length === 0) {
-    return null; // Don't show section if no invitations
+    return null;
   }
 
   const isBookingOwner = profile?.id === bookingUserId;
@@ -252,22 +249,22 @@ export const BookingInvitationsSection: React.FC<
   return (
     <View className="p-4 border-b border-border">
       <View className="flex-row items-center justify-between mb-4">
-        <H4>Invited Guests</H4>
+        <Text className="text-lg font-bold">Invited Guests</Text>
         <View className="flex-row gap-2">
-          {acceptedCount > 0 && (
+          {acceptedCount > 0 ? (
             <View className="bg-green-100 dark:bg-green-900 px-3 py-1 rounded-full">
               <Text className="text-green-800 dark:text-green-200 font-medium text-xs">
                 {acceptedCount} attending
               </Text>
             </View>
-          )}
-          {pendingCount > 0 && (
+          ) : null}
+          {pendingCount > 0 ? (
             <View className="bg-yellow-100 dark:bg-yellow-900 px-3 py-1 rounded-full">
               <Text className="text-yellow-800 dark:text-yellow-200 font-medium text-xs">
                 {pendingCount} pending
               </Text>
             </View>
-          )}
+          ) : null}
         </View>
       </View>
 
@@ -318,15 +315,15 @@ export const BookingInvitationsSection: React.FC<
                   <View className="flex-row items-center gap-2">
                     <Clock size={12} color="#6b7280" />
                     <Text className="text-xs text-muted-foreground">
-                      Invited {timeSince}
-                      {invitation.responded_at &&
-                        invitation.status !== "pending" &&
-                        ` • Responded ${new Date(invitation.responded_at).toLocaleDateString()}`}
+                      {`Invited ${timeSince}`}
+                      {invitation.responded_at && invitation.status !== "pending" ? (
+                        <Text>{` • Responded ${new Date(invitation.responded_at).toLocaleDateString()}`}</Text>
+                      ) : null}
                     </Text>
                   </View>
 
                   {/* Action buttons for booking owner */}
-                  {isBookingOwner && invitation.status === "pending" && (
+                  {isBookingOwner && invitation.status === "pending" ? (
                     <View className="flex-row gap-2 mt-3">
                       <Button
                         variant="outline"
@@ -353,16 +350,16 @@ export const BookingInvitationsSection: React.FC<
                         <Text className="text-xs text-white">Cancel</Text>
                       </Button>
                     </View>
-                  )}
+                  ) : null}
 
                   {/* Message if provided */}
-                  {invitation.message && (
+                  {invitation.message ? (
                     <View className="mt-2 p-2 bg-muted/30 rounded-md">
                       <Text className="text-sm italic">
-                        "{invitation.message}"
+                        {`"${invitation.message}"`}
                       </Text>
                     </View>
-                  )}
+                  ) : null}
                 </View>
               </View>
             </View>
@@ -375,10 +372,9 @@ export const BookingInvitationsSection: React.FC<
         <View className="flex-row items-center gap-2">
           <Users size={16} color="#6b7280" />
           <Text className="text-sm text-muted-foreground">
-            {invitations.length}{" "}
-            {invitations.length === 1 ? "person" : "people"} invited
-            {acceptedCount > 0 && ` • ${acceptedCount} confirmed`}
-            {pendingCount > 0 && ` • ${pendingCount} pending`}
+            {`${invitations.length} ${invitations.length === 1 ? "person" : "people"} invited`}
+            {acceptedCount > 0 ? <Text>{` • ${acceptedCount} confirmed`}</Text> : null}
+            {pendingCount > 0 ? <Text>{` • ${pendingCount} pending`}</Text> : null}
           </Text>
         </View>
       </View>

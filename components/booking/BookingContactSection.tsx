@@ -91,11 +91,37 @@ export const BookingContactSection: React.FC<BookingContactSectionProps> = ({
     return null;
   }
 
+  // Build info message parts safely
+  const buildInfoMessage = () => {
+    const parts = [];
+    
+    if (appliedOfferDetails) {
+      parts.push("discount offer");
+    }
+    
+    if (loyaltyActivity) {
+      parts.push("loyalty status");
+    }
+    
+    if (parts.length === 0) {
+      return "Your booking details will be mentioned when contacting the restaurant.";
+    }
+    
+    if (parts.length === 1) {
+      return `Your ${parts[0]} will be mentioned when contacting the restaurant.`;
+    }
+    
+    return `Your ${parts.join(" and ")} will be mentioned when contacting the restaurant.`;
+  };
+
   return (
     <View className="p-4 border-b border-border">
-      <H3 className="mb-3">Contact Restaurant</H3>
+      <H3 className="mb-3">
+        <Text>Contact Restaurant</Text>
+      </H3>
+      
       <View className="gap-2">
-        {restaurant.whatsapp_number && (
+        {restaurant.whatsapp_number ? (
           <Button
             variant="outline"
             onPress={messageRestaurant}
@@ -106,20 +132,19 @@ export const BookingContactSection: React.FC<BookingContactSectionProps> = ({
               <Text>WhatsApp</Text>
             </View>
           </Button>
-        )}
+        ) : null}
       </View>
 
-      {(appliedOfferDetails || loyaltyActivity) && (
+      {(appliedOfferDetails || loyaltyActivity) ? (
         <View className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
           <View className="flex-row items-center gap-2">
             <Info size={16} color="#3b82f6" />
             <Text className="text-sm text-blue-800 dark:text-blue-200 flex-1">
-              Your {appliedOfferDetails ? "discount offer and " : ""}loyalty
-              status will be mentioned when contacting the restaurant.
+              {buildInfoMessage()}
             </Text>
           </View>
         </View>
-      )}
+      ) : null}
     </View>
   );
 };

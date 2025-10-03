@@ -74,6 +74,7 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
   onEdit,
 }) => {
   const { colorScheme } = useColorScheme();
+  
   const callRestaurant = async () => {
     if (!booking.restaurant.phone_number) return;
 
@@ -113,20 +114,17 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
       "",
     );
 
-    // Use https://wa.me/ format which works without URL scheme whitelisting
+    // Use https://wa.me/ format which works on both platforms
     const waUrl = `https://wa.me/${cleanedNumber}?text=${message}`;
-    // Fallback to whatsapp:// scheme
     const whatsappUrl = `whatsapp://send?phone=${cleanedNumber}&text=${message}`;
 
     try {
-      // Try wa.me URL first (works on both platforms without configuration)
       const canOpenWa = await Linking.canOpenURL(waUrl);
       if (canOpenWa) {
         await Linking.openURL(waUrl);
         return;
       }
 
-      // Fallback to whatsapp:// scheme
       const canOpenWhatsApp = await Linking.canOpenURL(whatsappUrl);
       if (canOpenWhatsApp) {
         await Linking.openURL(whatsappUrl);
@@ -178,105 +176,121 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
     );
   };
 
-  const renderBottomMessage = (): string => {
+  // Fixed: This function now returns JSX, not a string
+  const renderBottomMessage = () => {
+    if (!appliedOfferDetails && !loyaltyActivity) {
+      return null;
+    }
+
+    let message = "";
+    
     if (appliedOfferDetails && loyaltyActivity) {
-      return `🎉 You saved ${appliedOfferDetails.discount_percentage}% and earned ${loyaltyActivity.points_earned} points!`;
+      message = `🎉 You saved ${appliedOfferDetails.discount_percentage}% and earned ${loyaltyActivity.points_earned} points!`;
+    } else if (appliedOfferDetails) {
+      message = `💰 You saved ${appliedOfferDetails.discount_percentage}% with your special offer`;
+    } else if (loyaltyActivity) {
+      message = `⭐ You earned ${loyaltyActivity.points_earned} loyalty points`;
     }
 
-    if (appliedOfferDetails) {
-      return `💰 You saved ${appliedOfferDetails.discount_percentage}% with your special offer`;
+    if (!message) {
+      return null;
     }
 
-    if (loyaltyActivity) {
-      return `⭐ You earned ${loyaltyActivity.points_earned} loyalty points`;
-    }
-
-    return "";
+    return (
+      <Text className="text-center text-xs text-muted-foreground mt-3">
+        {message}
+      </Text>
+    );
   };
+
+  const isPending = booking.status === "pending";
+  const isConfirmed = booking.status === "confirmed";
+  const isCompleted = booking.status === "completed";
+  const isCancelled = booking.status === "cancelled_by_user";
+  const isDeclined = booking.status === "declined_by_restaurant";
 
   return (
     <View className="p-6 border-t border-border bg-background">
       {/* Primary Actions for Upcoming Bookings */}
-      {isUpcoming &&
-        (booking.status === "pending" || booking.status === "confirmed") && (
-          <View className="mb-3">
-            {/* Main action buttons - Call and Directions */}
-            <View className="flex-row gap-3 mb-3">
-              {booking.restaurant.phone_number && (
-                <Button
-                  variant="default"
-                  onPress={callRestaurant}
-                  className="flex-1 bg-primary h-12 rounded-lg"
-                >
-                  <View className="flex-row items-center justify-center gap-2">
-                    <Phone
-                      size={16}
-                      color={colors[colorScheme].primaryForeground}
-                    />
-                    <Text className="text-primary-foreground font-medium">
-                      Call
-                    </Text>
-                  </View>
-                </Button>
-              )}
-
+      {isUpcoming && (isPending || isConfirmed) ? (
+        <View className="mb-3">
+          {/* Main action buttons - Call and Directions */}
+          <View className="flex-row gap-3 mb-3">
+            {booking.restaurant.phone_number ? (
               <Button
                 variant="default"
-                onPress={() => {
-                  // Handle directions navigation
-                  if (
-                    booking.restaurant.coordinates?.latitude &&
-                    booking.restaurant.coordinates?.longitude
-                  ) {
-                    const url = `https://www.google.com/maps/dir/?api=1&destination=${booking.restaurant.coordinates.latitude},${booking.restaurant.coordinates.longitude}`;
-                    Linking.openURL(url);
-                  }
-                }}
+                onPress={callRestaurant}
                 className="flex-1 bg-primary h-12 rounded-lg"
               >
                 <View className="flex-row items-center justify-center gap-2">
-                  <MapPin
+                  <Phone
                     size={16}
                     color={colors[colorScheme].primaryForeground}
                   />
                   <Text className="text-primary-foreground font-medium">
-                    Directions
+                    Call
                   </Text>
                 </View>
               </Button>
-            </View>
+            ) : null}
 
-            {/* Cancel button - light red styling */}
             <Button
-              variant="ghost"
-              onPress={onCancel}
-              disabled={processing}
-              className="w-full bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+              variant="default"
+              onPress={() => {
+                // Handle directions navigation
+                if (
+                  booking.restaurant.coordinates?.latitude &&
+                  booking.restaurant.coordinates?.longitude
+                ) {
+                  const url = `https://www.google.com/maps/dir/?api=1&destination=${booking.restaurant.coordinates.latitude},${booking.restaurant.coordinates.longitude}`;
+                  Linking.openURL(url);
+                }
+              }}
+              className="flex-1 bg-primary h-12 rounded-lg"
             >
               <View className="flex-row items-center justify-center gap-2">
-                <XCircle size={16} color="#ef4444" />
-                <Text className="text-red-600 dark:text-red-400">Cancel</Text>
+                <MapPin
+                  size={16}
+                  color={colors[colorScheme].primaryForeground}
+                />
+                <Text className="text-primary-foreground font-medium">
+                  Directions
+                </Text>
               </View>
             </Button>
           </View>
-        )}
+
+          {/* Cancel button - light red styling */}
+          <Button
+            variant="ghost"
+            onPress={onCancel}
+            disabled={processing}
+            className="w-full bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+          >
+            <View className="flex-row items-center justify-center gap-2">
+              <XCircle size={16} color="#ef4444" />
+              <Text className="text-red-600 dark:text-red-400">Cancel</Text>
+            </View>
+          </Button>
+        </View>
+      ) : null}
 
       {/* Review Button for Completed Bookings */}
-      {booking.status === "completed" && !hasReview && (
+      {isCompleted && !hasReview ? (
         <Button
           variant="default"
           onPress={onReview}
           className="w-full mb-3 rounded-lg"
         >
           <View className="flex-row items-center gap-2">
-            <Star size={16} />
-            <Text>Rate Your Experience</Text>
+            <Star size={16} color={colors[colorScheme].primaryForeground} />
+            <Text className="text-primary-foreground">Rate Your Experience</Text>
           </View>
         </Button>
-      )}
+      ) : null}
 
       {/* Try Different Time for Declined Bookings */}
-      {booking.status === "declined_by_restaurant" && (
+      {isDeclined ? (
         <Button
           variant="default"
           onPress={onBookAgain}
@@ -292,13 +306,12 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
             </Text>
           </View>
         </Button>
-      )}
+      ) : null}
 
       {/* Quick Actions Row */}
       <View className="flex-row gap-3">
         {/* Book Again for Completed/Cancelled */}
-        {(booking.status === "completed" ||
-          booking.status === "cancelled_by_user") && (
+        {isCompleted || isCancelled ? (
           <Button
             variant="default"
             onPress={onBookAgain}
@@ -312,10 +325,10 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
               <Text className="text-primary-foreground">Book Again</Text>
             </View>
           </Button>
-        )}
+        ) : null}
 
         {/* Loyalty Button */}
-        {loyaltyActivity && (
+        {loyaltyActivity ? (
           <Button
             variant="outline"
             onPress={onNavigateToLoyalty}
@@ -323,10 +336,10 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
           >
             <Trophy size={16} color="#f59e0b" />
           </Button>
-        )}
+        ) : null}
 
         {/* Offers Button */}
-        {appliedOfferDetails && (
+        {appliedOfferDetails ? (
           <Button
             variant="outline"
             onPress={onNavigateToOffers}
@@ -334,21 +347,11 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
           >
             <Tag size={16} color="#16a34a" />
           </Button>
-        )}
+        ) : null}
       </View>
 
-      {/* Enhanced bottom message */}
-      {(appliedOfferDetails || loyaltyActivity) && (() => {
-        const message = renderBottomMessage();
-        if (!message) {
-          return null;
-        }
-        return (
-          <Text className="text-center text-xs text-muted-foreground mt-3">
-            {message}
-          </Text>
-        );
-      })()}
+      {/* Fixed: Now properly renders JSX instead of string */}
+      {renderBottomMessage()}
     </View>
   );
 };

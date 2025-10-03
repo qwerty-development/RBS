@@ -4,7 +4,6 @@ import { ChevronRight, MapPin, Gift, Award } from "lucide-react-native";
 
 import { Image } from "@/components/image";
 import { Text } from "@/components/ui/text";
-import { H3, P } from "@/components/ui/typography";
 
 interface BookingDetailsHeaderProps {
   restaurant: {
@@ -40,10 +39,10 @@ export const BookingDetailsHeader: React.FC<BookingDetailsHeaderProps> = ({
         <View className="flex-1 ml-4">
           <View className="flex-row items-start justify-between">
             <View className="flex-1">
-              <H3 className="mb-1">{restaurant.name}</H3>
-              <P className="text-muted-foreground text-sm mb-2">
+              <Text className="text-xl font-bold mb-1">{restaurant.name}</Text>
+              <Text className="text-muted-foreground text-sm mb-2">
                 {restaurant.cuisine_type}
-              </P>
+              </Text>
               <View className="flex-row items-center gap-1 mb-2">
                 <MapPin size={14} color="#666" />
                 <Text
@@ -56,20 +55,20 @@ export const BookingDetailsHeader: React.FC<BookingDetailsHeaderProps> = ({
 
               {/* Enhanced info badges */}
               <View className="flex-row items-center gap-2">
-                {appliedOfferDetails && (
+                {appliedOfferDetails ? (
                   <View className="bg-green-100 px-2 py-1 rounded-full">
                     <Text className="text-green-700 text-xs font-bold">
-                      {appliedOfferDetails.discount_percentage}% OFF APPLIED
+                      {`${appliedOfferDetails.discount_percentage}% OFF APPLIED`}
                     </Text>
                   </View>
-                )}
-                {loyaltyActivity && (
+                ) : null}
+                {loyaltyActivity ? (
                   <View className="bg-amber-100 px-2 py-1 rounded-full">
                     <Text className="text-amber-700 text-xs font-bold">
-                      +{loyaltyActivity.points_earned} PTS
+                      {`+${loyaltyActivity.points_earned} PTS`}
                     </Text>
                   </View>
-                )}
+                ) : null}
               </View>
             </View>
             <View className="ml-2">
