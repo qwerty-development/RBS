@@ -178,6 +178,22 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
     );
   };
 
+  const renderBottomMessage = (): string => {
+    if (appliedOfferDetails && loyaltyActivity) {
+      return `🎉 You saved ${appliedOfferDetails.discount_percentage}% and earned ${loyaltyActivity.points_earned} points!`;
+    }
+
+    if (appliedOfferDetails) {
+      return `💰 You saved ${appliedOfferDetails.discount_percentage}% with your special offer`;
+    }
+
+    if (loyaltyActivity) {
+      return `⭐ You earned ${loyaltyActivity.points_earned} loyalty points`;
+    }
+
+    return "";
+  };
+
   return (
     <View className="p-6 border-t border-border bg-background">
       {/* Primary Actions for Upcoming Bookings */}
@@ -322,15 +338,17 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
       </View>
 
       {/* Enhanced bottom message */}
-      {(appliedOfferDetails || loyaltyActivity) && (
-        <Text className="text-center text-xs text-muted-foreground mt-3">
-          {appliedOfferDetails && loyaltyActivity
-            ? `🎉 You saved ${appliedOfferDetails.discount_percentage}% and earned ${loyaltyActivity.points_earned} points!`
-            : appliedOfferDetails
-              ? `💰 You saved ${appliedOfferDetails.discount_percentage}% with your special offer`
-              : `⭐ You earned ${loyaltyActivity?.points_earned} loyalty points`}
-        </Text>
-      )}
+      {(appliedOfferDetails || loyaltyActivity) && (() => {
+        const message = renderBottomMessage();
+        if (!message) {
+          return null;
+        }
+        return (
+          <Text className="text-center text-xs text-muted-foreground mt-3">
+            {message}
+          </Text>
+        );
+      })()}
     </View>
   );
 };

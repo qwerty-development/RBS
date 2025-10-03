@@ -1,58 +1,67 @@
 import { useColorScheme as useNativewindColorScheme } from "nativewind";
-import { useState, useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Appearance } from "react-native";
 
+type ColorScheme = "light" | "dark";
+
+type NativeWindScheme = ReturnType<typeof useNativewindColorScheme>;
+
+const resolveScheme = (
+  scheme: NativeWindScheme["colorScheme"] | null | undefined,
+  fallback: ColorScheme,
+): ColorScheme => {
+  if (scheme === "light" || scheme === "dark") {
+    return scheme;
+  }
+
+  return fallback;
+};
+
 export function useColorScheme() {
-  const [fallbackColorScheme, setFallbackColorScheme] = useState<
-    "light" | "dark"
-  >(Appearance.getColorScheme() || "dark");
+  const nativeWindScheme = useNativewindColorScheme();
+  const [fallbackScheme, setFallbackScheme] = useState<ColorScheme>(() => {
+    const initial = Appearance.getColorScheme();
+    return initial === "dark" ? "dark" : "light";
+  });
 
-  const [nativeWindError, setNativeWindError] = useState(false);
-
-  // Always call the hook unconditionally - hooks must be called in the same order every time
-  const nativeWindColorScheme = useNativewindColorScheme();
-
-  // Handle errors in useEffect instead of try-catch during render
-  useEffect(() => {
-    if (!nativeWindColorScheme && !nativeWindError) {
-      console.warn("NativeWind useColorScheme returned null, using fallback");
-      setNativeWindError(true);
-    }
-  }, [nativeWindColorScheme, nativeWindError]);
-
-  // Listen to system appearance changes for fallback
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setFallbackColorScheme(colorScheme || "dark");
+      setFallbackScheme(colorScheme === "dark" ? "dark" : "light");
     });
+
     return () => subscription.remove();
   }, []);
 
   return useMemo(() => {
-    if (nativeWindColorScheme && !nativeWindError) {
-      const { colorScheme, setColorScheme, toggleColorScheme } =
-        nativeWindColorScheme;
-      return {
-        colorScheme: colorScheme ?? fallbackColorScheme,
-        isDarkColorScheme: (colorScheme ?? fallbackColorScheme) === "dark",
-        setColorScheme,
-        toggleColorScheme,
-      };
-    }
+    const resolved = resolveScheme(
+      nativeWindScheme?.colorScheme,
+      fallbackScheme,
+    );
 
-    // Fallback when NativeWind is not available
-    return {
-      colorScheme: fallbackColorScheme,
-      isDarkColorScheme: fallbackColorScheme === "dark",
-      setColorScheme: (scheme: "light" | "dark") => {
-        setFallbackColorScheme(scheme);
-        Appearance.setColorScheme(scheme);
-      },
-      toggleColorScheme: () => {
-        const newScheme = fallbackColorScheme === "dark" ? "light" : "dark";
-        setFallbackColorScheme(newScheme);
-        Appearance.setColorScheme(newScheme);
-      },
+    const safeSetColorScheme = (scheme: ColorScheme) => {
+      if (nativeWindScheme?.setColorScheme) {
+        nativeWindScheme.setColorScheme(scheme);
+      }
+
+      setFallbackScheme(scheme);
     };
-  }, [nativeWindColorScheme, nativeWindError, fallbackColorScheme]);
+
+    const safeToggleColorScheme = () => {
+      if (nativeWindScheme?.toggleColorScheme) {
+        nativeWindScheme.toggleColorScheme();
+        const nextScheme = resolved === "dark" ? "light" : "dark";
+        setFallbackScheme(nextScheme);
+      } else {
+        const nextScheme = resolved === "dark" ? "light" : "dark";
+        setFallbackScheme(nextScheme);
+      }
+    };
+
+    return {
+      colorScheme: resolved,
+      isDarkColorScheme: resolved === "dark",
+      setColorScheme: safeSetColorScheme,
+      toggleColorScheme: safeToggleColorScheme,
+    };
+  }, [nativeWindScheme, fallbackScheme]);
 }

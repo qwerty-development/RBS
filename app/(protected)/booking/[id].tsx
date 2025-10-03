@@ -1,12 +1,5 @@
-import React, { useState, useEffect } from "react";
-import {
-  ScrollView,
-  View,
-  Pressable,
-  Alert,
-  Share,
-  LogBox,
-} from "react-native";
+import React, { useEffect, useMemo, useState } from "react";
+import { ScrollView, View, Pressable, Alert, Share } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Copy,
@@ -33,6 +26,7 @@ import { NavigationHeader } from "@/components/ui/navigation-header";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { supabase } from "@/config/supabase";
 import { colors } from "@/constants/colors";
+import { LogBox } from "react-native";
 
 // Import components
 import {
@@ -52,6 +46,7 @@ import { useBookingDetails } from "@/hooks/useBookingDetails";
 import { BOOKING_STATUS_CONFIG } from "@/constants/bookingConstants";
 import BookingDetailsScreenSkeleton from "@/components/skeletons/BookingDetailsScreenSkeleton";
 import { useShare } from "@/hooks/useShare";
+
 
 LogBox.ignoreAllLogs();
 
@@ -75,6 +70,59 @@ const RestaurantLoyaltyStatus: React.FC<{
   const isCancelled =
     booking.status === "cancelled_by_user" ||
     booking.status === "declined_by_restaurant";
+
+  const primaryTextClass = `text-sm ${
+    isCancelled
+      ? "text-red-700 dark:text-red-300"
+      : isPending
+        ? "text-orange-700 dark:text-orange-300"
+        : "text-purple-700 dark:text-purple-300"
+  }`;
+
+  const renderPrimaryMessage = (): React.ReactNode => {
+    if (isPending) {
+      const pointsToDisplay =
+        booking.expected_loyalty_points ?? rule.points_to_award;
+
+      return (
+        <Text className={primaryTextClass}>
+          You’ll earn{" "}
+          <Text className="font-bold">{pointsToDisplay} points</Text> from “
+          {rule.rule_name}” if confirmed
+        </Text>
+      );
+    }
+
+    if (isCancelled) {
+      if (wasRefunded) {
+        return (
+          <Text className={primaryTextClass}>
+            The{" "}
+            <Text className="font-bold">
+              {booking.loyalty_points_earned || 0} points
+            </Text>{" "}
+            from “{rule.rule_name}” have been refunded to the restaurant
+          </Text>
+        );
+      }
+
+      return (
+        <Text className={primaryTextClass}>
+          No points were awarded for this cancelled booking
+        </Text>
+      );
+    }
+
+    return (
+      <Text className={primaryTextClass}>
+        You earned{" "}
+        <Text className="font-bold">
+          {booking.loyalty_points_earned} points
+        </Text>{" "}
+        from “{rule.rule_name}”
+      </Text>
+    );
+  };
 
   return (
     <View className="mx-4 mb-6">
@@ -102,43 +150,7 @@ const RestaurantLoyaltyStatus: React.FC<{
         </View>
 
         <View className="space-y-2">
-          <Text
-            className={`text-sm ${
-              isCancelled
-                ? "text-red-700 dark:text-red-300"
-                : isPending
-                  ? "text-orange-700 dark:text-orange-300"
-                  : "text-purple-700 dark:text-purple-300"
-            }`}
-          >
-            {isPending ? (
-              <Text>
-                You&apos;ll earn{" "}
-                <Text className="font-bold">
-                  {booking.expected_loyalty_points || rule.points_to_award}{" "}
-                  points
-                </Text>{" "}
-                from &ldquo;{rule.rule_name}&rdquo; if confirmed
-              </Text>
-            ) : isCancelled ? (
-              wasRefunded ? (
-                <Text>
-                  The {booking.loyalty_points_earned || 0} points from &ldquo;
-                  {rule.rule_name}&rdquo; have been refunded to the restaurant
-                </Text>
-              ) : (
-                <Text>No points were awarded for this cancelled booking</Text>
-              )
-            ) : (
-              <Text>
-                You earned{" "}
-                <Text className="font-bold">
-                  {booking.loyalty_points_earned} points
-                </Text>{" "}
-                from &ldquo;{rule.rule_name}&rdquo;
-              </Text>
-            )}
-          </Text>
+          {renderPrimaryMessage()}
 
           {isCancelled && wasRefunded && (
             <View className="flex-row items-start mt-2">
@@ -183,9 +195,13 @@ export default function BookingDetailsScreen() {
   const params = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const { colorScheme } = useColorScheme();
+  const themeColors = useMemo(
+    () => colors[colorScheme] ?? colors.light,
+    [colorScheme],
+  );
 
   // Enhanced validation and logging for booking ID from params
-  const bookingId = React.useMemo(() => {
+  const bookingId = useMemo(() => {
     console.log("[BookingDetails] Raw params:", JSON.stringify(params));
     console.log("[BookingDetails] params.id type:", typeof params.id);
     console.log("[BookingDetails] params.id value:", params.id);
@@ -572,401 +588,489 @@ export default function BookingDetailsScreen() {
   const finalStatusConfig = statusConfig || BOOKING_STATUS_CONFIG.pending;
   const StatusIcon = finalStatusConfig.icon;
 
-  return (
-    <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      {/* Header */}
-      <NavigationHeader
-        title="Booking Details"
-        onBack={() => router.back()}
-        onShare={shareBooking}
-        showShare={true}
-      />
+  console.log(
+    "[BookingDetails] About to render, booking status:",
+    booking.status,
+  );
+  console.log("[BookingDetails] Restaurant data exists:", !!booking.restaurant);
+  console.log(
+    "[BookingDetails] Booking confirmation code:",
+    booking.confirmation_code,
+  );
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* Restaurant Header */}
-        {booking.restaurant && (
-          <BookingDetailsHeader
-            restaurant={{
-              id: booking.restaurant.id,
-              name: booking.restaurant.name,
-              cuisine_type: booking.restaurant.cuisine_type,
-              address: booking.restaurant.address,
-              main_image_url: booking.restaurant.main_image_url || "",
-            }}
-            appliedOfferDetails={appliedOfferDetails}
-            loyaltyActivity={loyaltyActivity}
-            onPress={navigateToRestaurant}
-          />
-        )}
-
-        {/* Status Section */}
-        <View className="px-4 py-4 border-b border-border">
-          <View
-            className="p-4 rounded-lg"
-            style={{ backgroundColor: finalStatusConfig.bgColor }}
-          >
-            <View className="flex-row items-center justify-between mb-2">
-              <View className="flex-row items-center gap-3">
-                <StatusIcon size={24} color={finalStatusConfig.color} />
-                <Text
-                  className="font-bold text-lg"
-                  style={{ color: finalStatusConfig.color }}
-                >
-                  {finalStatusConfig.label}
-                </Text>
-              </View>
-              {isDeclined && (
-                <Pressable
-                  onPress={() =>
-                    setShowDeclinedExplanation(!showDeclinedExplanation)
-                  }
-                >
-                  <Info size={16} color={finalStatusConfig.color} />
-                </Pressable>
-              )}
-            </View>
-            <Text
-              className="text-sm"
-              style={{ color: finalStatusConfig.color }}
-            >
-              {finalStatusConfig.description}
-            </Text>
-          </View>
-
-          {/* Pending Status Extra Info */}
-          {isPending && (
-            <View className="mt-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
-              <View className="flex-row items-center gap-2 mb-2">
-                <Timer size={20} color={colors[colorScheme].primary} />
-                <Text className="font-semibold text-orange-800 dark:text-orange-200">
-                  Response Expected Soon
-                </Text>
-              </View>
-              <Text className="text-sm text-orange-700 dark:text-orange-300">
-                The restaurant typically responds within a couple of minutes{" "}
-                minutes. We&apos;ll notify you immediately when they confirm.
-              </Text>
-              <View className="flex-row items-center gap-2 mt-3">
-                <Bell size={16} color={colors[colorScheme].primary} />
-                <Text className="text-xs text-orange-600 dark:text-orange-400">
-                  Push notifications enabled
-                </Text>
-              </View>
-            </View>
-          )}
-
-          {/* Declined Status Extra Info */}
-          {isDeclined && showDeclinedExplanation && (
-            <View className="mt-3 bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
-              {isWaitlistOrigin ? (
-                <Text className="text-sm text-red-700 dark:text-red-300">
-                  You were waitlisted but the booking has expired. The
-                  restaurant couldn&apos;t accommodate your request at this
-                  time.
-                </Text>
-              ) : booking.decline_note && booking.decline_note.trim() ? (
-                <View>
-                  <Text className="text-sm font-semibold text-red-800 dark:text-red-200 mb-2">
-                    Reason:
-                  </Text>
-                  <Text className="text-sm text-red-700 dark:text-red-300">
-                    {booking.decline_note.trim()}
-                  </Text>
-                </View>
-              ) : (
-                <Text className="text-sm text-red-700 dark:text-red-300">
-                  The restaurant couldn&apos;t accommodate your request at this
-                  time. This could be due to full capacity or special events.
-                </Text>
-              )}
-            </View>
-          )}
-        </View>
-
-        {/* Restaurant Loyalty Status */}
-        <RestaurantLoyaltyStatus
-          booking={booking}
-          rule={restaurantLoyaltyRule}
-          wasRefunded={wasLoyaltyRefunded}
+  // AGGRESSIVE ERROR HANDLING - Wrap entire render in try-catch
+  try {
+    console.log("[BookingDetails] Starting render...");
+    return (
+      <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
+        {/* Header */}
+        <NavigationHeader
+          title="Booking Details"
+          onBack={() => router.back()}
+          onShare={shareBooking}
+          showShare={true}
         />
 
-        {/* Rewards Section - Only show for confirmed bookings with rewards */}
-        {booking.status === "confirmed" && appliedOfferDetails && (
+        <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+          {/* Restaurant Header */}
+          {(() => {
+            console.log("[BookingDetails] Rendering restaurant header section");
+            if (!booking.restaurant) {
+              console.error("[BookingDetails] No restaurant data!");
+              return null;
+            }
+            try {
+              console.log(
+                "[BookingDetails] Restaurant image URL:",
+                booking.restaurant.main_image_url,
+              );
+              const imageUrl = booking.restaurant.main_image_url?.trim();
+              console.log("[BookingDetails] Processed image URL:", imageUrl);
+
+              return (
+                <BookingDetailsHeader
+                  restaurant={{
+                    id: booking.restaurant.id,
+                    name: booking.restaurant.name,
+                    cuisine_type: booking.restaurant.cuisine_type,
+                    address: booking.restaurant.address,
+                    main_image_url: imageUrl || null,
+                  }}
+                  appliedOfferDetails={appliedOfferDetails}
+                  loyaltyActivity={loyaltyActivity}
+                  onPress={navigateToRestaurant}
+                />
+              );
+            } catch (headerError) {
+              console.error(
+                "[BookingDetails] Header render error:",
+                headerError,
+              );
+              return null;
+            }
+          })()}
+
+          {/* Status Section */}
           <View className="px-4 py-4 border-b border-border">
-            <H3 className="mb-4 text-foreground">Your Rewards</H3>
-            {/* Applied Offer Card */}
-            <AppliedOfferCard
-              offerDetails={appliedOfferDetails}
-              onCopyCode={copyOfferCode}
-              onViewOffers={navigateToOffers}
-              onShareOffer={shareAppliedOffer}
-            />
-          </View>
-        )}
-
-        {/* Booking Information */}
-        <View className="px-4 py-4">
-          <H3 className="mb-4 text-foreground">Booking Information</H3>
-
-          {/* Main Booking Details Card */}
-          <View className="bg-primary/5 rounded-lg p-3 mb-3 border border-primary/10">
-            {/* Date and Time Row - Combined Format */}
-            <View className="mb-4">
-              <View className="flex-row items-start gap-3 mb-3">
-                <View className="bg-primary/10 rounded-full p-2">
-                  <Calendar size={18} color={colors[colorScheme].primary} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground mb-1">
-                    DATE & TIME
+            <View
+              className="p-4 rounded-lg"
+              style={{ backgroundColor: finalStatusConfig.bgColor }}
+            >
+              <View className="flex-row items-center justify-between mb-2">
+                <View className="flex-row items-center gap-3">
+                  <StatusIcon size={24} color={finalStatusConfig.color} />
+                  <Text
+                    className="font-bold text-lg"
+                    style={{ color: finalStatusConfig.color }}
+                  >
+                    {finalStatusConfig.label}
                   </Text>
-                  <Text className="font-semibold text-base text-primary dark:text-white">
-                    {isToday
-                      ? "Today"
-                      : isTomorrow
-                        ? "Tomorrow"
-                        : bookingDate.toLocaleDateString("en-US", {
-                            weekday: "long",
-                            month: "long",
-                            day: "numeric",
-                          })}
-                    {!isToday && !isTomorrow && (
-                      <Text className="text-sm">
-                        {", "}
-                        {bookingDate.getFullYear()}
-                      </Text>
-                    )}
-                    <Text className="text-primary dark:text-white">
+                </View>
+                {isDeclined && (
+                  <Pressable
+                    onPress={() =>
+                      setShowDeclinedExplanation(!showDeclinedExplanation)
+                    }
+                  >
+                    <Info size={16} color={finalStatusConfig.color} />
+                  </Pressable>
+                )}
+              </View>
+              <Text
+                className="text-sm"
+                style={{ color: finalStatusConfig.color }}
+              >
+                {finalStatusConfig.description}
+              </Text>
+            </View>
+
+            {/* Pending Status Extra Info */}
+            {isPending && (
+              <View className="mt-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-200 dark:border-orange-800">
+                <View className="flex-row items-center gap-2 mb-2">
+                  <Timer size={20} color={themeColors.primary} />
+                  <Text className="font-semibold text-orange-800 dark:text-orange-200">
+                    Response Expected Soon
+                  </Text>
+                </View>
+                <Text className="text-sm text-orange-700 dark:text-orange-300">
+                  The restaurant typically responds within a couple of minutes{" "}
+                  minutes. We&apos;ll notify you immediately when they confirm.
+                </Text>
+                <View className="flex-row items-center gap-2 mt-3">
+                  <Bell size={16} color={themeColors.primary} />
+                  <Text className="text-xs text-orange-600 dark:text-orange-400">
+                    Push notifications enabled
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Declined Status Extra Info */}
+            {isDeclined && showDeclinedExplanation && (
+              <View className="mt-3 bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
+                {isWaitlistOrigin ? (
+                  <Text className="text-sm text-red-700 dark:text-red-300">
+                    You were waitlisted but the booking has expired. The
+                    restaurant couldn&apos;t accommodate your request at this
+                    time.
+                  </Text>
+                ) : booking.decline_note && booking.decline_note.trim() ? (
+                  <View>
+                    <Text className="text-sm font-semibold text-red-800 dark:text-red-200 mb-2">
+                      Reason:
+                    </Text>
+                    <Text className="text-sm text-red-700 dark:text-red-300">
+                      {booking.decline_note.trim()}
+                    </Text>
+                  </View>
+                ) : (
+                  <Text className="text-sm text-red-700 dark:text-red-300">
+                    The restaurant couldn&apos;t accommodate your request at
+                    this time. This could be due to full capacity or special
+                    events.
+                  </Text>
+                )}
+              </View>
+            )}
+          </View>
+
+          {/* Restaurant Loyalty Status */}
+          <RestaurantLoyaltyStatus
+            booking={booking}
+            rule={restaurantLoyaltyRule}
+            wasRefunded={wasLoyaltyRefunded}
+          />
+
+          {/* Rewards Section - Only show for confirmed bookings with rewards */}
+          {booking.status === "confirmed" && appliedOfferDetails && (
+            <View className="px-4 py-4 border-b border-border">
+              <H3 className="mb-4 text-foreground">Your Rewards</H3>
+              {/* Applied Offer Card */}
+              <AppliedOfferCard
+                offerDetails={appliedOfferDetails}
+                onCopyCode={copyOfferCode}
+                onViewOffers={navigateToOffers}
+                onShareOffer={shareAppliedOffer}
+              />
+            </View>
+          )}
+
+          {/* Booking Information */}
+          <View className="px-4 py-4">
+            <H3 className="mb-4 text-foreground">Booking Information</H3>
+
+            {/* Main Booking Details Card */}
+            <View className="bg-primary/5 rounded-lg p-3 mb-3 border border-primary/10">
+              {/* Date and Time Row - Combined Format */}
+              <View className="mb-4">
+                <View className="flex-row items-start gap-3 mb-3">
+                  <View className="bg-primary/10 rounded-full p-2">
+                    <Calendar size={18} color={themeColors.primary} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-xs text-muted-foreground mb-1">
+                      DATE & TIME
+                    </Text>
+                    <Text className="font-semibold text-base text-primary dark:text-white">
+                      {isToday
+                        ? "Today"
+                        : isTomorrow
+                          ? "Tomorrow"
+                          : bookingDate.toLocaleDateString("en-US", {
+                              weekday: "long",
+                              month: "long",
+                              day: "numeric",
+                            })}
+                      {!isToday &&
+                        !isTomorrow &&
+                        `, ${bookingDate.getFullYear()}`}
                       {" at "}
                       {bookingDate.toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
                     </Text>
-                  </Text>
+                  </View>
                 </View>
-              </View>
 
-              {/* Party Size */}
-              <View className="flex-row items-center gap-3 pb-3 border-b border-border">
-                <View className="bg-primary/10 rounded-full p-2">
-                  <Users size={18} color={colors[colorScheme].primary} />
+                {/* Party Size */}
+                <View className="flex-row items-center gap-3 pb-3 border-b border-border">
+                  <View className="bg-primary/10 rounded-full p-2">
+                    <Users size={18} color={themeColors.primary} />
+                  </View>
+                  <View>
+                    <Text className="text-xs text-muted-foreground mb-1">
+                      GUESTS
+                    </Text>
+                    <Text className="font-medium text-foreground">
+                      {booking.party_size}{" "}
+                      {booking.party_size === 1 ? "Guest" : "Guests"}
+                    </Text>
+                  </View>
                 </View>
-                <View>
-                  <Text className="text-xs text-muted-foreground mb-1">
-                    GUESTS
-                  </Text>
-                  <Text className="font-medium text-foreground">
-                    {booking.party_size}{" "}
-                    {booking.party_size === 1 ? "Guest" : "Guests"}
-                  </Text>
-                </View>
-              </View>
 
-              {/* Expected Loyalty Points */}
-              {booking.expected_loyalty_points &&
-                booking.expected_loyalty_points > 0 && (
-                  <View className="flex-row items-center gap-3 pt-3">
-                    <View className="bg-primary/10 rounded-full p-2">
-                      <Sparkles size={18} color={colors[colorScheme].primary} />
+                {/* Expected Loyalty Points */}
+                {booking.expected_loyalty_points &&
+                  booking.expected_loyalty_points > 0 && (
+                    <View className="flex-row items-center gap-3 pt-3">
+                      <View className="bg-primary/10 rounded-full p-2">
+                        <Sparkles size={18} color={themeColors.primary} />
+                      </View>
+                      <View>
+                        <Text className="text-xs text-muted-foreground mb-1">
+                          LOYALTY POINTS
+                        </Text>
+                        <Text className="font-medium text-primary dark:text-white">
+                          +{booking.expected_loyalty_points} points
+                        </Text>
+                      </View>
                     </View>
-                    <View>
+                  )}
+              </View>
+
+              {/* Table Preferences */}
+              {booking.table_preferences &&
+                booking.table_preferences.length > 0 && (
+                  <View className="flex-row items-start gap-3 mb-3 pb-3 border-b border-border">
+                    <View className="bg-primary/10 rounded-full p-2 mt-0.5">
+                      <TableIcon size={18} color={themeColors.primary} />
+                    </View>
+                    <View className="flex-1">
                       <Text className="text-xs text-muted-foreground mb-1">
-                        LOYALTY POINTS
+                        TABLE PREFERENCE
                       </Text>
-                      <Text className="font-medium text-primary dark:text-white">
-                        +{booking.expected_loyalty_points} points
+                      <Text className="font-medium text-foreground">
+                        {booking.table_preferences.join(", ")}
                       </Text>
                     </View>
                   </View>
                 )}
-            </View>
 
-            {/* Table Preferences */}
-            {booking.table_preferences &&
-              booking.table_preferences.length > 0 && (
+              {/* Preferred Section */}
+              {booking.preferred_section && (
                 <View className="flex-row items-start gap-3 mb-3 pb-3 border-b border-border">
                   <View className="bg-primary/10 rounded-full p-2 mt-0.5">
-                    <TableIcon size={18} color={colors[colorScheme].primary} />
+                    <MapPin size={18} color={themeColors.primary} />
                   </View>
                   <View className="flex-1">
                     <Text className="text-xs text-muted-foreground mb-1">
-                      TABLE PREFERENCE
+                      PREFERRED SECTION
                     </Text>
-                    <Text className="font-medium text-foreground">
-                      {booking.table_preferences.join(", ")}
+                    <Text className="font-medium text-foreground capitalize">
+                      {booking.preferred_section}
                     </Text>
                   </View>
                 </View>
               )}
 
-            {/* Preferred Section */}
-            {booking.preferred_section && (
-              <View className="flex-row items-start gap-3 mb-3 pb-3 border-b border-border">
-                <View className="bg-primary/10 rounded-full p-2 mt-0.5">
-                  <MapPin size={18} color={colors[colorScheme].primary} />
+              {/* Special Offer */}
+              {appliedOfferDetails && (
+                <View className="flex-row items-start gap-3 mb-3 pb-3 border-b border-border">
+                  <View className="bg-primary/10 rounded-full p-2 mt-0.5">
+                    <Gift size={18} color={themeColors.primary} />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-xs text-muted-foreground mb-1">
+                      SPECIAL OFFER
+                    </Text>
+                    <Text className="font-medium text-foreground">
+                      {appliedOfferDetails.special_offer_title}
+                    </Text>
+                    {appliedOfferDetails.discount_percentage && (
+                      <Text className="text-xs text-primary dark:text-white mt-0.5">
+                        {appliedOfferDetails.discount_percentage}% discount
+                        applied
+                      </Text>
+                    )}
+                  </View>
                 </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground mb-1">
-                    PREFERRED SECTION
-                  </Text>
-                  <Text className="font-medium text-foreground capitalize">
-                    {booking.preferred_section}
-                  </Text>
-                </View>
-              </View>
-            )}
+              )}
 
-            {/* Special Offer */}
-            {appliedOfferDetails && (
-              <View className="flex-row items-start gap-3 mb-3 pb-3 border-b border-border">
-                <View className="bg-primary/10 rounded-full p-2 mt-0.5">
-                  <Gift size={18} color={colors[colorScheme].primary} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground mb-1">
-                    SPECIAL OFFER
+              {/* Additional Information Section - Editable */}
+              <EditableBookingFields
+                bookingId={booking.id}
+                currentValues={bookingFields}
+                onUpdate={handleBookingFieldsUpdate}
+                canEdit={
+                  booking.status === "pending" || booking.status === "confirmed"
+                }
+              />
+
+              {/* Guest Information Section */}
+              {(booking.guest_name ||
+                booking.guest_email ||
+                booking.guest_phone) && (
+                <View className="border-t border-primary/20 pt-3 mb-3">
+                  <Text className="text-sm font-medium text-muted-foreground mb-2">
+                    Guest Information
                   </Text>
-                  <Text className="font-medium text-foreground">
-                    {appliedOfferDetails.special_offer_title}
-                  </Text>
-                  {appliedOfferDetails.discount_percentage && (
-                    <Text className="text-xs text-primary dark:text-white mt-0.5">
-                      {appliedOfferDetails.discount_percentage}% discount
-                      applied
+                  {booking.guest_name && (
+                    <Text className="text-primary dark:text-white mb-1">
+                      Name: {booking.guest_name}
+                    </Text>
+                  )}
+                  {booking.guest_email && (
+                    <Text className="text-primary dark:text-white mb-1">
+                      Email: {booking.guest_email}
+                    </Text>
+                  )}
+                  {booking.guest_phone && (
+                    <Text className="text-primary dark:text-white">
+                      Phone: {booking.guest_phone}
                     </Text>
                   )}
                 </View>
-              </View>
-            )}
+              )}
 
-            {/* Additional Information Section - Editable */}
-            <EditableBookingFields
-              bookingId={booking.id}
-              currentValues={bookingFields}
-              onUpdate={handleBookingFieldsUpdate}
-              canEdit={
-                booking.status === "pending" || booking.status === "confirmed"
-              }
-            />
-
-            {/* Guest Information Section */}
-            {(booking.guest_name ||
-              booking.guest_email ||
-              booking.guest_phone) && (
-              <View className="border-t border-primary/20 pt-3 mb-3">
-                <Text className="text-sm font-medium text-muted-foreground mb-2">
-                  Guest Information
-                </Text>
-                {booking.guest_name && (
-                  <Text className="text-primary dark:text-white mb-1">
-                    Name: {booking.guest_name}
+              {/* Confirmation Code Section - removed top border */}
+              {booking.confirmation_code && (
+                <View className="pt-3">
+                  <Text className="font-semibold mb-3 text-foreground">
+                    {isPending ? "Reference Code" : "Confirmation Code"}
                   </Text>
-                )}
-                {booking.guest_email && (
-                  <Text className="text-primary dark:text-white mb-1">
-                    Email: {booking.guest_email}
+                  <Pressable
+                    onPress={copyConfirmationCode}
+                    className="flex-row items-center justify-between bg-background rounded-lg p-3 border border-border"
+                  >
+                    <Text className="font-mono font-bold text-xl tracking-wider text-foreground">
+                      {booking.confirmation_code}
+                    </Text>
+                    <Copy size={20} color={themeColors.mutedForeground} />
+                  </Pressable>
+                  <Text className="text-xs text-muted-foreground mt-2">
+                    Tap to copy •{" "}
+                    {isPending
+                      ? "Use this code to reference your request"
+                      : "Show this code at the restaurant"}
                   </Text>
-                )}
-                {booking.guest_phone && (
-                  <Text className="text-primary dark:text-white">
-                    Phone: {booking.guest_phone}
-                  </Text>
-                )}
-              </View>
-            )}
-
-            {/* Confirmation Code Section - removed top border */}
-            <View className="pt-3">
-              <Text className="font-semibold mb-3 text-foreground">
-                {isPending ? "Reference Code" : "Confirmation Code"}
-              </Text>
-              <Pressable
-                onPress={copyConfirmationCode}
-                className="flex-row items-center justify-between bg-background rounded-lg p-3 border border-border"
-              >
-                <Text className="font-mono font-bold text-xl tracking-wider text-foreground">
-                  {booking.confirmation_code}
-                </Text>
-                <Copy size={20} color={colors[colorScheme].mutedForeground} />
-              </Pressable>
-              <Text className="text-xs text-muted-foreground mt-2">
-                Tap to copy •{" "}
-                {isPending
-                  ? "Use this code to reference your request"
-                  : "Show this code at the restaurant"}
-              </Text>
+                </View>
+              )}
             </View>
           </View>
-        </View>
 
-        {/* Booking Invitations Section */}
-        <BookingInvitationsSection
-          bookingId={booking.id}
-          bookingUserId={booking.user_id}
-        />
-
-        {/* Table Assignment - Only show for confirmed bookings */}
-        {booking.status === "confirmed" && (
-          <BookingTableInfo
-            tables={assignedTables}
-            partySize={booking.party_size}
-            loading={loading}
+          {/* Booking Invitations Section */}
+          <BookingInvitationsSection
+            bookingId={booking.id}
+            bookingUserId={booking.user_id}
           />
-        )}
 
-        {/* Special Requests section removed as it's redundant */}
+          {/* Table Assignment - Only show for confirmed bookings */}
+          {booking.status === "confirmed" && (
+            <BookingTableInfo
+              tables={assignedTables}
+              partySize={booking.party_size}
+              loading={loading}
+            />
+          )}
 
-        {/* Contact Section */}
-        {booking.restaurant && (
-          <BookingContactSection
-            restaurant={{
-              name: booking.restaurant.name,
-              phone_number: booking.restaurant.phone_number,
-              whatsapp_number: booking.restaurant.whatsapp_number,
-            }}
-            appliedOfferDetails={appliedOfferDetails}
-            loyaltyActivity={loyaltyActivity}
-          />
-        )}
+          {/* Special Requests section removed as it's redundant */}
 
-        {/* Bottom padding - increased to prevent content from being hidden by actions bar */}
-        <View className="h-48" />
-      </ScrollView>
-
-      {/* Actions Bar */}
-      {booking.restaurant && (
-        <View className="absolute bottom-4 left-0 right-0">
-          <BookingActionsBar
-            booking={{
-              id: booking.id,
-              status: booking.status,
-              confirmation_code: booking.confirmation_code || "",
-              booking_time: booking.booking_time,
-              party_size: booking.party_size,
-              restaurant: {
-                id: booking.restaurant.id,
+          {/* Contact Section */}
+          {booking.restaurant && (
+            <BookingContactSection
+              restaurant={{
                 name: booking.restaurant.name,
                 phone_number: booking.restaurant.phone_number,
                 whatsapp_number: booking.restaurant.whatsapp_number,
-                location: booking.restaurant.location,
-                staticCoordinates: booking.restaurant.staticCoordinates,
-                coordinates: booking.restaurant.coordinates,
-              },
-            }}
-            appliedOfferDetails={appliedOfferDetails}
-            loyaltyActivity={loyaltyActivity}
-            hasReview={hasReview}
-            isUpcoming={isUpcoming}
-            processing={processing}
-            onCancel={cancelBooking}
-            onReview={navigateToReview}
-            onBookAgain={bookAgain}
-            onNavigateToLoyalty={navigateToLoyalty}
-            onNavigateToOffers={navigateToOffers}
-          />
+              }}
+              appliedOfferDetails={appliedOfferDetails}
+              loyaltyActivity={loyaltyActivity}
+            />
+          )}
+
+          {/* Bottom padding - increased to prevent content from being hidden by actions bar */}
+          <View className="h-48" />
+        </ScrollView>
+
+        {/* Actions Bar */}
+        {(() => {
+          console.log("[BookingDetails] Rendering actions bar");
+          if (!booking.restaurant) {
+            console.error("[BookingDetails] No restaurant for actions bar!");
+            return null;
+          }
+          try {
+            console.log("[BookingDetails] Actions bar data:", {
+              bookingId: booking.id,
+              status: booking.status,
+              hasReview,
+              isUpcoming,
+              processing,
+            });
+            return (
+              <View className="absolute bottom-4 left-0 right-0">
+                <BookingActionsBar
+                  booking={{
+                    id: booking.id,
+                    status: booking.status,
+                    confirmation_code: booking.confirmation_code || "",
+                    booking_time: booking.booking_time,
+                    party_size: booking.party_size,
+                    restaurant: {
+                      id: booking.restaurant.id,
+                      name: booking.restaurant.name,
+                      phone_number: booking.restaurant.phone_number,
+                      whatsapp_number: booking.restaurant.whatsapp_number,
+                      location: booking.restaurant.location,
+                      staticCoordinates: booking.restaurant.staticCoordinates,
+                      coordinates: booking.restaurant.coordinates,
+                    },
+                  }}
+                  appliedOfferDetails={appliedOfferDetails}
+                  loyaltyActivity={loyaltyActivity}
+                  hasReview={hasReview}
+                  isUpcoming={isUpcoming}
+                  processing={processing}
+                  onCancel={cancelBooking}
+                  onReview={navigateToReview}
+                  onBookAgain={bookAgain}
+                  onNavigateToLoyalty={navigateToLoyalty}
+                  onNavigateToOffers={navigateToOffers}
+                />
+              </View>
+            );
+          } catch (actionsError) {
+            console.error("[BookingDetails] Actions bar error:", actionsError);
+            return null;
+          }
+        })()}
+      </SafeAreaView>
+    );
+  } catch (renderError: any) {
+    console.error("[BookingDetails] RENDER ERROR:", renderError);
+    console.error("[BookingDetails] Error message:", renderError?.message);
+    console.error("[BookingDetails] Error stack:", renderError?.stack);
+    console.error(
+      "[BookingDetails] Booking data at error:",
+      JSON.stringify({
+        id: booking?.id,
+        status: booking?.status,
+        hasRestaurant: !!booking?.restaurant,
+        restaurantId: booking?.restaurant_id,
+        confirmationCode: booking?.confirmation_code,
+      }),
+    );
+
+    // Return safe fallback UI
+    return (
+      <SafeAreaView className="flex-1 bg-background">
+        <NavigationHeader
+          title="Booking Details"
+          onBack={() => router.back()}
+          showShare={false}
+        />
+        <View className="flex-1 items-center justify-center px-4">
+          <H3 className="text-center mb-2">Loading Error</H3>
+          <P className="text-center text-muted-foreground mb-4">
+            There was an error displaying this booking. Please check the console
+            logs.
+          </P>
+          <Button variant="outline" onPress={() => router.back()}>
+            <Text>Go Back</Text>
+          </Button>
         </View>
-      )}
-    </SafeAreaView>
-  );
+      </SafeAreaView>
+    );
+  }
 }

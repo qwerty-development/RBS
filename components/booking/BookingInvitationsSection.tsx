@@ -60,7 +60,9 @@ const FALLBACK_STATUS_CONFIG: StatusConfig = {
   description: "Status unavailable",
 };
 
-const getStatusConfig = (status: BookingInvitationDetails["status"]): StatusConfig => {
+const getStatusConfig = (
+  status: BookingInvitationDetails["status"],
+): StatusConfig => {
   switch (status) {
     case "accepted":
       return {
