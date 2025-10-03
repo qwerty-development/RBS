@@ -122,7 +122,7 @@ export function EnhancedRestaurantCard({
       }
 
       router.push({
-        pathname: "/booking/create",
+        pathname: "/(protected)/booking/create",
         params: {
           restaurantId: restaurant.id,
           restaurantName: restaurant.name,
@@ -136,7 +136,7 @@ export function EnhancedRestaurantCard({
     e.stopPropagation();
     handleQuickActionPress(() => {
       router.push({
-        pathname: "/restaurant/[id]",
+        pathname: "/(protected)/restaurant/[id]",
         params: { id: restaurant.id, tab: "menu" },
       });
     });

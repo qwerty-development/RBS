@@ -223,7 +223,7 @@ export const useRestaurantReviewsWithReplies = (restaurantId: string) => {
               text: "Book Table",
               onPress: () => {
                 router.push({
-                  pathname: "/booking/availability",
+                  pathname: "/(protected)/booking/availability",
                   params: {
                     restaurantId: restaurantId,
                     restaurantName: restaurant?.name || "",

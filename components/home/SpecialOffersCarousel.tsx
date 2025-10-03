@@ -134,7 +134,7 @@ export function SpecialOffersCarousel({
   const navigateToAvailabilityWithOffer = useCallback(
     (offer: EnrichedOffer) => {
       router.push({
-        pathname: "/booking/availability",
+        pathname: "/(protected)/booking/availability",
         params: {
           restaurantId: offer.restaurant_id,
           restaurantName: offer.restaurant.name,

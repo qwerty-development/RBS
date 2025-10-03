@@ -118,7 +118,8 @@
     "twilio": "^5.9.0",
     "use-debounce": "^10.0.5",
     "zod": "^3.24.3",
-    "zustand": "^4.5.5"
+    "zustand": "^4.5.5",
+    "expo-blur": "~14.1.5"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0",

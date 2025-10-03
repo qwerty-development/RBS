@@ -6,124 +6,51 @@ import { ScrollView } from "react-native";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { getThemedColors } from "@/lib/utils";
 import { useBookingsStore } from "@/stores";
+import CustomTabBar, { /* types opt */ } from "@/components/CustomTabBar";
 
-// Create ref outside component but don't use useRef at module level
 export let homeScrollRef: React.RefObject<ScrollView> | null = null;
 
 export default function TabsLayout() {
-  // Initialize the ref inside the component
   const scrollRef = useRef<ScrollView>(null);
   homeScrollRef = scrollRef as React.RefObject<ScrollView>;
 
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
-  const { upcomingBookings } = useBookingsStore();
-  const upcomingCount = useMemo(() => {
-    const count = (upcomingBookings || []).length;
+  const isDark = colorScheme === "dark";
 
-    return count;
-  }, [upcomingBookings]);
+  const { upcomingBookings } = useBookingsStore();
+  const upcomingCount = useMemo(
+    () => (upcomingBookings || []).length,
+    [upcomingBookings]
+  );
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarStyle: {
-          backgroundColor: themedColors.card,
-          borderTopWidth: 1,
-          borderTopColor: themedColors.border,
-          height: 80,
-          paddingBottom: 20,
-          paddingTop: 8,
-          borderTopLeftRadius: 12,
-          borderTopRightRadius: 12,
-          overflow: "hidden", // ensure corners are clipped
-          position: "absolute", // Ensure tab bar sits on top
-          bottom: 0,
-          left: 0,
-          right: 0,
-          // Add subtle elevation for better visual hierarchy
-          shadowColor: themedColors.foreground,
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: colorScheme === "dark" ? 0.25 : 0.1,
-          shadowRadius: 8,
-          elevation: 8,
-        },
-        tabBarActiveTintColor: themedColors.primary,
-        tabBarInactiveTintColor: themedColors.mutedForeground,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: "500" },
+        tabBarStyle: { display: "none" }, // hide native bar
       }}
+      tabBar={(props) => (
+        <CustomTabBar
+          {...props}
+          primary={themedColors.primary}
+          primaryForeground={themedColors.primaryForeground}
+          mutedForeground={themedColors.mutedForeground}
+          isDark={isDark}
+          upcomingCount={upcomingCount}
+          onReselectHome={() => {
+            homeScrollRef?.current?.scrollTo({ y: 0, animated: true });
+          }}
+          // optional: pass a noise texture if you have one
+          // noiseSource={require("@/assets/noise.png")}
+        />
+      )}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color, size }) => (
-            <Home size={size} color={color} strokeWidth={2} />
-          ),
-        }}
-        listeners={({ navigation }) => ({
-          tabPress: (e) => {
-            const state = navigation.getState();
-            const isHomeTabActive = state.routes[state.index]?.name === "index";
-            if (isHomeTabActive && homeScrollRef?.current) {
-              e.preventDefault();
-              homeScrollRef.current.scrollTo({ y: 0, animated: true });
-            }
-          },
-        })}
-      />
-      <Tabs.Screen
-        name="search"
-        options={{
-          title: "Search",
-          tabBarIcon: ({ color, size }) => (
-            <Search size={size} color={color} strokeWidth={2} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="favorites"
-        options={{
-          title: "Favorites",
-          tabBarIcon: ({ color, size }) => (
-            <Heart size={size} color={color} strokeWidth={2} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="bookings"
-        options={{
-          title: "Bookings",
-          tabBarIcon: ({ color, size }) => (
-            <Calendar size={size} color={color} strokeWidth={2} />
-          ),
-          tabBarBadge:
-            upcomingCount > 0
-              ? upcomingCount > 9
-                ? "9+"
-                : String(upcomingCount)
-              : undefined,
-          tabBarBadgeStyle: {
-            backgroundColor: themedColors.primary,
-            color: themedColors.primaryForeground,
-            fontSize: 10,
-            minWidth: 18,
-            height: 18,
-          },
-        }}
-      />
-      <Tabs.Screen
-        name="social"
-        options={{
-          title: "Social",
-          tabBarIcon: ({ color, size }) => (
-            <User size={size} color={color} strokeWidth={2} />
-          ),
-        }}
-      />
+      <Tabs.Screen name="index" options={{ title: "Home" }} />
+      <Tabs.Screen name="search" options={{ title: "Search" }} />
+      <Tabs.Screen name="favorites" options={{ title: "Favorites" }} />
+      <Tabs.Screen name="bookings" options={{ title: "Bookings" }} />
+      <Tabs.Screen name="social" options={{ title: "Social" }} />
     </Tabs>
   );
 }
-
-TabsLayout.displayName = "TabsLayout";

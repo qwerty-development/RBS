@@ -871,7 +871,7 @@ export default function RestaurantDetailsScreen() {
   const handleBookTable = useCallback(() => {
     if (!restaurant) return;
     router.push({
-      pathname: "/booking/availability",
+      pathname: "/(protected)/booking/availability",
       params: {
         restaurantId: id!,
         restaurantName: restaurant.name,

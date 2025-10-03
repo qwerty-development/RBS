@@ -633,7 +633,7 @@ export const useBookingConfirmation = () => {
         // Navigate based on booking type
         if (bookingPolicy === "instant") {
           router.replace({
-            pathname: "/booking/success",
+            pathname: "/(protected)/booking/success",
             params: {
               bookingId: bookingResult.booking.id,
               restaurantName:
@@ -652,7 +652,7 @@ export const useBookingConfirmation = () => {
           });
         } else {
           router.replace({
-            pathname: "/booking/request-sent",
+            pathname: "/(protected)/booking/request-sent",
             params: {
               bookingId: bookingResult.booking.id,
               restaurantName:

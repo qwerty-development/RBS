@@ -352,7 +352,7 @@ export default function BookingDetailsScreen() {
     if (!booking.restaurant) return;
 
     router.push({
-      pathname: "/booking/availability",
+      pathname: "/(protected)/booking/availability",
       params: {
         restaurantId: booking.restaurant_id,
         restaurantName: booking.restaurant.name,

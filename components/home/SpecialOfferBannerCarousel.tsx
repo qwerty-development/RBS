@@ -99,7 +99,7 @@ export function SpecialOfferBannerCarousel({
 
         if (success) {
           router.push({
-            pathname: "/booking/availability",
+            pathname: "/(protected)/booking/availability",
             params: {
               restaurantId: offer.restaurant_id,
               restaurantName: offer.restaurant.name,
