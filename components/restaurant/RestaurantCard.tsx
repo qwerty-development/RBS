@@ -168,14 +168,16 @@ function RestaurantCardComponent({
     if (!priceRange) return null; // Don't show anything if no price range data
 
     return (
-      <Text
-        className={cn(
-          "text-muted-foreground font-medium",
-          variant === "compact" ? "text-xs" : "text-sm",
-        )}
-      >
-        {"$".repeat(priceRange)}
-      </Text>
+      <View className="bg-muted px-2 py-1 rounded-full">
+        <Text
+          className={cn(
+            "text-muted-foreground font-medium",
+            variant === "compact" ? "text-xs" : "text-sm",
+          )}
+        >
+          {"$".repeat(priceRange)}
+        </Text>
+      </View>
     );
   };
 
@@ -270,9 +272,9 @@ function RestaurantCardComponent({
                   </Text>
                   {renderStatusDot()}
                 </View>
-                <View className="bg-primary px-1.5 py-0.5 rounded-full">
+                <View className="bg-primary/10 px-2.5 py-1 rounded-full">
                   <Text
-                    className="text-xs font-medium text-primary-foreground"
+                    className="text-xs font-medium text-primary"
                     numberOfLines={1}
                   >
                     {restaurantData.cuisine_type}
@@ -375,9 +377,9 @@ function RestaurantCardComponent({
                   </Text>
                   {renderStatusDot()}
                 </View>
-                <View className="bg-primary px-2 py-0.5 rounded-full">
+                <View className="bg-primary/10 px-3 py-1.5 rounded-full">
                   <Text
-                    className="text-sm font-medium text-primary-foreground"
+                    className="text-sm font-medium text-primary"
                     numberOfLines={1}
                   >
                     {restaurantData.cuisine_type}
@@ -454,9 +456,9 @@ function RestaurantCardComponent({
                     </Text>
                     {renderStatusDot()}
                   </View>
-                  <View className="bg-primary px-1.5 py-0.5 rounded-full">
+                  <View className="bg-primary/10 px-2.5 py-1 rounded-full">
                     <Text
-                      className="text-xs font-medium text-primary-foreground"
+                      className="text-xs font-medium text-primary"
                       numberOfLines={1}
                     >
                       {restaurantData.cuisine_type}
