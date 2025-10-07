@@ -1,6 +1,6 @@
 // app/(protected)/profile/privacy.tsx
 import React, { useState, useCallback } from "react";
-import { View, ScrollView, Pressable, Alert } from "react-native";
+import { View, ScrollView, Pressable, Alert, Linking } from "react-native";
 
 import { useRouter } from "expo-router";
 import {
@@ -215,6 +215,25 @@ export default function PrivacyScreen() {
     });
   }, []);
 
+  // Contact Support Handler
+  const handleContactSupport = useCallback(() => {
+    Alert.alert("Contact Support", "Choose how to contact us:", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "WhatsApp",
+        onPress: () => Linking.openURL("https://wa.me/96170993415"),
+      },
+      {
+        text: "Email",
+        onPress: () => Linking.openURL("mailto:support@plate.com"),
+      },
+      {
+        text: "Phone",
+        onPress: () => Linking.openURL("tel:+96170993415"),
+      },
+    ]);
+  }, []);
+
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       <BackHeader title="Privacy & Security" />
@@ -378,7 +397,11 @@ export default function PrivacyScreen() {
                   Have questions about your privacy or need help with your
                   account? Our support team is here to help.
                 </P>
-                <Button variant="outline" size="sm">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onPress={handleContactSupport}
+                >
                   <Text className="text-sm">Contact Support</Text>
                 </Button>
               </View>
