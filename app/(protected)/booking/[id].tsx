@@ -44,7 +44,8 @@ import { useBookingDetails } from "@/hooks/useBookingDetails";
 // Import constants
 import { BOOKING_STATUS_CONFIG } from "@/constants/bookingConstants";
 import BookingDetailsScreenSkeleton from "@/components/skeletons/BookingDetailsScreenSkeleton";
-import { useShare } from "@/hooks/useShare";
+// TEMP DISABLED: Share functionality requires deeplink
+// import { useShare } from "@/hooks/useShare";
 
 LogBox.ignoreAllLogs();
 
@@ -163,7 +164,8 @@ export default function BookingDetailsScreen() {
     dietary_notes?: string[] | null;
   }>({});
 
-  const { shareBooking: shareBookingWithDeepLink } = useShare();
+  // TEMP DISABLED: Share functionality requires deeplink
+  // const { shareBooking: shareBookingWithDeepLink } = useShare();
 
   useEffect(() => {
     setIsMounted(true);
@@ -375,17 +377,18 @@ export default function BookingDetailsScreen() {
     }
   };
 
-  const shareBooking = async () => {
-    if (!booking || !booking.restaurant) return;
-    try {
-      await shareBookingWithDeepLink(booking.id, booking.restaurant.name);
-    } catch (error) {
-      console.error("Error sharing booking:", error);
-      const statusText = isPending ? "I've requested a table" : isDeclined ? "My booking request was declined" : "I have a reservation";
-      const shareMessage = `${statusText} at ${booking.restaurant.name} on ${new Date(booking.booking_time).toLocaleDateString()} at ${new Date(booking.booking_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} for ${booking.party_size} people.${booking.confirmation_code && !isPending ? ` Confirmation code: ${booking.confirmation_code}` : ""}`;
-      await Share.share({ message: shareMessage, title: `Booking at ${booking.restaurant.name}` });
-    }
-  };
+  // TEMP DISABLED: Share functionality requires deeplink
+  // const shareBooking = async () => {
+  //   if (!booking || !booking.restaurant) return;
+  //   try {
+  //     await shareBookingWithDeepLink(booking.id, booking.restaurant.name);
+  //   } catch (error) {
+  //     console.error("Error sharing booking:", error);
+  //     const statusText = isPending ? "I've requested a table" : isDeclined ? "My booking request was declined" : "I have a reservation";
+  //     const shareMessage = `${statusText} at ${booking.restaurant.name} on ${new Date(booking.booking_time).toLocaleDateString()} at ${new Date(booking.booking_time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} for ${booking.party_size} people.${booking.confirmation_code && !isPending ? ` Confirmation code: ${booking.confirmation_code}` : ""}`;
+  //     await Share.share({ message: shareMessage, title: `Booking at ${booking.restaurant.name}` });
+  //   }
+  // };
 
   const copyConfirmationCode = async () => {
     if (!booking?.confirmation_code) return;
@@ -472,8 +475,8 @@ export default function BookingDetailsScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
-      {/* Header */}
-      <NavigationHeader title="Booking Details" onBack={() => router.back()} onShare={shareBooking} showShare={true} />
+      {/* Header - TEMP DISABLED: Share functionality requires deeplink */}
+      <NavigationHeader title="Booking Details" onBack={() => router.back()} showShare={false} />
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Restaurant Header - USING FIXED COMPONENT */}
