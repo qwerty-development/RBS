@@ -90,7 +90,6 @@ export default function MenuScreen() {
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
 
   // Prepare sections for SectionList
   const sections = useMemo(() => {
@@ -114,17 +113,9 @@ export default function MenuScreen() {
       }));
   }, [categories, filteredItems, filters]);
 
-  const handleItemPress = useCallback((item: MenuItem) => {
-    setSelectedItem(item);
-  }, []);
-
   const renderMenuItem = useCallback(
     ({ item }: { item: MenuItem }) => (
-      <Pressable
-        onPress={() => handleItemPress(item)}
-        className="bg-card p-4 mb-3 mx-4 rounded-lg border border-border"
-        style={({ pressed }) => ({ opacity: pressed ? 0.7 : 1 })}
-      >
+      <View className="bg-card p-4 mb-3 mx-4 rounded-lg border border-border">
         <View className="flex-row">
           {item.image_url && (
             <Image
@@ -181,9 +172,9 @@ export default function MenuScreen() {
             )}
           </View>
         </View>
-      </Pressable>
+      </View>
     ),
-    [handleItemPress],
+    [],
   );
 
   const renderSectionHeader = useCallback(
@@ -273,10 +264,7 @@ export default function MenuScreen() {
             data={featuredItems}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
-              <Pressable
-                onPress={() => handleItemPress(item)}
-                className="w-48 mr-3 first:ml-4 last:mr-4"
-              >
+              <View className="w-48 mr-3 first:ml-4 last:mr-4">
                 <Image
                   source={{
                     uri: item.image_url || "https://via.placeholder.com/200",
@@ -290,7 +278,7 @@ export default function MenuScreen() {
                 <Text className="text-primary font-medium">
                   ${item.price.toFixed(2)}
                 </Text>
-              </Pressable>
+              </View>
             )}
           />
         </View>
@@ -327,15 +315,6 @@ export default function MenuScreen() {
           onClose={() => setShowFilters(false)}
           filters={filters}
           onApplyFilters={setFilters}
-        />
-      )}
-
-      {/* Item Detail Modal */}
-      {selectedItem && (
-        <ItemDetailModal
-          item={selectedItem}
-          visible={!!selectedItem}
-          onClose={() => setSelectedItem(null)}
         />
       )}
 
@@ -465,80 +444,6 @@ function FilterModal({
             <Text>Apply Filters</Text>
           </Button>
         </View>
-      </View>
-    </View>
-  );
-}
-
-// Item Detail Modal Component
-interface ItemDetailModalProps {
-  item: MenuItem;
-  visible: boolean;
-  onClose: () => void;
-}
-
-function ItemDetailModal({ item, visible, onClose }: ItemDetailModalProps) {
-  if (!visible) return null;
-
-  return (
-    <View className="absolute inset-0 bg-black/50 z-50">
-      <Pressable className="flex-1" onPress={onClose} />
-      <View className="bg-card rounded-t-3xl max-h-[80%]">
-        {item.image_url && (
-          <Image
-            source={{ uri: item.image_url }}
-            className="w-full h-64 rounded-t-3xl"
-            resizeMode="cover"
-          />
-        )}
-        <ScrollView className="p-6">
-          <View className="flex-row justify-between items-start mb-4">
-            <H1 className="flex-1 mr-4">{item.name}</H1>
-            <Text className="text-2xl font-bold text-primary">
-              ${item.price.toFixed(2)}
-            </Text>
-          </View>
-
-          {item.description && (
-            <P className="text-muted-foreground mb-6">{item.description}</P>
-          )}
-
-          {/* Nutritional Info */}
-          {item.calories && (
-            <View className="bg-muted/30 p-4 rounded-lg mb-6">
-              <H3 className="mb-2">Nutritional Information</H3>
-              <Text className="text-muted-foreground">
-                {item.calories} calories per serving
-              </Text>
-            </View>
-          )}
-
-          {/* Allergens */}
-          {(item.allergens || []).length > 0 && (
-            <View className="mb-6">
-              <H3 className="mb-2 flex-row items-center">
-                <Info size={20} className="mr-2 text-warning" />
-                Allergen Information
-              </H3>
-              <View className="flex-row flex-wrap gap-2">
-                {(item.allergens || []).map((allergen) => (
-                  <View
-                    key={allergen}
-                    className="bg-warning/10 px-3 py-1 rounded-full"
-                  >
-                    <Text className="text-warning text-sm capitalize">
-                      {allergen.replace("-", " ")}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            </View>
-          )}
-
-          <Button onPress={onClose} className="mt-4">
-            <Text>Close</Text>
-          </Button>
-        </ScrollView>
       </View>
     </View>
   );
