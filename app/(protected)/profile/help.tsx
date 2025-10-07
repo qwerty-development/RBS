@@ -19,7 +19,7 @@ export default function HelpScreen() {
   };
 
   const handleWhatsApp = () => {
-    Linking.openURL("whatsapp://send?phone=15559876543");
+    Linking.openURL("https://wa.me/96170993415");
   };
 
   return (
@@ -43,7 +43,7 @@ export default function HelpScreen() {
             </View>
             <View className="flex-1 ml-3">
               <Text className="font-medium">Phone Support</Text>
-              <Muted className="text-sm">+1 (555) 123-4567</Muted>
+              <Muted className="text-sm">+96170993415</Muted>
               <Muted className="text-xs mt-1">9 AM - 9 PM daily</Muted>
             </View>
           </Pressable>
@@ -73,7 +73,7 @@ export default function HelpScreen() {
             </View>
             <View className="flex-1 ml-3">
               <Text className="font-medium">WhatsApp</Text>
-              <Muted className="text-sm">+1 (555) 987-6543</Muted>
+              <Muted className="text-sm">+96170993415</Muted>
               <Muted className="text-xs mt-1">24/7 automated responses</Muted>
             </View>
           </Pressable>
@@ -129,16 +129,7 @@ export default function HelpScreen() {
             </Muted>
           </View>
 
-          {/* Payment Methods */}
-          <View className="bg-card mb-3 rounded-xl p-4">
-            <Text className="font-semibold mb-2">
-              What payment methods are accepted?
-            </Text>
-            <Muted className="text-sm leading-5">
-              We accept all major credit cards (Visa, MasterCard, American
-              Express), debit cards, PayPal, Apple Pay, and Google Pay.
-            </Muted>
-          </View>
+     
 
           {/* Modify Booking */}
           <View className="bg-card mb-3 rounded-xl p-4">
