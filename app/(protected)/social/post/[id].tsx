@@ -43,8 +43,9 @@ import { Image } from "@/components/image";
 import { supabase } from "@/config/supabase";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
-import { useShare } from "@/hooks/useShare";
-import { ShareModal } from "@/components/ui/share-modal";
+// TEMP DISABLED: Share functionality requires deeplink
+// import { useShare } from "@/hooks/useShare";
+// import { ShareModal } from "@/components/ui/share-modal";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 
@@ -89,7 +90,8 @@ export default function PostDetailScreen() {
   const { id: postId } = useLocalSearchParams();
   const { profile } = useAuth();
   const { colorScheme } = useColorScheme();
-  const { shareSocialPost } = useShare();
+  // TEMP DISABLED: Share functionality requires deeplink
+  // const { shareSocialPost } = useShare();
 
   const [post, setPost] = useState<PostDetail | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -97,7 +99,8 @@ export default function PostDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
   const [imageIndex, setImageIndex] = useState(0);
-  const [showShareModal, setShowShareModal] = useState(false);
+  // TEMP DISABLED: Share functionality requires deeplink
+  // const [showShareModal, setShowShareModal] = useState(false);
 
   // Heart animation for double-tap on images
   const likeScale = useSharedValue(0);
@@ -237,11 +240,12 @@ export default function PostDetailScreen() {
     }
   };
 
-  const handleShare = async () => {
-    // Add haptic feedback
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setShowShareModal(true);
-  };
+  // TEMP DISABLED: Share functionality requires deeplink
+  // const handleShare = async () => {
+  //   // Add haptic feedback
+  //   await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  //   setShowShareModal(true);
+  // };
 
   const handleComment = async () => {
     if (!profile?.id) {
@@ -501,9 +505,10 @@ export default function PostDetailScreen() {
               <Text className="ml-1.5">{post.comments_count} comments</Text>
             </View>
 
-            <Pressable onPress={handleShare} className="flex-row items-center">
+            {/* TEMP DISABLED: Share functionality requires deeplink */}
+            {/* <Pressable onPress={handleShare} className="flex-row items-center">
               <Share2 size={22} color="#666" />
-            </Pressable>
+            </Pressable> */}
           </View>
 
           {/* Comments */}
@@ -584,8 +589,8 @@ export default function PostDetailScreen() {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Share Modal */}
-      {post && (
+      {/* TEMP DISABLED: Share Modal requires deeplink functionality */}
+      {/* {post && (
         <ShareModal
           visible={showShareModal}
           onClose={() => setShowShareModal(false)}
@@ -600,7 +605,7 @@ export default function PostDetailScreen() {
             subject: "Social Post - Plate",
           }}
         />
-      )}
+      )} */}
     </SafeAreaView>
   );
 }

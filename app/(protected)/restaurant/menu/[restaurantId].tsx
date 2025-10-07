@@ -35,8 +35,9 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { useMenu } from "@/hooks/useMenu";
 import { MenuItem, MenuCategory, DIETARY_TAGS } from "@/types/menu";
 import { MenuScreenSkeleton } from "@/components/skeletons/MenuScreenSkeleton";
-import { useShare } from "@/hooks/useShare";
-import { ShareModal } from "@/components/ui/share-modal";
+// TEMP DISABLED: Share functionality requires deeplink
+// import { useShare } from "@/hooks/useShare";
+// import { ShareModal } from "@/components/ui/share-modal";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -50,9 +51,11 @@ const DIETARY_ICONS: Record<string, any> = {
 
 export default function MenuScreen() {
   const [isMounted, setIsMounted] = useState(false);
-  const [showShareModal, setShowShareModal] = useState(false);
+  // TEMP DISABLED: Share functionality requires deeplink
+  // const [showShareModal, setShowShareModal] = useState(false);
 
-  const { shareRestaurantMenu } = useShare();
+  // TEMP DISABLED: Share functionality requires deeplink
+  // const { shareRestaurantMenu } = useShare();
 
   useEffect(() => {
     setIsMounted(true);
@@ -245,12 +248,13 @@ export default function MenuScreen() {
             />
           </View>
           {renderFilterButton()}
-          <Pressable
+          {/* TEMP DISABLED: Share functionality requires deeplink */}
+          {/* <Pressable
             onPress={() => setShowShareModal(true)}
             className="bg-primary/10 p-2 rounded-lg flex-row items-center"
           >
             <Share2 size={20} className="text-primary mr-1" />
-          </Pressable>
+          </Pressable> */}
         </View>
       </View>
 
@@ -318,8 +322,8 @@ export default function MenuScreen() {
         />
       )}
 
-      {/* Share Modal */}
-      <ShareModal
+      {/* TEMP DISABLED: Share Modal requires deeplink functionality */}
+      {/* <ShareModal
         visible={showShareModal}
         onClose={() => setShowShareModal(false)}
         title="Share Menu"
@@ -341,7 +345,7 @@ export default function MenuScreen() {
             },
           },
         ]}
-      />
+      /> */}
     </SafeAreaView>
   );
 }

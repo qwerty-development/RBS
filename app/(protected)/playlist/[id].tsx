@@ -34,17 +34,20 @@ import { usePlaylistSharing } from "@/hooks/usePlaylistSharing";
 import { RestaurantSearchCard } from "@/components/search/RestaurantSearchCard";
 import { PlaylistDetailsSkeleton } from "@/components/skeletons/PlaylistDetailsSkeleton";
 import { CreatePlaylistModal } from "@/components/playlists/CreatePlaylistModal";
-import { useShare } from "@/hooks/useShare";
-import { ShareModal } from "@/components/ui/share-modal";
+// TEMP DISABLED: Share functionality requires deeplink
+// import { useShare } from "@/hooks/useShare";
+// import { ShareModal } from "@/components/ui/share-modal";
 
 type PlaylistParams = {
   id: string;
 };
 
 export default function PlaylistDetailScreen() {
-  const [showShareModal, setShowShareModal] = useState(false);
+  // TEMP DISABLED: Share functionality requires deeplink
+  // const [showShareModal, setShowShareModal] = useState(false);
 
-  const { sharePlaylistJoin: sharePlaylistJoinWithDeepLink } = useShare();
+  // TEMP DISABLED: Share functionality requires deeplink
+  // const { sharePlaylistJoin: sharePlaylistJoinWithDeepLink } = useShare();
 
   const router = useRouter();
   const { colorScheme } = useColorScheme();
@@ -193,10 +196,11 @@ export default function PlaylistDetailScreen() {
           text: "Edit",
           onPress: () => setShowEditModal(true),
         },
-        {
-          text: "Share",
-          onPress: () => setShowShareModal(true),
-        },
+        // TEMP DISABLED: Share functionality requires deeplink
+        // {
+        //   text: "Share",
+        //   onPress: () => setShowShareModal(true),
+        // },
         {
           text: "Delete",
           style: "destructive",
@@ -603,8 +607,8 @@ export default function PlaylistDetailScreen() {
         </View>
       )}
 
-      {/* Share Modal */}
-      {playlist && (
+      {/* TEMP DISABLED: Share Modal requires deeplink functionality */}
+      {/* {playlist && (
         <ShareModal
           visible={showShareModal}
           onClose={() => setShowShareModal(false)}
@@ -635,7 +639,7 @@ export default function PlaylistDetailScreen() {
               : []
           }
         />
-      )}
+      )} */}
     </SafeAreaView>
   );
 }

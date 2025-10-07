@@ -19,7 +19,7 @@ import {
   Send,
   Timer,
   X,
-  Share2,
+  // Share2, // TEMP DISABLED: Share functionality requires deeplink
   Instagram,
   Facebook,
   Twitter,
@@ -61,8 +61,9 @@ import {
 } from "@/hooks/useHapticPress";
 
 import { DirectionsButton } from "@/components/restaurant/DirectionsButton";
-import { useShare } from "@/hooks/useShare";
-import { ShareModal } from "@/components/ui/share-modal";
+// TEMP DISABLED: Share functionality requires deeplink
+// import { useShare } from "@/hooks/useShare";
+// import { ShareModal } from "@/components/ui/share-modal";
 import RestaurantDetailsScreenSkeleton from "@/components/skeletons/RestaurantDetailsScreenSkeleton";
 import { Restaurant } from "@/types/restaurant";
 import { Database } from "@/types/supabase";
@@ -792,10 +793,12 @@ export default function RestaurantDetailsScreen() {
   const [showAddToPlaylist, setShowAddToPlaylist] = useState(false);
   const [showImageGallery, setShowImageGallery] = useState(false);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [showShareModal, setShowShareModal] = useState(false);
+  // TEMP DISABLED: Share functionality requires deeplink
+  // const [showShareModal, setShowShareModal] = useState(false);
 
   // Hooks
-  const { shareRestaurant, shareRestaurantMenu } = useShare();
+  // TEMP DISABLED: Share functionality requires deeplink
+  // const { shareRestaurant, shareRestaurantMenu } = useShare();
 
   // Guest Guard Hook
   const {
@@ -846,11 +849,12 @@ export default function RestaurantDetailsScreen() {
     });
   }, [runProtectedAction, handleQuickActionPress]);
 
-  const handleShare = useCallback(() => {
-    handleQuickActionPress(() => {
-      setShowShareModal(true);
-    });
-  }, [handleQuickActionPress]);
+  // TEMP DISABLED: Share functionality requires deeplink
+  // const handleShare = useCallback(() => {
+  //   handleQuickActionPress(() => {
+  //     setShowShareModal(true);
+  //   });
+  // }, [handleQuickActionPress]);
 
   const handleWriteReview = useCallback(() => {
     if (!restaurant) return;
@@ -1043,14 +1047,15 @@ export default function RestaurantDetailsScreen() {
 
       {/* Favorite, Playlist, and Share Buttons - Outside ScrollView for proper touch handling */}
       <View className="absolute top-20 right-4 flex-row gap-3 z-50">
-        <Pressable
+        {/* TEMP DISABLED: Share button requires deeplink functionality which is not yet fully implemented */}
+        {/* <Pressable
           onPress={handleShare}
           className="w-12 h-12 bg-black/60 rounded-full items-center justify-center shadow-lg backdrop-blur-sm"
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           style={{ elevation: 10, zIndex: 50 }}
         >
           <Share2 size={20} color="white" />
-        </Pressable>
+        </Pressable> */}
         <Pressable
           onPress={handleToggleFavorite}
           className="w-12 h-12 bg-black/60 rounded-full items-center justify-center shadow-lg backdrop-blur-sm"
@@ -1225,8 +1230,8 @@ export default function RestaurantDetailsScreen() {
         onClose={() => setShowImageGallery(false)}
       />
 
-      {/* Share Modal */}
-      {restaurant && (
+      {/* TEMP DISABLED: Share Modal requires deeplink functionality which is not yet fully implemented */}
+      {/* {restaurant && (
         <ShareModal
           visible={showShareModal}
           onClose={() => setShowShareModal(false)}
@@ -1250,7 +1255,7 @@ export default function RestaurantDetailsScreen() {
             },
           ]}
         />
-      )}
+      )} */}
     </View>
   );
 }
