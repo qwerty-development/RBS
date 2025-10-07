@@ -362,16 +362,7 @@ export default function ProfileEditScreen() {
                             style={{ opacity: 0.6 }}
                             {...field}
                           />
-                          <View className="flex-row items-center mt-2 px-3 py-2 bg-muted/50 rounded-lg">
-                            <Shield
-                              size={16}
-                              className="text-blue-600 dark:text-blue-400 mr-2"
-                            />
-                            <Text className="text-sm text-muted-foreground flex-1">
-                              Your email address is securely locked and cannot
-                              be modified
-                            </Text>
-                          </View>
+                       
                         </View>
                       )}
                     />
@@ -422,18 +413,7 @@ export default function ProfileEditScreen() {
                               }
                             }}
                           />
-                          {profile?.date_of_birth && (
-                            <View className="flex-row items-center mt-2 px-3 py-2 bg-muted/50 rounded-lg">
-                              <Shield
-                                size={16}
-                                className="text-green-600 dark:text-green-400 mr-2"
-                              />
-                              <Text className="text-sm text-muted-foreground flex-1">
-                                Your date of birth is securely locked and cannot
-                                be modified
-                              </Text>
-                            </View>
-                          )}
+                          
                         </View>
                       )}
                     />
@@ -451,9 +431,7 @@ export default function ProfileEditScreen() {
                   Member since{" "}
                   {new Date(profile?.created_at || "").toLocaleDateString()}
                 </Text>
-                <Text className="text-sm text-muted-foreground">
-                  User ID: {profile?.id?.slice(0, 8)}...
-                </Text>
+            
               </View>
             </ScrollView>
 
