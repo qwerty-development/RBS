@@ -9,6 +9,7 @@ import { useBookingsStore } from "@/stores";
 import { realtimeSubscriptionService } from "@/lib/RealtimeSubscriptionService";
 import type { Database } from "@/types/supabase";
 import type { WaitingStatus, TableType } from "@/types/waitlist";
+import { notifyRestaurantWhatsAppCancelNonBlocking } from "@/lib/whatsapp-notification";
 
 // Enhanced booking type that includes invitation info
 interface EnhancedBooking {
@@ -839,6 +840,9 @@ export function useBookings() {
                   status: "cancelled_by_user",
                   updated_at: new Date().toISOString(),
                 });
+
+                // Send WhatsApp notification to restaurant about cancellation
+                notifyRestaurantWhatsAppCancelNonBlocking(bookingId);
 
                 Alert.alert("Success", "Your booking has been cancelled");
               } catch (error) {

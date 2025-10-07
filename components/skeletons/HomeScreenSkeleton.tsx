@@ -66,7 +66,7 @@ const HomeScreenSkeleton = () => {
 
         <View className="mb-6">
           <SectionHeader
-            title="New to the Platform"
+            title="New to the App"
             subtitle="Recently added restaurants"
             actionLabel="Explore"
             onAction={() => {}}

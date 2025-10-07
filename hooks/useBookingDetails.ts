@@ -9,6 +9,7 @@ import { useAuth } from "@/context/supabase-provider";
 import { useBookingsStore } from "@/stores";
 import { Database } from "@/types/supabase";
 import { Booking } from "@/types/booking";
+import { notifyRestaurantWhatsAppCancelNonBlocking } from "@/lib/whatsapp-notification";
 
 type TableInfo = {
   id: string;
@@ -294,6 +295,9 @@ export const useBookingDetails = (bookingId: string) => {
 
             // Refresh local booking data
             await fetchBookingDetails();
+
+            // Send WhatsApp notification to restaurant about cancellation
+            notifyRestaurantWhatsAppCancelNonBlocking(booking.id);
 
             Alert.alert("Success", "Your booking has been cancelled");
           } catch (error) {
