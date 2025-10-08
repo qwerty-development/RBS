@@ -4,11 +4,9 @@ import { ScrollView, View, Dimensions, Pressable, Alert } from "react-native";
 import { useRouter } from "expo-router";
 
 import { Banner } from "./Banner";
-import { useAuth } from "@/context/supabase-provider";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import { useOffers, EnrichedOffer } from "@/hooks/useOffers";
 import { GuestPromptModal } from "@/components/guest/GuestPromptModal";
-import { Image } from "@/components/image";
 import { EnrichedBanner } from "@/types/banners";
 
 const { width: screenWidth } = Dimensions.get("window");
@@ -38,43 +36,18 @@ export function BannerCarousel({ banners }: BannerCarouselProps) {
     (banner) => banner.image_url && banner.image_url.trim() !== "",
   );
 
-  // Build list with local welcome banner as the first item
   const bannerWidth = screenWidth - 32;
   const spacing = 8;
 
-  const localWelcomeBanner = (
-    <View key="welcome-local" style={{ marginRight: spacing }}>
-      <Image
-        source={require("@/assets/welcome.png")}
-        style={{ width: bannerWidth, height: 200, borderRadius: 12 }}
-        contentFit="cover"
-      />
-    </View>
-  );
-
-  const hasRemoteBanners = bannersWithImages.length > 0;
-
-  if (!hasRemoteBanners) {
-    // Still show the local banner alone
-    return (
-      <View className="mb-6">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          snapToInterval={bannerWidth + spacing}
-          contentContainerStyle={{ paddingHorizontal: 16 }}
-        >
-          {localWelcomeBanner}
-        </ScrollView>
-      </View>
-    );
+  // Don't render if no banners
+  if (bannersWithImages.length === 0) {
+    return null;
   }
 
   const handleScroll = (event: any) => {
     const contentOffset = event.nativeEvent.contentOffset.x;
     const index = Math.round(contentOffset / (bannerWidth + spacing));
-    // +1 because of the local banner at the beginning
-    setCurrentIndex(Math.max(0, Math.min(index, bannersWithImages.length)));
+    setCurrentIndex(Math.max(0, Math.min(index, bannersWithImages.length - 1)));
   };
 
   const handleDotPress = (index: number) => {
@@ -99,7 +72,7 @@ export function BannerCarousel({ banners }: BannerCarouselProps) {
               restaurantId: offer.restaurant_id,
               restaurantName: offer.restaurant.name,
               offerId: offer.id,
-              discountPercentage: offer.discount_percentage.toString(),
+              discountPercentage: (offer.discount_percentage || 0).toString(),
             },
           });
         } else {
@@ -182,10 +155,6 @@ export function BannerCarousel({ banners }: BannerCarouselProps) {
           onScroll={handleScroll}
           scrollEventThrottle={16}
         >
-          {/* Local welcome banner first */}
-        
-
-          {/* Then remote banners */}
           {bannersWithImages.map((banner, index) => (
             <View
               key={banner.id}
@@ -199,11 +168,10 @@ export function BannerCarousel({ banners }: BannerCarouselProps) {
           ))}
         </ScrollView>
 
-        {/* Pagination Dots */}
-        {bannersWithImages.length >= 1 && (
+        {/* Pagination Dots - only show if more than 1 banner */}
+        {bannersWithImages.length > 1 && (
           <View className="flex-row justify-center items-center mt-4 gap-2">
-            {/* +1 dot for the local banner */}
-            {[...Array(bannersWithImages.length + 1)].map((_, index) => (
+            {bannersWithImages.map((_, index) => (
               <Pressable
                 key={index}
                 onPress={() => handleDotPress(index)}

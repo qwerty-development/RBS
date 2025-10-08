@@ -93,7 +93,7 @@ export default function HomeScreen() {
 
         if (currentIsFavorite) {
           // Remove from favorites
-          const { error, data } = await supabase
+          const { error } = await supabase
             .from("favorites")
             .delete()
             .eq("user_id", profile.id)
@@ -109,7 +109,7 @@ export default function HomeScreen() {
           removeFromFavorites(restaurantId);
         } else {
           // Add to favorites
-          const { error, data } = await supabase
+          const { error } = await supabase
             .from("favorites")
             .insert({
               user_id: profile.id,
