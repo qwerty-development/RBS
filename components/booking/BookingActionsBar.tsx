@@ -74,7 +74,7 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
   onEdit,
 }) => {
   const { colorScheme } = useColorScheme();
-  
+
   const callRestaurant = async () => {
     if (!booking.restaurant.phone_number) return;
 
@@ -183,7 +183,7 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
     }
 
     let message = "";
-    
+
     if (appliedOfferDetails && loyaltyActivity) {
       message = `🎉 You saved ${appliedOfferDetails.discount_percentage}% and earned ${loyaltyActivity.points_earned} points!`;
     } else if (appliedOfferDetails) {
@@ -284,7 +284,9 @@ export const BookingActionsBar: React.FC<BookingActionsBarProps> = ({
         >
           <View className="flex-row items-center gap-2">
             <Star size={16} color={colors[colorScheme].primaryForeground} />
-            <Text className="text-primary-foreground">Rate Your Experience</Text>
+            <Text className="text-primary-foreground">
+              Rate Your Experience
+            </Text>
           </View>
         </Button>
       ) : null}

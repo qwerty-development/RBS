@@ -316,7 +316,8 @@ export const BookingInvitationsSection: React.FC<
                     <Clock size={12} color="#6b7280" />
                     <Text className="text-xs text-muted-foreground">
                       {`Invited ${timeSince}`}
-                      {invitation.responded_at && invitation.status !== "pending" ? (
+                      {invitation.responded_at &&
+                      invitation.status !== "pending" ? (
                         <Text>{` • Responded ${new Date(invitation.responded_at).toLocaleDateString()}`}</Text>
                       ) : null}
                     </Text>
@@ -373,8 +374,12 @@ export const BookingInvitationsSection: React.FC<
           <Users size={16} color="#6b7280" />
           <Text className="text-sm text-muted-foreground">
             {`${invitations.length} ${invitations.length === 1 ? "person" : "people"} invited`}
-            {acceptedCount > 0 ? <Text>{` • ${acceptedCount} confirmed`}</Text> : null}
-            {pendingCount > 0 ? <Text>{` • ${pendingCount} pending`}</Text> : null}
+            {acceptedCount > 0 ? (
+              <Text>{` • ${acceptedCount} confirmed`}</Text>
+            ) : null}
+            {pendingCount > 0 ? (
+              <Text>{` • ${pendingCount} pending`}</Text>
+            ) : null}
           </Text>
         </View>
       </View>

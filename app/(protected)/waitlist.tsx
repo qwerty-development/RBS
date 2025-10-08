@@ -129,6 +129,27 @@ export default function WaitlistScreen() {
     }
   };
 
+  /**
+   * Formats waitlist status for display
+   * Converts raw status to user-friendly text
+   */
+  const formatWaitlistStatus = (status: string): string => {
+    switch (status) {
+      case "active":
+        return "Active";
+      case "notified":
+        return "Notified";
+      case "booked":
+        return "Booked";
+      case "expired":
+        return "Expired";
+      case "cancelled":
+        return "Cancelled";
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+  };
+
   const handleLeaveWaitlist = (entry: any) => {
     Alert.alert(
       "Leave Waitlist?",
@@ -278,10 +299,10 @@ export default function WaitlistScreen() {
                       >
                         <StatusIcon size={14} color={statusColor} />
                         <Text
-                          className="ml-1 text-xs font-medium capitalize"
+                          className="ml-1 text-xs font-medium"
                           style={{ color: statusColor }}
                         >
-                          {entry.status}
+                          {formatWaitlistStatus(entry.status)}
                         </Text>
                       </View>
                     </View>

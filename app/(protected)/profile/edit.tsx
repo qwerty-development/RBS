@@ -362,7 +362,6 @@ export default function ProfileEditScreen() {
                             style={{ opacity: 0.6 }}
                             {...field}
                           />
-                       
                         </View>
                       )}
                     />
@@ -413,7 +412,6 @@ export default function ProfileEditScreen() {
                               }
                             }}
                           />
-                          
                         </View>
                       )}
                     />
@@ -431,7 +429,6 @@ export default function ProfileEditScreen() {
                   Member since{" "}
                   {new Date(profile?.created_at || "").toLocaleDateString()}
                 </Text>
-            
               </View>
             </ScrollView>
 

@@ -1,5 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ScrollView, View, Pressable, Alert, Share } from "react-native";
+import {
+  ScrollView,
+  View,
+  Pressable,
+  Alert,
+  Share,
+  LogBox,
+} from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
   Copy,
@@ -25,7 +32,6 @@ import { NavigationHeader } from "@/components/ui/navigation-header";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { supabase } from "@/config/supabase";
 import { colors } from "@/constants/colors";
-import { LogBox } from "react-native";
 
 // Import components - WITH FIXES APPLIED
 import {
@@ -46,6 +52,19 @@ import { BOOKING_STATUS_CONFIG } from "@/constants/bookingConstants";
 import BookingDetailsScreenSkeleton from "@/components/skeletons/BookingDetailsScreenSkeleton";
 // TEMP DISABLED: Share functionality requires deeplink
 // import { useShare } from "@/hooks/useShare";
+
+/**
+ * Formats table preference text for display
+ * Converts snake_case to Title Case (e.g., "window_seat" -> "Window Seat")
+ */
+const formatTablePreference = (preference: string): string => {
+  // Handle common table preference values
+  const formatted = preference
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+  return formatted;
+};
 
 LogBox.ignoreAllLogs();
 
@@ -80,7 +99,8 @@ const RestaurantLoyaltyStatus: React.FC<{
 
   const renderPrimaryMessage = () => {
     if (isPending) {
-      const pointsToDisplay = booking.expected_loyalty_points ?? rule.points_to_award;
+      const pointsToDisplay =
+        booking.expected_loyalty_points ?? rule.points_to_award;
       return (
         <Text className={primaryTextClass}>
           {`You'll earn ${pointsToDisplay} points from "${rule.rule_name}" if confirmed`}
@@ -122,9 +142,16 @@ const RestaurantLoyaltyStatus: React.FC<{
         }`}
       >
         <View className="flex-row items-center mb-2">
-          <Trophy size={20} color={isCancelled ? "#dc2626" : isPending ? "#f97316" : "#9333ea"} />
+          <Trophy
+            size={20}
+            color={isCancelled ? "#dc2626" : isPending ? "#f97316" : "#9333ea"}
+          />
           <Text className="font-semibold text-lg ml-2">
-            {isPending ? "Potential Loyalty Points" : isCancelled ? "Loyalty Points Status" : "Loyalty Points Earned"}
+            {isPending
+              ? "Potential Loyalty Points"
+              : isCancelled
+                ? "Loyalty Points Status"
+                : "Loyalty Points Earned"}
           </Text>
         </View>
 
@@ -144,7 +171,8 @@ const RestaurantLoyaltyStatus: React.FC<{
             <View className="flex-row items-start mt-2">
               <Timer size={14} color="#f97316" className="mt-0.5" />
               <Text className="text-xs text-orange-600 dark:text-orange-400 ml-2 flex-1">
-                Points will be automatically added when your booking is confirmed
+                Points will be automatically added when your booking is
+                confirmed
               </Text>
             </View>
           ) : null}
@@ -197,7 +225,8 @@ export default function BookingDetailsScreen() {
   }, [params]);
 
   // Restaurant loyalty state
-  const [restaurantLoyaltyRule, setRestaurantLoyaltyRule] = useState<LoyaltyRuleDetails | null>(null);
+  const [restaurantLoyaltyRule, setRestaurantLoyaltyRule] =
+    useState<LoyaltyRuleDetails | null>(null);
   const [wasLoyaltyRefunded, setWasLoyaltyRefunded] = useState<boolean>(false);
 
   // Declined explanation state
@@ -259,7 +288,10 @@ export default function BookingDetailsScreen() {
         }
 
         // Check if loyalty was refunded (for cancelled bookings)
-        if (booking.status === "cancelled_by_user" || booking.status === "declined_by_restaurant") {
+        if (
+          booking.status === "cancelled_by_user" ||
+          booking.status === "declined_by_restaurant"
+        ) {
           const { data: refundData } = await supabase
             .from("restaurant_loyalty_transactions")
             .select("*")
@@ -306,7 +338,8 @@ export default function BookingDetailsScreen() {
   const bookingDate = booking ? new Date(booking.booking_time) : new Date();
 
   // Check if pending booking has passed its time (should be treated as declined)
-  const isPendingAndPassed = booking?.status === "pending" && bookingDate < new Date();
+  const isPendingAndPassed =
+    booking?.status === "pending" && bookingDate < new Date();
   const isPending = booking?.status === "pending" && !isPendingAndPassed;
   const isDeclined = booking?.status === "declined_by_restaurant";
 
@@ -394,7 +427,10 @@ export default function BookingDetailsScreen() {
     if (!booking?.confirmation_code) return;
     await Clipboard.setStringAsync(booking.confirmation_code);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    Alert.alert("Copied!", `${isPending ? "Reference" : "Confirmation"} code ${booking.confirmation_code} copied to clipboard`);
+    Alert.alert(
+      "Copied!",
+      `${isPending ? "Reference" : "Confirmation"} code ${booking.confirmation_code} copied to clipboard`,
+    );
   };
 
   const shareAppliedOffer = async () => {
@@ -410,16 +446,32 @@ export default function BookingDetailsScreen() {
   };
 
   // Enhanced validation: Check for missing or invalid booking ID
-  if (isMounted && (!bookingId || bookingId === "" || bookingId === "undefined" || bookingId === "null")) {
+  if (
+    isMounted &&
+    (!bookingId ||
+      bookingId === "" ||
+      bookingId === "undefined" ||
+      bookingId === "null")
+  ) {
     return (
       <SafeAreaView className="flex-1 bg-background">
-        <NavigationHeader title="Booking Details" onBack={() => router.back()} showShare={false} />
+        <NavigationHeader
+          title="Booking Details"
+          onBack={() => router.back()}
+          showShare={false}
+        />
         <View className="flex-1 items-center justify-center px-4">
-          <Text className="text-xl font-bold text-center mb-2">Invalid Booking</Text>
-          <Text className="text-center text-muted-foreground mb-4">
-            No booking ID was provided. Please try accessing the booking from your bookings list.
+          <Text className="text-xl font-bold text-center mb-2">
+            Invalid Booking
           </Text>
-          <Button variant="outline" onPress={() => router.push("/(protected)/(tabs)/bookings")}>
+          <Text className="text-center text-muted-foreground mb-4">
+            No booking ID was provided. Please try accessing the booking from
+            your bookings list.
+          </Text>
+          <Button
+            variant="outline"
+            onPress={() => router.push("/(protected)/(tabs)/bookings")}
+          >
             <Text>Go to Bookings</Text>
           </Button>
         </View>
@@ -435,9 +487,15 @@ export default function BookingDetailsScreen() {
   if (!booking) {
     return (
       <SafeAreaView className="flex-1 bg-background">
-        <NavigationHeader title="Booking Details" onBack={() => router.back()} showShare={false} />
+        <NavigationHeader
+          title="Booking Details"
+          onBack={() => router.back()}
+          showShare={false}
+        />
         <View className="flex-1 items-center justify-center px-4">
-          <Text className="text-xl font-bold text-center mb-2">Booking not found</Text>
+          <Text className="text-xl font-bold text-center mb-2">
+            Booking not found
+          </Text>
           <Text className="text-center text-muted-foreground mb-4">
             The booking you're looking for doesn't exist or has been removed.
           </Text>
@@ -453,11 +511,16 @@ export default function BookingDetailsScreen() {
   if (!booking.restaurant) {
     return (
       <SafeAreaView className="flex-1 bg-background">
-        <NavigationHeader title="Booking Details" onBack={() => router.back()} showShare={false} />
+        <NavigationHeader
+          title="Booking Details"
+          onBack={() => router.back()}
+          showShare={false}
+        />
         <View className="flex-1 items-center justify-center px-4">
           <Text className="text-xl font-bold text-center mb-2">Data Error</Text>
           <Text className="text-center text-muted-foreground mb-4">
-            Restaurant information is missing for this booking. Please try again or contact support.
+            Restaurant information is missing for this booking. Please try again
+            or contact support.
           </Text>
           <Button variant="outline" onPress={() => router.back()}>
             <Text>Go Back</Text>
@@ -468,15 +531,24 @@ export default function BookingDetailsScreen() {
   }
 
   // Use declined status for pending bookings that have passed their time
-  const effectiveStatus = isPendingAndPassed ? "declined_by_restaurant" : booking.status;
-  const statusConfig = BOOKING_STATUS_CONFIG[effectiveStatus as keyof typeof BOOKING_STATUS_CONFIG] || BOOKING_STATUS_CONFIG.pending;
+  const effectiveStatus = isPendingAndPassed
+    ? "declined_by_restaurant"
+    : booking.status;
+  const statusConfig =
+    BOOKING_STATUS_CONFIG[
+      effectiveStatus as keyof typeof BOOKING_STATUS_CONFIG
+    ] || BOOKING_STATUS_CONFIG.pending;
   const finalStatusConfig = statusConfig || BOOKING_STATUS_CONFIG.pending;
   const StatusIcon = finalStatusConfig.icon;
 
   return (
     <SafeAreaView className="flex-1 bg-background" edges={["top"]}>
       {/* Header - TEMP DISABLED: Share functionality requires deeplink */}
-      <NavigationHeader title="Booking Details" onBack={() => router.back()} showShare={false} />
+      <NavigationHeader
+        title="Booking Details"
+        onBack={() => router.back()}
+        showShare={false}
+      />
 
       <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
         {/* Restaurant Header - USING FIXED COMPONENT */}
@@ -495,21 +567,34 @@ export default function BookingDetailsScreen() {
 
         {/* Status Section */}
         <View className="px-4 py-4 border-b border-border">
-          <View className="p-4 rounded-lg" style={{ backgroundColor: finalStatusConfig.bgColor }}>
+          <View
+            className="p-4 rounded-lg"
+            style={{ backgroundColor: finalStatusConfig.bgColor }}
+          >
             <View className="flex-row items-center justify-between mb-2">
               <View className="flex-row items-center gap-3">
                 <StatusIcon size={24} color={finalStatusConfig.color} />
-                <Text className="font-bold text-lg" style={{ color: finalStatusConfig.color }}>
+                <Text
+                  className="font-bold text-lg"
+                  style={{ color: finalStatusConfig.color }}
+                >
                   {finalStatusConfig.label}
                 </Text>
               </View>
               {isDeclined ? (
-                <Pressable onPress={() => setShowDeclinedExplanation(!showDeclinedExplanation)}>
+                <Pressable
+                  onPress={() =>
+                    setShowDeclinedExplanation(!showDeclinedExplanation)
+                  }
+                >
                   <Info size={16} color={finalStatusConfig.color} />
                 </Pressable>
               ) : null}
             </View>
-            <Text className="text-sm" style={{ color: finalStatusConfig.color }}>
+            <Text
+              className="text-sm"
+              style={{ color: finalStatusConfig.color }}
+            >
               {finalStatusConfig.description}
             </Text>
           </View>
@@ -524,7 +609,8 @@ export default function BookingDetailsScreen() {
                 </Text>
               </View>
               <Text className="text-sm text-orange-700 dark:text-orange-300">
-                The restaurant typically responds within a couple of minutes. We'll notify you immediately when they confirm.
+                The restaurant typically responds within a couple of minutes.
+                We'll notify you immediately when they confirm.
               </Text>
               <View className="flex-row items-center gap-2 mt-3">
                 <Bell size={16} color={themeColors.primary} />
@@ -540,7 +626,8 @@ export default function BookingDetailsScreen() {
             <View className="mt-3 bg-red-50 dark:bg-red-900/20 rounded-lg p-4 border border-red-200 dark:border-red-800">
               {isWaitlistOrigin ? (
                 <Text className="text-sm text-red-700 dark:text-red-300">
-                  You were waitlisted but the booking has expired. The restaurant couldn't accommodate your request at this time.
+                  You were waitlisted but the booking has expired. The
+                  restaurant couldn't accommodate your request at this time.
                 </Text>
               ) : booking.decline_note && booking.decline_note.trim() ? (
                 <View>
@@ -553,7 +640,8 @@ export default function BookingDetailsScreen() {
                 </View>
               ) : (
                 <Text className="text-sm text-red-700 dark:text-red-300">
-                  The restaurant couldn't accommodate your request at this time. This could be due to full capacity or special events.
+                  The restaurant couldn't accommodate your request at this time.
+                  This could be due to full capacity or special events.
                 </Text>
               )}
             </View>
@@ -561,12 +649,18 @@ export default function BookingDetailsScreen() {
         </View>
 
         {/* Restaurant Loyalty Status */}
-        <RestaurantLoyaltyStatus booking={booking} rule={restaurantLoyaltyRule} wasRefunded={wasLoyaltyRefunded} />
+        <RestaurantLoyaltyStatus
+          booking={booking}
+          rule={restaurantLoyaltyRule}
+          wasRefunded={wasLoyaltyRefunded}
+        />
 
         {/* Rewards Section - Only show for confirmed bookings with rewards */}
         {booking.status === "confirmed" && appliedOfferDetails ? (
           <View className="px-4 py-4 border-b border-border">
-            <Text className="text-lg font-bold mb-4 text-foreground">Your Rewards</Text>
+            <Text className="text-lg font-bold mb-4 text-foreground">
+              Your Rewards
+            </Text>
             {/* Applied Offer Card */}
             <AppliedOfferCard
               offerDetails={appliedOfferDetails}
@@ -579,7 +673,9 @@ export default function BookingDetailsScreen() {
 
         {/* Booking Information */}
         <View className="px-4 py-4">
-          <Text className="text-lg font-bold mb-4 text-foreground">Booking Information</Text>
+          <Text className="text-lg font-bold mb-4 text-foreground">
+            Booking Information
+          </Text>
 
           {/* Main Booking Details Card */}
           <View className="bg-primary/5 rounded-lg p-3 mb-3 border border-primary/10">
@@ -590,12 +686,27 @@ export default function BookingDetailsScreen() {
                   <Calendar size={18} color={themeColors.primary} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground mb-1">DATE & TIME</Text>
+                  <Text className="text-xs text-muted-foreground mb-1">
+                    DATE & TIME
+                  </Text>
                   <Text className="font-semibold text-base text-primary dark:text-white">
-                    {isToday ? "Today" : isTomorrow ? "Tomorrow" : bookingDate.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
-                    {!isToday && !isTomorrow ? `, ${bookingDate.getFullYear()}` : ""}
+                    {isToday
+                      ? "Today"
+                      : isTomorrow
+                        ? "Tomorrow"
+                        : bookingDate.toLocaleDateString("en-US", {
+                            weekday: "long",
+                            month: "long",
+                            day: "numeric",
+                          })}
+                    {!isToday && !isTomorrow
+                      ? `, ${bookingDate.getFullYear()}`
+                      : ""}
                     {" at "}
-                    {bookingDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    {bookingDate.toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
                   </Text>
                 </View>
               </View>
@@ -606,7 +717,9 @@ export default function BookingDetailsScreen() {
                   <Users size={18} color={themeColors.primary} />
                 </View>
                 <View>
-                  <Text className="text-xs text-muted-foreground mb-1">GUESTS</Text>
+                  <Text className="text-xs text-muted-foreground mb-1">
+                    GUESTS
+                  </Text>
                   <Text className="font-medium text-foreground">
                     {`${booking.party_size} ${booking.party_size === 1 ? "Guest" : "Guests"}`}
                   </Text>
@@ -614,13 +727,16 @@ export default function BookingDetailsScreen() {
               </View>
 
               {/* Expected Loyalty Points */}
-              {booking.expected_loyalty_points && booking.expected_loyalty_points > 0 ? (
+              {booking.expected_loyalty_points &&
+              booking.expected_loyalty_points > 0 ? (
                 <View className="flex-row items-center gap-3 pt-3">
                   <View className="bg-primary/10 rounded-full p-2">
                     <Sparkles size={18} color={themeColors.primary} />
                   </View>
                   <View>
-                    <Text className="text-xs text-muted-foreground mb-1">LOYALTY POINTS</Text>
+                    <Text className="text-xs text-muted-foreground mb-1">
+                      LOYALTY POINTS
+                    </Text>
                     <Text className="font-medium text-primary dark:text-white">
                       {`+${booking.expected_loyalty_points} points`}
                     </Text>
@@ -630,15 +746,20 @@ export default function BookingDetailsScreen() {
             </View>
 
             {/* Table Preferences */}
-            {booking.table_preferences && booking.table_preferences.length > 0 ? (
+            {booking.table_preferences &&
+            booking.table_preferences.length > 0 ? (
               <View className="flex-row items-start gap-3 mb-3 pb-3 border-b border-border">
                 <View className="bg-primary/10 rounded-full p-2 mt-0.5">
                   <TableIcon size={18} color={themeColors.primary} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground mb-1">TABLE PREFERENCE</Text>
+                  <Text className="text-xs text-muted-foreground mb-1">
+                    TABLE PREFERENCE
+                  </Text>
                   <Text className="font-medium text-foreground">
-                    {booking.table_preferences.join(", ")}
+                    {booking.table_preferences
+                      .map(formatTablePreference)
+                      .join(", ")}
                   </Text>
                 </View>
               </View>
@@ -651,7 +772,9 @@ export default function BookingDetailsScreen() {
                   <MapPin size={18} color={themeColors.primary} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground mb-1">PREFERRED SECTION</Text>
+                  <Text className="text-xs text-muted-foreground mb-1">
+                    PREFERRED SECTION
+                  </Text>
                   <Text className="font-medium text-foreground capitalize">
                     {booking.preferred_section}
                   </Text>
@@ -666,7 +789,9 @@ export default function BookingDetailsScreen() {
                   <Gift size={18} color={themeColors.primary} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-xs text-muted-foreground mb-1">SPECIAL OFFER</Text>
+                  <Text className="text-xs text-muted-foreground mb-1">
+                    SPECIAL OFFER
+                  </Text>
                   <Text className="font-medium text-foreground">
                     {appliedOfferDetails.special_offer_title}
                   </Text>
@@ -684,11 +809,15 @@ export default function BookingDetailsScreen() {
               bookingId={booking.id}
               currentValues={bookingFields}
               onUpdate={handleBookingFieldsUpdate}
-              canEdit={booking.status === "pending" || booking.status === "confirmed"}
+              canEdit={
+                booking.status === "pending" || booking.status === "confirmed"
+              }
             />
 
             {/* Guest Information Section */}
-            {(booking.guest_name || booking.guest_email || booking.guest_phone) ? (
+            {booking.guest_name ||
+            booking.guest_email ||
+            booking.guest_phone ? (
               <View className="border-t border-primary/20 pt-3 mb-3">
                 <Text className="text-sm font-medium text-muted-foreground mb-2">
                   Guest Information
@@ -735,11 +864,18 @@ export default function BookingDetailsScreen() {
         </View>
 
         {/* Booking Invitations Section - USING FIXED COMPONENT */}
-        <BookingInvitationsSection bookingId={booking.id} bookingUserId={booking.user_id} />
+        <BookingInvitationsSection
+          bookingId={booking.id}
+          bookingUserId={booking.user_id}
+        />
 
         {/* Table Assignment - Only show for confirmed bookings - USING FIXED COMPONENT */}
         {booking.status === "confirmed" ? (
-          <BookingTableInfo tables={assignedTables} partySize={booking.party_size} loading={loading} />
+          <BookingTableInfo
+            tables={assignedTables}
+            partySize={booking.party_size}
+            loading={loading}
+          />
         ) : null}
 
         {/* Contact Section */}

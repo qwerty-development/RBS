@@ -36,7 +36,7 @@ export const BookingTableInfo: React.FC<BookingTableInfoProps> = ({
       </View>
     );
   }
-  
+
   if (tables.length === 0) {
     return (
       <View className="p-4 border-b border-border">

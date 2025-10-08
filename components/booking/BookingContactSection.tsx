@@ -94,23 +94,23 @@ export const BookingContactSection: React.FC<BookingContactSectionProps> = ({
   // Build info message parts safely
   const buildInfoMessage = () => {
     const parts = [];
-    
+
     if (appliedOfferDetails) {
       parts.push("discount offer");
     }
-    
+
     if (loyaltyActivity) {
       parts.push("loyalty status");
     }
-    
+
     if (parts.length === 0) {
       return "Your booking details will be mentioned when contacting the restaurant.";
     }
-    
+
     if (parts.length === 1) {
       return `Your ${parts[0]} will be mentioned when contacting the restaurant.`;
     }
-    
+
     return `Your ${parts.join(" and ")} will be mentioned when contacting the restaurant.`;
   };
 
@@ -119,7 +119,7 @@ export const BookingContactSection: React.FC<BookingContactSectionProps> = ({
       <H3 className="mb-3">
         <Text>Contact Restaurant</Text>
       </H3>
-      
+
       <View className="gap-2">
         {restaurant.whatsapp_number ? (
           <Button
@@ -135,7 +135,7 @@ export const BookingContactSection: React.FC<BookingContactSectionProps> = ({
         ) : null}
       </View>
 
-      {(appliedOfferDetails || loyaltyActivity) ? (
+      {appliedOfferDetails || loyaltyActivity ? (
         <View className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
           <View className="flex-row items-center gap-2">
             <Info size={16} color="#3b82f6" />

@@ -129,8 +129,6 @@ export default function HelpScreen() {
             </Muted>
           </View>
 
-     
-
           {/* Modify Booking */}
           <View className="bg-card mb-3 rounded-xl p-4">
             <Text className="font-semibold mb-2">

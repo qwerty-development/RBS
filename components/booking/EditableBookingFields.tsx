@@ -33,6 +33,17 @@ interface EditableBookingFieldsProps {
   canEdit: boolean;
 }
 
+/**
+ * Formats dietary restriction text for display
+ * Converts snake_case to Title Case (e.g., "lactose_free" -> "Lactose Free")
+ */
+const formatDietaryRestriction = (restriction: string): string => {
+  return restriction
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+};
+
 export const EditableBookingFields: React.FC<EditableBookingFieldsProps> = ({
   bookingId,
   currentValues,
@@ -232,7 +243,9 @@ export const EditableBookingFields: React.FC<EditableBookingFieldsProps> = ({
                   </Text>
                 </View>
                 <Text className="text-foreground text-sm ml-8 mb-3">
-                  {currentValues.dietary_notes.join(", ")}
+                  {currentValues.dietary_notes
+                    .map(formatDietaryRestriction)
+                    .join(", ")}
                 </Text>
                 <View className="h-0.5 bg-primary/20" />
               </View>

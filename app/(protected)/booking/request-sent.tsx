@@ -85,6 +85,28 @@ interface RequestSentParams {
   confirmationCode: string;
 }
 
+/**
+ * Formats dietary restriction text for display
+ * Converts snake_case to Title Case (e.g., "lactose_free" -> "Lactose Free")
+ */
+const formatDietaryRestriction = (restriction: string): string => {
+  return restriction
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+};
+
+/**
+ * Formats table preference text for display
+ * Converts snake_case to Title Case (e.g., "window_seat" -> "Window Seat")
+ */
+const formatTablePreference = (preference: string): string => {
+  return preference
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+};
+
 type Booking = {
   id: string;
   expected_loyalty_points?: number;
@@ -401,9 +423,13 @@ export default function RequestSentScreen() {
                   Table Preferences
                 </Text>
               </View>
-              {booking && booking.table_preferences ? (
+              {booking &&
+              booking.table_preferences &&
+              booking.table_preferences.length > 0 ? (
                 <Text className="text-sm text-muted-foreground">
-                  {booking.table_preferences}
+                  {booking.table_preferences
+                    .map(formatTablePreference)
+                    .join(", ")}
                 </Text>
               ) : (
                 <Text className="text-sm text-muted-foreground italic">
@@ -428,17 +454,23 @@ export default function RequestSentScreen() {
             )}
 
             {/* Dietary Notes */}
-            {booking && booking.dietary_notes && (
-              <View className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-border mb-4">
-                <View className="flex-row items-center gap-2 mb-3">
-                  <AlertTriangle size={18} color="#f59e0b" />
-                  <Text className="font-semibold text-base">Dietary Notes</Text>
+            {booking &&
+              booking.dietary_notes &&
+              booking.dietary_notes.length > 0 && (
+                <View className="bg-white dark:bg-gray-800 p-4 rounded-lg border border-border mb-4">
+                  <View className="flex-row items-center gap-2 mb-3">
+                    <AlertTriangle size={18} color="#f59e0b" />
+                    <Text className="font-semibold text-base">
+                      Dietary Notes
+                    </Text>
+                  </View>
+                  <Text className="text-sm text-muted-foreground">
+                    {booking.dietary_notes
+                      .map(formatDietaryRestriction)
+                      .join(", ")}
+                  </Text>
                 </View>
-                <Text className="text-sm text-muted-foreground">
-                  {booking.dietary_notes}
-                </Text>
-              </View>
-            )}
+              )}
           </View>
 
           <View className="mb-6">

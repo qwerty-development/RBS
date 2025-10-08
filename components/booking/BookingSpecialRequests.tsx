@@ -14,6 +14,28 @@ interface BookingSpecialRequestsProps {
   };
 }
 
+/**
+ * Formats dietary restriction text for display
+ * Converts snake_case to Title Case (e.g., "lactose_free" -> "Lactose Free")
+ */
+const formatDietaryRestriction = (restriction: string): string => {
+  return restriction
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+};
+
+/**
+ * Formats table preference text for display
+ * Converts snake_case to Title Case (e.g., "window_seat" -> "Window Seat")
+ */
+const formatTablePreference = (preference: string): string => {
+  return preference
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+};
+
 export const BookingSpecialRequests: React.FC<BookingSpecialRequestsProps> = ({
   booking,
 }) => {
@@ -50,7 +72,7 @@ export const BookingSpecialRequests: React.FC<BookingSpecialRequestsProps> = ({
               Dietary Requirements:
             </Text>
             <Text className="text-muted-foreground">
-              {booking.dietary_notes.join(", ")}
+              {booking.dietary_notes.map(formatDietaryRestriction).join(", ")}
             </Text>
           </View>
         )}
@@ -62,7 +84,7 @@ export const BookingSpecialRequests: React.FC<BookingSpecialRequestsProps> = ({
               Table Preferences:
             </Text>
             <Text className="text-muted-foreground">
-              {booking.table_preferences.join(", ")}
+              {booking.table_preferences.map(formatTablePreference).join(", ")}
             </Text>
           </View>
         )}
