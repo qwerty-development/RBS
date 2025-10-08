@@ -237,6 +237,7 @@ export class LocationService {
           latitude:ST_Y(location::geometry)
         `,
         )
+        .eq("status", "active")
         .order("featured", { ascending: false })
         .order("average_rating", { ascending: false });
 
@@ -351,6 +352,7 @@ export class LocationService {
       const { data: restaurants, error } = await supabase
         .from("restaurants")
         .select("*")
+        .eq("status", "active")
         .order("featured", { ascending: false })
         .order("average_rating", { ascending: false });
 
