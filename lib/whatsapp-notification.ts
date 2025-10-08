@@ -174,7 +174,10 @@ export async function notifyRestaurantWhatsAppCancel(
 
     return result;
   } catch (error) {
-    console.error("Error calling WhatsApp cancel notification function:", error);
+    console.error(
+      "Error calling WhatsApp cancel notification function:",
+      error,
+    );
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Unknown error",
@@ -202,7 +205,10 @@ export async function notifyRestaurantWhatsAppCancelNonBlocking(
     } else if (result.ignored) {
       console.log("WhatsApp cancel notification ignored:", result.ignored);
     } else {
-      console.log("WhatsApp cancel notification sent successfully:", result.sid);
+      console.log(
+        "WhatsApp cancel notification sent successfully:",
+        result.sid,
+      );
     }
   } catch (error) {
     console.error(

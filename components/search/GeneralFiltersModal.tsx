@@ -21,7 +21,7 @@ const CUISINE_TYPES = [
   "Seafood",
   "Steakhouse",
   "Vegetarian",
-  "Asian"
+  "Asian",
 ];
 
 const FEATURES = [

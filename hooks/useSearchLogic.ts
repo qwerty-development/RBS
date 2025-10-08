@@ -322,7 +322,10 @@ export const useSearchLogic = (): UseSearchReturn => {
         } else {
           // If no location, still fetch restaurants but without distance
 
-          let supabaseQuery = supabase.from("restaurants").select("*").eq("status", "active");
+          let supabaseQuery = supabase
+            .from("restaurants")
+            .select("*")
+            .eq("status", "active");
 
           // We'll apply search after fetching all data for better fuzzy matching
           // Database-level search is removed in favor of client-side advanced search

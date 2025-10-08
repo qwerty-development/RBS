@@ -168,6 +168,66 @@ export type Database = {
           },
         ];
       };
+      banners: {
+        Row: {
+          id: string;
+          title: string;
+          description: string | null;
+          image_url: string | null;
+          is_active: boolean;
+          display_order: number | null;
+          valid_from: string | null;
+          valid_until: string | null;
+          created_at: string | null;
+          updated_at: string | null;
+          special_offer_id: string | null;
+          restaurant_id: string | null;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description?: string | null;
+          image_url?: string | null;
+          is_active?: boolean;
+          display_order?: number | null;
+          valid_from?: string | null;
+          valid_until?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+          special_offer_id?: string | null;
+          restaurant_id?: string | null;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          description?: string | null;
+          image_url?: string | null;
+          is_active?: boolean;
+          display_order?: number | null;
+          valid_from?: string | null;
+          valid_until?: string | null;
+          created_at?: string | null;
+          updated_at?: string | null;
+          special_offer_id?: string | null;
+          restaurant_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "banners_restaurant_id_fkey";
+            columns: ["restaurant_id"];
+            isOneToOne: false;
+            referencedRelation: "restaurants";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "banners_special_offer_id_fkey";
+            columns: ["special_offer_id"];
+            isOneToOne: false;
+            referencedRelation: "special_offers";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       booking_invites: {
         Row: {
           booking_id: string;

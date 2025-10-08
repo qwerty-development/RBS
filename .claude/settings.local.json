@@ -30,7 +30,8 @@
       "Bash(node:*)",
       "Bash(npm start:*)",
       "Bash(ls:*)",
-      "Bash(cut:*)"
+      "Bash(cut:*)",
+      "mcp__supabase__generate_typescript_types"
     ],
     "deny": []
   },

@@ -17,13 +17,13 @@ import { CuisineCategory } from "@/components/home/CuisineCategory";
 import { SectionHeader } from "@/components/ui/section-header";
 import { LoyaltyWidget } from "@/components/home/LoyaltyWidget";
 import { HomeHeader } from "@/components/home/HomeHeader";
-import { SpecialOfferBannerCarousel } from "@/components/home/SpecialOfferBannerCarousel";
+import { BannerCarousel } from "@/components/home/BannerCarousel";
 import { Button } from "@/components/ui/button";
 import { getRefreshControlColor } from "@/lib/utils";
 import { supabase } from "@/config/supabase";
 
 import { useHomeScreenLogic } from "@/hooks/useHomeScreenLogic";
-import { useOffers } from "@/hooks/useOffers";
+import { useBanners } from "@/hooks/useBanners";
 import { useAuth } from "@/context/supabase-provider";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import { useRestaurantStore } from "@/stores/index";
@@ -160,7 +160,7 @@ export default function HomeScreen() {
     handleProfilePress,
   } = useHomeScreenLogic();
 
-  const { offers: specialOffers, loading: offersLoading } = useOffers();
+  const { banners, loading: bannersLoading } = useBanners();
 
   // --- Animation State ---
   const scrollY = useRef(new Animated.Value(0)).current;
@@ -195,7 +195,7 @@ export default function HomeScreen() {
   }, [fetchFavorites]);
 
   // --- Loading State ---
-  const isLoading = loading || offersLoading;
+  const isLoading = loading || bannersLoading;
 
   return (
     <View className="flex-1 bg-background">
@@ -281,7 +281,7 @@ export default function HomeScreen() {
             />
           )}
 
-          <SpecialOfferBannerCarousel offers={specialOffers} />
+          <BannerCarousel banners={banners} />
 
           {featuredRestaurants.length > 0 && (
             <View className="mb-6">
