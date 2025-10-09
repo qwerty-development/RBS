@@ -243,7 +243,8 @@ export default function FriendsScreen() {
       setSearchLoading(true);
       try {
         // Search users by name (partial match), email (partial match), or phone number (exact match, min 8 digits)
-        // Function now returns: id, full_name, avatar_url, is_friend, email, phone_number
+        // Phone search works with ANY country code (Lebanon, UAE, Egypt, Saudi, Jordan, etc.)
+        // Function returns: id, full_name, avatar_url, is_friend, email, phone_number
         const { data, error } = await supabase.rpc("search_users", {
           search_query: searchQuery,
         });
@@ -885,10 +886,10 @@ export default function FriendsScreen() {
                   <>
                     <Search size={48} color="#9ca3af" />
                     <Text className="text-muted-foreground mt-4 text-center">
-                      Search for users by name, email or full phone number
+                      Search for users by name, email or phone number
                     </Text>
                     <Muted className="text-xs mt-2 text-center px-6">
-                      Phone search requires full number (min 8 digits)
+                      Phone: Enter full number with or without country code (min 8 digits)
                     </Muted>
                   </>
                 )}
