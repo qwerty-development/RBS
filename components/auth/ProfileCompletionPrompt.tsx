@@ -495,11 +495,7 @@ export const ProfileCompletionPrompt: React.FC<
                   <IconComponent size={24} className="text-primary mr-3" />
                   <H2 className="flex-1">{fieldConfig.title}</H2>
                 </View>
-                {fieldConfig.canSkip && onSkip && (
-                  <Button variant="ghost" size="sm" onPress={handleSkip}>
-                    <X size={20} />
-                  </Button>
-                )}
+                
               </View>
 
               {/* Progress indicator */}
@@ -592,16 +588,7 @@ export const ProfileCompletionPrompt: React.FC<
 
               {/* Actions */}
               <View className="flex-row gap-3 mt-6">
-                {fieldConfig.canSkip && onSkip && (
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onPress={handleSkip}
-                    disabled={isSubmitting}
-                  >
-                    <Text>Skip for Now</Text>
-                  </Button>
-                )}
+                
                 <Button
                   className="flex-1"
                   onPress={form.handleSubmit(handleSubmit)}
