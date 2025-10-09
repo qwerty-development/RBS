@@ -75,8 +75,8 @@ interface SearchResult {
   full_name: string;
   avatar_url: string | null;
   is_friend: boolean;
-  email?: string; // Email may not be present in current API response
-  phone_number?: string; // Phone number may not be present in current API response
+  email?: string; // Returned by search_users RPC function
+  phone_number?: string; // Returned by search_users RPC function
   hasPendingRequest?: boolean;
   pendingRequest?: {
     id: string;
@@ -218,8 +218,15 @@ export default function FriendsScreen() {
       setSearchResults(filteredFriends);
     } else if (activeTab === "friends" && query.length < 2) {
       setSearchResults([]);
+    } else if (activeTab === "discover") {
+      // For discover tab, clear old results while typing - wait for button press to search
+      setSearchResults([]);
     }
-    // For discover tab, don't search automatically - wait for button press
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    setSearchResults([]);
   };
 
   const executeSearch = async () => {
@@ -235,9 +242,9 @@ export default function FriendsScreen() {
     if (activeTab === "discover") {
       setSearchLoading(true);
       try {
-        // TODO: Update the search_users function in the database to also return email and phone_number fields
-        // Current function signature: search_users(search_query text) RETURNS TABLE(id uuid, full_name text, avatar_url text, is_friend boolean)
-        // Should be updated to: search_users(search_query text) RETURNS TABLE(id uuid, full_name text, avatar_url text, is_friend boolean, email text, phone_number text)
+        // Search users by name (partial match), email (partial match), or phone number (exact match, min 8 digits)
+        // Phone search works with ANY country code (Lebanon, UAE, Egypt, Saudi, Jordan, etc.)
+        // Function returns: id, full_name, avatar_url, is_friend, email, phone_number
         const { data, error } = await supabase.rpc("search_users", {
           search_query: searchQuery,
         });
@@ -804,6 +811,11 @@ export default function FriendsScreen() {
               className="flex-1 ml-2 text-base text-gray-900 dark:text-white"
               placeholderTextColor="#6b7280"
             />
+            {searchQuery.length > 0 && (
+              <Pressable onPress={clearSearch} className="ml-2 p-1">
+                <X size={18} color="#6b7280" />
+              </Pressable>
+            )}
             {activeTab === "discover" && (
               <Pressable
                 onPress={executeSearch}
@@ -874,8 +886,11 @@ export default function FriendsScreen() {
                   <>
                     <Search size={48} color="#9ca3af" />
                     <Text className="text-muted-foreground mt-4 text-center">
-                      Search for users by name, email or phone
+                      Search for users by name, email or phone number
                     </Text>
+                    <Muted className="text-xs mt-2 text-center px-6">
+                      Phone: Enter full number with or without country code (min 8 digits)
+                    </Muted>
                   </>
                 )}
                 {searchQuery && listData.length === 0 && (

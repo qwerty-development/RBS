@@ -395,7 +395,14 @@ function AuthContent({ children }: PropsWithChildren) {
             Alert.alert(
               "Check Your Email",
               "We've sent you a confirmation link. Please check your email and click the link to activate your account.",
-              [{ text: "OK" }],
+              [
+                {
+                  text: "OK",
+                  onPress: () => {
+                    router.replace("/sign-in");
+                  },
+                },
+              ],
             );
           } else if (authData.user && authData.session) {
             // Register device for the new user

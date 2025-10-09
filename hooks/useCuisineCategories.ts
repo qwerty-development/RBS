@@ -67,7 +67,12 @@ export function useCuisineCategories() {
         throw rpcError;
       }
 
-      console.log("📊 RPC returned:", data?.length, "items", JSON.stringify(data));
+      console.log(
+        "📊 RPC returned:",
+        data?.length,
+        "items",
+        JSON.stringify(data),
+      );
 
       // Map database results to category objects with images
       const mappedCategories: CuisineCategory[] = (data || [])
@@ -90,7 +95,11 @@ export function useCuisineCategories() {
         })
         .filter(Boolean) as CuisineCategory[];
 
-      console.log("✨ Mapped categories:", mappedCategories.length, "with images");
+      console.log(
+        "✨ Mapped categories:",
+        mappedCategories.length,
+        "with images",
+      );
 
       // Cache the results
       const cacheData: CachedData = {
