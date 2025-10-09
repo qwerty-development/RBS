@@ -80,8 +80,9 @@ export const GeneralFiltersModal = React.memo(
         minRating: 0,
         maxDistance: null,
       };
-      setTempFilters(defaultFilters);
-    }, []);
+      onApplyFilters(defaultFilters);
+      onClose();
+    }, [onApplyFilters, onClose]);
 
     const toggleCuisine = useCallback(
       (cuisine: string) => {
@@ -134,7 +135,7 @@ export const GeneralFiltersModal = React.memo(
           edges={["top"]}
         >
           {/* Header */}
-          <View className="bg-white dark:bg-gray-800 px-6 py-4 shadow-sm">
+          <View className="bg-white dark:bg-gray-800 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <View className="flex-row items-center justify-between">
               <H3 className="text-gray-900 dark:text-white">Filters</H3>
               <Pressable
@@ -152,7 +153,7 @@ export const GeneralFiltersModal = React.memo(
             contentContainerStyle={{ paddingVertical: 16 }}
           >
             {/* Sort By Section */}
-            <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 shadow-sm">
+            <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 border border-gray-200 dark:border-gray-700">
               <Text className="font-semibold text-lg text-gray-900 dark:text-white mb-4">
                 Sort By
               </Text>
@@ -215,7 +216,7 @@ export const GeneralFiltersModal = React.memo(
             </View>
 
             {/* Distance & Location */}
-            <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 shadow-sm">
+            <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 border border-gray-200 dark:border-gray-700">
               <DistanceFilter
                 selectedDistance={tempFilters.maxDistance}
                 onDistanceChange={(distance) =>
@@ -227,7 +228,7 @@ export const GeneralFiltersModal = React.memo(
             {/* Price & Rating Row */}
             <View className="flex-row gap-4 mb-4">
               {/* Price Range */}
-              <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm">
+              <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
                 <Text className="font-semibold text-gray-900 dark:text-white mb-3">
                   Price
                 </Text>
@@ -257,7 +258,7 @@ export const GeneralFiltersModal = React.memo(
               </View>
 
               {/* Minimum Rating */}
-              <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-5 shadow-sm">
+              <View className="flex-1 bg-white dark:bg-gray-800 rounded-xl p-5 border border-gray-200 dark:border-gray-700">
                 <Text className="font-semibold text-gray-900 dark:text-white mb-3">
                   Rating
                 </Text>
@@ -298,7 +299,7 @@ export const GeneralFiltersModal = React.memo(
             </View>
 
             {/* Cuisine Types */}
-            <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 shadow-sm">
+            <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 border border-gray-200 dark:border-gray-700">
               <Text className="font-semibold text-lg text-gray-900 dark:text-white mb-4">
                 Cuisine Types
               </Text>
@@ -328,7 +329,7 @@ export const GeneralFiltersModal = React.memo(
             </View>
 
             {/* Features & Amenities */}
-            <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 shadow-sm">
+            <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-4 border border-gray-200 dark:border-gray-700">
               <Text className="font-semibold text-lg text-gray-900 dark:text-white mb-4">
                 Features & Amenities
               </Text>
@@ -369,7 +370,7 @@ export const GeneralFiltersModal = React.memo(
             </View>
 
             {/* Booking Policy */}
-            <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-6 shadow-sm">
+            <View className="bg-white dark:bg-gray-800 rounded-xl p-5 mb-6 border border-gray-200 dark:border-gray-700">
               <Text className="font-semibold text-lg text-gray-900 dark:text-white mb-4">
                 Booking Type
               </Text>

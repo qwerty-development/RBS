@@ -91,7 +91,7 @@ export const DEFAULT_GENERAL_FILTERS: GeneralFilters = {
   priceRange: [1, 2, 3, 4],
   bookingPolicy: "all",
   minRating: 0,
-  maxDistance: 1000, // No distance limit by default
+  maxDistance: null, // No distance limit by default (Any distance)
 };
 
 // Map Configuration

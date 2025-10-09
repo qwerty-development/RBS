@@ -66,7 +66,7 @@ export const RestaurantMapView = React.memo(
             >
               {/* Custom marker with restaurant image */}
               <View className="items-center">
-                <View className="bg-white rounded-full p-1 shadow-lg">
+                <View className="bg-white rounded-full p-1 border-2 border-gray-200">
                   <Image
                     source={{ uri: restaurant.main_image_url }}
                     className="w-12 h-12 rounded-full"
@@ -93,7 +93,7 @@ export const RestaurantMapView = React.memo(
               </View>
 
               <Callout tooltip onPress={() => onRestaurantPress(restaurant.id)}>
-                <View className="bg-white p-3 rounded-lg shadow-lg w-48">
+                <View className="bg-white p-3 rounded-lg border border-gray-200 w-48">
                   <Text className="font-semibold text-black">
                     {restaurant.name}
                   </Text>
@@ -146,7 +146,7 @@ export const RestaurantMapView = React.memo(
           pinColor="blue"
         >
           <View className="items-center">
-            <View className="bg-blue-500 rounded-full p-2 shadow-lg">
+            <View className="bg-blue-500 rounded-full p-2 border-2 border-blue-600">
               <MapPin size={16} color="white" />
             </View>
           </View>
