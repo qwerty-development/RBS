@@ -150,10 +150,20 @@ export const SearchContent = ({
     );
   }
 
-  // List view with ScrollView for pull-to-refresh
+  // List view - OPTIMIZED with FlatList for better performance
   return (
-    <ScrollView
-      className="flex-1"
+    <FlatList
+      data={restaurants}
+      renderItem={({ item: restaurant }) => (
+        <RestaurantSearchCard
+          restaurant={restaurant}
+          isFavorite={favorites.has(restaurant.id)}
+          onPress={() => onRestaurantPress(restaurant.id)}
+          onToggleFavorite={() => onToggleFavorite(restaurant.id)}
+          onOpenDirections={() => onDirections(restaurant)}
+        />
+      )}
+      keyExtractor={(item) => item.id}
       showsVerticalScrollIndicator={false}
       keyboardShouldPersistTaps="handled"
       refreshControl={
@@ -164,23 +174,18 @@ export const SearchContent = ({
         />
       }
       onScroll={onScroll}
-      scrollEventThrottle={8}
+      scrollEventThrottle={16}
       contentContainerStyle={{
         paddingTop: 4,
         paddingHorizontal: 16,
         paddingBottom: 120,
       }}
-    >
-      {restaurants.map((restaurant) => (
-        <RestaurantSearchCard
-          key={restaurant.id}
-          restaurant={restaurant}
-          isFavorite={favorites.has(restaurant.id)}
-          onPress={() => onRestaurantPress(restaurant.id)}
-          onToggleFavorite={() => onToggleFavorite(restaurant.id)}
-          onOpenDirections={() => onDirections(restaurant)}
-        />
-      ))}
-    </ScrollView>
+      // Performance optimizations
+      maxToRenderPerBatch={10}
+      initialNumToRender={6}
+      windowSize={5}
+      removeClippedSubviews={true}
+      updateCellsBatchingPeriod={50}
+    />
   );
 };

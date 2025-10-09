@@ -17,14 +17,14 @@ interface NavigationHeaderProps {
   className?: string;
 }
 
-export function NavigationHeader({
+function NavigationHeaderComponent({
   title,
   onBack,
   onShare,
   showShare = false,
   className = "",
 }: NavigationHeaderProps) {
-  const colorScheme = useColorScheme();
+  const colorScheme = useColorScheme() ?? "light";
 
   return (
     <View
@@ -32,7 +32,10 @@ export function NavigationHeader({
     >
       {/* Back Button */}
       <Pressable onPress={onBack} className="p-1 -ml-1">
-        <ChevronLeft size={20} color={colors[colorScheme].foreground} />
+        <ChevronLeft
+          size={20}
+          color={colors[colorScheme]?.foreground ?? colors.light.foreground}
+        />
       </Pressable>
 
       {/* Title */}
@@ -43,7 +46,10 @@ export function NavigationHeader({
       {/* Share Button or Spacer */}
       {showShare ? (
         <Pressable onPress={onShare} className="p-1 -mr-1">
-          <Share2 size={20} color={colors[colorScheme].foreground} />
+          <Share2
+            size={20}
+            color={colors[colorScheme]?.foreground ?? colors.light.foreground}
+          />
         </Pressable>
       ) : (
         <View className="w-6" />
@@ -51,3 +57,6 @@ export function NavigationHeader({
     </View>
   );
 }
+
+// Memoize to prevent re-renders on navigation screens
+export const NavigationHeader = React.memo(NavigationHeaderComponent);

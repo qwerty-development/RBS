@@ -20,7 +20,7 @@ interface SpecialOfferCardProps {
   offer: EnrichedOffer;
 }
 
-export function SpecialOfferCard({ offer }: SpecialOfferCardProps) {
+function SpecialOfferCardComponent({ offer }: SpecialOfferCardProps) {
   // Helper functions
   const formatDate = (dateString: string) => {
     try {
@@ -163,3 +163,6 @@ export function SpecialOfferCard({ offer }: SpecialOfferCardProps) {
     </View>
   );
 }
+
+// Memoize to prevent re-renders in offer carousels
+export const SpecialOfferCard = React.memo(SpecialOfferCardComponent);

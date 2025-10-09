@@ -497,7 +497,8 @@ export default function BookingDetailsScreen() {
             Booking not found
           </Text>
           <Text className="text-center text-muted-foreground mb-4">
-            The booking you're looking for doesn't exist or has been removed.
+            The booking you&apos;re looking for doesn&apos;t exist or has been
+            removed.
           </Text>
           <Button variant="outline" onPress={() => router.back()}>
             <Text>Go Back</Text>
@@ -610,7 +611,7 @@ export default function BookingDetailsScreen() {
               </View>
               <Text className="text-sm text-orange-700 dark:text-orange-300">
                 The restaurant typically responds within a couple of minutes.
-                We'll notify you immediately when they confirm.
+                We&apos;ll notify you immediately when they confirm.
               </Text>
               <View className="flex-row items-center gap-2 mt-3">
                 <Bell size={16} color={themeColors.primary} />
@@ -627,7 +628,8 @@ export default function BookingDetailsScreen() {
               {isWaitlistOrigin ? (
                 <Text className="text-sm text-red-700 dark:text-red-300">
                   You were waitlisted but the booking has expired. The
-                  restaurant couldn't accommodate your request at this time.
+                  restaurant couldn&apos;t accommodate your request at this
+                  time.
                 </Text>
               ) : booking.decline_note && booking.decline_note.trim() ? (
                 <View>
@@ -640,8 +642,8 @@ export default function BookingDetailsScreen() {
                 </View>
               ) : (
                 <Text className="text-sm text-red-700 dark:text-red-300">
-                  The restaurant couldn't accommodate your request at this time.
-                  This could be due to full capacity or special events.
+                  The restaurant couldn&apos;t accommodate your request at this
+                  time. This could be due to full capacity or special events.
                 </Text>
               )}
             </View>

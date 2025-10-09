@@ -16,16 +16,15 @@ interface HoursSectionProps {
   restaurant: Restaurant;
 }
 
-export const HoursSection = ({ restaurant }: HoursSectionProps) => {
+const HoursSectionComponent = ({ restaurant }: HoursSectionProps) => {
   const { colorScheme } = useColorScheme();
   const {
     formatOperatingHours,
-    checkAvailability,
+    isOpen,
     loading: availabilityLoading,
-  } = useRestaurantAvailability(restaurant.id);
+  } = useRestaurantOpenHours(restaurant.id);
 
-  const today = new Date();
-  const availability = checkAvailability(today);
+  const availability = { isOpen };
 
   return (
     <View className="px-4 mb-6">
@@ -72,3 +71,6 @@ export const HoursSection = ({ restaurant }: HoursSectionProps) => {
     </View>
   );
 };
+
+// Memoize to prevent re-renders when parent updates
+export const HoursSection = React.memo(HoursSectionComponent);

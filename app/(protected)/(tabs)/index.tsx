@@ -162,6 +162,17 @@ export default function HomeScreen() {
 
   const { banners, loading: bannersLoading } = useBanners();
 
+  // --- Performance Optimization: getItemLayout for FlatLists ---
+  // Featured cards: width 288 + 16 margin = 304
+  const getItemLayout = useCallback(
+    (_data: any, index: number) => ({
+      length: 304,
+      offset: 304 * index,
+      index,
+    }),
+    [],
+  );
+
   // --- Animation State ---
   const scrollY = useRef(new Animated.Value(0)).current;
   const [totalHeaderHeight, setTotalHeaderHeight] = useState(0);
@@ -310,6 +321,7 @@ export default function HomeScreen() {
                 initialNumToRender={3}
                 windowSize={5}
                 removeClippedSubviews={true}
+                getItemLayout={getItemLayout}
               />
             </View>
           )}
@@ -341,6 +353,7 @@ export default function HomeScreen() {
                 initialNumToRender={3}
                 windowSize={5}
                 removeClippedSubviews={true}
+                getItemLayout={getItemLayout}
               />
             </View>
           )}
@@ -372,6 +385,7 @@ export default function HomeScreen() {
                 initialNumToRender={3}
                 windowSize={5}
                 removeClippedSubviews={true}
+                getItemLayout={getItemLayout}
               />
             </View>
           )}
@@ -405,6 +419,7 @@ export default function HomeScreen() {
                 initialNumToRender={3}
                 windowSize={5}
                 removeClippedSubviews={true}
+                getItemLayout={getItemLayout}
               />
             </View>
           )}

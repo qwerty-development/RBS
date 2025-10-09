@@ -16,7 +16,7 @@ interface CuisineCategoryProps {
   onPress: (cuisineId: string) => void;
 }
 
-export function CuisineCategory({ cuisine, onPress }: CuisineCategoryProps) {
+function CuisineCategoryComponent({ cuisine, onPress }: CuisineCategoryProps) {
   const { handlePress: handleHapticPress } = useHapticPress({
     debounceMs: 500, // Longer debounce for navigation
     enableHaptic: true,
@@ -52,3 +52,6 @@ export function CuisineCategory({ cuisine, onPress }: CuisineCategoryProps) {
     </Pressable>
   );
 }
+
+// Memoize to prevent re-renders when scrolling
+export const CuisineCategory = React.memo(CuisineCategoryComponent);

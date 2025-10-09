@@ -31,7 +31,9 @@
       "Bash(npm start:*)",
       "Bash(ls:*)",
       "Bash(cut:*)",
-      "mcp__supabase__generate_typescript_types"
+      "mcp__supabase__generate_typescript_types",
+      "mcp__supabase__get_advisors",
+      "mcp__supabase__get_project"
     ],
     "deny": []
   },

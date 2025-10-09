@@ -111,7 +111,7 @@ type RestaurantSearchCardProps =
   | PlaylistScreenProps
   | SearchWithRestaurantProps;
 
-export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
+const RestaurantSearchCardComponent = (props: RestaurantSearchCardProps) => {
   const router = useRouter();
   const { openNavigationModal, isAnyModalOpen } = useNavigationModal();
 
@@ -373,3 +373,6 @@ export const RestaurantSearchCard = (props: RestaurantSearchCardProps) => {
     </Pressable>
   );
 };
+
+// Export memoized component for better performance in lists
+export const RestaurantSearchCard = React.memo(RestaurantSearchCardComponent);

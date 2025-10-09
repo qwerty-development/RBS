@@ -11,7 +11,7 @@ interface CardProps extends ViewProps {
   noPadding?: boolean;
 }
 
-export function Card({
+function CardComponent({
   children,
   style,
   gradient = true,
@@ -77,10 +77,10 @@ export function Card({
     );
   }
 
-  const gradientColors = [
+  const gradientColors: readonly [string, string] = [
     hslToRgba(themedColors.cardGradientFrom, 0.95),
     hslToRgba(themedColors.cardGradientTo, 0.98),
-  ];
+  ] as const;
 
   const getGradientProps = () => {
     switch (variant) {
@@ -92,7 +92,11 @@ export function Card({
         };
       case "elevated":
         return {
-          colors: [gradientColors[0], gradientColors[1], gradientColors[0]],
+          colors: [
+            gradientColors[0],
+            gradientColors[1],
+            gradientColors[0],
+          ] as const,
           start: { x: 0, y: 0 },
           end: { x: 1, y: 1 },
         };
@@ -130,3 +134,6 @@ export function Card({
     </View>
   );
 }
+
+// Memoize to prevent re-renders in lists
+export const Card = React.memo(CardComponent);
