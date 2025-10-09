@@ -198,8 +198,8 @@ export default function MenuScreen() {
         onPress={() => setShowFilters(true)}
         className="bg-primary/10 p-2 rounded-lg flex-row items-center"
       >
-        <Filter 
-          size={20} 
+        <Filter
+          size={20}
           color={colorScheme === "dark" ? "#FFFFFF" : "#000000"}
         />
         {filters.dietary_tags.length > 0 && (
@@ -238,14 +238,14 @@ export default function MenuScreen() {
             onPress={handleBack}
             className="bg-primary/10 p-2 rounded-lg flex-row items-center"
           >
-            <ChevronLeft 
-              size={20} 
+            <ChevronLeft
+              size={20}
               color={colorScheme === "dark" ? "#FFFFFF" : "#000000"}
             />
           </Pressable>
           <View className="flex-1 bg-muted rounded-lg px-3 py-2 flex-row items-center">
-            <Search 
-              size={20} 
+            <Search
+              size={20}
               color={colorScheme === "dark" ? "#FFFFFF" : "#666666"}
             />
             <TextInput
@@ -306,7 +306,7 @@ export default function MenuScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={refresh} />
         }
-        contentContainerStyle={{ paddingBottom: 20,}}
+        contentContainerStyle={{ paddingBottom: 20 }}
         stickySectionHeadersEnabled={true}
         ListEmptyComponent={() => (
           <View className="flex-1 items-center justify-center py-20 px-4">

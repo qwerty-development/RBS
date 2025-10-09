@@ -44,17 +44,19 @@ export function useRestaurantSearch({
       setLoading(true);
 
       try {
-        let supabaseQuery = supabase.from("restaurants").select(
-          `
+        let supabaseQuery = supabase
+          .from("restaurants")
+          .select(
+            `
             *,
             restaurant_hours!left(*),
             restaurant_special_hours!left(*),
             restaurant_closures!left(*),
             reviews!left(rating)
           `,
-          { count: "exact" },
-        )
-        .eq("status", "active");
+            { count: "exact" },
+          )
+          .eq("status", "active");
 
         // Only show active restaurants
         supabaseQuery = supabaseQuery.eq("status", "active");
