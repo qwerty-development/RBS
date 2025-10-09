@@ -93,7 +93,10 @@ export default function CuisineScreen() {
       setLoading(true);
 
       // Build base query using actual schema columns
-      let query = supabase.from("restaurants").select("*").eq("status", "active");
+      let query = supabase
+        .from("restaurants")
+        .select("*")
+        .eq("status", "active");
 
       // Try multiple approaches to find restaurants by cuisine
       let restaurantData: Restaurant[] = [];

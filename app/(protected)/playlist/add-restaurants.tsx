@@ -73,7 +73,10 @@ export default function AddRestaurantsScreen() {
     try {
       setLoading(true);
 
-      let query = supabase.from("restaurants").select("*").eq("status", "active");
+      let query = supabase
+        .from("restaurants")
+        .select("*")
+        .eq("status", "active");
 
       if (searchQuery.trim()) {
         query = query.or(

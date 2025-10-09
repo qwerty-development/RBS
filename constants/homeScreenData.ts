@@ -53,6 +53,33 @@ export const QUICK_FILTERS: QuickFilter[] = [
   },
 ];
 
+/**
+ * Image mapping for cuisine categories
+ * Used by useCuisineCategories hook to map database results to local images
+ */
+export const CUISINE_IMAGE_MAP: Record<string, any> = {
+  american: require("@/assets/cuisine-categories/american.png"),
+  cafe: require("@/assets/cuisine-categories/cafe.png"),
+  chinese: require("@/assets/cuisine-categories/chinese.png"),
+  french: require("@/assets/cuisine-categories/french.png"),
+  greek: require("@/assets/cuisine-categories/greek.png"),
+  indian: require("@/assets/cuisine-categories/indian.png"),
+  international: require("@/assets/cuisine-categories/international.png"),
+  italian: require("@/assets/cuisine-categories/italian.png"),
+  japanese: require("@/assets/cuisine-categories/japanese.png"),
+  lebanese: require("@/assets/cuisine-categories/lebanese.png"),
+  mediterranean: require("@/assets/cuisine-categories/mediterranean.png"),
+  mexican: require("@/assets/cuisine-categories/mexican.png"),
+  seafood: require("@/assets/cuisine-categories/seafood.png"),
+  spanish: require("@/assets/cuisine-categories/spanish.png"),
+  thai: require("@/assets/cuisine-categories/thai.png"),
+  asian: require("@/assets/cuisine-categories/chinese.png"),
+};
+
+/**
+ * @deprecated Use useCuisineCategories hook instead for dynamic categories from database
+ * Kept for backward compatibility only
+ */
 export const CUISINE_CATEGORIES: CuisineCategory[] = [
   {
     id: "american",

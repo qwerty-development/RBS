@@ -24,12 +24,12 @@ import { supabase } from "@/config/supabase";
 
 import { useHomeScreenLogic } from "@/hooks/useHomeScreenLogic";
 import { useBanners } from "@/hooks/useBanners";
+import { useCuisineCategories } from "@/hooks/useCuisineCategories";
 import { useAuth } from "@/context/supabase-provider";
 import { useGuestGuard } from "@/hooks/useGuestGuard";
 import { useRestaurantStore } from "@/stores/index";
 
 import { GuestPromptModal } from "@/components/guest/GuestPromptModal";
-import { CUISINE_CATEGORIES } from "@/constants/homeScreenData";
 import HomeScreenSkeleton from "@/components/skeletons/HomeScreenSkeleton";
 
 // Global ref for scroll to top functionality
@@ -161,6 +161,8 @@ export default function HomeScreen() {
   } = useHomeScreenLogic();
 
   const { banners, loading: bannersLoading } = useBanners();
+  const { categories: cuisineCategories, loading: categoriesLoading, refreshCategories } =
+    useCuisineCategories();
 
   // --- Performance Optimization: getItemLayout for FlatLists ---
   // Featured cards: width 288 + 16 margin = 304
@@ -200,13 +202,21 @@ export default function HomeScreen() {
     [runProtectedAction, toggleFavorite],
   );
 
+  // --- Enhanced Refresh Handler ---
+  const handleRefreshWithCategories = useCallback(async () => {
+    await Promise.all([
+      handleRefresh(),
+      refreshCategories(),
+    ]);
+  }, [handleRefresh, refreshCategories]);
+
   // --- Effects ---
   useEffect(() => {
     fetchFavorites();
   }, [fetchFavorites]);
 
   // --- Loading State ---
-  const isLoading = loading || bannersLoading;
+  const isLoading = loading || bannersLoading || categoriesLoading;
 
   return (
     <View className="flex-1 bg-background">
@@ -238,7 +248,7 @@ export default function HomeScreen() {
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={handleRefresh}
+              onRefresh={handleRefreshWithCategories}
               tintColor={getRefreshControlColor(colorScheme)}
               progressViewOffset={totalHeaderHeight}
             />
@@ -272,7 +282,7 @@ export default function HomeScreen() {
               className="pl-4"
             >
               <View className="flex-row gap-3 pr-4">
-                {CUISINE_CATEGORIES.map((cuisine) => (
+                {cuisineCategories.map((cuisine) => (
                   <CuisineCategory
                     key={cuisine.id}
                     cuisine={cuisine}
