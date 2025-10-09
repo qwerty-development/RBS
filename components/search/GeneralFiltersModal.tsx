@@ -80,8 +80,9 @@ export const GeneralFiltersModal = React.memo(
         minRating: 0,
         maxDistance: null,
       };
-      setTempFilters(defaultFilters);
-    }, []);
+      onApplyFilters(defaultFilters);
+      onClose();
+    }, [onApplyFilters, onClose]);
 
     const toggleCuisine = useCallback(
       (cuisine: string) => {

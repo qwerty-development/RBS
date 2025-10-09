@@ -219,7 +219,7 @@ export class LocationService {
   // Get restaurants with distance - robust method with fallbacks and retry logic
   static async getRestaurantsWithDistance(
     userLocation: LocationCoordinates,
-    maxDistance?: number,
+    maxDistance?: number | null,
     retryCount: number = 0,
   ): Promise<any[]> {
     // Getting restaurants with distance
@@ -344,7 +344,7 @@ export class LocationService {
   // Fallback method using raw location field
   static async fallbackMethod(
     userLocation: LocationCoordinates,
-    maxDistance?: number,
+    maxDistance?: number | null,
   ) {
     // Using fallback method with raw location parsing
 
@@ -403,7 +403,7 @@ export class LocationService {
   static filterAndSortRestaurants(
     restaurants: any[],
     userLocation: LocationCoordinates,
-    maxDistance?: number,
+    maxDistance?: number | null,
   ) {
     // Filtering and sorting restaurants
 

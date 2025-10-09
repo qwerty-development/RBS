@@ -245,10 +245,7 @@ export default function SearchScreen() {
         visible={showGeneralFilters}
         generalFilters={searchState.generalFilters}
         onApplyFilters={(filters) => {
-          actions.updateGeneralFilters({
-            ...filters,
-            maxDistance: filters.maxDistance || 10, // Ensure maxDistance is never null
-          });
+          actions.updateGeneralFilters(filters);
           setShowGeneralFilters(false);
         }}
         onClose={() => setShowGeneralFilters(false)}

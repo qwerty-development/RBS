@@ -184,7 +184,6 @@ export const DateOfBirthPrompt: React.FC<DateOfBirthPromptProps> = ({
                   <Calendar size={24} className="text-primary mr-3" />
                   <H2 className="flex-1">{title}</H2>
                 </View>
-                
               </View>
 
               {/* Description */}
@@ -249,7 +248,6 @@ export const DateOfBirthPrompt: React.FC<DateOfBirthPromptProps> = ({
 
               {/* Actions */}
               <View className="flex-row gap-3">
-                
                 <Button
                   className="flex-1"
                   onPress={form.handleSubmit(handleSubmit)}
