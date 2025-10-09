@@ -32,9 +32,9 @@ const RestaurantDetailsScreenSkeleton = () => {
 
       {/* Favorite, Playlist, and Share Button placeholders */}
       <View className="absolute top-20 right-4 flex-row gap-3 z-50">
-        <View className="w-12 h-12 bg-black/60 rounded-full items-center justify-center shadow-lg backdrop-blur-sm"></View>
-        <View className="w-12 h-12 bg-black/60 rounded-full items-center justify-center shadow-lg backdrop-blur-sm"></View>
-        <View className="w-12 h-12 bg-black/60 rounded-full items-center justify-center shadow-lg backdrop-blur-sm"></View>
+        <View className="w-12 h-12 bg-black/80 rounded-full items-center justify-center border border-white/20"></View>
+        <View className="w-12 h-12 bg-black/80 rounded-full items-center justify-center border border-white/20"></View>
+        <View className="w-12 h-12 bg-black/80 rounded-full items-center justify-center border border-white/20"></View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>

@@ -111,7 +111,7 @@ export const SearchContent = ({
               >
                 {/* Custom marker with restaurant image */}
                 <View className="items-center">
-                  <View className="bg-slate-200 rounded-full p-1 shadow-lg">
+                  <View className="bg-white rounded-full p-1 border-2 border-slate-200">
                     {restaurant.main_image_url ? (
                       <Image
                         source={{ uri: restaurant.main_image_url }}
