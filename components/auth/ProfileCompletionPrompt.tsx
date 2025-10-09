@@ -14,10 +14,12 @@ import {
   Phone,
   Calendar,
   CheckCircle,
+  ArrowRight,
 } from "lucide-react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { useRouter } from "expo-router";
 
 import { Text } from "@/components/ui/text";
 import { H2, P } from "@/components/ui/typography";
@@ -33,17 +35,43 @@ import { InputValidator } from "@/lib/security";
 const lebanesPhoneRegex =
   /^(\+961|961)?(03|70|71|76|78|79|80|81|1|3|4|5|6|7|8|9)\d{5,7}$/;
 
-// Utility function to format date input with automatic dashes
+// Utility function to format date input with automatic dashes (DD-MM-YYYY)
 const formatDateInput = (value: string): string => {
   const numbers = value.replace(/\D/g, "");
 
-  if (numbers.length <= 4) {
+  if (numbers.length <= 2) {
     return numbers;
-  } else if (numbers.length <= 6) {
-    return `${numbers.slice(0, 4)}-${numbers.slice(4)}`;
+  } else if (numbers.length <= 4) {
+    return `${numbers.slice(0, 2)}-${numbers.slice(2)}`;
   } else {
-    return `${numbers.slice(0, 4)}-${numbers.slice(4, 6)}-${numbers.slice(6, 8)}`;
+    return `${numbers.slice(0, 2)}-${numbers.slice(2, 4)}-${numbers.slice(4, 8)}`;
   }
+};
+
+// Utility function to convert DD-MM-YYYY to YYYY-MM-DD for database storage
+const convertToDbFormat = (dateString: string): string => {
+  const ddMmYyyyRegex = /^(\d{2})-(\d{2})-(\d{4})$/;
+  const match = dateString.match(ddMmYyyyRegex);
+  
+  if (match) {
+    const [, day, month, year] = match;
+    return `${year}-${month}-${day}`;
+  }
+  
+  return dateString;
+};
+
+// Utility function to convert YYYY-MM-DD to DD-MM-YYYY for display
+const convertToDisplayFormat = (dateString: string): string => {
+  const yyyyMmDdRegex = /^(\d{4})-(\d{2})-(\d{2})$/;
+  const match = dateString.match(yyyyMmDdRegex);
+  
+  if (match) {
+    const [, year, month, day] = match;
+    return `${day}-${month}-${year}`;
+  }
+  
+  return dateString;
 };
 
 // Utility function to validate date format
@@ -151,10 +179,18 @@ const createFieldSchema = (field: MissingField) => {
           .string()
           .min(1, "Please enter your date of birth.")
           .refine((date) => {
-            return isValidDateFormat(date);
-          }, "Please enter a valid date in YYYY-MM-DD format.")
+            // Check if it's in DD-MM-YYYY format
+            const ddMmYyyyRegex = /^(\d{2})-(\d{2})-(\d{4})$/;
+            return ddMmYyyyRegex.test(date);
+          }, "Please enter a valid date in DD-MM-YYYY format.")
           .refine((date) => {
-            const parsedDate = new Date(date);
+            // Convert to YYYY-MM-DD for validation
+            const dbFormat = convertToDbFormat(date);
+            return isValidDateFormat(dbFormat);
+          }, "Please enter a valid date.")
+          .refine((date) => {
+            const dbFormat = convertToDbFormat(date);
+            const parsedDate = new Date(dbFormat);
             const today = new Date();
             const age = today.getFullYear() - parsedDate.getFullYear();
             const monthDiff = today.getMonth() - parsedDate.getMonth();
@@ -167,7 +203,8 @@ const createFieldSchema = (field: MissingField) => {
             );
           }, "You must be at least 13 years old.")
           .refine((date) => {
-            const parsedDate = new Date(date);
+            const dbFormat = convertToDbFormat(date);
+            const parsedDate = new Date(dbFormat);
             const today = new Date();
             return parsedDate <= today;
           }, "Date of birth cannot be in the future."),
@@ -217,7 +254,7 @@ const fieldConfigs: Record<MissingField, FieldConfig> = {
   phone_number: {
     title: "Add Your Phone Number",
     description:
-      "We need your phone number for booking confirmations and important notifications about your reservations.",
+      "We need your phone number in order for you to book. You will be redirected to profile in order to add and verify your phone number.",
     icon: Phone,
     placeholder: "03 123 456",
     keyboardType: "phone-pad",
@@ -229,7 +266,7 @@ const fieldConfigs: Record<MissingField, FieldConfig> = {
     description:
       "We need your date of birth for age verification at certain venues. This information can only be set once for security purposes.",
     icon: Calendar,
-    placeholder: "YYYY-MM-DD",
+    placeholder: "DD-MM-YYYY",
     keyboardType: "numeric",
     maxLength: 10,
     isDateField: true,
@@ -263,6 +300,7 @@ export const ProfileCompletionPrompt: React.FC<
   splitName: propSplitName,
 }) => {
   const { profile, updateProfile } = useAuth();
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [enteredValues, setEnteredValues] = useState<Record<string, string>>(
     {},
@@ -328,7 +366,9 @@ export const ProfileCompletionPrompt: React.FC<
     }
 
     if (currentField === "date_of_birth") {
-      return profile?.date_of_birth || "";
+      const dbDate = profile?.date_of_birth || "";
+      // Convert from YYYY-MM-DD to DD-MM-YYYY for display
+      return dbDate ? convertToDisplayFormat(dbDate) : "";
     }
 
     return "";
@@ -395,6 +435,9 @@ export const ProfileCompletionPrompt: React.FC<
           ...prev,
           [currentField]: data.value.trim(),
         }));
+      } else if (currentField === "date_of_birth") {
+        // For date of birth, convert from DD-MM-YYYY to YYYY-MM-DD before saving
+        updateData[currentField] = convertToDbFormat(data.value);
       } else {
         // For other fields, update directly
         updateData[currentField] = data.value;
@@ -439,6 +482,13 @@ export const ProfileCompletionPrompt: React.FC<
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handlePhoneNumberRedirect = () => {
+    // Close the modal
+    onComplete();
+    // Navigate to profile page
+    router.push("/(protected)/profile");
   };
 
   const handleSkip = () => {
@@ -492,16 +542,12 @@ export const ProfileCompletionPrompt: React.FC<
               {/* Header */}
               <View className="flex-row items-center justify-between mb-4">
                 <View className="flex-row items-center">
-                  <IconComponent size={24} className="text-primary mr-3" />
                   <H2 className="flex-1">{fieldConfig.title}</H2>
                 </View>
               </View>
 
               {/* Progress indicator */}
               <View className="flex-row items-center justify-between mb-4">
-                <Text className="text-sm text-muted-foreground">
-                  Step {currentFieldIndex + 1} of {totalFields}
-                </Text>
                 <View className="flex-row gap-1">
                   {missingFields.map((_, index) => (
                     <View
@@ -538,38 +584,40 @@ export const ProfileCompletionPrompt: React.FC<
                 </View>
               )}
 
-              {/* Form */}
-              <Form {...form}>
-                <FormField
-                  control={form.control}
-                  name="value"
-                  render={({ field }) => (
-                    <FormInput
-                      {...field}
-                      label={fieldConfig.title.replace("Add Your ", "")}
+              {/* Form - Only show for non-phone fields */}
+              {currentField !== "phone_number" && (
+                <Form {...form}>
+                  <FormField
+                    control={form.control}
+                    name="value"
+                    render={({ field }) => (
+                      <FormInput
+                        {...field}
+                        label={fieldConfig.title.replace("Add Your ", "")}
                       placeholder={fieldConfig.placeholder}
                       description={
                         fieldConfig.isDateField
-                          ? "Enter your birth year, month, and day (dashes added automatically)"
+                          ? "Enter your birth day, month, and year (dashes added automatically)"
                           : undefined
                       }
-                      autoCapitalize={fieldConfig.autoCapitalize}
-                      autoCorrect={false}
-                      keyboardType={fieldConfig.keyboardType || "default"}
-                      maxLength={fieldConfig.maxLength}
-                      autoComplete={fieldConfig.autoComplete as any}
-                      returnKeyType="done"
-                      onSubmitEditing={Keyboard.dismiss}
-                      onChangeText={(text: string) => {
-                        const formatted = fieldConfig.isDateField
-                          ? formatDateInput(text)
-                          : text;
-                        field.onChange(formatted);
-                      }}
-                    />
-                  )}
-                />
-              </Form>
+                        autoCapitalize={fieldConfig.autoCapitalize}
+                        autoCorrect={false}
+                        keyboardType={fieldConfig.keyboardType || "default"}
+                        maxLength={fieldConfig.maxLength}
+                        autoComplete={fieldConfig.autoComplete as any}
+                        returnKeyType="done"
+                        onSubmitEditing={Keyboard.dismiss}
+                        onChangeText={(text: string) => {
+                          const formatted = fieldConfig.isDateField
+                            ? formatDateInput(text)
+                            : text;
+                          field.onChange(formatted);
+                        }}
+                      />
+                    )}
+                  />
+                </Form>
+              )}
 
               {/* Security Note for DOB */}
               {currentField === "date_of_birth" && (
@@ -589,20 +637,28 @@ export const ProfileCompletionPrompt: React.FC<
               <View className="flex-row gap-3 mt-6">
                 <Button
                   className="flex-1"
-                  onPress={form.handleSubmit(handleSubmit)}
+                  onPress={
+                    currentField === "phone_number"
+                      ? handlePhoneNumberRedirect
+                      : form.handleSubmit(handleSubmit)
+                  }
                   disabled={isSubmitting}
                 >
-                  {isLastField ? (
+                  {currentField === "phone_number" ? (
+                    <ArrowRight size={16} className="text-white mr-2" />
+                  ) : isLastField ? (
                     <CheckCircle size={16} className="text-white mr-2" />
                   ) : (
                     <IconComponent size={16} className="text-white mr-2" />
                   )}
                   <Text className="text-white font-medium">
-                    {isSubmitting
-                      ? "Saving..."
-                      : isLastField
-                        ? "Complete Profile"
-                        : "Next"}
+                    {currentField === "phone_number"
+                      ? "Take Me There"
+                      : isSubmitting
+                        ? "Saving..."
+                        : isLastField
+                          ? "Complete Profile"
+                          : "Next"}
                   </Text>
                 </Button>
               </View>

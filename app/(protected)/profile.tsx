@@ -37,6 +37,7 @@ import {
   ChevronLeft, // Added for guest view
   Camera, // Added for my posts
   ClockIcon, // Added for waitlist
+  CheckCircle, // Added for phone verification
 } from "lucide-react-native";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -49,6 +50,7 @@ import { useColorScheme } from "@/lib/useColorScheme";
 import { useAuth } from "@/context/supabase-provider";
 import { useUserRating } from "@/hooks/useUserRating";
 import ProfileScreenSkeleton from "@/components/skeletons/ProfileScreenSkeleton";
+import { PhoneVerificationModal } from "@/components/auth/PhoneVerificationModal";
 
 const iconMap: { [key: string]: any } = {
   Edit3,
@@ -92,7 +94,7 @@ interface MenuItem {
 export default function ProfileScreen() {
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-  const { profile, signOut, initialized, isGuest, convertGuestToUser } =
+  const { profile, signOut, initialized, isGuest, convertGuestToUser, refreshProfile } =
     useAuth();
 
   // --- Guest View ---
@@ -158,6 +160,7 @@ export default function ProfileScreen() {
   const userRating = useUserRating();
   const [refreshing, setRefreshing] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -239,6 +242,22 @@ export default function ProfileScreen() {
           subtitle: "Update your personal information",
           icon: "Edit3",
           onPress: () => router.push("/profile/edit"),
+        },
+        {
+          id: "phone-verification",
+          title: profile?.phone_verified ? "Phone Verified" : "Verify Phone Number",
+          subtitle: profile?.phone_verified
+            ? profile.phone_number || "Verified"
+            : "Required for bookings",
+          icon: "Shield",
+          onPress: () => {
+            if (!profile?.phone_verified) {
+              setShowPhoneVerification(true);
+            }
+          },
+          showBadge: !profile?.phone_verified,
+          badgeText: "Required",
+          badgeColor: "#eab308",
         },
         {
           id: "notifications",
@@ -383,19 +402,36 @@ export default function ProfileScreen() {
             />
           </View>
           <View className="flex-1">
-            <Text
-              className={`font-medium ${
-                item.destructive ? "text-red-600 dark:text-red-400" : ""
-              }`}
-            >
-              {item.title}
-            </Text>
+            <View className="flex-row items-center gap-2">
+              <Text
+                className={`font-medium ${
+                  item.destructive ? "text-red-600 dark:text-red-400" : ""
+                }`}
+              >
+                {item.title}
+              </Text>
+              {item.showBadge && (
+                <View
+                  style={{ backgroundColor: item.badgeColor || "#eab308" }}
+                  className="px-2 py-0.5 rounded-full"
+                >
+                  <Text className="text-xs font-bold text-white">
+                    {item.badgeText || "New"}
+                  </Text>
+                </View>
+              )}
+            </View>
             {item.subtitle && (
               <Muted className="text-sm mt-0.5">{item.subtitle}</Muted>
             )}
           </View>
         </View>
-        {!item.destructive && <ChevronRight size={20} color="#666" />}
+        {!item.destructive && profile?.phone_verified && item.id === "phone-verification" && (
+          <CheckCircle size={20} color="#22c55e" />
+        )}
+        {!item.destructive && item.id !== "phone-verification" && (
+          <ChevronRight size={20} color="#666" />
+        )}
       </Pressable>
     );
   };
@@ -483,6 +519,20 @@ export default function ProfileScreen() {
           </View>
         ))}
       </ScrollView>
+
+      {/* Phone Verification Modal */}
+      <PhoneVerificationModal
+        visible={showPhoneVerification}
+        onClose={() => setShowPhoneVerification(false)}
+        onVerified={async () => {
+          await refreshProfile();
+          setShowPhoneVerification(false);
+        }}
+        canSkip={false}
+        title="Verify Your Phone Number"
+        description="Your phone number is required for making restaurant bookings. Once verified, you cannot change it."
+        initialPhoneNumber={profile?.phone_number}
+      />
     </SafeAreaView>
   );
 }

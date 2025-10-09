@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text, Pressable, Animated } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { AlertCircle } from "lucide-react-native";
 import { Image } from "@/components/image";
 import { LocationHeader } from "@/components/home/LocationHeader";
 import { useColorScheme } from "@/lib/useColorScheme";
@@ -109,29 +110,54 @@ export function HomeHeader({
                   height: 40,
                   borderRadius: 20,
                   borderWidth: 2,
-                  borderColor:
-                    colorScheme === "dark"
+                  borderColor: !profile?.phone_verified
+                    ? "#eab308" // Yellow for unverified
+                    : colorScheme === "dark"
                       ? "rgba(255,255,255,0.2)"
                       : "rgba(0,0,0,0.2)",
                 }}
                 contentFit="cover"
               />
-              {/* Online status indicator */}
-              <View
-                style={{
-                  position: "absolute",
-                  bottom: 0,
-                  right: 0,
-                  width: 12,
-                  height: 12,
-                  backgroundColor: "#792339", // Mulberry Velvet for online status
-                  borderRadius: 6,
-                  borderWidth: 2,
-                  borderColor: colorScheme === "dark" ? "#000" : "#fff",
-                  zIndex: 1000,
-                  elevation: 1000,
-                }}
-              />
+              {/* Phone verification warning indicator */}
+              {!profile?.phone_verified && (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: -2,
+                    right: -2,
+                    width: 18,
+                    height: 18,
+                    backgroundColor: "#eab308", // Yellow warning
+                    borderRadius: 9,
+                    borderWidth: 2,
+                    borderColor: colorScheme === "dark" ? "#000" : "#fff",
+                    zIndex: 1001,
+                    elevation: 1001,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <AlertCircle size={12} color="#fff" />
+                </View>
+              )}
+              {/* Online status indicator - only show if phone verified */}
+              {profile?.phone_verified && (
+                <View
+                  style={{
+                    position: "absolute",
+                    bottom: 0,
+                    right: 0,
+                    width: 12,
+                    height: 12,
+                    backgroundColor: "#792339", // Mulberry Velvet for online status
+                    borderRadius: 6,
+                    borderWidth: 2,
+                    borderColor: colorScheme === "dark" ? "#000" : "#fff",
+                    zIndex: 1000,
+                    elevation: 1000,
+                  }}
+                />
+              )}
             </View>
           </Pressable>
         </View>

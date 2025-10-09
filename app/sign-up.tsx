@@ -9,9 +9,12 @@ import {
   Platform,
   Alert,
   TouchableOpacity,
+  Pressable,
+  TextInput,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { CheckCircle, AlertCircle, Info } from "lucide-react-native";
 import * as z from "zod";
 
 import { SafeAreaView } from "@/components/safe-area-view";
@@ -29,8 +32,22 @@ import {
   convertDDMMYYYYToYYYYMMDD,
 } from "@/utils/birthday";
 
-// Lebanese phone number validation regex
-const lebanesPhoneRegex = /^(\+961|961|03|70|71|76|78|79|80|81)\d{6,7}$/;
+// Common country codes for Lebanon and region
+const COUNTRY_CODES = [
+  { code: "+961", country: "Lebanon", flag: "🇱🇧" },
+  { code: "+1", country: "USA/Canada", flag: "🇺🇸" },
+  { code: "+44", country: "UK", flag: "🇬🇧" },
+  { code: "+971", country: "UAE", flag: "🇦🇪" },
+  { code: "+966", country: "Saudi Arabia", flag: "🇸🇦" },
+  { code: "+33", country: "France", flag: "🇫🇷" },
+  { code: "+49", country: "Germany", flag: "🇩🇪" },
+  { code: "+39", country: "Italy", flag: "🇮🇹" },
+  { code: "+34", country: "Spain", flag: "🇪🇸" },
+  { code: "+20", country: "Egypt", flag: "🇪🇬" },
+];
+
+// Phone number validation (6-15 digits)
+const phoneNumberRegex = /^\d{6,15}$/;
 
 const formSchema = z
   .object({
@@ -50,22 +67,7 @@ const formSchema = z
       .toLowerCase(),
     phoneNumber: z
       .string()
-      .regex(lebanesPhoneRegex, "Please enter a valid Lebanese phone number.")
-      .transform((val) => {
-        // Normalize phone number format
-        const cleaned = val.trim();
-        if (
-          cleaned.startsWith("03") ||
-          cleaned.startsWith("7") ||
-          cleaned.startsWith("8")
-        ) {
-          return `+961${cleaned.replace(/^0/, "")}`;
-        }
-        if (cleaned.startsWith("961")) {
-          return `+${cleaned}`;
-        }
-        return cleaned;
-      }),
+      .regex(phoneNumberRegex, "Please enter a valid phone number (6-15 digits)."),
     dateOfBirth: z
       .string()
       .min(1, "Please enter your date of birth.")
@@ -116,6 +118,8 @@ export default function SignUp() {
   const [loading, setLoading] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
+  const [selectedCountryCode, setSelectedCountryCode] = React.useState(COUNTRY_CODES[0]);
+  const [showCountryPicker, setShowCountryPicker] = React.useState(false);
   const isDark = colorScheme === "dark";
 
   const form = useForm<FormData>({
@@ -152,11 +156,14 @@ export default function SignUp() {
       const fullName =
         `${data.first_name.trim()} ${data.last_name.trim()}`.trim();
 
+      // Combine country code with phone number to create E.164 format
+      const phoneE164 = `${selectedCountryCode.code}${data.phoneNumber.replace(/^0+/, "")}`;
+
       await signUp(
         data.email,
         data.password,
         fullName,
-        data.phoneNumber,
+        phoneE164,
         dobForDatabase,
         data.first_name.trim(),
         data.last_name.trim(),
@@ -274,20 +281,94 @@ export default function SignUp() {
                   )}
                 />
 
+                {/* Phone Number with Country Code */}
                 <FormField
                   control={form.control}
                   name="phoneNumber"
                   render={({ field }) => (
-                    <FormInput
-                      label="Phone Number"
-                      placeholder="03 123 456 or 71 234 567"
-                      description="Lebanese mobile number for booking confirmations"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      keyboardType="phone-pad"
-                      className="bg-gray-100 dark:bg-gray-800"
-                      {...field}
-                    />
+                    <View>
+                      <Text className="text-sm font-medium mb-2 text-foreground">
+                        Phone Number
+                      </Text>
+                      
+                      {/* Country Code Selector */}
+                      <Pressable
+                        onPress={() => setShowCountryPicker(!showCountryPicker)}
+                        className="flex-row items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 border-2 border-input rounded-lg mb-2"
+                        style={({ pressed }) => ({
+                          opacity: pressed ? 0.8 : 1,
+                          borderColor: showCountryPicker ? "#792339" : undefined,
+                        })}
+                      >
+                        <View className="flex-row items-center gap-2">
+                          <Text className="text-2xl">{selectedCountryCode.flag}</Text>
+                          <Text className="font-medium text-base text-foreground">
+                            {selectedCountryCode.code}
+                          </Text>
+                          <Text className="text-muted-foreground">
+                            {selectedCountryCode.country}
+                          </Text>
+                        </View>
+                      </Pressable>
+
+                      {/* Country Picker Dropdown */}
+                      {showCountryPicker && (
+                        <View className="mb-2 bg-card border-2 border-primary rounded-lg overflow-hidden" style={{ maxHeight: 240 }}>
+                          <ScrollView nestedScrollEnabled={true}>
+                            {COUNTRY_CODES.map((country) => (
+                              <Pressable
+                                key={country.code}
+                                onPress={() => {
+                                  setSelectedCountryCode(country);
+                                  setShowCountryPicker(false);
+                                }}
+                                className="flex-row items-center gap-3 p-4 border-b border-border/50"
+                                style={({ pressed }) => ({
+                                  opacity: pressed ? 0.7 : 1,
+                                })}
+                              >
+                                <Text className="text-3xl">{country.flag}</Text>
+                                <Text className="font-semibold text-base text-foreground">{country.code}</Text>
+                                <Text className="text-muted-foreground flex-1 text-base">
+                                  {country.country}
+                                </Text>
+                                {selectedCountryCode.code === country.code && (
+                                  <CheckCircle size={22} color="#792339" />
+                                )}
+                              </Pressable>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      )}
+
+                      {/* Phone Number Input */}
+                      <View className="flex-row items-center bg-gray-100 dark:bg-gray-800 border-2 border-input rounded-lg px-4">
+                        <Text className="text-muted-foreground text-base">
+                          {selectedCountryCode.code}
+                        </Text>
+                        <TextInput
+                          value={field.value}
+                          onChangeText={(text) => {
+                            field.onChange(text.replace(/[^0-9]/g, ""));
+                          }}
+                          placeholder="70 123 456"
+                          placeholderTextColor={
+                            colorScheme === "dark" ? "#666" : "#999"
+                          }
+                          keyboardType="phone-pad"
+                          maxLength={15}
+                          className="flex-1 py-4 px-3 text-foreground text-base"
+                        />
+                      </View>
+                      
+                      {/* Warning Box */}
+                      <View className="flex-row items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg mt-2 border border-yellow-200 dark:border-yellow-800">
+                        <Info size={18} color="#eab308" className="mt-0.5" />
+                        <Text className="flex-1 text-sm text-yellow-800 dark:text-yellow-200">
+                          The phone number will need to be verified in app
+                        </Text>
+                      </View>
+                    </View>
                   )}
                 />
 

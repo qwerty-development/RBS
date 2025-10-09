@@ -108,6 +108,25 @@ export const useBookingConfirmation = () => {
         return false;
       }
 
+      // Check phone verification
+      if (!profile?.phone_verified) {
+        Alert.alert(
+          "Phone Verification Required",
+          "You need to verify your phone number before making a booking. Please verify your phone in your profile settings.",
+          [
+            {
+              text: "Go to Profile",
+              onPress: () => router.replace("/profile"),
+            },
+            {
+              text: "Cancel",
+              style: "cancel",
+            },
+          ]
+        );
+        return false;
+      }
+
       // Check rating-based booking eligibility
       let modifiedProps = props;
       try {

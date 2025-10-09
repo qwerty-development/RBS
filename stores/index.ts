@@ -23,6 +23,8 @@ type Profile = {
   last_name?: string;
   full_name: string;
   phone_number?: string;
+  phone_verified?: boolean;
+  phone_verified_at?: string;
   avatar_url?: string;
   allergies?: string[];
   favorite_cuisines?: string[];

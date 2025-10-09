@@ -1,6 +1,6 @@
 // app/(protected)/booking/create.tsx
-import React, { useCallback } from "react";
-import { ScrollView, View, KeyboardAvoidingView, Platform } from "react-native";
+import React, { useCallback, useEffect } from "react";
+import { ScrollView, View, KeyboardAvoidingView, Platform, Alert } from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -67,6 +67,27 @@ export default function BookingCreateScreen() {
     setSelectedOfferUserId,
     handleInvitesSent,
   } = useBookingCreate();
+
+  // Check phone verification status
+  useEffect(() => {
+    if (!loading && profile && !profile.phone_verified) {
+      Alert.alert(
+        "Phone Verification Required",
+        "You need to verify your phone number before making a booking. Please verify your phone in your profile settings.",
+        [
+          {
+            text: "Go to Profile",
+            onPress: () => router.replace("/profile"),
+          },
+          {
+            text: "Cancel",
+            onPress: () => router.back(),
+            style: "cancel",
+          },
+        ]
+      );
+    }
+  }, [loading, profile]);
 
   // Form setup with default values from helper
   const {

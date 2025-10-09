@@ -58,6 +58,8 @@ type Profile = {
   last_name?: string;
   full_name: string;
   phone_number?: string;
+  phone_verified?: boolean;
+  phone_verified_at?: string;
   date_of_birth?: string;
   avatar_url?: string;
   allergies?: string[];

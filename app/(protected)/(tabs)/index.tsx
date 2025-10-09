@@ -31,16 +31,20 @@ import { useRestaurantStore } from "@/stores/index";
 
 import { GuestPromptModal } from "@/components/guest/GuestPromptModal";
 import HomeScreenSkeleton from "@/components/skeletons/HomeScreenSkeleton";
+import { PhoneVerificationModal } from "@/components/auth/PhoneVerificationModal";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // Global ref for scroll to top functionality
 export const homeScrollRef = { current: null as any };
+
+const PHONE_VERIFICATION_PROMPTED_KEY = "phone-verification-prompted";
 
 export default function HomeScreen() {
   const { colorScheme } = useColorScheme();
   const router = useRouter();
 
   // --- Guest & Auth Hooks ---
-  const { isGuest, convertGuestToUser, profile } = useAuth();
+  const { isGuest, convertGuestToUser, profile, refreshProfile } = useAuth();
   const {
     showGuestPrompt,
     promptedFeature,
@@ -49,12 +53,45 @@ export default function HomeScreen() {
     handleSignUpFromPrompt,
   } = useGuestGuard();
 
+  // --- Phone Verification Modal State ---
+  const [showPhoneVerification, setShowPhoneVerification] = useState(false);
+
   // --- Favorites Management from Zustand ---
   const {
     isFavorite: checkIsFavorite,
     addToFavorites,
     removeFromFavorites,
   } = useRestaurantStore();
+
+  // --- Check if Phone Verification Modal Should Show ---
+  useEffect(() => {
+    const checkPhoneVerification = async () => {
+      if (isGuest || !profile?.id) return;
+
+      // Only show if phone not verified
+      if (!profile.phone_verified) {
+        // Check if we've already prompted the user in this session
+        const hasPrompted = await AsyncStorage.getItem(
+          `${PHONE_VERIFICATION_PROMPTED_KEY}-${profile.id}`
+        );
+
+        if (!hasPrompted) {
+          // Show modal after a short delay for better UX
+          setTimeout(() => {
+            setShowPhoneVerification(true);
+          }, 1500);
+
+          // Mark as prompted for this session
+          await AsyncStorage.setItem(
+            `${PHONE_VERIFICATION_PROMPTED_KEY}-${profile.id}`,
+            "true"
+          );
+        }
+      }
+    };
+
+    checkPhoneVerification();
+  }, [profile?.id, profile?.phone_verified, isGuest]);
 
   // --- Sync Favorites from Database ---
   const fetchFavorites = useCallback(async () => {
@@ -445,6 +482,24 @@ export default function HomeScreen() {
         onClose={handleClosePrompt}
         onSignUp={handleSignUpFromPrompt}
         featureName={promptedFeature}
+      />
+
+      {/* Phone Verification Modal */}
+      <PhoneVerificationModal
+        visible={showPhoneVerification}
+        onClose={() => setShowPhoneVerification(false)}
+        onVerified={async () => {
+          await refreshProfile();
+          setShowPhoneVerification(false);
+        }}
+        onSkip={() => {
+          Alert.alert(
+            "Phone Verification Required",
+            "You'll need to verify your phone number to make bookings. You can do this anytime from your profile.",
+            [{ text: "OK" }]
+          );
+        }}
+        canSkip={true}
       />
     </View>
   );
