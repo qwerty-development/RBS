@@ -53,7 +53,8 @@ export function useRestaurantSearch({
             reviews!left(rating)
           `,
           { count: "exact" },
-        );
+        )
+        .eq("status", "active");
 
         // Apply search query
         if (query.trim()) {

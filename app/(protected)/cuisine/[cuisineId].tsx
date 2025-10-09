@@ -93,7 +93,7 @@ export default function CuisineScreen() {
       setLoading(true);
 
       // Build base query using actual schema columns
-      let query = supabase.from("restaurants").select("*"); // No joins needed, no is_active column
+      let query = supabase.from("restaurants").select("*").eq("status", "active");
 
       // Try multiple approaches to find restaurants by cuisine
       let restaurantData: Restaurant[] = [];
@@ -115,6 +115,7 @@ export default function CuisineScreen() {
         const { data: iLikeData, error: iLikeError } = await supabase
           .from("restaurants")
           .select("*")
+          .eq("status", "active")
           .ilike("cuisine_type", `%${cuisineId}%`);
 
         if (iLikeError) {
@@ -129,6 +130,7 @@ export default function CuisineScreen() {
         const { data: tagsData, error: tagsError } = await supabase
           .from("restaurants")
           .select("*")
+          .eq("status", "active")
           .contains("tags", [cuisineId]);
 
         if (tagsError) {
@@ -142,7 +144,8 @@ export default function CuisineScreen() {
       if (restaurantData.length === 0) {
         const { data: allData, error: allError } = await supabase
           .from("restaurants")
-          .select("*");
+          .select("*")
+          .eq("status", "active");
 
         if (allError) {
           console.error("Error fetching all restaurants:", allError);

@@ -118,7 +118,7 @@ export default function MenuScreen() {
 
   const renderMenuItem = useCallback(
     ({ item }: { item: MenuItem }) => (
-      <View className="bg-card p-4 mb-3 mx-4 rounded-lg border border-border">
+      <View className="bg-card p-4 mb-3  px-2  mt-6 mx-4 rounded-lg border border-border">
         <View className="flex-row">
           {item.image_url && (
             <Image
@@ -198,7 +198,10 @@ export default function MenuScreen() {
         onPress={() => setShowFilters(true)}
         className="bg-primary/10 p-2 rounded-lg flex-row items-center"
       >
-        <Filter size={20} className="text-primary mr-1" />
+        <Filter 
+          size={20} 
+          color={colorScheme === "dark" ? "#FFFFFF" : "#000000"}
+        />
         {filters.dietary_tags.length > 0 && (
           <View className="bg-primary px-2 py-0.5 rounded-full ml-1">
             <Text className="text-xs text-primary-foreground">
@@ -208,7 +211,7 @@ export default function MenuScreen() {
         )}
       </Pressable>
     ),
-    [filters.dietary_tags.length],
+    [filters.dietary_tags.length, colorScheme],
   );
 
   if (loading) {
@@ -235,10 +238,16 @@ export default function MenuScreen() {
             onPress={handleBack}
             className="bg-primary/10 p-2 rounded-lg flex-row items-center"
           >
-            <ChevronLeft size={20} className="text-primary mr-1" />
+            <ChevronLeft 
+              size={20} 
+              color={colorScheme === "dark" ? "#FFFFFF" : "#000000"}
+            />
           </Pressable>
           <View className="flex-1 bg-muted rounded-lg px-3 py-2 flex-row items-center">
-            <Search size={20} className="text-muted-foreground mr-2" />
+            <Search 
+              size={20} 
+              color={colorScheme === "dark" ? "#FFFFFF" : "#666666"}
+            />
             <TextInput
               value={filters.searchQuery}
               onChangeText={(text) => setFilters({ searchQuery: text })}
@@ -297,7 +306,7 @@ export default function MenuScreen() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={refresh} />
         }
-        contentContainerStyle={{ paddingBottom: 20 }}
+        contentContainerStyle={{ paddingBottom: 20,}}
         stickySectionHeadersEnabled={true}
         ListEmptyComponent={() => (
           <View className="flex-1 items-center justify-center py-20 px-4">
