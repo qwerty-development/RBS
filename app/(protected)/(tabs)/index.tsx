@@ -161,8 +161,11 @@ export default function HomeScreen() {
   } = useHomeScreenLogic();
 
   const { banners, loading: bannersLoading } = useBanners();
-  const { categories: cuisineCategories, loading: categoriesLoading, refreshCategories } =
-    useCuisineCategories();
+  const {
+    categories: cuisineCategories,
+    loading: categoriesLoading,
+    refreshCategories,
+  } = useCuisineCategories();
 
   // --- Performance Optimization: getItemLayout for FlatLists ---
   // Featured cards: width 288 + 16 margin = 304
@@ -204,10 +207,7 @@ export default function HomeScreen() {
 
   // --- Enhanced Refresh Handler ---
   const handleRefreshWithCategories = useCallback(async () => {
-    await Promise.all([
-      handleRefresh(),
-      refreshCategories(),
-    ]);
+    await Promise.all([handleRefresh(), refreshCategories()]);
   }, [handleRefresh, refreshCategories]);
 
   // --- Effects ---
