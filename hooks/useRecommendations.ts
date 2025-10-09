@@ -645,7 +645,11 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
       }
 
       // 6.2 Fetch candidate restaurants
-      let query = supabase.from("restaurants").select("*").eq("status", "active").limit(100); // Get more candidates for better filtering
+      let query = supabase
+        .from("restaurants")
+        .select("*")
+        .eq("status", "active")
+        .limit(100); // Get more candidates for better filtering
 
       // Apply basic filters
       if (location) {
@@ -823,7 +827,11 @@ export function useOccasionRecommendations(occasion: string) {
 
         const tags = occasionTags[occasion] || [];
 
-        let query = supabase.from("restaurants").select("*").eq("status", "active").limit(10);
+        let query = supabase
+          .from("restaurants")
+          .select("*")
+          .eq("status", "active")
+          .limit(10);
 
         // Filter by relevant tags
         if (tags.length > 0) {

@@ -75,6 +75,9 @@ export default function AddRestaurantsScreen() {
 
       let query = supabase.from("restaurants").select("*").eq("status", "active");
 
+      // Only show active restaurants
+      query = query.eq("status", "active");
+
       if (searchQuery.trim()) {
         query = query.or(
           `name.ilike.%${searchQuery}%,cuisine_type.ilike.%${searchQuery}%`,

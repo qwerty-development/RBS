@@ -56,6 +56,9 @@ export function useRestaurantSearch({
         )
         .eq("status", "active");
 
+        // Only show active restaurants
+        supabaseQuery = supabaseQuery.eq("status", "active");
+
         // Apply search query
         if (query.trim()) {
           supabaseQuery = supabaseQuery.or(
