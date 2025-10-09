@@ -12,7 +12,7 @@ import {
 import { useColorScheme } from "@/lib/useColorScheme";
 import { colors } from "@/constants/colors";
 import { LogBox, View, Text } from "react-native";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   ErrorBoundary,
   NavigationErrorBoundary,
@@ -134,10 +134,12 @@ function RootLayoutContent({
   const { colorScheme } = useColorScheme();
   const themedColors = getThemedColors(colorScheme);
   const { profile } = useAuth();
+  const hasRedirectedToOnboarding = useRef(false);
 
-  // Redirect users who haven't completed onboarding
+  // Redirect users who haven't completed onboarding (only once)
   useEffect(() => {
-    if (profile && profile.onboarded === false) {
+    if (profile && profile.onboarded === false && !hasRedirectedToOnboarding.current) {
+      hasRedirectedToOnboarding.current = true;
       try {
         router.replace("/onboarding");
       } catch (e) {

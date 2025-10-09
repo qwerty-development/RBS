@@ -71,6 +71,7 @@ export default function OnboardingScreen() {
   const scrollX = useSharedValue(0);
   const listRef = useRef<Animated.FlatList<Slide>>(null);
   const [index, setIndex] = useState(0);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const onScroll = useAnimatedScrollHandler({
     onScroll: (e) => {
@@ -78,8 +79,11 @@ export default function OnboardingScreen() {
     },
   });
 
-  const handleComplete = async () => {
+  const handleComplete = async (): Promise<void> => {
+    if (isCompleting) return;
+    
     try {
+      setIsCompleting(true);
       await updateProfile({ onboarded: true });
       router.replace("/(protected)/(tabs)");
     } catch {
@@ -87,7 +91,9 @@ export default function OnboardingScreen() {
     }
   };
 
-  const next = () => {
+  const next = (): void => {
+    if (isCompleting) return;
+    
     if (index < SLIDES.length - 1) {
       listRef.current?.scrollToIndex({ index: index + 1, animated: true });
       setIndex((i) => i + 1);
@@ -96,7 +102,10 @@ export default function OnboardingScreen() {
     }
   };
 
-  const skip = () => void handleComplete();
+  const skip = (): void => {
+    if (isCompleting) return;
+    void handleComplete();
+  };
 
   const indicators = useMemo(
     () =>

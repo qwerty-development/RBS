@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
   View,
   Modal,
@@ -88,25 +88,49 @@ export function PhoneVerificationModal({
   const [otpCode, setOtpCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  
+  // Resend cooldown state
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [isResending, setIsResending] = useState(false);
+  const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const phoneE164 = `${selectedCountryCode.code}${phoneNumber.replace(/^0+/, "")}`;
 
-  const handleSendOTP = useCallback(async () => {
+  const handleSendOTP = useCallback(async (isResend = false) => {
     if (!phoneNumber || phoneNumber.length < 6) {
       setError("Please enter a valid phone number");
       return;
     }
 
-    setLoading(true);
+    // Check cooldown for resend
+    if (isResend && resendCooldown > 0) {
+      setError(`Please wait ${resendCooldown} seconds before resending`);
+      return;
+    }
+
+    if (isResend) {
+      setIsResending(true);
+    } else {
+      setLoading(true);
+    }
     setError("");
 
     try {
       const result = await sendOTP(phoneE164);
 
       if (result.success) {
-        setStep("otp");
+        if (!isResend) {
+          setStep("otp");
+        } else {
+          // Clear OTP input on resend
+          setOtpCode("");
+        }
+        
+        // Start cooldown timer (60 seconds)
+        setResendCooldown(60);
+        
         Alert.alert(
-          "Code Sent",
+          isResend ? "Code Resent" : "Code Sent",
           `A verification code has been sent to ${phoneE164}`,
           [{ text: "OK" }]
         );
@@ -116,9 +140,13 @@ export function PhoneVerificationModal({
     } catch (err: any) {
       setError(err.message || "Failed to send verification code");
     } finally {
-      setLoading(false);
+      if (isResend) {
+        setIsResending(false);
+      } else {
+        setLoading(false);
+      }
     }
-  }, [phoneNumber, phoneE164]);
+  }, [phoneNumber, phoneE164, resendCooldown]);
 
   const handleVerifyOTP = useCallback(async () => {
     if (!otpCode || otpCode.length !== 6) {
@@ -133,6 +161,12 @@ export function PhoneVerificationModal({
       const result = await verifyOTP(otpCode, phoneE164);
 
       if (result.success) {
+        // Reset state immediately
+        setStep("phone");
+        setPhoneNumber("");
+        setOtpCode("");
+        setError("");
+        
         Alert.alert(
           "Success!",
           "Your phone number has been verified successfully.",
@@ -140,7 +174,7 @@ export function PhoneVerificationModal({
             {
               text: "OK",
               onPress: () => {
-                handleClose();
+                onClose(); // Direct close without confirmation
                 onVerified();
               },
             },
@@ -154,9 +188,15 @@ export function PhoneVerificationModal({
     } finally {
       setLoading(false);
     }
-  }, [otpCode, phoneE164, onVerified]);
+  }, [otpCode, phoneE164, onVerified, onClose]);
 
   const handleClose = useCallback(() => {
+    // Clear cooldown timer
+    if (cooldownTimerRef.current) {
+      clearInterval(cooldownTimerRef.current);
+      cooldownTimerRef.current = null;
+    }
+    
     // If verification is mandatory and user tries to leave, show confirmation
     if (!canSkip) {
       Alert.alert(
@@ -171,6 +211,7 @@ export function PhoneVerificationModal({
               setPhoneNumber("");
               setOtpCode("");
               setError("");
+              setResendCooldown(0);
               onClose();
             },
           },
@@ -184,6 +225,7 @@ export function PhoneVerificationModal({
     setPhoneNumber("");
     setOtpCode("");
     setError("");
+    setResendCooldown(0);
     onClose();
   }, [onClose, canSkip]);
 
@@ -191,6 +233,42 @@ export function PhoneVerificationModal({
     handleClose();
     onSkip?.();
   }, [handleClose, onSkip]);
+
+  // Cooldown timer effect
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      cooldownTimerRef.current = setInterval(() => {
+        setResendCooldown((prev) => {
+          if (prev <= 1) {
+            if (cooldownTimerRef.current) {
+              clearInterval(cooldownTimerRef.current);
+              cooldownTimerRef.current = null;
+            }
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (cooldownTimerRef.current) {
+        clearInterval(cooldownTimerRef.current);
+        cooldownTimerRef.current = null;
+      }
+    };
+  }, [resendCooldown]);
+
+  // Reset cooldown when modal closes
+  useEffect(() => {
+    if (!visible) {
+      setResendCooldown(0);
+      if (cooldownTimerRef.current) {
+        clearInterval(cooldownTimerRef.current);
+        cooldownTimerRef.current = null;
+      }
+    }
+  }, [visible]);
 
   return (
     <Modal
@@ -342,7 +420,7 @@ export function PhoneVerificationModal({
                   {/* Actions */}
                   <View className="gap-3 mt-2">
                     <Button
-                      onPress={handleSendOTP}
+                      onPress={() => handleSendOTP(false)}
                       disabled={loading || !phoneNumber}
                       size="lg"
                     >
@@ -376,6 +454,11 @@ export function PhoneVerificationModal({
                         setStep("phone");
                         setOtpCode("");
                         setError("");
+                        setResendCooldown(0);
+                        if (cooldownTimerRef.current) {
+                          clearInterval(cooldownTimerRef.current);
+                          cooldownTimerRef.current = null;
+                        }
                       }}
                       className="mt-2"
                     >
@@ -436,12 +519,21 @@ export function PhoneVerificationModal({
                       )}
                     </Button>
                     <Button
-                      onPress={handleSendOTP}
+                      onPress={() => handleSendOTP(true)}
                       variant="ghost"
                       size="lg"
-                      disabled={loading}
+                      disabled={loading || isResending || resendCooldown > 0}
                     >
-                      <Text>Resend Code</Text>
+                      {isResending ? (
+                        <View className="flex-row items-center gap-2">
+                          <ActivityIndicator size="small" />
+                          <Text>Sending...</Text>
+                        </View>
+                      ) : resendCooldown > 0 ? (
+                        <Text>Resend Code ({resendCooldown}s)</Text>
+                      ) : (
+                        <Text>Resend Code</Text>
+                      )}
                     </Button>
                     {canSkip && (
                       <Button onPress={handleSkip} variant="outline" size="lg">
