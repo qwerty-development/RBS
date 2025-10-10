@@ -49,7 +49,7 @@ interface ReviewsTabContentProps {
   onWriteReview: () => void;
 }
 
-export const ReviewsTabContent = ({
+const ReviewsTabContentComponent = ({
   reviewSummary,
   reviews,
   showAllReviews,
@@ -122,3 +122,5 @@ export const ReviewsTabContent = ({
     </View>
   );
 };
+
+export const ReviewsTabContent = React.memo(ReviewsTabContentComponent);

@@ -94,8 +94,14 @@ interface MenuItem {
 export default function ProfileScreen() {
   const { colorScheme } = useColorScheme();
   const router = useRouter();
-  const { profile, signOut, initialized, isGuest, convertGuestToUser, refreshProfile } =
-    useAuth();
+  const {
+    profile,
+    signOut,
+    initialized,
+    isGuest,
+    convertGuestToUser,
+    refreshProfile,
+  } = useAuth();
 
   // --- Guest View ---
   // If the user is a guest, display a call-to-action screen.
@@ -245,7 +251,9 @@ export default function ProfileScreen() {
         },
         {
           id: "phone-verification",
-          title: profile?.phone_verified ? "Phone Verified" : "Verify Phone Number",
+          title: profile?.phone_verified
+            ? "Phone Verified"
+            : "Verify Phone Number",
           subtitle: profile?.phone_verified
             ? profile.phone_number || "Verified"
             : "Required for bookings",
@@ -426,9 +434,11 @@ export default function ProfileScreen() {
             )}
           </View>
         </View>
-        {!item.destructive && profile?.phone_verified && item.id === "phone-verification" && (
-          <CheckCircle size={20} color="#22c55e" />
-        )}
+        {!item.destructive &&
+          profile?.phone_verified &&
+          item.id === "phone-verification" && (
+            <CheckCircle size={20} color="#22c55e" />
+          )}
         {!item.destructive && item.id !== "phone-verification" && (
           <ChevronRight size={20} color="#666" />
         )}

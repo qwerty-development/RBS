@@ -12,9 +12,7 @@ import {
   Users,
   Gift,
   Trophy,
-  Sparkles,
   TableIcon,
-  TrendingUp,
 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import Confetti from "react-native-confetti";
@@ -22,7 +20,7 @@ import Confetti from "react-native-confetti";
 import { SafeAreaView } from "@/components/safe-area-view";
 import { Button } from "@/components/ui/button";
 import { Text } from "@/components/ui/text";
-import { H1, H2, H3, P, Muted } from "@/components/ui/typography";
+import { H1, H3, P, Muted } from "@/components/ui/typography";
 import { LoyaltyPointsCard } from "@/components/ui/loyalty-points-card";
 import { useColorScheme } from "@/lib/useColorScheme";
 import { supabase } from "@/config/supabase";

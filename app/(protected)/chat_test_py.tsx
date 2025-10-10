@@ -28,7 +28,7 @@ const { width: screenWidth } = Dimensions.get("window");
 const AI_API_BASE_URL = RESTO_AI_BASE_URL; // Centralized base URL
 
 // Waving hand animation component
-const WavingHandAnimation = memo(() => {
+const WavingHandAnimation = memo(function WavingHandAnimation() {
   const waveAnimation = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -94,7 +94,7 @@ const WavingHandAnimation = memo(() => {
 });
 
 // Enhanced typing indicator component
-const TypingIndicator = memo(() => {
+const TypingIndicator = memo(function TypingIndicator() {
   const dot1 = useRef(new Animated.Value(0)).current;
   const dot2 = useRef(new Animated.Value(0)).current;
   const dot3 = useRef(new Animated.Value(0)).current;
@@ -189,106 +189,103 @@ interface ChatTestPyScreenProps {
 }
 
 // Enhanced message component that can display text and restaurant cards
-const MessageBubble = memo(
-  ({
-    message,
-    onRestaurantPress,
+const MessageBubble = memo(function MessageBubble({
+  message,
+  onRestaurantPress,
+}: {
+  message: ChatMessage;
+  onRestaurantPress?: (restaurant: any) => void;
+}) {
+  const isUser = message.role === "user";
+  const hasRestaurants = message.restaurants && message.restaurants.length > 0;
+
+  const cardWidth = screenWidth - 80; // Account for message margins and padding
+
+  const renderRestaurantCard = ({
+    item: restaurant,
+    index,
   }: {
-    message: ChatMessage;
-    onRestaurantPress?: (restaurant: any) => void;
-  }) => {
-    const isUser = message.role === "user";
-    const hasRestaurants =
-      message.restaurants && message.restaurants.length > 0;
+    item: any;
+    index: number;
+  }) => (
+    <View style={{ width: cardWidth, paddingRight: 12 }}>
+      <RestaurantCard
+        key={restaurant.id || index}
+        restaurant={restaurant}
+        variant="featured"
+        className="shadow-sm"
+        onPress={() => onRestaurantPress?.(restaurant)}
+      />
+    </View>
+  );
 
-    const cardWidth = screenWidth - 80; // Account for message margins and padding
-
-    const renderRestaurantCard = ({
-      item: restaurant,
-      index,
-    }: {
-      item: any;
-      index: number;
-    }) => (
-      <View style={{ width: cardWidth, paddingRight: 12 }}>
-        <RestaurantCard
-          key={restaurant.id || index}
-          restaurant={restaurant}
-          variant="featured"
-          className="shadow-sm"
-          onPress={() => onRestaurantPress?.(restaurant)}
-        />
-      </View>
-    );
-
-    return (
-      <View className={`mb-4 ${isUser ? "ml-12" : "mr-12"}`}>
-        {/* Text content */}
-        {message.content && (
-          <View
-            className={`p-4 rounded-2xl ${
-              isUser
-                ? "bg-primary shadow-lg"
-                : "bg-muted border border-border shadow-sm"
+  return (
+    <View className={`mb-4 ${isUser ? "ml-12" : "mr-12"}`}>
+      {/* Text content */}
+      {message.content && (
+        <View
+          className={`p-4 rounded-2xl ${
+            isUser
+              ? "bg-primary shadow-lg"
+              : "bg-muted border border-border shadow-sm"
+          }`}
+        >
+          {!isUser && (
+            <View className="flex-row items-center gap-2 mb-2">
+              <View className="w-6 h-6 bg-primary rounded-full items-center justify-center">
+                <Text className="text-primary-foreground text-xs font-bold">
+                  AI
+                </Text>
+              </View>
+              <Text className="text-xs text-muted-foreground font-medium">
+                DineMate
+              </Text>
+            </View>
+          )}
+          <Text
+            className={`text-sm leading-5 ${
+              isUser ? "text-primary-foreground" : "text-foreground"
             }`}
           >
-            {!isUser && (
-              <View className="flex-row items-center gap-2 mb-2">
-                <View className="w-6 h-6 bg-primary rounded-full items-center justify-center">
-                  <Text className="text-primary-foreground text-xs font-bold">
-                    AI
-                  </Text>
-                </View>
-                <Text className="text-xs text-muted-foreground font-medium">
-                  DineMate
-                </Text>
-              </View>
-            )}
-            <Text
-              className={`text-sm leading-5 ${
-                isUser ? "text-primary-foreground" : "text-foreground"
-              }`}
-            >
-              {message.content}
-            </Text>
-          </View>
-        )}
+            {message.content}
+          </Text>
+        </View>
+      )}
 
-        {/* Restaurant cards - Horizontal scrollable */}
-        {hasRestaurants && (
-          <View className="mt-3">
-            <OptimizedList
-              data={message.restaurants ?? []}
-              renderItem={renderRestaurantCard}
-              keyExtractor={(restaurant, index) =>
-                restaurant.id || index.toString()
-              }
-              listProps={{
-                horizontal: true,
-                showsHorizontalScrollIndicator: false,
-                pagingEnabled: true,
-                snapToInterval: cardWidth + 12,
-                decelerationRate: "fast",
-                contentContainerStyle: {
-                  paddingLeft: 4,
-                  paddingRight: 4,
-                },
-              }}
-            />
-            {message.restaurants!.length > 1 && (
-              <View className="flex-row justify-center mt-2">
-                <Text className="text-xs text-muted-foreground">
-                  Swipe to see more restaurants ({message.restaurants!.length}{" "}
-                  total)
-                </Text>
-              </View>
-            )}
-          </View>
-        )}
-      </View>
-    );
-  },
-);
+      {/* Restaurant cards - Horizontal scrollable */}
+      {hasRestaurants && (
+        <View className="mt-3">
+          <OptimizedList
+            data={message.restaurants ?? []}
+            renderItem={renderRestaurantCard}
+            keyExtractor={(restaurant, index) =>
+              restaurant.id || index.toString()
+            }
+            listProps={{
+              horizontal: true,
+              showsHorizontalScrollIndicator: false,
+              pagingEnabled: true,
+              snapToInterval: cardWidth + 12,
+              decelerationRate: "fast",
+              contentContainerStyle: {
+                paddingLeft: 4,
+                paddingRight: 4,
+              },
+            }}
+          />
+          {message.restaurants!.length > 1 && (
+            <View className="flex-row justify-center mt-2">
+              <Text className="text-xs text-muted-foreground">
+                Swipe to see more restaurants ({message.restaurants!.length}{" "}
+                total)
+              </Text>
+            </View>
+          )}
+        </View>
+      )}
+    </View>
+  );
+});
 
 // Function to communicate with RestoAI backend
 async function sendMessageToRestoAI(

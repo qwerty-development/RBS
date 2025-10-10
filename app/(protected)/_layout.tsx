@@ -65,9 +65,11 @@ export default function ProtectedLayout() {
     if (session && profile && profile.onboarded === false) {
       try {
         router.replace("/onboarding");
-      } catch (e) {}
+      } catch (e) {
+        // Ignore navigation errors
+      }
     }
-  }, [session, profile?.onboarded]);
+  }, [session, profile, router]);
 
   // Show loading while auth is stabilizing
   if (!stableAuthState.initialized) {

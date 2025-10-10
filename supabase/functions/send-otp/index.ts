@@ -8,11 +8,12 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID")!;
 const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN")!;
 const VERIFY_SID = Deno.env.get("TWILIO_VERIFY_SERVICE_SID")!;
-const BASIC_AUTH = "Basic " + btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
+const BASIC_AUTH =
+  "Basic " + btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
 
 type Body = {
-  phone: string;                   // E.164, e.g. "+96171357429"
-  channel?: "sms" | "whatsapp";    // default: "sms"
+  phone: string; // E.164, e.g. "+96171357429"
+  channel?: "sms" | "whatsapp"; // default: "sms"
 };
 
 function json(status: number, payload: any) {
@@ -37,7 +38,7 @@ Deno.serve(async (req) => {
     // Get user from JWT (optional - send-otp can be called without auth for initial check)
     const jwt = req.headers.get("Authorization")?.replace("Bearer ", "");
     let currentUserId: string | null = null;
-    
+
     if (jwt) {
       const { data: authUser } = await supa.auth.getUser(jwt);
       currentUserId = authUser?.user?.id || null;
@@ -52,7 +53,11 @@ Deno.serve(async (req) => {
 
     if (existingProfile) {
       // If this phone belongs to current user and is already verified, don't allow resend
-      if (currentUserId && existingProfile.id === currentUserId && existingProfile.phone_verified) {
+      if (
+        currentUserId &&
+        existingProfile.id === currentUserId &&
+        existingProfile.phone_verified
+      ) {
         return json(400, { error: "phone_already_verified" });
       }
       // If this phone belongs to a different user, block it
@@ -76,17 +81,17 @@ Deno.serve(async (req) => {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: form,
-      }
+      },
     );
 
     const data = await r.json();
-    
+
     if (!r.ok) {
       console.error("Twilio error:", data);
-      
+
       // Handle specific Twilio errors
       let errorMessage = data?.message || "verify_start_failed";
-      
+
       if (data?.code === 60200) {
         errorMessage = "phone_number_blocked";
       } else if (data?.code === 60205) {
@@ -100,7 +105,7 @@ Deno.serve(async (req) => {
       } else if (data?.message?.toLowerCase().includes("invalid")) {
         errorMessage = "invalid_phone_number";
       }
-      
+
       return json(400, { error: errorMessage, twilio_code: data?.code });
     }
 
@@ -110,4 +115,3 @@ Deno.serve(async (req) => {
     return json(500, { error: e?.message ?? "unknown_error" });
   }
 });
-

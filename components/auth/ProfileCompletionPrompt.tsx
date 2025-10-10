@@ -52,12 +52,12 @@ const formatDateInput = (value: string): string => {
 const convertToDbFormat = (dateString: string): string => {
   const ddMmYyyyRegex = /^(\d{2})-(\d{2})-(\d{4})$/;
   const match = dateString.match(ddMmYyyyRegex);
-  
+
   if (match) {
     const [, day, month, year] = match;
     return `${year}-${month}-${day}`;
   }
-  
+
   return dateString;
 };
 
@@ -65,12 +65,12 @@ const convertToDbFormat = (dateString: string): string => {
 const convertToDisplayFormat = (dateString: string): string => {
   const yyyyMmDdRegex = /^(\d{4})-(\d{2})-(\d{2})$/;
   const match = dateString.match(yyyyMmDdRegex);
-  
+
   if (match) {
     const [, year, month, day] = match;
     return `${day}-${month}-${year}`;
   }
-  
+
   return dateString;
 };
 
@@ -594,12 +594,12 @@ export const ProfileCompletionPrompt: React.FC<
                       <FormInput
                         {...field}
                         label={fieldConfig.title.replace("Add Your ", "")}
-                      placeholder={fieldConfig.placeholder}
-                      description={
-                        fieldConfig.isDateField
-                          ? "Enter your birth day, month, and year (dashes added automatically)"
-                          : undefined
-                      }
+                        placeholder={fieldConfig.placeholder}
+                        description={
+                          fieldConfig.isDateField
+                            ? "Enter your birth day, month, and year (dashes added automatically)"
+                            : undefined
+                        }
                         autoCapitalize={fieldConfig.autoCapitalize}
                         autoCorrect={false}
                         keyboardType={fieldConfig.keyboardType || "default"}

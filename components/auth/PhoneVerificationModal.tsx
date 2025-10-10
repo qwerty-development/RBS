@@ -62,7 +62,7 @@ export function PhoneVerificationModal({
   // Parse initial phone number if provided
   const parsePhoneNumber = (phone: string) => {
     if (!phone) return { countryCode: COUNTRY_CODES[0], number: "" };
-    
+
     // Try to match with country codes
     for (const country of COUNTRY_CODES) {
       if (phone.startsWith(country.code)) {
@@ -72,15 +72,17 @@ export function PhoneVerificationModal({
         };
       }
     }
-    
+
     // Default to first country if no match
     return { countryCode: COUNTRY_CODES[0], number: phone };
   };
 
-  const { countryCode: initialCountryCode, number: initialNumber } = parsePhoneNumber(initialPhoneNumber || "");
+  const { countryCode: initialCountryCode, number: initialNumber } =
+    parsePhoneNumber(initialPhoneNumber || "");
 
   // Phone number state
-  const [selectedCountryCode, setSelectedCountryCode] = useState(initialCountryCode);
+  const [selectedCountryCode, setSelectedCountryCode] =
+    useState(initialCountryCode);
   const [phoneNumber, setPhoneNumber] = useState(initialNumber);
   const [showCountryPicker, setShowCountryPicker] = useState(false);
 
@@ -88,7 +90,7 @@ export function PhoneVerificationModal({
   const [otpCode, setOtpCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  
+
   // Resend cooldown state
   const [resendCooldown, setResendCooldown] = useState(0);
   const [isResending, setIsResending] = useState(false);
@@ -96,57 +98,60 @@ export function PhoneVerificationModal({
 
   const phoneE164 = `${selectedCountryCode.code}${phoneNumber.replace(/^0+/, "")}`;
 
-  const handleSendOTP = useCallback(async (isResend = false) => {
-    if (!phoneNumber || phoneNumber.length < 6) {
-      setError("Please enter a valid phone number");
-      return;
-    }
-
-    // Check cooldown for resend
-    if (isResend && resendCooldown > 0) {
-      setError(`Please wait ${resendCooldown} seconds before resending`);
-      return;
-    }
-
-    if (isResend) {
-      setIsResending(true);
-    } else {
-      setLoading(true);
-    }
-    setError("");
-
-    try {
-      const result = await sendOTP(phoneE164);
-
-      if (result.success) {
-        if (!isResend) {
-          setStep("otp");
-        } else {
-          // Clear OTP input on resend
-          setOtpCode("");
-        }
-        
-        // Start cooldown timer (60 seconds)
-        setResendCooldown(60);
-        
-        Alert.alert(
-          isResend ? "Code Resent" : "Code Sent",
-          `A verification code has been sent to ${phoneE164}`,
-          [{ text: "OK" }]
-        );
-      } else {
-        setError(result.error || "Failed to send verification code");
+  const handleSendOTP = useCallback(
+    async (isResend = false) => {
+      if (!phoneNumber || phoneNumber.length < 6) {
+        setError("Please enter a valid phone number");
+        return;
       }
-    } catch (err: any) {
-      setError(err.message || "Failed to send verification code");
-    } finally {
+
+      // Check cooldown for resend
+      if (isResend && resendCooldown > 0) {
+        setError(`Please wait ${resendCooldown} seconds before resending`);
+        return;
+      }
+
       if (isResend) {
-        setIsResending(false);
+        setIsResending(true);
       } else {
-        setLoading(false);
+        setLoading(true);
       }
-    }
-  }, [phoneNumber, phoneE164, resendCooldown]);
+      setError("");
+
+      try {
+        const result = await sendOTP(phoneE164);
+
+        if (result.success) {
+          if (!isResend) {
+            setStep("otp");
+          } else {
+            // Clear OTP input on resend
+            setOtpCode("");
+          }
+
+          // Start cooldown timer (60 seconds)
+          setResendCooldown(60);
+
+          Alert.alert(
+            isResend ? "Code Resent" : "Code Sent",
+            `A verification code has been sent to ${phoneE164}`,
+            [{ text: "OK" }],
+          );
+        } else {
+          setError(result.error || "Failed to send verification code");
+        }
+      } catch (err: any) {
+        setError(err.message || "Failed to send verification code");
+      } finally {
+        if (isResend) {
+          setIsResending(false);
+        } else {
+          setLoading(false);
+        }
+      }
+    },
+    [phoneNumber, phoneE164, resendCooldown],
+  );
 
   const handleVerifyOTP = useCallback(async () => {
     if (!otpCode || otpCode.length !== 6) {
@@ -166,7 +171,7 @@ export function PhoneVerificationModal({
         setPhoneNumber("");
         setOtpCode("");
         setError("");
-        
+
         Alert.alert(
           "Success!",
           "Your phone number has been verified successfully.",
@@ -178,7 +183,7 @@ export function PhoneVerificationModal({
                 onVerified();
               },
             },
-          ]
+          ],
         );
       } else {
         setError(result.error || "Invalid verification code");
@@ -196,7 +201,7 @@ export function PhoneVerificationModal({
       clearInterval(cooldownTimerRef.current);
       cooldownTimerRef.current = null;
     }
-    
+
     // If verification is mandatory and user tries to leave, show confirmation
     if (!canSkip) {
       Alert.alert(
@@ -215,11 +220,11 @@ export function PhoneVerificationModal({
               onClose();
             },
           },
-        ]
+        ],
       );
       return;
     }
-    
+
     // Can skip - close immediately
     setStep("phone");
     setPhoneNumber("");
@@ -283,10 +288,7 @@ export function PhoneVerificationModal({
           className="flex-1"
         >
           {canSkip ? (
-            <BackHeader 
-              title="Verify Phone" 
-              onBackPress={handleClose}
-            />
+            <BackHeader title="Verify Phone" onBackPress={handleClose} />
           ) : (
             <View className="px-4 pt-4 pb-2">
               <View className="flex-row items-center justify-end">
@@ -295,13 +297,16 @@ export function PhoneVerificationModal({
                   className="p-2 rounded-full bg-muted"
                   hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                 >
-                  <X size={20} color={colorScheme === "dark" ? "#fff" : "#000"} />
+                  <X
+                    size={20}
+                    color={colorScheme === "dark" ? "#fff" : "#000"}
+                  />
                 </Pressable>
               </View>
             </View>
           )}
 
-          <ScrollView 
+          <ScrollView
             className="flex-1"
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
@@ -326,7 +331,10 @@ export function PhoneVerificationModal({
                   {/* Country Code Selector */}
                   <View>
                     <Text className="text-sm font-medium mb-2">
-                      Country Code <Text className="text-muted-foreground text-xs">(tap to change)</Text>
+                      Country Code{" "}
+                      <Text className="text-muted-foreground text-xs">
+                        (tap to change)
+                      </Text>
                     </Text>
                     <Pressable
                       onPress={() => setShowCountryPicker(!showCountryPicker)}
@@ -337,7 +345,9 @@ export function PhoneVerificationModal({
                       })}
                     >
                       <View className="flex-row items-center gap-2">
-                        <Text className="text-2xl">{selectedCountryCode.flag}</Text>
+                        <Text className="text-2xl">
+                          {selectedCountryCode.flag}
+                        </Text>
                         <Text className="font-medium text-base">
                           {selectedCountryCode.code}
                         </Text>
@@ -349,7 +359,10 @@ export function PhoneVerificationModal({
 
                     {/* Country Picker Dropdown */}
                     {showCountryPicker && (
-                      <View className="mt-2 bg-card border-2 border-primary rounded-lg overflow-hidden" style={{ maxHeight: 240 }}>
+                      <View
+                        className="mt-2 bg-card border-2 border-primary rounded-lg overflow-hidden"
+                        style={{ maxHeight: 240 }}
+                      >
                         <ScrollView nestedScrollEnabled={true}>
                           {COUNTRY_CODES.map((country) => (
                             <Pressable
@@ -364,7 +377,9 @@ export function PhoneVerificationModal({
                               })}
                             >
                               <Text className="text-3xl">{country.flag}</Text>
-                              <Text className="font-semibold text-base">{country.code}</Text>
+                              <Text className="font-semibold text-base">
+                                {country.code}
+                              </Text>
                               <Text className="text-muted-foreground flex-1 text-base">
                                 {country.country}
                               </Text>
@@ -380,7 +395,9 @@ export function PhoneVerificationModal({
 
                   {/* Phone Number Input */}
                   <View>
-                    <Text className="text-sm font-medium mb-2">Phone Number</Text>
+                    <Text className="text-sm font-medium mb-2">
+                      Phone Number
+                    </Text>
                     <View className="flex-row items-center bg-card border-2 border-border rounded-lg px-4">
                       <Text className="text-muted-foreground mt-1 text-base">
                         {selectedCountryCode.code}
@@ -427,7 +444,9 @@ export function PhoneVerificationModal({
                       {loading ? (
                         <ActivityIndicator color="white" />
                       ) : (
-                        <Text className="font-bold text-white">Send Verification Code</Text>
+                        <Text className="font-bold text-white">
+                          Send Verification Code
+                        </Text>
                       )}
                     </Button>
                     {canSkip && (
@@ -550,4 +569,3 @@ export function PhoneVerificationModal({
     </Modal>
   );
 }
-

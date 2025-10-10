@@ -18,7 +18,7 @@ interface QuickActionsBarProps {
   onDirections: () => void;
 }
 
-export const QuickActionsBar = ({
+const QuickActionsBarComponent = ({
   restaurant,
   isFavorite,
   colorScheme,
@@ -67,3 +67,5 @@ export const QuickActionsBar = ({
     </View>
   );
 };
+
+export const QuickActionsBar = React.memo(QuickActionsBarComponent);

@@ -81,7 +81,7 @@ export default function OnboardingScreen() {
 
   const handleComplete = async (): Promise<void> => {
     if (isCompleting) return;
-    
+
     try {
       setIsCompleting(true);
       await updateProfile({ onboarded: true });
@@ -93,7 +93,7 @@ export default function OnboardingScreen() {
 
   const next = (): void => {
     if (isCompleting) return;
-    
+
     if (index < SLIDES.length - 1) {
       listRef.current?.scrollToIndex({ index: index + 1, animated: true });
       setIndex((i) => i + 1);

@@ -727,7 +727,7 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
         .from("restaurants")
         .select("id")
         .eq("featured", true)
-           .eq("status", "active")
+        .eq("status", "active")
         .order("total_reviews", { ascending: false })
         .limit(10);
 

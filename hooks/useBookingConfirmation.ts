@@ -122,7 +122,7 @@ export const useBookingConfirmation = () => {
               text: "Cancel",
               style: "cancel",
             },
-          ]
+          ],
         );
         return false;
       }

@@ -67,7 +67,10 @@ const formSchema = z
       .toLowerCase(),
     phoneNumber: z
       .string()
-      .regex(phoneNumberRegex, "Please enter a valid phone number (6-15 digits)."),
+      .regex(
+        phoneNumberRegex,
+        "Please enter a valid phone number (6-15 digits).",
+      ),
     dateOfBirth: z
       .string()
       .min(1, "Please enter your date of birth.")
@@ -118,7 +121,9 @@ export default function SignUp() {
   const [loading, setLoading] = React.useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
-  const [selectedCountryCode, setSelectedCountryCode] = React.useState(COUNTRY_CODES[0]);
+  const [selectedCountryCode, setSelectedCountryCode] = React.useState(
+    COUNTRY_CODES[0],
+  );
   const [showCountryPicker, setShowCountryPicker] = React.useState(false);
   const isDark = colorScheme === "dark";
 
@@ -290,18 +295,22 @@ export default function SignUp() {
                       <Text className="text-sm font-medium mb-2 text-foreground">
                         Phone Number
                       </Text>
-                      
+
                       {/* Country Code Selector */}
                       <Pressable
                         onPress={() => setShowCountryPicker(!showCountryPicker)}
                         className="flex-row items-center justify-between p-4 bg-gray-100 dark:bg-gray-800 border-2 border-input rounded-lg mb-2"
                         style={({ pressed }) => ({
                           opacity: pressed ? 0.8 : 1,
-                          borderColor: showCountryPicker ? "#792339" : undefined,
+                          borderColor: showCountryPicker
+                            ? "#792339"
+                            : undefined,
                         })}
                       >
                         <View className="flex-row items-center gap-2">
-                          <Text className="text-2xl">{selectedCountryCode.flag}</Text>
+                          <Text className="text-2xl">
+                            {selectedCountryCode.flag}
+                          </Text>
                           <Text className="font-medium text-base text-foreground">
                             {selectedCountryCode.code}
                           </Text>
@@ -313,7 +322,10 @@ export default function SignUp() {
 
                       {/* Country Picker Dropdown */}
                       {showCountryPicker && (
-                        <View className="mb-2 bg-card border-2 border-primary rounded-lg overflow-hidden" style={{ maxHeight: 240 }}>
+                        <View
+                          className="mb-2 bg-card border-2 border-primary rounded-lg overflow-hidden"
+                          style={{ maxHeight: 240 }}
+                        >
                           <ScrollView nestedScrollEnabled={true}>
                             {COUNTRY_CODES.map((country) => (
                               <Pressable
@@ -328,7 +340,9 @@ export default function SignUp() {
                                 })}
                               >
                                 <Text className="text-3xl">{country.flag}</Text>
-                                <Text className="font-semibold text-base text-foreground">{country.code}</Text>
+                                <Text className="font-semibold text-base text-foreground">
+                                  {country.code}
+                                </Text>
                                 <Text className="text-muted-foreground flex-1 text-base">
                                   {country.country}
                                 </Text>
@@ -360,7 +374,7 @@ export default function SignUp() {
                           className="flex-1 py-4 px-3 text-foreground text-base"
                         />
                       </View>
-                      
+
                       {/* Warning Box */}
                       <View className="flex-row items-start gap-2 p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg mt-2 border border-yellow-200 dark:border-yellow-800">
                         <Info size={18} color="#eab308" className="mt-0.5" />

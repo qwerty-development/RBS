@@ -1,6 +1,12 @@
 // app/(protected)/booking/create.tsx
 import React, { useCallback, useEffect } from "react";
-import { ScrollView, View, KeyboardAvoidingView, Platform, Alert } from "react-native";
+import {
+  ScrollView,
+  View,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+} from "react-native";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -84,7 +90,7 @@ export default function BookingCreateScreen() {
             onPress: () => router.back(),
             style: "cancel",
           },
-        ]
+        ],
       );
     }
   }, [loading, profile]);

@@ -8,11 +8,12 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID")!;
 const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN")!;
 const VERIFY_SID = Deno.env.get("TWILIO_VERIFY_SERVICE_SID")!;
-const BASIC_AUTH = "Basic " + btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
+const BASIC_AUTH =
+  "Basic " + btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`);
 
 type Body = {
-  phone: string;       // E.164, e.g. "+96171357429"
-  code: string;        // "123456"
+  phone: string; // E.164, e.g. "+96171357429"
+  code: string; // "123456"
 };
 
 function json(status: number, payload: any) {
@@ -65,7 +66,7 @@ Deno.serve(async (req) => {
           "Content-Type": "application/x-www-form-urlencoded",
         },
         body: form,
-      }
+      },
     );
     const data = await r.json();
 
@@ -94,4 +95,3 @@ Deno.serve(async (req) => {
     return json(500, { error: e?.message ?? "unknown_error" });
   }
 });
-

@@ -72,7 +72,7 @@ export default function HomeScreen() {
       if (!profile.phone_verified) {
         // Check if we've already prompted the user in this session
         const hasPrompted = await AsyncStorage.getItem(
-          `${PHONE_VERIFICATION_PROMPTED_KEY}-${profile.id}`
+          `${PHONE_VERIFICATION_PROMPTED_KEY}-${profile.id}`,
         );
 
         if (!hasPrompted) {
@@ -84,7 +84,7 @@ export default function HomeScreen() {
           // Mark as prompted for this session
           await AsyncStorage.setItem(
             `${PHONE_VERIFICATION_PROMPTED_KEY}-${profile.id}`,
-            "true"
+            "true",
           );
         }
       }
@@ -496,7 +496,7 @@ export default function HomeScreen() {
           Alert.alert(
             "Phone Verification Required",
             "You'll need to verify your phone number to make bookings. You can do this anytime from your profile.",
-            [{ text: "OK" }]
+            [{ text: "OK" }],
           );
         }}
         canSkip={true}

@@ -318,7 +318,7 @@ export default function CuisineScreen() {
     if (cuisineId) {
       fetchCuisineRestaurants();
     }
-  }, [fetchCuisineRestaurants]);
+  }, [cuisineId, fetchCuisineRestaurants]);
 
   // Filter Statistics
   const stats = useMemo(() => {

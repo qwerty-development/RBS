@@ -889,7 +889,8 @@ export default function FriendsScreen() {
                       Search for users by name, email or phone number
                     </Text>
                     <Muted className="text-xs mt-2 text-center px-6">
-                      Phone: Enter full number with or without country code (min 8 digits)
+                      Phone: Enter full number with or without country code (min
+                      8 digits)
                     </Muted>
                   </>
                 )}

@@ -138,7 +138,11 @@ function RootLayoutContent({
 
   // Redirect users who haven't completed onboarding (only once)
   useEffect(() => {
-    if (profile && profile.onboarded === false && !hasRedirectedToOnboarding.current) {
+    if (
+      profile &&
+      profile.onboarded === false &&
+      !hasRedirectedToOnboarding.current
+    ) {
       hasRedirectedToOnboarding.current = true;
       try {
         router.replace("/onboarding");
