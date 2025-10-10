@@ -95,6 +95,7 @@ export const useRestaurantReviewsWithReplies = (restaurantId: string) => {
           .from("restaurants")
           .select("*")
           .eq("id", restaurantId)
+          .eq("status", "active")
           .single();
 
         if (restaurantError) throw restaurantError;

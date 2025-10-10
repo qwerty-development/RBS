@@ -29,6 +29,7 @@ export function useBanners() {
           .from("restaurants")
           .select("*")
           .eq("id", banner.restaurant_id)
+          .eq("status", "active")
           .single();
 
         restaurant = restaurantData;

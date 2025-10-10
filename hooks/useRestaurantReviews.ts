@@ -89,6 +89,7 @@ export const useRestaurantReviews = (restaurantId: string) => {
           .from("restaurants")
           .select("*")
           .eq("id", restaurantId)
+          .eq("status", "active")
           .single();
 
         if (restaurantError) throw restaurantError;

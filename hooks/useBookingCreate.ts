@@ -269,6 +269,7 @@ export function useBookingCreate() {
         .from("restaurants")
         .select("*, booking_policy")
         .eq("id", restaurantId)
+        .eq("status", "active")
         .single();
 
       if (restaurantError) throw restaurantError;

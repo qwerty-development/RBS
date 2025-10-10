@@ -191,6 +191,7 @@ export const useBookingConfirmation = () => {
           .from("restaurants")
           .select("tier")
           .eq("id", restaurantId)
+          .eq("status", "active")
           .single();
 
         if (!restaurantError && restaurant?.tier === "basic") {

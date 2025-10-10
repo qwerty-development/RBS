@@ -610,6 +610,7 @@ export class AvailabilityService {
           .from("restaurants")
           .select("booking_window_days") // Removed legacy opening_time, closing_time fields
           .eq("id", restaurantId)
+          .eq("status", "active")
           .single(),
 
         supabase
@@ -658,6 +659,7 @@ export class AvailabilityService {
       .from("restaurants")
       .select("tier")
       .eq("id", restaurantId)
+      .eq("status", "active")
       .single();
 
     if (error || !data) return "pro"; // Default to pro if error

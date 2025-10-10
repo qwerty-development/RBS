@@ -727,7 +727,7 @@ export function useRecommendations(context?: Partial<RecommendationContext>) {
         .from("restaurants")
         .select("id")
         .eq("featured", true)
-        .gte("average_rating", 4.0)
+           .eq("status", "active")
         .order("total_reviews", { ascending: false })
         .limit(10);
 
@@ -782,6 +782,7 @@ export function useSimilarRestaurants(restaurantId: string) {
           .from("restaurants")
           .select("*")
           .eq("id", restaurantId)
+          .eq("status", "active")
           .single();
 
         if (!refRestaurant) return;
@@ -792,6 +793,7 @@ export function useSimilarRestaurants(restaurantId: string) {
           .select("*")
           .eq("cuisine_type", refRestaurant.cuisine_type)
           .eq("price_range", refRestaurant.price_range)
+          .eq("status", "active")
           .neq("id", restaurantId)
           .limit(5);
 

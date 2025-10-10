@@ -160,6 +160,7 @@ async function checkRestaurantHours(
       `,
       )
       .eq("id", restaurantId)
+      .eq("status", "active")
       .single();
 
     if (error || !restaurant) {

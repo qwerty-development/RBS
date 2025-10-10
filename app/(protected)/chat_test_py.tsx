@@ -360,7 +360,8 @@ async function sendMessageToRestoAI(
         const { data: restaurantData, error } = await supabase
           .from("restaurants")
           .select("*")
-          .in("id", data.restaurants_to_show);
+          .in("id", data.restaurants_to_show)
+          .eq("status", "active");
 
         if (error) {
           console.error("Error fetching restaurant details:", error);

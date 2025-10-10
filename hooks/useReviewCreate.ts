@@ -140,6 +140,7 @@ export function useReviewCreate({
         .from("restaurants")
         .select("*")
         .eq("id", restaurantId)
+        .eq("status", "active")
         .single();
 
       if (restaurantError) {
